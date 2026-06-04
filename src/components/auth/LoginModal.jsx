@@ -1,0 +1,87 @@
+import { useState } from 'react'
+import { Shield, LogIn } from 'lucide-react'
+import toast from 'react-hot-toast'
+import Modal from '../ui/Modal'
+import { useAuthStore, DEMO_CREDENTIALS, PROFILES } from '../../store/authStore'
+
+export default function LoginModal({ open, onClose }) {
+  const login = useAuthStore((s) => s.login)
+  const loginAsDemo = useAuthStore((s) => s.loginAsDemo)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+
+  const submit = (e) => {
+    e.preventDefault()
+    const res = login(email, password)
+    if (res.ok) {
+      toast.success('Bem-vindo, Administrador')
+      onClose?.()
+    } else {
+      setError(res.error)
+    }
+  }
+
+  const demo = (role) => {
+    loginAsDemo(role)
+    toast.success(`Conectado como ${PROFILES[role].label}`)
+    onClose?.()
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} maxWidth="max-w-md">
+      <div className="text-center">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-500/15 text-brand-400">
+          <Shield size={26} />
+        </div>
+        <h2 className="text-xl font-bold tracking-tight">DefesaBR Intelligence</h2>
+        <p className="mt-1 text-sm muted">Acesse a plataforma de inteligência</p>
+      </div>
+
+      <form onSubmit={submit} className="mt-6 space-y-3">
+        <div>
+          <label className="mb-1 block text-xs font-medium muted">E-mail</label>
+          <input
+            type="email"
+            className="input"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="admin@defesabr.com"
+            autoComplete="username"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium muted">Senha</label>
+          <input
+            type="password"
+            className="input"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            autoComplete="current-password"
+          />
+        </div>
+        {error && <p className="text-sm text-red-400">{error}</p>}
+        <button type="submit" className="btn-primary w-full">
+          <LogIn size={16} /> Entrar
+        </button>
+      </form>
+
+      <div className="my-4 flex items-center gap-3 text-xs muted">
+        <span className="h-px flex-1 bg-gray-600/40" />
+        ou acesse como
+        <span className="h-px flex-1 bg-gray-600/40" />
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        <button onClick={() => demo('admin')} className="btn-ghost text-xs">Admin</button>
+        <button onClick={() => demo('analista')} className="btn-ghost text-xs">Analista</button>
+        <button onClick={() => demo('visitante')} className="btn-ghost text-xs">Visitante</button>
+      </div>
+
+      <div className="mt-4 rounded-lg bg-brand-500/10 p-3 text-xs text-brand-200">
+        📌 Demo: <strong>{DEMO_CREDENTIALS.email}</strong> · senha <strong>{DEMO_CREDENTIALS.password}</strong>
+      </div>
+    </Modal>
+  )
+}
