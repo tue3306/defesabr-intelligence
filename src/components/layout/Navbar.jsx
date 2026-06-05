@@ -79,7 +79,7 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
             )}
           </button>
           {notifOpen && (
-            <div className="card absolute right-0 z-40 mt-2 w-[calc(100vw-1.5rem)] max-w-sm overflow-hidden p-0 shadow-xl sm:w-80">
+            <div className="card fixed left-3 right-3 top-[4.25rem] z-50 overflow-hidden p-0 shadow-2xl sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-80">
               <div className="flex items-center justify-between border-b border-gray-700/40 px-3 py-2.5">
                 <span className="flex items-center gap-2 text-sm font-semibold">
                   Notificações
