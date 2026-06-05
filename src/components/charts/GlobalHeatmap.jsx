@@ -111,13 +111,14 @@ export default function GlobalHeatmap({ height = 380, compare = false }) {
             }
           </Geographies>
         </ComposableMap>
+      </div>
 
-        <div className="mt-2 flex items-center justify-center gap-3 text-[11px] muted">
-          <Legend color="#3b5168" label="Baixa" />
-          <Legend color="#d4b41a" label="Moderada" />
-          <Legend color="#d4841a" label="Alta" />
-          <Legend color="#c0392b" label="Crítica" />
-        </div>
+      {/* Legenda fora da área do mapa (evita transbordar o quadro no mobile) */}
+      <div className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[11px] muted">
+        <Legend color="#3b5168" label="Baixa" />
+        <Legend color="#d4b41a" label="Moderada" />
+        <Legend color="#d4841a" label="Alta" />
+        <Legend color="#c0392b" label="Crítica" />
       </div>
 
       {compare && <ComparePanel selected={selected} onRemove={(n) => setSelected((p) => p.filter((x) => x !== n))} />}

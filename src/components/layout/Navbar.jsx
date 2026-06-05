@@ -61,7 +61,8 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
       </div>
 
       <div className="ml-auto flex items-center gap-1.5">
-        {/* Notificações */}
+        {/* Notificações (somente para usuários autenticados) */}
+        {isAuthenticated && (
         <div className="relative" ref={notifRef}>
           <button
             onClick={() => { setNotifOpen((o) => !o) }}
@@ -135,6 +136,7 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
             </div>
           )}
         </div>
+        )}
 
         {/* Tema */}
         <button onClick={toggleTheme} className="rounded-lg p-2 text-gray-400 hover:bg-white/5" aria-label="Alternar tema">

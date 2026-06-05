@@ -6,12 +6,14 @@ import {
   Tv, GraduationCap, Settings, HelpCircle, Bell, Moon, Sun, CornerDownLeft,
 } from 'lucide-react'
 import { useTheme } from '../../hooks/useTheme'
+import { useAuthStore } from '../../store/authStore'
 import { normalize } from '../../utils/semanticSearch'
 
 // Paleta de comandos global (Ctrl/Cmd + K): navegação e ações rápidas.
 export default function CommandPalette() {
   const navigate = useNavigate()
   const { isDark, toggleTheme } = useTheme()
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(0)
@@ -26,12 +28,12 @@ export default function CommandPalette() {
       { id: 'arquivo', label: 'Abrir Arquivo de clippings', icon: ArchiveIcon, run: () => navigate('/arquivo') },
       { id: 'aprender', label: 'Abrir Centro Educacional', icon: GraduationCap, run: () => navigate('/aprender') },
       { id: 'apresentacao', label: 'Iniciar Apresentação', icon: Tv, run: () => navigate('/apresentacao') },
-      { id: 'notificacoes', label: 'Ver Notificações', icon: Bell, run: () => navigate('/notificacoes') },
+      ...(isAuthenticated ? [{ id: 'notificacoes', label: 'Ver Notificações', icon: Bell, run: () => navigate('/notificacoes') }] : []),
       { id: 'config', label: 'Abrir Configurações', icon: Settings, run: () => navigate('/configuracoes') },
       { id: 'sobre', label: 'Sobre o projeto', icon: HelpCircle, run: () => navigate('/sobre') },
       { id: 'tema', label: isDark ? 'Mudar para tema claro' : 'Mudar para tema escuro', icon: isDark ? Sun : Moon, run: toggleTheme },
     ],
-    [navigate, isDark, toggleTheme]
+    [navigate, isDark, toggleTheme, isAuthenticated]
   )
 
   // Atalho global de abertura + Escape para fechar.

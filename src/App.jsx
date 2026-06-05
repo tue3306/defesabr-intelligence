@@ -61,7 +61,14 @@ export default function App() {
           <Route path="/dados" element={<DataCharts />} />
           <Route path="/arquivo" element={<Archive />} />
           <Route path="/aprender" element={<Learn />} />
-          <Route path="/notificacoes" element={<Notifications />} />
+          <Route
+            path="/notificacoes"
+            element={
+              <ProtectedRoute>
+                <Notifications />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/configuracoes" element={<Settings />} />
           <Route path="/sobre" element={<About />} />
           <Route path="*" element={<NotFound />} />

@@ -3,6 +3,7 @@ import toast from 'react-hot-toast'
 import { Bell } from 'lucide-react'
 import { createElement } from 'react'
 import { useNewsStore } from '../store/newsStore'
+import { useAuthStore } from '../store/authStore'
 
 // Fila de alertas demonstrativos que chegam "ao vivo" para simular um feed
 // de inteligência em tempo real. Os níveis usam as chaves de enum (sem acento).
@@ -20,11 +21,14 @@ const LIVE_FEED = [
 const INTERVAL_MS = 45000 // 45s entre alertas
 
 // Emite notificações periódicas para demonstrar atualização em tempo real.
+// Só funciona com o usuário autenticado — notificações são por conta.
 export function useLiveNotifications() {
   const addNotification = useNewsStore((s) => s.addNotification)
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const indexRef = useRef(0)
 
   useEffect(() => {
+    if (!isAuthenticated) return
     const id = setInterval(() => {
       const item = LIVE_FEED[indexRef.current % LIVE_FEED.length]
       indexRef.current += 1
@@ -35,5 +39,5 @@ export function useLiveNotifications() {
       })
     }, INTERVAL_MS)
     return () => clearInterval(id)
-  }, [addNotification])
+  }, [addNotification, isAuthenticated])
 }
