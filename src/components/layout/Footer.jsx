@@ -12,7 +12,7 @@ export default function Footer() {
           Site demonstrativo. Análises geradas por IA não substituem análise especializada humana.
         </p>
         <a
-          href="https://github.com/SEU-USUARIO/defesabr-intelligence"
+          href="https://github.com/tue3306/defesabr-intelligence"
           target="_blank"
           rel="noreferrer"
           className="inline-flex items-center gap-1.5 muted hover:text-brand-400"

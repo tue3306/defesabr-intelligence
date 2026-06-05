@@ -9,15 +9,19 @@ import {
   HelpCircle,
   Shield,
   Tv,
+  Lock,
+  GraduationCap,
   X,
 } from 'lucide-react'
+import { useAuthStore } from '../../store/authStore'
 
 const mainNav = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/clipping', label: 'Clipping Diário', icon: Newspaper, badge: 'NOVO' },
-  { to: '/analise', label: 'Análise Semanal', icon: BarChart3, badge: 'SEM 23' },
+  { to: '/clipping', label: 'Clipping Diário', icon: Newspaper, badge: 'NOVO', requiresAuth: true },
+  { to: '/analise', label: 'Análise Semanal', icon: BarChart3, requiresAuth: true },
   { to: '/dados', label: 'Dados & Gráficos', icon: LineChart },
   { to: '/arquivo', label: 'Arquivo', icon: Archive },
+  { to: '/aprender', label: 'Centro Educacional', icon: GraduationCap, badge: 'NOVO' },
   { to: '/apresentacao', label: 'Apresentação', icon: Tv },
 ]
 
@@ -27,6 +31,7 @@ const bottomNav = [
 ]
 
 export default function Sidebar({ open, onClose, collapsed }) {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   return (
     <>
       {/* Overlay mobile */}
@@ -54,7 +59,7 @@ export default function Sidebar({ open, onClose, collapsed }) {
 
         <nav className="flex-1 space-y-1 overflow-y-auto p-3">
           {mainNav.map((item) => (
-            <Item key={item.to} item={item} collapsed={collapsed} onClick={onClose} />
+            <Item key={item.to} item={item} collapsed={collapsed} onClick={onClose} locked={item.requiresAuth && !isAuthenticated} />
           ))}
         </nav>
 
@@ -68,14 +73,14 @@ export default function Sidebar({ open, onClose, collapsed }) {
   )
 }
 
-function Item({ item, collapsed, onClick }) {
+function Item({ item, collapsed, onClick, locked }) {
   const { to, label, icon: Icon, badge, end } = item
   return (
     <NavLink
       to={to}
       end={end}
       onClick={onClick}
-      title={collapsed ? label : undefined}
+      title={collapsed ? (locked ? `${label} (requer login)` : label) : undefined}
       className={({ isActive }) =>
         `group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
           isActive
@@ -86,11 +91,20 @@ function Item({ item, collapsed, onClick }) {
     >
       <Icon size={19} className="shrink-0" />
       {!collapsed && <span className="flex-1">{label}</span>}
-      {!collapsed && badge && (
+      {!collapsed && locked && (
+        <span
+          className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold text-amber-300"
+          title="Requer login"
+        >
+          <Lock size={10} /> LOGIN
+        </span>
+      )}
+      {!collapsed && !locked && badge && (
         <span className="rounded-full bg-brand-500/20 px-1.5 py-0.5 text-[9px] font-bold text-brand-300">
           {badge}
         </span>
       )}
+      {collapsed && locked && <Lock size={11} className="shrink-0 text-amber-400" />}
     </NavLink>
   )
 }

@@ -43,11 +43,17 @@ export default {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.3' },
         },
+        wiggle: {
+          '0%, 100%': { transform: 'rotate(0deg)' },
+          '25%': { transform: 'rotate(-12deg)' },
+          '75%': { transform: 'rotate(12deg)' },
+        },
       },
       animation: {
         'fade-in': 'fade-in 0.4s ease-out',
         marquee: 'marquee 40s linear infinite',
         'pulse-dot': 'pulse-dot 1.5s ease-in-out infinite',
+        wiggle: 'wiggle 0.4s ease-in-out 2',
       },
     },
   },

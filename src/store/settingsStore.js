@@ -10,6 +10,8 @@ export const useSettingsStore = create(
       newsPerClipping: 5, // 3-10
       focusArea: 'empresarial',
       notificationsEnabled: true,
+      // Onboarding (tour de boas-vindas) — exibido apenas na 1ª visita
+      onboardingDone: false,
       // Override local opcional da chave da Anthropic (além do .env)
       apiKeyOverride: '',
 
@@ -55,6 +57,8 @@ export const useSettingsStore = create(
       setFocusArea: (focusArea) => set({ focusArea }),
       toggleNotifications: () => set({ notificationsEnabled: !get().notificationsEnabled }),
       setApiKeyOverride: (apiKeyOverride) => set({ apiKeyOverride }),
+      completeOnboarding: () => set({ onboardingDone: true }),
+      resetOnboarding: () => set({ onboardingDone: false }),
     }),
     { name: 'defesabr-settings' }
   )

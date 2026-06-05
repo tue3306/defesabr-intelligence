@@ -20,6 +20,11 @@ export function formatTime(date = new Date()) {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
+// Data e hora por extenso curto: "04/06/2026 às 09:30"
+export function formatDateTimeBR(date = new Date()) {
+  return `${formatDateBR(date)} às ${formatTime(date)}`
+}
+
 // Tempo relativo: "há 45 min", "há 2h", "há 3 dias"
 export function timeAgo(date) {
   const d = new Date(date)

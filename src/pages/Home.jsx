@@ -7,6 +7,7 @@ import {
   Clock,
   ArrowRight,
   Lightbulb,
+  Lock,
 } from 'lucide-react'
 import MetricCard from '../components/ui/MetricCard'
 import NewsCard from '../components/ui/NewsCard'
@@ -17,6 +18,7 @@ import NewsVolumeChart from '../components/charts/NewsVolumeChart'
 import MilitarySpendingChart from '../components/charts/MilitarySpendingChart'
 import { useNews } from '../hooks/useNews'
 import { useNewsStore } from '../store/newsStore'
+import { useAuthStore } from '../store/authStore'
 import { newsVolume14d, newsCategoriesKeys, militarySpendingBR, mockWeeklyAnalysis } from '../data/mockData'
 import { formatTime } from '../utils/dateUtils'
 
@@ -35,6 +37,7 @@ const Section = ({ children, className = '' }) => (
 export default function Home() {
   const { news, source, loading } = useNews()
   const latest = useNewsStore((s) => s.latestClipping)
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const weekly = mockWeeklyAnalysis.empresarial
   const feed = news.slice(0, 6)
 
@@ -54,12 +57,18 @@ export default function Home() {
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
             <Link to="/clipping" className="btn-primary">
-              Ver Clipping de Hoje <ArrowRight size={16} />
+              {!isAuthenticated && <Lock size={15} />} Ver Clipping de Hoje <ArrowRight size={16} />
             </Link>
             <Link to="/dados" className="btn-ghost">
               Explorar dados
             </Link>
           </div>
+          {!isAuthenticated && (
+            <p className="mt-2.5 flex items-center gap-1.5 text-xs muted">
+              <Lock size={12} className="text-amber-400" />
+              Clipping e Análise exigem login — acesso demo instantâneo, sem cadastro.
+            </p>
+          )}
         </div>
       </Section>
 

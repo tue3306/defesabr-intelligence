@@ -15,6 +15,8 @@ const About = lazy(() => import('./pages/About'))
 const Settings = lazy(() => import('./pages/Settings'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 const Presentation = lazy(() => import('./pages/Presentation'))
+const Notifications = lazy(() => import('./pages/Notifications'))
+const Learn = lazy(() => import('./pages/Learn'))
 
 function PageLoader() {
   return (
@@ -58,6 +60,8 @@ export default function App() {
           />
           <Route path="/dados" element={<DataCharts />} />
           <Route path="/arquivo" element={<Archive />} />
+          <Route path="/aprender" element={<Learn />} />
+          <Route path="/notificacoes" element={<Notifications />} />
           <Route path="/configuracoes" element={<Settings />} />
           <Route path="/sobre" element={<About />} />
           <Route path="*" element={<NotFound />} />

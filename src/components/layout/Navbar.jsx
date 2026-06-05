@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { Menu, Bell, Moon, Sun, LogIn, LogOut, User, PanelLeftClose, PanelLeft } from 'lucide-react'
 import SearchBar from '../ui/SearchBar'
 import Badge from '../ui/Badge'
@@ -16,6 +16,7 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
   const notifications = useNewsStore((s) => s.notifications)
   const unread = useNewsStore((s) => s.unreadCount())
   const markAllRead = useNewsStore((s) => s.markAllRead)
+  const markRead = useNewsStore((s) => s.markRead)
 
   const [loginOpen, setLoginOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
@@ -28,8 +29,15 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
       if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false)
       if (userRef.current && !userRef.current.contains(e.target)) setUserOpen(false)
     }
+    const onKey = (e) => {
+      if (e.key === 'Escape') { setNotifOpen(false); setUserOpen(false) }
+    }
     document.addEventListener('mousedown', onClick)
-    return () => document.removeEventListener('mousedown', onClick)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onClick)
+      document.removeEventListener('keydown', onKey)
+    }
   }, [])
 
   return (
@@ -58,37 +66,72 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
           <button
             onClick={() => { setNotifOpen((o) => !o) }}
             className="relative rounded-lg p-2 text-gray-400 hover:bg-white/5"
-            aria-label="Notificações"
+            aria-label={`Notificações${unread ? ` (${unread} não lidas)` : ''}`}
           >
-            <Bell size={20} />
+            <Bell size={20} className={unread > 0 ? 'animate-wiggle' : ''} />
             {unread > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-military-red px-1 text-[10px] font-bold text-white">
-                {unread}
+              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-military-red opacity-60" />
+                <span className="relative flex h-4 min-w-4 items-center justify-center rounded-full bg-military-red px-1 text-[10px] font-bold text-white">
+                  {unread > 9 ? '9+' : unread}
+                </span>
               </span>
             )}
           </button>
           {notifOpen && (
-            <div className="card absolute right-0 z-40 mt-2 w-80 p-2 shadow-xl">
-              <div className="flex items-center justify-between px-2 py-1">
-                <span className="text-sm font-semibold">Notificações</span>
-                <button onClick={markAllRead} className="text-xs text-brand-400 hover:text-brand-300">
-                  Marcar todas como lidas
-                </button>
+            <div className="card absolute right-0 z-40 mt-2 w-[calc(100vw-1.5rem)] max-w-sm overflow-hidden p-0 shadow-xl sm:w-80">
+              <div className="flex items-center justify-between border-b border-gray-700/40 px-3 py-2.5">
+                <span className="flex items-center gap-2 text-sm font-semibold">
+                  Notificações
+                  {unread > 0 && (
+                    <span className="rounded-full bg-military-red/20 px-1.5 py-0.5 text-[10px] font-bold text-red-300">
+                      {unread} nova{unread > 1 ? 's' : ''}
+                    </span>
+                  )}
+                </span>
+                {unread > 0 && (
+                  <button onClick={markAllRead} className="text-xs font-medium text-brand-400 hover:text-brand-300">
+                    Marcar lidas
+                  </button>
+                )}
               </div>
-              <ul className="max-h-80 overflow-y-auto">
-                {notifications.slice(0, 6).map((n) => (
-                  <li
-                    key={n.id}
-                    className={`flex items-start gap-2 rounded-lg px-2 py-2 text-sm ${n.read ? 'opacity-60' : ''}`}
+              {notifications.length === 0 ? (
+                <div className="px-3 py-10 text-center">
+                  <Bell size={28} className="mx-auto mb-2 text-gray-600" />
+                  <p className="text-sm muted">Nenhuma notificação por enquanto</p>
+                </div>
+              ) : (
+                <>
+                  <ul className="max-h-[60vh] overflow-y-auto sm:max-h-80">
+                    {notifications.slice(0, 8).map((n) => (
+                      <li key={n.id}>
+                        <button
+                          onClick={() => markRead(n.id)}
+                          className={`flex w-full items-start gap-2.5 px-3 py-2.5 text-left text-sm transition-colors hover:bg-white/5 ${
+                            n.read ? 'opacity-55' : ''
+                          }`}
+                        >
+                          <span className="mt-0.5 shrink-0">
+                            <Badge type="urgency" value={n.level} />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate font-medium text-gray-200">{n.title}</span>
+                            <span className="text-xs muted">{timeAgo(n.time)}</span>
+                          </span>
+                          {!n.read && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-400" />}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link
+                    to="/notificacoes"
+                    onClick={() => setNotifOpen(false)}
+                    className="block border-t border-gray-700/40 px-3 py-2.5 text-center text-sm font-semibold text-brand-400 hover:bg-white/5"
                   >
-                    <Badge type="urgency" value={n.level} />
-                    <div className="min-w-0">
-                      <p className="truncate font-medium text-gray-200">{n.title}</p>
-                      <p className="text-xs muted">{timeAgo(n.time)}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                    Ver todas as notificações
+                  </Link>
+                </>
+              )}
             </div>
           )}
         </div>

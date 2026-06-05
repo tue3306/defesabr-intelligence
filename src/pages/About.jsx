@@ -1,6 +1,9 @@
 import { useState } from 'react'
-import { Shield, Cpu, Database, AlertTriangle, Github, Send } from 'lucide-react'
+import { Shield, Cpu, Database, AlertTriangle, Github, Send, Star, GitFork, ExternalLink, Code2 } from 'lucide-react'
 import toast from 'react-hot-toast'
+
+const REPO_URL = 'https://github.com/tue3306/defesabr-intelligence'
+const TECH_STACK = ['React 18', 'Vite', 'Tailwind CSS', 'Zustand', 'Recharts', 'Framer Motion']
 
 const APIS = [
   { name: 'GDELT Project', use: 'Notícias globais em tempo real', free: true },
@@ -108,14 +111,68 @@ export default function About() {
         </form>
       </Card>
 
-      <a
-        href="https://github.com/SEU-USUARIO/defesabr-intelligence"
-        target="_blank"
-        rel="noreferrer"
-        className="card flex items-center justify-center gap-2 p-4 text-sm font-semibold hover:border-brand-500/40"
-      >
-        <Github size={18} /> Ver repositório no GitHub
-      </a>
+      {/* Repositório / Código aberto */}
+      <div className="card overflow-hidden">
+        <div className="bg-gradient-to-br from-military-darker via-military-card to-brand-900/30 p-6 sm:p-7">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-4">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white">
+                <Github size={26} />
+              </span>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-lg font-bold tracking-tight">Repositório do projeto</h2>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-bold text-emerald-300">
+                    <Code2 size={12} /> Open Source
+                  </span>
+                </div>
+                <p className="mt-1 break-all font-mono text-xs text-brand-300">
+                  github.com/tue3306/defesabr-intelligence
+                </p>
+                <p className="mt-2 text-sm text-gray-300">
+                  Código-fonte completo, documentação de deploy e histórico de versões. Contribuições e
+                  estrelas são bem-vindas.
+                </p>
+              </div>
+            </div>
+            <a
+              href={REPO_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="btn-primary shrink-0 justify-center whitespace-nowrap"
+            >
+              <Github size={17} /> Acessar repositório <ExternalLink size={14} />
+            </a>
+          </div>
+
+          {/* Stack + ações */}
+          <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-white/10 pt-4">
+            {TECH_STACK.map((t) => (
+              <span key={t} className="rounded-md bg-white/5 px-2.5 py-1 text-xs font-medium text-gray-300">
+                {t}
+              </span>
+            ))}
+            <div className="ml-auto flex items-center gap-3">
+              <a
+                href={`${REPO_URL}/stargazers`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-300 hover:text-amber-300"
+              >
+                <Star size={14} /> Estrela
+              </a>
+              <a
+                href={`${REPO_URL}/fork`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-300 hover:text-brand-300"
+              >
+                <GitFork size={14} /> Fork
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

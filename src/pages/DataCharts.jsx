@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { RefreshCw, Clock } from 'lucide-react'
 import Badge from '../components/ui/Badge'
 import ExportButton from '../components/ui/ExportButton'
+import InfoTooltip from '../components/ui/InfoTooltip'
 import { SkeletonChart } from '../components/ui/Skeleton'
 import Sparkline from '../components/charts/Sparkline'
 import MilitarySpendingChart from '../components/charts/MilitarySpendingChart'
@@ -183,30 +184,43 @@ export default function DataCharts() {
           <SentimentChart data={categoryRadar} />
         </Panel>
 
-        <Panel title="Índice de alerta" subtitle="Escala 0–100" badge="demo">
+        <Panel
+          title={
+            <span className="inline-flex items-center gap-1.5">
+              Índice de alerta
+              <InfoTooltip text="Resumo de 0 a 100 da tensão de segurança no momento, combinando volume e gravidade dos eventos monitorados." />
+            </span>
+          }
+          subtitle="Escala 0–100"
+          badge="demo"
+        >
           <GaugeChart value={alertIndex} height={300} />
         </Panel>
 
         <Panel title="Ações do setor de defesa" subtitle="Cotações (demonstrativas)" badge="demo" className="lg:col-span-2">
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-            {(stocks.length ? stocks : []).map((s) => (
-              <div key={s.ticker} className="rounded-lg border border-gray-700/40 bg-white/5 p-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold">{s.ticker}</span>
-                  <span className={`text-xs font-semibold ${s.change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                    {s.change >= 0 ? '+' : ''}{s.change}%
-                  </span>
-                </div>
-                <p className="mt-0.5 truncate text-[11px] muted">{s.name}</p>
-                <p className="mt-1 font-mono text-lg font-bold">{s.price}</p>
-                <Sparkline values={s.spark} color={s.change >= 0 ? '#4ade80' : '#f87171'} height={32} />
-              </div>
-            ))}
+            {loading
+              ? Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="h-[104px] animate-pulse rounded-lg border border-gray-700/40 bg-white/5" />
+                ))
+              : (stocks.length ? stocks : []).map((s) => (
+                  <div key={s.ticker} className="rounded-lg border border-gray-700/40 bg-white/5 p-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold">{s.ticker}</span>
+                      <span className={`text-xs font-semibold ${s.change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {s.change >= 0 ? '+' : ''}{s.change}%
+                      </span>
+                    </div>
+                    <p className="mt-0.5 truncate text-[11px] muted">{s.name}</p>
+                    <p className="mt-1 font-mono text-lg font-bold">{s.price}</p>
+                    <Sparkline values={s.spark} color={s.change >= 0 ? '#4ade80' : '#f87171'} height={32} />
+                  </div>
+                ))}
           </div>
         </Panel>
 
-        <Panel title="Mapa de calor global" subtitle="Intensidade de eventos por país" badge="demo" className="lg:col-span-2">
-          <GlobalHeatmap />
+        <Panel title="Mapa de calor global" subtitle="Intensidade de eventos · clique para comparar países" badge="demo" className="lg:col-span-2">
+          <GlobalHeatmap compare />
         </Panel>
       </div>
     </div>

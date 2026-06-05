@@ -10,13 +10,17 @@ import {
   ChevronDown,
   Activity,
   MapPin,
+  FileDown,
 } from 'lucide-react'
+import toast from 'react-hot-toast'
 import Badge from '../components/ui/Badge'
 import GaugeChart from '../components/charts/GaugeChart'
+import InfoTooltip from '../components/ui/InfoTooltip'
 import { useClaudeAI } from '../hooks/useClaudeAI'
 import { useNews } from '../hooks/useNews'
 import { useSettingsStore } from '../store/settingsStore'
 import { FOCUS_AREAS, mockWeeklyAnalysis } from '../data/mockData'
+import { exportWeeklyToPDF } from '../utils/exportUtils'
 
 const ICONS = { GraduationCap, TrendingUp, Factory, Briefcase, Globe }
 const PREV_WEEKS = [
@@ -70,6 +74,13 @@ export default function WeeklyAnalysis() {
     setResult(r)
   }
 
+  const handlePDF = () => {
+    if (!result) return
+    const focusLabel = FOCUS_AREAS.find((f) => f.id === focusArea)?.label || 'Geral'
+    exportWeeklyToPDF(result, { week, focusLabel })
+    toast.success('Relatório PDF gerado')
+  }
+
   return (
     <div className="space-y-6">
       {/* HEADER */}
@@ -91,6 +102,9 @@ export default function WeeklyAnalysis() {
                 <option key={w} value={w}>{w}</option>
               ))}
             </select>
+            <button onClick={handlePDF} className="btn-ghost" title="Exportar a análise em PDF">
+              <FileDown size={16} /> PDF
+            </button>
             <button onClick={handleGenerate} disabled={loading} className="btn-primary">
               <Bot size={18} /> {loading ? 'Gerando…' : 'Gerar Análise Semanal'}
             </button>
@@ -139,7 +153,10 @@ export default function WeeklyAnalysis() {
               </div>
             </div>
             <div className="card p-5">
-              <p className="text-center text-sm font-semibold uppercase tracking-wide muted">Nível de tensão</p>
+              <p className="flex items-center justify-center gap-1.5 text-center text-sm font-semibold uppercase tracking-wide muted">
+                Nível de tensão
+                <InfoTooltip text="Índice de 0 a 100 que resume a intensidade dos eventos de segurança no período. Quanto maior, mais crítico o momento." />
+              </p>
               <GaugeChart value={result.context?.tension_level ?? 40} height={170} />
             </div>
           </div>

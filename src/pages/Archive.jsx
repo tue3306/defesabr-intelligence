@@ -12,6 +12,7 @@ import { CATEGORIES, ALERT_LEVELS } from '../data/mockData'
 import { categoryColor, alertMeta } from '../utils/textUtils'
 import { formatDateBR } from '../utils/dateUtils'
 import { exportClippingToPDF } from '../utils/exportUtils'
+import { rankItems } from '../utils/semanticSearch'
 
 const PER_PAGE = 10
 
@@ -34,12 +35,20 @@ export default function Archive() {
 
   const filtered = useMemo(() => {
     let list = [...clippings]
-    if (query) {
-      const q = query.toLowerCase()
-      list = list.filter((c) => `${c.title} ${c.preview}`.toLowerCase().includes(q))
-    }
     if (cats.length) list = list.filter((c) => c.categories?.some((cat) => cats.includes(cat)))
     if (alert) list = list.filter((c) => c.alert_level === alert)
+
+    if (query.trim()) {
+      // Busca semântica: rankeia por relevância (título > categorias > resumo)
+      // e entende termos relacionados do domínio (ex.: "submarino" → PROSUB).
+      const ranked = rankItems(query, list, (c) => [
+        { text: c.title, weight: 5 },
+        { text: (c.categories || []).join(' '), weight: 3 },
+        { text: c.preview, weight: 2 },
+      ])
+      return ranked.map((r) => r.item) // já ordenado por relevância
+    }
+
     list.sort((a, b) =>
       sort === 'recent' ? b.date.localeCompare(a.date) : sort === 'old' ? a.date.localeCompare(b.date) : b.newsCount - a.newsCount
     )
@@ -58,13 +67,16 @@ export default function Archive() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Arquivo de clippings</h1>
-        <p className="text-sm muted">{filtered.length} clipping(s) encontrado(s).</p>
+        <p className="text-sm muted">
+          {filtered.length} clipping(s) encontrado(s)
+          {query.trim() && <span className="text-brand-400"> · ordenado por relevância</span>}.
+        </p>
       </div>
 
       {/* FILTROS */}
       <div className="card space-y-4 p-5">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <SearchBar placeholder="Buscar por texto…" defaultValue={query} onChange={setQuery} />
+          <SearchBar placeholder="Busca inteligente (ex.: submarino, ciberataque)…" defaultValue={query} onChange={setQuery} />
           <select value={alert} onChange={(e) => setAlert(e.target.value)} className="input" aria-label="Nível de alerta">
             <option value="">Todos os níveis de alerta</option>
             {ALERT_LEVELS.map((a) => <option key={a} value={a}>{alertMeta[a]?.label || a}</option>)}
