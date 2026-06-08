@@ -16,6 +16,12 @@ const LIVE_FEED = [
   { title: 'Drone não identificado sobre área restrita', level: 'ALTO' },
   { title: 'Acordo de cooperação cibernética assinado', level: 'BAIXO' },
   { title: 'Alerta de desinformação em fontes monitoradas', level: 'MEDIO' },
+  // Crimes e movimentações suspeitas (segurança pública / fronteiras)
+  { title: 'Apreensão de carga ilícita na fronteira oeste', level: 'ALTO' },
+  { title: 'Movimentação suspeita de embarcações próximo à costa', level: 'MEDIO' },
+  { title: 'Operação contra facção em rota de narcotráfico', level: 'ALTO' },
+  { title: 'Aumento atípico de travessias na fronteira norte', level: 'MEDIO' },
+  { title: 'Furto de cargas estratégicas investigado pela PF', level: 'MEDIO' },
 ]
 
 const INTERVAL_MS = 45000 // 45s entre alertas

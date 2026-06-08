@@ -4,6 +4,23 @@
 
 :root {
   color-scheme: dark;
+  /* [ALTERADO] Paleta patriótica institucional via CSS variables */
+  --color-air-force: #163a62; /* Azul escuro — Força Aérea Brasileira */
+  --color-navy: #f8fafc;      /* Branco — Marinha do Brasil */
+  --color-army: #2e5339;      /* Verde escuro — Exército Brasileiro */
+  --color-defense: #caa733;   /* Amarelo/Dourado — Ministério da Defesa */
+  --color-base: #1c2128;      /* Cinza chumbo — fundo base */
+  /* Aliases de uso geral */
+  --color-primary: #2f5d88;
+  --color-secondary: #2e7d46;
+  --color-gold: #caa733;
+  --color-surface: #232a33;   /* Card grafite */
+  --color-bg: #15191e;        /* Fundo grafite */
+}
+html:not(.dark) {
+  color-scheme: light;
+  --color-surface: #ffffff;
+  --color-bg: #f3f4f6;
 }
 
 html,
@@ -17,6 +34,13 @@ body {
   font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
 }
 
+/* [ALTERADO] Tipografia institucional: títulos serifados (autoridade/seriedade),
+   corpo em sans-serif técnica. Aplica-se aos títulos principais (h1/h2). */
+h1, h2, .font-display {
+  font-family: 'Lora', Georgia, Cambria, 'Times New Roman', serif;
+  letter-spacing: -0.01em;
+}
+
 /* Tema claro */
 html:not(.dark) body {
   @apply bg-gray-50 text-gray-900;
@@ -28,6 +52,24 @@ html:not(.dark) body {
   outline-offset: 2px;
   border-radius: 4px;
 }
+
+/* -----------------------------------------------------------------------
+   Correção de contraste no tema CLARO.
+   Muitos textos usam cinzas pensados para fundo escuro (gray-200/300/400),
+   ilegíveis sobre cards brancos. Aqui escurecemos esses tons no light mode.
+   Superfícies propositalmente escuras (heróis, mapa) recebem a classe
+   `.on-dark`, que mantém o texto claro mesmo no tema claro.
+----------------------------------------------------------------------- */
+html:not(.dark) .text-gray-300 { color: #374151; } /* gray-700 */
+html:not(.dark) .text-gray-400 { color: #4b5563; } /* gray-600 */
+html:not(.dark) .text-gray-200 { color: #1f2937; } /* gray-800 */
+
+html:not(.dark) .on-dark,
+html:not(.dark) .on-dark .text-gray-100,
+html:not(.dark) .on-dark .text-gray-200,
+html:not(.dark) .on-dark .text-gray-300 { color: #e5e7eb; }
+html:not(.dark) .on-dark .text-gray-400 { color: #cbd5e1; }
+html:not(.dark) .on-dark .muted { color: #cbd5e1; }
 
 /* Conteúdo apenas para leitores de tela */
 .sr-only {
@@ -113,6 +155,13 @@ html:not(.dark) body {
   html:not(.dark) .muted {
     @apply text-gray-500;
   }
+}
+
+/* [ALTERADO] Faixa tricolor patriótica (verde Exército · ouro Defesa · azul FAB) */
+.tricolor-bar {
+  height: 3px;
+  width: 100%;
+  background: linear-gradient(90deg, #2e7d46 0 33.33%, #caa733 33.33% 66.66%, #2f5d88 66.66% 100%);
 }
 
 /* Linha de citacao editorial */

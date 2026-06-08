@@ -4,7 +4,7 @@ import { Menu, Bell, Moon, Sun, LogIn, LogOut, User, PanelLeftClose, PanelLeft }
 import SearchBar from '../ui/SearchBar'
 import Badge from '../ui/Badge'
 import LoginModal from '../auth/LoginModal'
-import { useAuthStore } from '../../store/authStore'
+import { useAuthStore, PROFILES } from '../../store/authStore'
 import { useNewsStore } from '../../store/newsStore'
 import { useTheme } from '../../hooks/useTheme'
 import { timeAgo } from '../../utils/dateUtils'
@@ -12,7 +12,7 @@ import { timeAgo } from '../../utils/dateUtils'
 export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) {
   const navigate = useNavigate()
   const { isDark, toggleTheme } = useTheme()
-  const { user, isAuthenticated, logout } = useAuthStore()
+  const { user, isAuthenticated, logout, loginAsDemo } = useAuthStore()
   const notifications = useNewsStore((s) => s.notifications)
   const unread = useNewsStore((s) => s.unreadCount())
   const markAllRead = useNewsStore((s) => s.markAllRead)
@@ -41,7 +41,7 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
   }, [])
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-gray-700/50 bg-military-darker/95 px-4 backdrop-blur">
+    <header className="on-dark sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-gray-700/50 bg-military-darker/95 px-4 backdrop-blur">
       <button onClick={onToggleMobile} className="rounded-lg p-2 text-gray-400 hover:bg-white/5 lg:hidden" aria-label="Abrir menu">
         <Menu size={20} />
       </button>
@@ -157,7 +157,7 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
               <span className="hidden text-sm font-medium md:inline">{user?.name}</span>
             </button>
             {userOpen && (
-              <div className="card absolute right-0 z-40 mt-2 w-52 p-2 shadow-xl">
+              <div className="card absolute right-0 z-40 mt-2 w-60 p-2 shadow-xl">
                 <div className="px-2 py-1.5">
                   <p className="text-sm font-semibold">{user?.name}</p>
                   <p className="text-xs muted">{user?.email}</p>
@@ -165,9 +165,32 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
                     {user?.role}
                   </span>
                 </div>
+
+                {/* [ALTERADO] Troca rápida de perfil (modo demo) */}
+                <div className="mt-1 border-t border-gray-700/40 pt-2">
+                  <p className="px-2 pb-1 text-[10px] font-bold uppercase tracking-wide muted">Modo demo · trocar perfil</p>
+                  <div className="grid grid-cols-2 gap-1 px-1">
+                    {Object.keys(PROFILES).map((r) => (
+                      <button
+                        key={r}
+                        onClick={() => {
+                          // [ALTERADO] Visitante = deslogado (vê só a área pública)
+                          if (r === 'visitante') { logout(); setUserOpen(false); navigate('/') }
+                          else loginAsDemo(r)
+                        }}
+                        className={`rounded-md px-2 py-1.5 text-left text-[11px] font-medium transition-colors ${
+                          user?.role === r ? 'bg-brand-500/20 text-brand-200' : 'text-gray-300 hover:bg-white/5'
+                        }`}
+                      >
+                        {PROFILES[r].label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <button
                   onClick={() => { logout(); setUserOpen(false) }}
-                  className="mt-1 flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm text-gray-200 hover:bg-white/5"
+                  className="mt-2 flex w-full items-center gap-2 rounded-md border-t border-gray-700/40 px-2 py-2 pt-3 text-sm text-gray-200 hover:bg-white/5"
                 >
                   <LogOut size={15} /> Sair
                 </button>

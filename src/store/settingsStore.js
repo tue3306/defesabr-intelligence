@@ -10,6 +10,8 @@ export const useSettingsStore = create(
       newsPerClipping: 5, // 3-10
       focusArea: 'empresarial',
       notificationsEnabled: true,
+      // Áreas temáticas de maior interesse do usuário (filtra/destaca conteúdo)
+      interestAreas: [],
       // Onboarding (tour de boas-vindas) — exibido apenas na 1ª visita
       onboardingDone: false,
       // Override local opcional da chave da Anthropic (além do .env)
@@ -55,6 +57,12 @@ export const useSettingsStore = create(
         set({ newsPerClipping: Math.max(3, Math.min(10, Number(n) || 5)) }),
 
       setFocusArea: (focusArea) => set({ focusArea }),
+      toggleInterestArea: (area) =>
+        set({
+          interestAreas: get().interestAreas.includes(area)
+            ? get().interestAreas.filter((a) => a !== area)
+            : [...get().interestAreas, area],
+        }),
       toggleNotifications: () => set({ notificationsEnabled: !get().notificationsEnabled }),
       setApiKeyOverride: (apiKeyOverride) => set({ apiKeyOverride }),
       completeOnboarding: () => set({ onboardingDone: true }),

@@ -5,25 +5,34 @@ export default {
   theme: {
     extend: {
       colors: {
+        // [ALTERADO] Azul institucional (Força Aérea) profundo e sóbrio — menos brilhante
         brand: {
-          50: '#e8f4f8',
-          100: '#c3e0ec',
-          200: '#96c9de',
-          300: '#64b1d0',
-          400: '#3d9dc5',
-          500: '#1a8ab8',
-          600: '#147fa8',
-          700: '#0d7195',
-          800: '#076280',
-          900: '#024160',
+          50: '#eef3f8',
+          100: '#d4e1ee',
+          200: '#a9c2db',
+          300: '#7ba0c4',
+          400: '#5183ad',
+          500: '#2f5d88',
+          600: '#264c70',
+          700: '#1e3c59',
+          800: '#172d43',
+          900: '#10202f',
         },
+        // Base grafite/cinza-chumbo (neutra) — fundo institucional
         military: {
-          dark: '#1a2332',
-          darker: '#141c28',
-          card: '#1e2a3a',
-          green: '#4a7c59',
-          amber: '#d4841a',
+          dark: '#1c2128',
+          darker: '#15191e',
+          card: '#232a33',
+          green: '#2e7d46',
+          amber: '#caa733',
           red: '#c0392b',
+        },
+        // Paleta institucional/patriótica — uma cor por Força + Defesa
+        forca: {
+          fab: '#2b6cb0',      // Azul — Força Aérea Brasileira
+          marinha: '#13315c',  // Azul-marinho — Marinha do Brasil
+          exercito: '#2e7d46', // Verde — Exército Brasileiro
+          defesa: '#caa733',   // Ouro — Ministério da Defesa
         },
       },
       fontFamily: {

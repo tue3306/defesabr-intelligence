@@ -3,7 +3,8 @@ import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import {
   Search, LayoutDashboard, Newspaper, BarChart3, LineChart, Archive as ArchiveIcon,
-  Tv, GraduationCap, Settings, HelpCircle, Bell, Moon, Sun, CornerDownLeft,
+  Tv, GraduationCap, Settings, HelpCircle, Bell, Moon, Sun, CornerDownLeft, Home, Sparkles, DollarSign,
+  Target, Waves, Shield, Scale, Factory, Layers, Radio, Landmark, CalendarDays, BadgeCheck, Compass,
 } from 'lucide-react'
 import { useTheme } from '../../hooks/useTheme'
 import { useAuthStore } from '../../store/authStore'
@@ -21,13 +22,27 @@ export default function CommandPalette() {
 
   const commands = useMemo(
     () => [
-      { id: 'home', label: 'Ir para o Dashboard', icon: LayoutDashboard, run: () => navigate('/') },
+      { id: 'inicio', label: 'Ir para o Início', icon: Home, run: () => navigate('/') },
+      { id: 'painel', label: 'Abrir Painel', icon: LayoutDashboard, run: () => navigate('/painel') },
+      { id: 'planos', label: 'Ver Planos de assinatura', icon: Sparkles, run: () => navigate('/planos') },
       { id: 'clipping', label: 'Abrir Clipping Diário', icon: Newspaper, run: () => navigate('/clipping') },
       { id: 'analise', label: 'Abrir Análise Semanal', icon: BarChart3, run: () => navigate('/analise') },
       { id: 'dados', label: 'Abrir Dados & Gráficos', icon: LineChart, run: () => navigate('/dados') },
-      { id: 'arquivo', label: 'Abrir Arquivo de clippings', icon: ArchiveIcon, run: () => navigate('/arquivo') },
+      { id: 'economia', label: 'Abrir Economia & Defesa', icon: DollarSign, run: () => navigate('/economia') },
+      { id: 'dossies', label: 'Abrir Dossiês "Em Foco"', icon: Layers, run: () => navigate('/dossies') },
+      { id: 'narrativas', label: 'Abrir Monitor de Narrativas', icon: Radio, run: () => navigate('/narrativas') },
+      { id: 'calendario', label: 'Abrir Calendário Estratégico', icon: CalendarDays, run: () => navigate('/calendario') },
+      { id: 'fontes', label: 'Abrir Confiabilidade das Fontes', icon: BadgeCheck, run: () => navigate('/fontes') },
+      { id: 'programas', label: 'Abrir Programas Estratégicos', icon: Target, run: () => navigate('/programas') },
+      { id: 'amazonia', label: 'Abrir Amazônia Azul', icon: Waves, run: () => navigate('/amazonia-azul') },
+      { id: 'fronteiras', label: 'Abrir Fronteiras & Amazônia', icon: Shield, run: () => navigate('/fronteiras') },
+      { id: 'balanca', label: 'Abrir Balança Militar', icon: Scale, run: () => navigate('/balanca-militar') },
+      { id: 'industria', label: 'Abrir Base Industrial (BID)', icon: Factory, run: () => navigate('/industria') },
+      { id: 'legislativo', label: 'Abrir Radar Legislativo', icon: Landmark, run: () => navigate('/legislativo') },
+      { id: 'arquivo', label: 'Abrir Arquivo & Pasta', icon: ArchiveIcon, run: () => navigate('/arquivo') },
       { id: 'aprender', label: 'Abrir Centro Educacional', icon: GraduationCap, run: () => navigate('/aprender') },
       { id: 'apresentacao', label: 'Iniciar Apresentação', icon: Tv, run: () => navigate('/apresentacao') },
+      ...(isAuthenticated ? [{ id: 'tour', label: 'Rever tour guiado', icon: Compass, run: () => window.dispatchEvent(new Event('defesabr:open-tour')) }] : []),
       ...(isAuthenticated ? [{ id: 'notificacoes', label: 'Ver Notificações', icon: Bell, run: () => navigate('/notificacoes') }] : []),
       { id: 'config', label: 'Abrir Configurações', icon: Settings, run: () => navigate('/configuracoes') },
       { id: 'sobre', label: 'Sobre o projeto', icon: HelpCircle, run: () => navigate('/sobre') },

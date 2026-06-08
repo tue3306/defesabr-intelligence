@@ -25,14 +25,15 @@ export const alertMeta = {
 }
 
 // Cor por categoria (para gráficos e badges). A chave é exibida diretamente.
+// Paleta alinhada às Forças/Defesa para diferenciar visualmente cada área.
 export const categoryColors = {
-  'Forças Armadas': '#1a8ab8',
-  Cibersegurança: '#8b5cf6',
-  Fronteiras: '#d4841a',
-  Indústria: '#4a7c59',
-  Diplomacia: '#3d9dc5',
-  Orçamento: '#c0392b',
-  Inteligência: '#64748b',
+  'Forças Armadas': '#2e7d46', // verde Exército
+  Cibersegurança: '#8b5cf6',   // roxo
+  Fronteiras: '#d4841a',       // âmbar
+  Indústria: '#2b6cb0',        // azul FAB
+  Diplomacia: '#caa733',       // ouro Defesa
+  Orçamento: '#c0392b',        // vermelho
+  Inteligência: '#13315c',     // azul-marinho
 }
 
 export function categoryColor(cat) {

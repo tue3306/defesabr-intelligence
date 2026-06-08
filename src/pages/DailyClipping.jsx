@@ -21,7 +21,7 @@ import { useNews } from '../hooks/useNews'
 import { useNewsStore } from '../store/newsStore'
 import { useAuthStore } from '../store/authStore'
 import { useSettingsStore } from '../store/settingsStore'
-import { alertMeta } from '../utils/textUtils'
+import { alertMeta, categoryColor } from '../utils/textUtils'
 import { formatFullDate } from '../utils/dateUtils'
 import { exportClippingToPDF } from '../utils/exportUtils'
 import { clipboard } from '../utils/textUtils'
@@ -142,6 +142,11 @@ export default function DailyClipping() {
             </div>
           </div>
 
+          {/* Bloco C0 — Notícias por tema */}
+          {result.news?.length > 0 && (
+            <ThemeCounter news={result.news} />
+          )}
+
           {/* Bloco C — Tendências */}
           {result.trends?.length > 0 && (
             <div className="card p-5">
@@ -179,6 +184,44 @@ export default function DailyClipping() {
 
       {/* Fontes configuradas */}
       <SourcesPanel open={sourcesOpen} onToggle={() => setSourcesOpen((o) => !o)} />
+    </div>
+  )
+}
+
+// Contador de notícias por tema/categoria, com mini-barras de proporção.
+function ThemeCounter({ news }) {
+  const counts = news.reduce((acc, n) => {
+    acc[n.category] = (acc[n.category] || 0) + 1
+    return acc
+  }, {})
+  const rows = Object.entries(counts).sort((a, b) => b[1] - a[1])
+  const max = Math.max(...rows.map(([, c]) => c), 1)
+
+  return (
+    <div className="card p-5">
+      <h3 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wide muted">
+        Notícias por tema
+        <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-semibold normal-case">
+          {news.length} no total
+        </span>
+      </h3>
+      <div className="space-y-2.5">
+        {rows.map(([cat, count]) => (
+          <div key={cat} className="flex items-center gap-3">
+            <span className="flex w-40 shrink-0 items-center gap-2 text-sm">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: categoryColor(cat) }} />
+              <span className="truncate font-medium">{cat}</span>
+            </span>
+            <span className="h-2 flex-1 overflow-hidden rounded-full bg-gray-700/30">
+              <span
+                className="block h-full rounded-full"
+                style={{ width: `${(count / max) * 100}%`, background: categoryColor(cat) }}
+              />
+            </span>
+            <span className="w-6 shrink-0 text-right font-mono text-sm font-bold">{count}</span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

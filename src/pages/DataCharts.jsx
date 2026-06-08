@@ -3,6 +3,7 @@ import { RefreshCw, Clock } from 'lucide-react'
 import Badge from '../components/ui/Badge'
 import ExportButton from '../components/ui/ExportButton'
 import InfoTooltip from '../components/ui/InfoTooltip'
+import { TensionBoard } from '../components/tension/TensionPanel'
 import { SkeletonChart } from '../components/ui/Skeleton'
 import Sparkline from '../components/charts/Sparkline'
 import MilitarySpendingChart from '../components/charts/MilitarySpendingChart'
@@ -21,7 +22,10 @@ import {
   categoryRadar,
   alertIndex,
   militarySpendingBR,
+  activeRegions,
 } from '../data/mockData'
+import { TrendingUp, TrendingDown, Minus, Anchor, ExternalLink } from 'lucide-react'
+import { geocorrenteBulletins } from '../data/geocorrenteData'
 import { formatTime } from '../utils/dateUtils'
 import { exportCSV, exportJSON } from '../utils/exportUtils'
 
@@ -219,8 +223,68 @@ export default function DataCharts() {
           </div>
         </Panel>
 
-        <Panel title="Mapa de calor global" subtitle="Intensidade de eventos · clique para comparar países" badge="demo" className="lg:col-span-2">
-          <GlobalHeatmap compare />
+        <Panel title="Regiões mais ativas" subtitle="Eventos de segurança no período · foco Américas" badge="demo" className="lg:col-span-2">
+          <div className="grid grid-cols-1 gap-x-6 gap-y-2.5 sm:grid-cols-2">
+            {activeRegions.map((r) => {
+              const TrendIcon = r.trend === 'up' ? TrendingUp : r.trend === 'down' ? TrendingDown : Minus
+              const trendColor = r.trend === 'up' ? 'text-red-400' : r.trend === 'down' ? 'text-emerald-400' : 'text-gray-400'
+              return (
+                <div key={r.region} className="flex items-center gap-3">
+                  <span className="w-40 shrink-0 truncate text-sm font-medium">{r.region}</span>
+                  <span className="h-2 flex-1 overflow-hidden rounded-full bg-gray-700/30">
+                    <span className="block h-full rounded-full bg-brand-500" style={{ width: `${(r.events / activeRegions[0].events) * 100}%` }} />
+                  </span>
+                  <span className="w-9 shrink-0 text-right font-mono text-xs font-bold">{r.events}</span>
+                  <TrendIcon size={14} className={`shrink-0 ${trendColor}`} />
+                </div>
+              )
+            })}
+          </div>
+        </Panel>
+
+        <div className="lg:col-span-2">
+          <TensionBoard />
+        </div>
+
+        {/* [ALTERADO] Boletim Geocorrente (EGN) — demonstrativo · [REQUER BACKEND] feed real */}
+        <Panel
+          title={<span className="inline-flex items-center gap-2"><Anchor size={17} className="text-brand-400" /> Boletim Geocorrente (EGN)</span>}
+          subtitle="Análise geopolítica marítima · modelo Escola de Guerra Naval"
+          badge="demo"
+          className="lg:col-span-2"
+        >
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            {geocorrenteBulletins.map((b) => {
+              const relColor = b.relevance === 'Alta' ? '#2e7d46' : b.relevance === 'Média' ? '#caa733' : '#2b6cb0'
+              return (
+                <div key={b.id} className="rounded-lg border border-gray-700/40 bg-white/5 p-4">
+                  <div className="mb-1.5 flex flex-wrap items-center gap-2 text-[11px]">
+                    <span className="font-mono font-semibold text-brand-300">{b.edition}</span>
+                    <span className="muted">· {b.date}</span>
+                    <span className="rounded-full bg-white/5 px-2 py-0.5 font-semibold muted">{b.region}</span>
+                    <span className="ml-auto rounded-full px-2 py-0.5 font-bold text-white" style={{ background: relColor }}>
+                      {b.relevance}
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-bold tracking-tight">{b.title}</h3>
+                  <p className="mt-1 text-xs muted">{b.theme}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-gray-300">{b.summary}</p>
+                </div>
+              )
+            })}
+          </div>
+          <a
+            href="https://www.marinha.mil.br/egn/"
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-brand-400 hover:text-brand-300"
+          >
+            Fonte: Escola de Guerra Naval (EGN) <ExternalLink size={13} />
+          </a>
+        </Panel>
+
+        <Panel title="Mapa de calor de risco" subtitle="Foco nas Américas · passe o cursor para ver notícias do país" badge="demo" className="lg:col-span-2">
+          <GlobalHeatmap />
         </Panel>
       </div>
     </div>

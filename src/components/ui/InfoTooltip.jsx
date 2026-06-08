@@ -26,7 +26,7 @@ export default function InfoTooltip({ text, label = 'O que é isto?', size = 14 
         <span
           id={id}
           role="tooltip"
-          className="absolute left-1/2 top-full z-50 mt-2 w-56 -translate-x-1/2 rounded-lg border border-gray-700/60 bg-military-darker px-3 py-2 text-xs font-normal leading-relaxed text-gray-200 shadow-xl"
+          className="on-dark absolute left-1/2 top-full z-50 mt-2 w-56 -translate-x-1/2 rounded-lg border border-gray-700/60 bg-military-darker px-3 py-2 text-xs font-normal leading-relaxed text-gray-200 shadow-xl"
         >
           {text}
         </span>

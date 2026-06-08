@@ -76,6 +76,84 @@ export const glossary = [
     definition:
       'Disseminação deliberada de informações falsas ou manipuladas para influenciar a opinião pública, desestabilizar instituições ou confundir adversários.',
   },
+  {
+    term: 'SISFRON',
+    category: 'Forças Armadas',
+    definition:
+      'Sistema Integrado de Monitoramento de Fronteiras — projeto do Exército Brasileiro que combina sensores, radares e comunicações para vigiar os ~16,8 mil km de fronteira terrestre.',
+  },
+  {
+    term: 'SisGAAz',
+    category: 'Forças Armadas',
+    definition:
+      'Sistema de Gerenciamento da Amazônia Azul — rede de sensores, satélites e radares da Marinha para monitorar a vasta área marítima brasileira (a “Amazônia Azul”).',
+  },
+  {
+    term: 'END',
+    category: 'Estratégia',
+    definition:
+      'Estratégia Nacional de Defesa — documento que orienta o preparo e o emprego das Forças Armadas, definindo prioridades de reaparelhamento e da base industrial.',
+  },
+  {
+    term: 'PND',
+    category: 'Estratégia',
+    definition:
+      'Política Nacional de Defesa — documento condicionante de mais alto nível que estabelece os objetivos nacionais de defesa e as orientações para alcançá-los.',
+  },
+  {
+    term: 'LBDN',
+    category: 'Estratégia',
+    definition:
+      'Livro Branco de Defesa Nacional — publicação de transparência que apresenta à sociedade e ao mundo a política, a estrutura e os recursos de defesa do Brasil.',
+  },
+  {
+    term: 'FIMI',
+    category: 'Inteligência',
+    definition:
+      'Foreign Information Manipulation and Interference — manipulação e interferência informacional estrangeira; campanhas coordenadas para influenciar percepções e decisões de outro país.',
+  },
+  {
+    term: 'ZOPACAS',
+    category: 'Geopolítica',
+    definition:
+      'Zona de Paz e Cooperação do Atlântico Sul — fórum criado pela ONU (1986) que reúne países da África Ocidental e da América do Sul para manter o Atlântico Sul livre de tensões e armas nucleares.',
+  },
+  {
+    term: 'ComDCiber',
+    category: 'Cibersegurança',
+    definition:
+      'Comando de Defesa Cibernética — organização das Forças Armadas responsável por coordenar a defesa cibernética no setor militar e proteger redes estratégicas.',
+  },
+  {
+    term: 'IUU (Pesca)',
+    category: 'Geopolítica',
+    definition:
+      'Illegal, Unreported and Unregulated fishing — pesca ilegal, não declarada e não regulamentada; ameaça à soberania econômica e aos recursos da Amazônia Azul.',
+  },
+  {
+    term: 'Pré-sal',
+    category: 'Geopolítica',
+    definition:
+      'Camada geológica sob o leito do Atlântico que concentra grandes reservas de petróleo brasileiras, tornando a proteção marítima um interesse estratégico nacional.',
+  },
+  {
+    term: 'PROANTAR',
+    category: 'Forças Armadas',
+    definition:
+      'Programa Antártico Brasileiro — assegura a presença e a pesquisa do Brasil na Antártica, com apoio logístico da Marinha (Estação Comandante Ferraz).',
+  },
+  {
+    term: 'GLO',
+    category: 'Forças Armadas',
+    definition:
+      'Garantia da Lei e da Ordem — emprego episódico das Forças Armadas em ações de segurança pública, autorizado pelo Presidente em situações de esgotamento das forças de segurança.',
+  },
+  {
+    term: 'Dissuasão por negação',
+    category: 'Estratégia',
+    definition:
+      'Estratégia de convencer o adversário de que não conseguirá atingir seus objetivos, tornando o ataque inútil — diferente da dissuasão por punição (ameaça de retaliação).',
+  },
 ]
 
 export const glossaryCategories = [...new Set(glossary.map((g) => g.category))]
@@ -105,8 +183,11 @@ export const learnConcepts = [
 ]
 
 // Banco de questões do quiz (gamificação para estudantes).
+// `category` permite filtrar trilhas; `level` indica dificuldade.
 export const quizQuestions = [
   {
+    category: 'Forças Armadas',
+    level: 'Básico',
     q: 'O que significa a sigla PROSUB?',
     options: [
       'Programa de Desenvolvimento de Submarinos',
@@ -118,12 +199,16 @@ export const quizQuestions = [
     explain: 'O PROSUB é o programa da Marinha do Brasil para construção de submarinos, incluindo um de propulsão nuclear.',
   },
   {
+    category: 'Orçamento',
+    level: 'Básico',
     q: 'A "meta da OTAN" recomenda investir em defesa pelo menos:',
     options: ['0,5% do PIB', '1% do PIB', '2% do PIB', '5% do PIB'],
     answer: 2,
     explain: 'A referência internacional é destinar ao menos 2% do PIB a gastos de defesa.',
   },
   {
+    category: 'Geopolítica',
+    level: 'Básico',
     q: 'O termo "Amazônia Azul" se refere a:',
     options: [
       'Uma operação de combate a incêndios',
@@ -132,15 +217,19 @@ export const quizQuestions = [
       'Uma base aérea no Norte',
     ],
     answer: 1,
-    explain: 'É a vasta área oceânica brasileira, rica em recursos como o petróleo do pré-sal.',
+    explain: 'É a vasta área oceânica brasileira (~5,7 mi km²), rica em recursos como o petróleo do pré-sal.',
   },
   {
+    category: 'Indústria',
+    level: 'Básico',
     q: 'Qual aeronave de transporte é fabricada pela Embraer e exportada para vários países?',
     options: ['F-39 Gripen', 'C-390 Millennium', 'KC-390 Tucano', 'A-29 Hércules'],
     answer: 1,
     explain: 'O C-390 Millennium é o cargueiro multimissão da Embraer, com vários clientes internacionais.',
   },
   {
+    category: 'Inteligência',
+    level: 'Intermediário',
     q: 'OSINT é a inteligência obtida a partir de:',
     options: [
       'Fontes abertas e públicas',
@@ -152,6 +241,8 @@ export const quizQuestions = [
     explain: 'Open Source Intelligence usa fontes abertas: notícias, dados públicos e redes sociais.',
   },
   {
+    category: 'Cibersegurança',
+    level: 'Básico',
     q: 'Infraestrutura crítica inclui, por exemplo:',
     options: [
       'Cinemas e shoppings',
@@ -163,6 +254,8 @@ export const quizQuestions = [
     explain: 'São sistemas essenciais (energia, água, telecom, finanças) cuja falha afeta a segurança nacional.',
   },
   {
+    category: 'Estratégia',
+    level: 'Intermediário',
     q: 'O que caracteriza a "guerra híbrida"?',
     options: [
       'Apenas combate aéreo',
@@ -172,6 +265,208 @@ export const quizQuestions = [
     ],
     answer: 2,
     explain: 'A guerra híbrida mistura forças convencionais, ciberataques, desinformação e pressão econômica.',
+  },
+  {
+    category: 'Forças Armadas',
+    level: 'Intermediário',
+    q: 'O SISFRON é um sistema brasileiro voltado para:',
+    options: [
+      'O monitoramento das fronteiras terrestres',
+      'A defesa antiaérea de capitais',
+      'O controle de tráfego aéreo civil',
+      'A previsão meteorológica militar',
+    ],
+    answer: 0,
+    explain: 'SISFRON (Sistema Integrado de Monitoramento de Fronteiras) usa sensores e radares para vigiar os ~16,8 mil km de fronteira terrestre.',
+  },
+  {
+    category: 'Forças Armadas',
+    level: 'Intermediário',
+    q: 'A vigilância da Amazônia Azul é apoiada principalmente por qual sistema da Marinha?',
+    options: ['SISFRON', 'SisGAAz', 'SIVAM', 'ComDCiber'],
+    answer: 1,
+    explain: 'O SisGAAz (Sistema de Gerenciamento da Amazônia Azul) integra satélites, radares e sensores para o domínio marítimo.',
+  },
+  {
+    category: 'Estratégia',
+    level: 'Avançado',
+    q: 'Qual documento é o de mais alto nível, que define os objetivos nacionais de defesa?',
+    options: [
+      'Livro Branco de Defesa Nacional (LBDN)',
+      'Estratégia Nacional de Defesa (END)',
+      'Política Nacional de Defesa (PND)',
+      'Plano de Articulação e Equipamento (PAED)',
+    ],
+    answer: 2,
+    explain: 'A PND é o documento condicionante mais alto; a END a desdobra em estratégia e o LBDN dá transparência à sociedade.',
+  },
+  {
+    category: 'Inteligência',
+    level: 'Avançado',
+    q: 'FIMI, tema crescente em segurança, refere-se a:',
+    options: [
+      'Falhas em infraestrutura militar industrial',
+      'Manipulação e interferência informacional estrangeira',
+      'Um tratado de não proliferação nuclear',
+      'Um tipo de míssil de cruzeiro',
+    ],
+    answer: 1,
+    explain: 'FIMI (Foreign Information Manipulation and Interference) são campanhas coordenadas para influenciar percepções de outro país.',
+  },
+  {
+    category: 'Geopolítica',
+    level: 'Avançado',
+    q: 'A ZOPACAS tem como objetivo principal:',
+    options: [
+      'Criar uma aliança militar entre EUA e Brasil',
+      'Manter o Atlântico Sul livre de tensões e armas nucleares',
+      'Regular a pesca industrial no Pacífico',
+      'Coordenar missões espaciais sul-americanas',
+    ],
+    answer: 1,
+    explain: 'A Zona de Paz e Cooperação do Atlântico Sul reúne países da África e América do Sul para preservar a estabilidade do Atlântico Sul.',
+  },
+  {
+    category: 'Indústria',
+    level: 'Intermediário',
+    q: 'O caça multifunção adotado pela FAB no programa FX-2 é o:',
+    options: ['F-16 Falcon', 'Rafale', 'F-39 Gripen', 'Su-35'],
+    answer: 2,
+    explain: 'O F-39 Gripen (Saab), com transferência de tecnologia e montagem no Brasil, é o caça do programa FX-2.',
+  },
+  {
+    category: 'Orçamento',
+    level: 'Intermediário',
+    q: 'No orçamento de defesa brasileiro, a maior fatia historicamente é destinada a:',
+    options: ['Pesquisa e desenvolvimento', 'Pessoal (ativos e inativos)', 'Compra de aeronaves', 'Operações no exterior'],
+    answer: 1,
+    explain: 'Despesas com pessoal (incluindo inativos e pensionistas) consomem a maior parte do orçamento, limitando investimentos.',
+  },
+]
+
+// Categorias do quiz (derivadas das questões) para o modo "trilha".
+export const quizCategories = [...new Set(quizQuestions.map((q) => q.category))]
+
+// -----------------------------------------------------------------------------
+// VÍDEO-AULAS e MATERIAIS — busca em canais oficiais/educacionais (abre externo).
+// Usamos links de busca para não fixar vídeos que podem sair do ar.
+// -----------------------------------------------------------------------------
+export const videoLessons = [
+  {
+    title: 'O que é a Amazônia Azul?',
+    desc: 'Entenda a importância estratégica do mar brasileiro e por que a Marinha o protege.',
+    duration: '8 min',
+    level: 'Básico',
+    source: 'Marinha do Brasil',
+    url: 'https://www.youtube.com/results?search_query=amaz%C3%B4nia+azul+marinha+do+brasil',
+  },
+  {
+    title: 'PROSUB — Programa de Submarinos',
+    desc: 'Do submarino convencional ao de propulsão nuclear: como funciona o maior programa naval do país.',
+    duration: '12 min',
+    level: 'Intermediário',
+    source: 'Marinha do Brasil',
+    url: 'https://www.youtube.com/results?search_query=prosub+submarino+marinha+do+brasil',
+  },
+  {
+    title: 'C-390 Millennium e a Embraer Defesa',
+    desc: 'O cargueiro multimissão que coloca o Brasil no mercado global de defesa.',
+    duration: '10 min',
+    level: 'Básico',
+    source: 'Embraer',
+    url: 'https://www.youtube.com/results?search_query=embraer+c-390+millennium',
+  },
+  {
+    title: 'Estratégia Nacional de Defesa explicada',
+    desc: 'PND, END e LBDN: como o Brasil planeja sua defesa em documentos oficiais.',
+    duration: '15 min',
+    level: 'Avançado',
+    source: 'Ministério da Defesa',
+    url: 'https://www.youtube.com/results?search_query=estrat%C3%A9gia+nacional+de+defesa+brasil',
+  },
+  {
+    title: 'Introdução à inteligência e OSINT',
+    desc: 'Como dados de fontes abertas viram inteligência acionável.',
+    duration: '9 min',
+    level: 'Intermediário',
+    source: 'Educacional',
+    url: 'https://www.youtube.com/results?search_query=osint+intelig%C3%AAncia+fontes+abertas',
+  },
+  {
+    title: 'Cibersegurança e infraestrutura crítica',
+    desc: 'Por que energia, água e finanças são alvos prioritários e como protegê-los.',
+    duration: '11 min',
+    level: 'Intermediário',
+    source: 'Educacional',
+    url: 'https://www.youtube.com/results?search_query=ciberseguran%C3%A7a+infraestrutura+cr%C3%ADtica',
+  },
+]
+
+// -----------------------------------------------------------------------------
+// TRILHAS DE ESTUDO — caminhos guiados por nível/tema.
+// -----------------------------------------------------------------------------
+export const learningPaths = [
+  {
+    icon: 'Compass',
+    title: 'Fundamentos de Defesa',
+    level: 'Iniciante',
+    duration: '~30 min',
+    color: '#2e7d46',
+    steps: ['Conceitos-chave', 'Glossário essencial (10 termos)', 'Quiz: trilha Básica'],
+    summary: 'Comece do zero: o que é inteligência estratégica, por que monitorar defesa e como ler os indicadores.',
+  },
+  {
+    icon: 'Anchor',
+    title: 'Brasil no Atlântico Sul',
+    level: 'Intermediário',
+    duration: '~45 min',
+    color: '#13315c',
+    steps: ['Amazônia Azul & pré-sal', 'PROSUB e poder naval', 'Boletim Geocorrente', 'Quiz: Forças Armadas'],
+    summary: 'Aprofunde a dimensão marítima: soberania, recursos e os programas que sustentam a dissuasão.',
+  },
+  {
+    icon: 'ShieldAlert',
+    title: 'Ameaças do século XXI',
+    level: 'Avançado',
+    duration: '~50 min',
+    color: '#8b5cf6',
+    steps: ['Guerra híbrida', 'Cibersegurança', 'Desinformação & FIMI', 'Quiz: Inteligência'],
+    summary: 'Entenda ciberataques, manipulação informacional e como a IA apoia a análise de ameaças.',
+  },
+]
+
+// -----------------------------------------------------------------------------
+// BIBLIOTECA — documentos estruturantes da Defesa Nacional (referências oficiais).
+// Links de busca para a página oficial mais atual no gov.br.
+// -----------------------------------------------------------------------------
+export const structuringDocs = [
+  {
+    sigla: 'PND',
+    title: 'Política Nacional de Defesa',
+    tier: 'Nível 1 — Condicionante',
+    desc: 'Documento de mais alto nível: estabelece os objetivos nacionais de defesa e as orientações para alcançá-los.',
+    url: 'https://www.gov.br/defesa/pt-br/assuntos/copy_of_estado-e-defesa/pnd_end_congresso_.pdf',
+  },
+  {
+    sigla: 'END',
+    title: 'Estratégia Nacional de Defesa',
+    tier: 'Nível 2 — Estratégia',
+    desc: 'Desdobra a PND em estratégia: orienta o preparo e o emprego das Forças e os setores estratégicos (nuclear, cibernético, espacial).',
+    url: 'https://www.gov.br/defesa/pt-br/assuntos/copy_of_estado-e-defesa/pnd_end_congresso_.pdf',
+  },
+  {
+    sigla: 'LBDN',
+    title: 'Livro Branco de Defesa Nacional',
+    tier: 'Transparência',
+    desc: 'Apresenta à sociedade e ao mundo a política, a estrutura, os programas e os recursos da defesa brasileira.',
+    url: 'https://www.gov.br/defesa/pt-br/assuntos/copy_of_estado-e-defesa/livro-branco',
+  },
+  {
+    sigla: 'PAED',
+    title: 'Plano de Articulação e Equipamento de Defesa',
+    tier: 'Planejamento',
+    desc: 'Consolida os projetos estratégicos das três Forças e o cronograma físico-financeiro de reaparelhamento.',
+    url: 'https://www.gov.br/defesa/pt-br',
   },
 ]
 

@@ -260,27 +260,37 @@ export default function WeeklyAnalysis() {
             </ol>
           </div>
 
-          {/* Bloco G — Word cloud */}
-          <div className="card p-6">
-            <h2 className="mb-4 text-lg font-bold tracking-tight">Tópicos do período</h2>
-            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
-              {result.topics?.map((t, i) => (
-                <span
-                  key={i}
-                  className="font-bold leading-none"
-                  style={{
-                    fontSize: `${0.8 + t.weight * 0.16}rem`,
-                    color: `hsl(${200 - t.weight * 6}, 70%, ${55 + t.weight}%)`,
-                    opacity: 0.6 + t.weight * 0.04,
-                  }}
-                >
-                  {t.text}
-                </span>
-              ))}
-            </div>
-          </div>
+          {/* Bloco G — Tópicos do período (ranking claro) */}
+          {result.topics?.length > 0 && <TopicsRanked topics={result.topics} />}
         </motion.div>
       )}
+    </div>
+  )
+}
+
+// Tópicos do período: lista ranqueada por relevância (mais clara que a nuvem).
+function TopicsRanked({ topics }) {
+  const max = Math.max(...topics.map((t) => t.weight), 1)
+  const ranked = [...topics].sort((a, b) => b.weight - a.weight).slice(0, 8)
+  return (
+    <div className="card p-6">
+      <h2 className="text-lg font-bold tracking-tight">Tópicos do período</h2>
+      <p className="mb-4 text-sm muted">Assuntos mais mencionados na semana, ordenados por relevância.</p>
+      <div className="space-y-2.5">
+        {ranked.map((t, i) => {
+          const pct = Math.round((t.weight / max) * 100)
+          return (
+            <div key={t.text} className="flex items-center gap-3">
+              <span className="w-6 shrink-0 text-right font-mono text-xs muted">{i + 1}</span>
+              <span className="w-36 shrink-0 truncate text-sm font-medium sm:w-44">{t.text}</span>
+              <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-gray-700/30">
+                <span className="block h-full rounded-full bg-brand-500" style={{ width: `${pct}%` }} />
+              </span>
+              <span className="w-10 shrink-0 text-right text-xs font-bold text-brand-300">{pct}%</span>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }

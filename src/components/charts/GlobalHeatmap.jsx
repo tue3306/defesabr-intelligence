@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { ComposableMap, Geographies, Geography } from 'react-simple-maps'
-import { X } from 'lucide-react'
+import { Newspaper, MapPin, Flag } from 'lucide-react'
 import { countryActivity } from '../../data/mockData'
-import { countryProfiles } from '../../data/learnData'
+import { countryIntel, AMERICAS } from '../../data/countryNews'
+import { categoryColor } from '../../utils/textUtils'
 
 const geoUrl = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json'
 
-// Atividade por NOME do país (world-atlas usa properties.name, em inglês)
 const ACTIVITY_BY_NAME = {
   Brazil: countryActivity.BRA,
   'United States of America': countryActivity.USA,
@@ -24,86 +24,76 @@ const ACTIVITY_BY_NAME = {
   Iran: countryActivity.IRN,
 }
 
-// Tradução do nome exibido no tooltip (a chave de lookup permanece em inglês).
-const NAME_PT = {
-  Brazil: 'Brasil',
-  'United States of America': 'Estados Unidos',
-  Russia: 'Rússia',
-  China: 'China',
-  Argentina: 'Argentina',
-  Colombia: 'Colômbia',
-  Venezuela: 'Venezuela',
-  France: 'França',
-  'United Kingdom': 'Reino Unido',
-  Germany: 'Alemanha',
-  India: 'Índia',
-  Ukraine: 'Ucrânia',
-  Israel: 'Israel',
-  Iran: 'Irã',
+function nameProps(name) {
+  const intel = countryIntel[name]
+  return { namePt: intel?.namePt || name, risk: intel?.risk ?? ACTIVITY_BY_NAME[name] ?? null }
 }
 
 function colorFor(v) {
   if (v == null) return '#243042'
-  if (v < 25) return '#3b5168'
-  if (v < 50) return '#d4b41a'
+  if (v < 25) return '#2e7d46'
+  if (v < 50) return '#caa733'
   if (v < 75) return '#d4841a'
   return '#c0392b'
 }
 
-export default function GlobalHeatmap({ height = 380, compare = false }) {
+export default function GlobalHeatmap({ height = 380, withNews = true }) {
   const [hover, setHover] = useState(null)
-  const [selected, setSelected] = useState(compare ? ['Brazil', 'United States of America'] : [])
+  const [pinned, setPinned] = useState('Brazil')
+  const [priorityAmericas, setPriorityAmericas] = useState(true)
 
-  const toggleCountry = (name) => {
-    if (!compare || !countryProfiles[name]) return
-    setSelected((prev) => {
-      if (prev.includes(name)) return prev.filter((n) => n !== name)
-      if (prev.length >= 2) return [prev[1], name] // mantém os 2 mais recentes
-      return [...prev, name]
-    })
-  }
+  const activeName = hover || pinned
+  const active = activeName ? { name: activeName, ...nameProps(activeName), intel: countryIntel[activeName] } : null
 
   return (
     <div>
+      {/* Controles */}
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-medium muted">
+          <input
+            type="checkbox"
+            checked={priorityAmericas}
+            onChange={(e) => setPriorityAmericas(e.target.checked)}
+            className="accent-brand-500"
+          />
+          Priorizar Américas
+        </label>
+        <span className="text-xs muted">Passe o cursor ou clique em um país para ver as notícias.</span>
+      </div>
+
       <div className="relative" style={{ height }}>
-        {hover && (
-          <div className="pointer-events-none absolute left-3 top-3 z-10 rounded-lg border border-gray-700/50 bg-military-darker/90 px-3 py-1.5 text-xs">
-            <span className="font-semibold">{hover.name}</span>
-            <span className="muted"> · atividade {hover.value ?? '—'}/100</span>
+        {active && (
+          <div className="on-dark pointer-events-none absolute left-3 top-3 z-10 rounded-lg border border-gray-700/50 bg-military-darker/90 px-3 py-1.5 text-xs">
+            <span className="font-semibold">{active.namePt}</span>
+            <span className="muted"> · risco {active.risk ?? '—'}/100</span>
+            {active.intel?.news?.length ? <span className="muted"> · {active.intel.news.length} notícia(s)</span> : null}
           </div>
         )}
-        {compare && (
-          <div className="pointer-events-none absolute right-3 top-3 z-10 rounded-lg border border-brand-500/40 bg-brand-500/10 px-3 py-1.5 text-xs text-brand-200">
-            Clique em 2 países para comparar
-          </div>
-        )}
-        <ComposableMap
-          projectionConfig={{ scale: 130 }}
-          height={height}
-          style={{ width: '100%', height: '100%' }}
-        >
+        <ComposableMap projectionConfig={{ scale: 130 }} height={height} style={{ width: '100%', height: '100%' }}>
           <Geographies geography={geoUrl}>
             {({ geographies }) =>
               geographies.map((geo) => {
                 const name = geo.properties.name
-                const value = ACTIVITY_BY_NAME[name]
-                const isSelected = selected.includes(name)
+                const { risk } = nameProps(name)
+                const dimmed = priorityAmericas && !AMERICAS.has(name)
+                const isActive = activeName === name
+                const fill = dimmed ? '#222c3a' : colorFor(risk)
                 return (
                   <Geography
                     key={geo.rsmKey}
                     geography={geo}
-                    onMouseEnter={() => setHover({ name: NAME_PT[name] || name, value })}
+                    onMouseEnter={() => setHover(name)}
                     onMouseLeave={() => setHover(null)}
-                    onClick={() => toggleCountry(name)}
+                    onClick={() => setPinned(name)}
                     style={{
                       default: {
-                        fill: isSelected ? '#1a8ab8' : colorFor(value),
-                        stroke: isSelected ? '#64b1d0' : '#141c28',
-                        strokeWidth: isSelected ? 1 : 0.4,
+                        fill: isActive ? '#2b6cb0' : fill,
+                        stroke: isActive ? '#74a4df' : '#141c28',
+                        strokeWidth: isActive ? 1 : 0.4,
                         outline: 'none',
                       },
-                      hover: { fill: '#1a8ab8', outline: 'none', cursor: compare ? 'pointer' : 'default' },
-                      pressed: { fill: '#147fa8', outline: 'none' },
+                      hover: { fill: '#2b6cb0', outline: 'none', cursor: 'pointer' },
+                      pressed: { fill: '#235a96', outline: 'none' },
                     }}
                   />
                 )
@@ -113,74 +103,69 @@ export default function GlobalHeatmap({ height = 380, compare = false }) {
         </ComposableMap>
       </div>
 
-      {/* Legenda fora da área do mapa (evita transbordar o quadro no mobile) */}
+      {/* Legenda */}
       <div className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[11px] muted">
-        <Legend color="#3b5168" label="Baixa" />
-        <Legend color="#d4b41a" label="Moderada" />
-        <Legend color="#d4841a" label="Alta" />
-        <Legend color="#c0392b" label="Crítica" />
+        <Legend color="#2e7d46" label="Baixo" />
+        <Legend color="#caa733" label="Moderado" />
+        <Legend color="#d4841a" label="Alto" />
+        <Legend color="#c0392b" label="Crítico" />
+        {priorityAmericas && <Legend color="#222c3a" label="Fora do foco" />}
       </div>
 
-      {compare && <ComparePanel selected={selected} onRemove={(n) => setSelected((p) => p.filter((x) => x !== n))} />}
+      {/* Painel de notícias do país ativo */}
+      {withNews && <CountryNewsPanel active={active} />}
     </div>
   )
 }
 
-const METRICS = [
-  { key: 'spendingUSD', label: 'Gasto militar', suffix: ' bi US$' },
-  { key: 'pctGdp', label: '% do PIB', suffix: '%' },
-  { key: 'personnelK', label: 'Efetivo ativo', suffix: ' mil' },
-  { key: 'activity', label: 'Atividade', suffix: '/100' },
-]
-
-function ComparePanel({ selected, onRemove }) {
-  const cols = selected.map((name) => ({ name, ...countryProfiles[name] }))
-
+function CountryNewsPanel({ active }) {
+  if (!active) {
+    return <p className="mt-4 border-t border-gray-700/40 pt-4 text-center text-sm muted">Selecione um país no mapa.</p>
+  }
+  const { name, namePt, risk, intel } = active
+  // [ALTERADO] Relevância do país para o Brasil
+  const relevance = name === 'Brazil' ? 'País-foco' : AMERICAS.has(name) ? 'Alta' : 'Média'
+  const relColor = relevance === 'Alta' ? '#2e7d46' : relevance === 'Média' ? '#caa733' : '#2b6cb0'
   return (
     <div className="mt-4 border-t border-gray-700/40 pt-4">
-      {cols.length < 2 ? (
-        <p className="text-center text-sm muted">
-          Selecione {2 - cols.length} país{2 - cols.length > 1 ? 'es' : ''} no mapa para ver a comparação lado a lado.
-        </p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[360px] text-sm">
-            <thead>
-              <tr>
-                <th className="py-2 text-left text-xs uppercase muted">Indicador</th>
-                {cols.map((c) => (
-                  <th key={c.name} className="py-2 text-right">
-                    <span className="inline-flex items-center gap-1.5">
-                      <span className="font-bold">{c.namePt}</span>
-                      <button onClick={() => onRemove(c.name)} className="text-gray-500 hover:text-red-400" aria-label={`Remover ${c.namePt}`}>
-                        <X size={13} />
-                      </button>
-                    </span>
-                    <span className="block text-[10px] font-normal muted">{c.region}</span>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {METRICS.map((m) => {
-                const vals = cols.map((c) => c[m.key])
-                const max = Math.max(...vals)
-                return (
-                  <tr key={m.key} className="border-t border-gray-700/30">
-                    <td className="py-2.5 font-medium text-gray-300">{m.label}</td>
-                    {cols.map((c, i) => (
-                      <td key={c.name} className="py-2.5 text-right font-mono">
-                        <span className={vals[i] === max ? 'font-bold text-brand-300' : 'text-gray-200'}>
-                          {c[m.key]}{m.suffix}
-                        </span>
-                      </td>
-                    ))}
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h3 className="flex items-center gap-2 text-sm font-bold tracking-tight">
+          <MapPin size={16} className="text-brand-400" /> {namePt}
+        </h3>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full border border-gray-600/50 px-2 py-0.5 text-xs font-semibold" style={{ color: relColor }}>
+            Relevância p/ Brasil: {relevance}
+          </span>
+          <span className="rounded-full px-2 py-0.5 text-xs font-bold text-white" style={{ background: colorFor(risk) }}>
+            risco {risk ?? '—'}/100
+          </span>
         </div>
+      </div>
+
+      {intel?.brazil && (
+        <p className="mb-3 flex items-start gap-2 rounded-lg bg-brand-500/10 px-3 py-2 text-xs text-brand-200">
+          <Flag size={13} className="mt-0.5 shrink-0" />
+          <span><strong>Relação com o Brasil:</strong> {intel.brazil}</span>
+        </p>
+      )}
+
+      {intel?.news?.length ? (
+        <ul className="space-y-2">
+          {intel.news.map((n, i) => (
+            <li key={i} className="flex items-start gap-2.5 rounded-lg bg-white/5 px-3 py-2">
+              <Newspaper size={15} className="mt-0.5 shrink-0 text-gray-400" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-200">{n.title}</p>
+                <p className="mt-0.5 flex items-center gap-1.5 text-[11px] muted">
+                  <span className="h-2 w-2 rounded-full" style={{ background: categoryColor(n.category) }} />
+                  {n.category} · {n.date}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm muted">Sem fichas de notícias para este país na demonstração.</p>
       )}
     </div>
   )

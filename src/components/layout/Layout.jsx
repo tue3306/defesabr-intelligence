@@ -7,6 +7,7 @@ import Ticker from './Ticker'
 import StatusFAB from './StatusFAB'
 import OnboardingModal from '../ui/OnboardingModal'
 import CommandPalette from '../ui/CommandPalette'
+import AnalystAssistant from '../ui/AnalystAssistant'
 import { useLiveNotifications } from '../../hooks/useLiveNotifications'
 
 export default function Layout() {
@@ -25,6 +26,7 @@ export default function Layout() {
           onToggleCollapse={() => setCollapsed((c) => !c)}
           collapsed={collapsed}
         />
+        <div className="tricolor-bar" />
         <Ticker />
         <main id="conteudo" className="mx-auto min-h-[calc(100vh-8rem)] max-w-7xl px-4 py-6 sm:px-6">
           <Outlet />
@@ -33,6 +35,7 @@ export default function Layout() {
       </div>
 
       <StatusFAB />
+      <AnalystAssistant />
       <OnboardingModal />
       <CommandPalette />
     </div>

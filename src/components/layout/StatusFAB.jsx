@@ -3,12 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Activity, X } from 'lucide-react'
 import { isApiConfigured } from '../../api/anthropic'
 import { useSettingsStore } from '../../store/settingsStore'
+import { useAuthStore } from '../../store/authStore'
 import { alertMeta } from '../../utils/textUtils'
 import { formatTime } from '../../utils/dateUtils'
 
-// Widget flutuante de status das APIs / alerta atual.
+// Widget flutuante de diagnóstico das APIs — exclusivo do Administrador.
 export default function StatusFAB() {
   const [open, setOpen] = useState(false)
+  const isAdmin = useAuthStore((s) => s.user?.role === 'admin')
   const sources = useSettingsStore((s) => s.rssSources)
   const online = sources.filter((s) => s.enabled && s.status === 'online').length
   const total = sources.filter((s) => s.enabled).length
@@ -24,8 +26,11 @@ export default function StatusFAB() {
     { name: 'World Bank', ok: true, note: 'ok' },
   ]
 
+  // Diagnóstico é exclusivo do Administrador.
+  if (!isAdmin) return null
+
   return (
-    <div className="fixed bottom-5 right-5 z-40">
+    <div className="fixed bottom-[5.5rem] right-5 z-40">
       <AnimatePresence>
         {open && (
           <motion.div

@@ -113,7 +113,7 @@ export default function About() {
 
       {/* Repositório / Código aberto */}
       <div className="card overflow-hidden">
-        <div className="bg-gradient-to-br from-military-darker via-military-card to-brand-900/30 p-6 sm:p-7">
+        <div className="on-dark bg-gradient-to-br from-military-darker via-military-card to-brand-900/30 p-6 sm:p-7">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-4">
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white">

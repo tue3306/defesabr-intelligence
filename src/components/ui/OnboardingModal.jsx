@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Shield, Newspaper, BarChart3, GraduationCap, Command, ArrowRight, ArrowLeft, Check } from 'lucide-react'
+import { Shield, Newspaper, BarChart3, GraduationCap, Command, ArrowRight, ArrowLeft, Check, Target, Sparkles } from 'lucide-react'
 import Modal from './Modal'
 import { useSettingsStore } from '../../store/settingsStore'
 
@@ -7,22 +7,32 @@ const STEPS = [
   {
     icon: Shield,
     title: 'Bem-vindo ao DefesaBR Intelligence',
-    text: 'Uma plataforma de inteligência estratégica sobre Segurança e Defesa no cenário brasileiro. Vamos te mostrar o essencial em 4 passos rápidos.',
+    text: 'Uma plataforma de inteligência estratégica sobre Segurança e Defesa no cenário brasileiro. Vamos te mostrar o essencial em poucos passos.',
   },
   {
     icon: Newspaper,
     title: 'Clipping Diário com IA',
-    text: 'Notícias de fontes públicas são reunidas, resumidas e classificadas por urgência. Faça login (acesso demo) para gerar e exportar relatórios.',
+    text: 'Notícias de fontes públicas são reunidas, resumidas e classificadas por urgência. Faça login (acesso demo) para gerar e exportar relatórios — e salve as melhores na sua Pasta.',
+  },
+  {
+    icon: Target,
+    title: 'Brasil Estratégico',
+    text: 'Acompanhe os Programas Estratégicos (PROSUB, Gripen, Tamandaré…), a Amazônia Azul, as fronteiras, a balança militar regional e a indústria de defesa.',
   },
   {
     icon: BarChart3,
-    title: 'Dados, Gráficos e Cenários',
-    text: 'Acompanhe gastos militares, câmbio, índice de alerta e o mapa global. A Análise Semanal projeta cenários (base, otimista e adverso).',
+    title: 'Dados, Cenários e Dossiês',
+    text: 'Veja gastos militares, câmbio, mapa de risco e o nível de tensão. A Análise Semanal projeta cenários e os Dossiês "Em Foco" aprofundam cada tema.',
+  },
+  {
+    icon: Sparkles,
+    title: 'Pergunte ao Analista',
+    text: 'Use o assistente no canto inferior direito para tirar dúvidas sobre programas, conceitos e dossiês. E pressione Ctrl + K para a busca rápida em qualquer página.',
   },
   {
     icon: GraduationCap,
-    title: 'Aprenda e explore',
-    text: 'Novo no tema? Visite o Centro Educacional para glossário e um quiz. Dica de produtividade: pressione Ctrl + K para a busca rápida em qualquer página.',
+    title: 'Aprenda do zero',
+    text: 'Novo no tema? O Centro Educacional traz trilhas de estudo, vídeo-aulas, glossário pesquisável, a biblioteca de documentos oficiais (PND/END/LBDN) e um quiz por tema.',
   },
 ]
 
@@ -39,6 +49,13 @@ export default function OnboardingModal() {
       return () => clearTimeout(t)
     }
   }, [onboardingDone])
+
+  // Permite reabrir o tour a partir de qualquer lugar (evento global).
+  useEffect(() => {
+    const replay = () => { setStep(0); setOpen(true) }
+    window.addEventListener('defesabr:open-tour', replay)
+    return () => window.removeEventListener('defesabr:open-tour', replay)
+  }, [])
 
   const finish = () => {
     completeOnboarding()
@@ -58,7 +75,7 @@ export default function OnboardingModal() {
         <h2 className="text-xl font-bold tracking-tight">{s.title}</h2>
         <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed muted">{s.text}</p>
 
-        {step === 3 && (
+        {s.title === 'Pergunte ao Analista' && (
           <div className="mx-auto mt-3 inline-flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-1.5 text-xs font-semibold text-gray-300">
             <Command size={13} /> Ctrl + K
           </div>

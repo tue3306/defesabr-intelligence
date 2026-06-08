@@ -11,6 +11,9 @@ export const useNewsStore = create(
       // Notificações
       notifications: seedNotifications,
 
+      // [ALTERADO] Favoritos — "Minha Pasta" (notícias salvas pelo usuário)
+      favorites: [],
+
       // Último clipping gerado na sessão
       latestClipping: archiveSeeds[0]?.data || null,
 
@@ -36,6 +39,21 @@ export const useNewsStore = create(
         set({ clippings: get().clippings.filter((c) => c.id !== id) }),
 
       getClipping: (id) => get().clippings.find((c) => c.id === id),
+
+      // [ALTERADO] Favoritos / Minha Pasta
+      isFavorite: (id) => get().favorites.some((f) => f.id === id),
+      toggleFavorite: (news) => {
+        const exists = get().favorites.some((f) => f.id === news.id)
+        if (exists) {
+          set({ favorites: get().favorites.filter((f) => f.id !== news.id) })
+          return false
+        }
+        set({ favorites: [{ ...news, savedAt: new Date().toISOString() }, ...get().favorites] })
+        return true
+      },
+      removeFavorite: (id) =>
+        set({ favorites: get().favorites.filter((f) => f.id !== id) }),
+      clearFavorites: () => set({ favorites: [] }),
 
       // Notificações
       unreadCount: () => get().notifications.filter((n) => !n.read).length,

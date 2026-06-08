@@ -1,14 +1,22 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronDown, ExternalLink, Copy, Bookmark, Share2, MapPin, Users } from 'lucide-react'
+import { ChevronDown, ExternalLink, Copy, Bookmark, BookmarkCheck, Share2, MapPin, Users } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Badge from './Badge'
 import { timeAgo } from '../../utils/dateUtils'
 import { clipboard } from '../../utils/textUtils'
+import { useNewsStore } from '../../store/newsStore'
 
 // variant: 'compact' (feed) | 'full' (clipping com pontos-chave expansíveis)
 export default function NewsCard({ news, variant = 'compact', defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen)
+  const toggleFavorite = useNewsStore((s) => s.toggleFavorite)
+  const favored = useNewsStore((s) => s.favorites.some((f) => f.id === news.id))
+
+  const saveFavorite = () => {
+    const added = toggleFavorite(news)
+    toast.success(added ? 'Salvo na sua pasta' : 'Removido da pasta')
+  }
 
   const copy = () => {
     clipboard(`${news.title}\n\n${news.summary}\n\nFonte: ${news.source}`)
@@ -104,7 +112,7 @@ export default function NewsCard({ news, variant = 'compact', defaultOpen = fals
           <div className="mt-3 flex flex-wrap gap-2 border-t border-gray-700/40 pt-3">
             <ActionBtn href={news.url} icon={ExternalLink} label="Fonte" />
             <ActionBtn onClick={copy} icon={Copy} label="Copiar" />
-            <ActionBtn onClick={() => toast.success('Salvo no arquivo')} icon={Bookmark} label="Salvar" />
+            <ActionBtn onClick={saveFavorite} icon={favored ? BookmarkCheck : Bookmark} label={favored ? 'Salvo' : 'Salvar'} active={favored} />
             <ActionBtn onClick={share} icon={Share2} label="Compartilhar" />
           </div>
         </>
@@ -124,9 +132,10 @@ export default function NewsCard({ news, variant = 'compact', defaultOpen = fals
   )
 }
 
-function ActionBtn({ href, onClick, icon: Icon, label }) {
-  const cls =
-    'inline-flex items-center gap-1.5 rounded-lg border border-gray-600/50 px-2.5 py-1.5 text-xs font-medium text-gray-300 hover:bg-white/5'
+function ActionBtn({ href, onClick, icon: Icon, label, active }) {
+  const cls = active
+    ? 'inline-flex items-center gap-1.5 rounded-lg border border-brand-500/50 bg-brand-500/15 px-2.5 py-1.5 text-xs font-medium text-brand-300'
+    : 'inline-flex items-center gap-1.5 rounded-lg border border-gray-600/50 px-2.5 py-1.5 text-xs font-medium text-gray-300 hover:bg-white/5'
   if (href) {
     return (
       <a href={href} target="_blank" rel="noreferrer" className={cls} aria-label={label}>

@@ -6,14 +6,23 @@ import MilitarySpendingChart from '../components/charts/MilitarySpendingChart'
 import NewsVolumeChart from '../components/charts/NewsVolumeChart'
 import GaugeChart from '../components/charts/GaugeChart'
 import GlobalHeatmap from '../components/charts/GlobalHeatmap'
-import { militarySpendingBR, newsVolume14d, newsCategoriesKeys, alertIndex } from '../data/mockData'
+import ComparisonBarChart from '../components/charts/ComparisonBarChart'
+import BrazilDefenseBudget from '../components/charts/BrazilDefenseBudget'
+import SentimentChart from '../components/charts/SentimentChart'
+import {
+  militarySpendingBR, newsVolume14d, newsCategoriesKeys, alertIndex,
+  southAmericaSpending, globalSpendingTreemap, categoryRadar,
+} from '../data/mockData'
 import { formatTime, formatFullDate } from '../utils/dateUtils'
 
 const SLIDES = [
   { title: 'Gastos militares — Brasil', render: (h) => <MilitarySpendingChart data={militarySpendingBR} mode="dual" height={h} /> },
+  { title: 'Gastos militares globais (US$ bi)', render: (h) => <BrazilDefenseBudget data={globalSpendingTreemap} height={h} /> },
+  { title: 'América do Sul — % do PIB em defesa', render: (h) => <ComparisonBarChart data={southAmericaSpending} highlightCode="BR" height={h} /> },
   { title: 'Volume de notícias — 14 dias', render: (h) => <NewsVolumeChart data={newsVolume14d} keys={newsCategoriesKeys} height={h} /> },
+  { title: 'Volume por categoria — semana', render: (h) => <SentimentChart data={categoryRadar} height={h} /> },
   { title: 'Índice de alerta nacional', render: (h) => <GaugeChart value={alertIndex} height={h} /> },
-  { title: 'Mapa de calor global', render: (h) => <GlobalHeatmap height={h} /> },
+  { title: 'Mapa de calor de risco — foco Américas', render: (h) => <GlobalHeatmap height={h} withNews={false} /> },
 ]
 
 const AUTOPLAY_MS = 9000
@@ -70,7 +79,7 @@ export default function Presentation() {
   const slide = SLIDES[index]
 
   return (
-    <div className="flex min-h-screen flex-col bg-military-darker p-4 sm:p-6 lg:p-8">
+    <div className="on-dark flex min-h-screen flex-col bg-military-darker p-4 sm:p-6 lg:p-8">
       {/* HEADER */}
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">

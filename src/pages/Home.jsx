@@ -16,6 +16,7 @@ import Badge from '../components/ui/Badge'
 import ExchangeWidget from '../components/ui/ExchangeWidget'
 import NewsVolumeChart from '../components/charts/NewsVolumeChart'
 import MilitarySpendingChart from '../components/charts/MilitarySpendingChart'
+import GlobalHeatmap from '../components/charts/GlobalHeatmap'
 import { useNews } from '../hooks/useNews'
 import { useNewsStore } from '../store/newsStore'
 import { useAuthStore } from '../store/authStore'
@@ -45,7 +46,7 @@ export default function Home() {
     <div className="space-y-8">
       {/* HERO */}
       <Section className="card overflow-hidden">
-        <div className="relative bg-gradient-to-br from-military-darker via-military-card to-brand-900/40 p-8 sm:p-10">
+        <div className="on-dark relative bg-gradient-to-br from-military-darker via-military-card to-brand-900/40 p-8 sm:p-10">
           <Badge type="live" className="mb-4" />
           <span className="ml-2 text-xs muted">Atualizado às {formatTime()}</span>
           <h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">
@@ -106,6 +107,13 @@ export default function Home() {
         </div>
       </Section>
 
+      {/* MAPA DE RISCO */}
+      <Section className="card p-5">
+        <h2 className="mb-1 text-lg font-bold tracking-tight">Mapa de risco — foco Américas</h2>
+        <p className="mb-4 text-sm muted">Passe o cursor ou clique em um país para ver suas notícias de segurança e defesa.</p>
+        <GlobalHeatmap height={400} />
+      </Section>
+
       {/* VOLUME DE NOTÍCIAS */}
       <Section className="card p-5">
         <h2 className="mb-1 text-lg font-bold tracking-tight">Volume de notícias — últimos 14 dias</h2>
@@ -148,7 +156,7 @@ export default function Home() {
       </Section>
 
       {/* TICKER DE ALERTAS */}
-      <Section className="overflow-hidden rounded-xl border border-gray-700/50 bg-military-darker">
+      <Section className="on-dark overflow-hidden rounded-xl border border-gray-700/50 bg-military-darker">
         <div className="flex w-max animate-marquee gap-10 whitespace-nowrap py-2 pl-6 text-sm">
           {[...feed, ...feed].map((n, i) => (
             <span key={i} className="inline-flex items-center gap-2 text-gray-300">

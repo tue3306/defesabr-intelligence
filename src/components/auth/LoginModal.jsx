@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Shield, LogIn } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Modal from '../ui/Modal'
 import { useAuthStore, DEMO_CREDENTIALS, PROFILES } from '../../store/authStore'
 
 export default function LoginModal({ open, onClose }) {
+  const navigate = useNavigate()
   const login = useAuthStore((s) => s.login)
   const loginAsDemo = useAuthStore((s) => s.loginAsDemo)
   const [email, setEmail] = useState('')
@@ -17,6 +19,7 @@ export default function LoginModal({ open, onClose }) {
     if (res.ok) {
       toast.success('Bem-vindo, Administrador')
       onClose?.()
+      navigate('/painel') // [ALTERADO] após login, vai ao painel
     } else {
       setError(res.error)
     }
@@ -26,6 +29,7 @@ export default function LoginModal({ open, onClose }) {
     loginAsDemo(role)
     toast.success(`Conectado como ${PROFILES[role].label}`)
     onClose?.()
+    navigate('/painel') // [ALTERADO] após login, vai ao painel
   }
 
   return (
@@ -74,10 +78,14 @@ export default function LoginModal({ open, onClose }) {
       </div>
 
       <div className="grid grid-cols-3 gap-2">
-        <button onClick={() => demo('admin')} className="btn-ghost text-xs">Admin</button>
+        <button onClick={() => demo('admin')} className="btn-ghost text-xs">Administrador</button>
         <button onClick={() => demo('analista')} className="btn-ghost text-xs">Analista</button>
-        <button onClick={() => demo('visitante')} className="btn-ghost text-xs">Visitante</button>
+        <button onClick={() => demo('gratuito')} className="btn-ghost text-xs">Usuário Comum</button>
       </div>
+      {/* [ALTERADO] Visitante = continuar sem login (somente área pública) */}
+      <button onClick={() => onClose?.()} className="mt-2 w-full text-center text-xs muted hover:text-brand-400">
+        Continuar como visitante (sem login)
+      </button>
 
       <div className="mt-4 rounded-lg bg-brand-500/10 p-3 text-xs text-brand-200">
         📌 Demo: <strong>{DEMO_CREDENTIALS.email}</strong> · senha <strong>{DEMO_CREDENTIALS.password}</strong>

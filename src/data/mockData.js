@@ -26,7 +26,21 @@ export const ALERT_LEVELS = ['NORMAL', 'ATENCAO', 'ALERTA', 'CRITICO']
 
 // Fontes RSS monitoradas (status simulado)
 export const RSS_SOURCES = [
-  { id: 'defesagov', name: 'Defesa.gov.br', url: 'https://www.defesa.gov.br/noticias.rss', enabled: true, status: 'online' },
+  // Governamentais / institucionais
+  { id: 'defesagov', name: 'Ministério da Defesa', url: 'https://www.gov.br/defesa/pt-br/assuntos/noticias/RSS', enabled: true, status: 'online' },
+  { id: 'marinha', name: 'Marinha do Brasil', url: 'https://www.marinha.mil.br/rss.xml', enabled: true, status: 'online' },
+  { id: 'exercito', name: 'Exército Brasileiro', url: 'https://www.eb.mil.br/rss', enabled: true, status: 'online' },
+  { id: 'fab', name: 'Força Aérea Brasileira (FAB)', url: 'https://www.fab.mil.br/noticias/rss', enabled: true, status: 'online' },
+  { id: 'gsi', name: 'GSI / Presidência', url: 'https://www.gov.br/gsi/pt-br/assuntos/noticias/RSS', enabled: true, status: 'online' },
+  { id: 'pf', name: 'Polícia Federal', url: 'https://www.gov.br/pf/pt-br/assuntos/noticias/RSS', enabled: true, status: 'online' },
+  { id: 'mre', name: 'Itamaraty (MRE)', url: 'https://www.gov.br/mre/pt-br/canais_atendimento/imprensa/RSS', enabled: false, status: 'offline' },
+  // [ALTERADO] Fontes governamentais adicionais
+  { id: 'abin', name: 'ABIN — Inteligência', url: 'https://www.gov.br/abin/pt-br/assuntos/noticias/RSS', enabled: true, status: 'online' },
+  { id: 'receita', name: 'Receita Federal', url: 'https://www.gov.br/receitafederal/pt-br/assuntos/noticias/RSS', enabled: false, status: 'offline' },
+  { id: 'bcb', name: 'Banco Central', url: 'https://www.bcb.gov.br/rss/noticias', enabled: true, status: 'online' },
+  // [REQUER BACKEND] Boletins Geocorrentes (EGN/Marinha) — exigem scraping no servidor
+  { id: 'egn', name: 'Boletim Geocorrente (EGN/Marinha)', url: 'https://www.marinha.mil.br/egn/geocorrente', enabled: false, status: 'offline' },
+  // Imprensa especializada
   { id: 'poder360', name: 'Poder360 — Defesa', url: 'https://www.poder360.com.br/defesa/feed/', enabled: true, status: 'online' },
   { id: 'aerospacial', name: 'Revista Aerospacial', url: 'https://revistaaerospacial.com.br/feed/', enabled: true, status: 'online' },
   { id: 'brasildefesa', name: 'Brasil Defesa', url: 'https://www.brasildefesa.com.br/?format=feed&type=rss', enabled: false, status: 'offline' },
@@ -575,6 +589,19 @@ export const countryActivity = {
   ISR: 75,
   IRN: 60,
 }
+
+// -----------------------------------------------------------------------------
+// REGIÕES MAIS ATIVAS (eventos de segurança no período) — foco Américas
+// -----------------------------------------------------------------------------
+export const activeRegions = [
+  { region: 'Fronteira Norte (Amazônia)', events: 128, trend: 'up', share: 26 },
+  { region: 'América Central / Caribe', events: 96, trend: 'up', share: 19 },
+  { region: 'Atlântico Sul', events: 74, trend: 'flat', share: 15 },
+  { region: 'Sudeste do Brasil', events: 63, trend: 'down', share: 13 },
+  { region: 'Tríplice Fronteira', events: 58, trend: 'up', share: 12 },
+  { region: 'Cone Sul', events: 41, trend: 'flat', share: 8 },
+  { region: 'Pacífico (costa oeste)', events: 35, trend: 'down', share: 7 },
+]
 
 // -----------------------------------------------------------------------------
 // ARQUIVO — CLIPPINGS ANTERIORES (seeds)
