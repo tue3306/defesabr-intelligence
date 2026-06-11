@@ -5,10 +5,10 @@
 // [ALTERADO] Áreas de interesse do plano "Simples" — as 5 perspectivas da
 // plataforma (escolhe apenas UMA; as demais ficam bloqueadas neste plano).
 export const SUBSCRIPTION_AREAS = [
-  { id: 'academico', label: 'Acadêmica', icon: 'GraduationCap', color: '#2b6cb0', desc: 'Análises voltadas à pesquisa, estudos estratégicos e produção científica em segurança e defesa.' },
+  { id: 'academico', label: 'Acadêmica', icon: 'GraduationCap', color: '#64748b', desc: 'Análises voltadas à pesquisa, estudos estratégicos e produção científica em segurança e defesa.' },
   { id: 'investimento', label: 'Investimentos', icon: 'TrendingUp', color: '#2e7d46', desc: 'Indicadores de risco-país, impacto de conflitos em mercados e oportunidades em defesa.' },
   { id: 'comercial', label: 'Comercial/Industrial', icon: 'Factory', color: '#caa733', desc: 'Impactos geopolíticos em cadeias produtivas, comércio exterior e setor industrial.' },
-  { id: 'empresarial', label: 'Empresarial', icon: 'Briefcase', color: '#13315c', desc: 'Inteligência competitiva, riscos corporativos e contexto de segurança para negócios.' },
+  { id: 'empresarial', label: 'Empresarial', icon: 'Briefcase', color: '#475569', desc: 'Inteligência competitiva, riscos corporativos e contexto de segurança para negócios.' },
   { id: 'diplomatico', label: 'Diplomática', icon: 'Globe', color: '#8b5cf6', desc: 'Relações internacionais, acordos, tensões diplomáticas e posicionamento do Brasil.' },
 ]
 

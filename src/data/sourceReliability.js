@@ -6,7 +6,7 @@
 
 export const RELIABILITY_TIERS = [
   { min: 85, label: 'Muito alta', classes: 'bg-emerald-500/15 text-emerald-300', ring: '#2e7d46' },
-  { min: 70, label: 'Alta', classes: 'bg-brand-500/15 text-brand-300', ring: '#2b6cb0' },
+  { min: 70, label: 'Alta', classes: 'bg-brand-500/15 text-brand-300', ring: '#1f8a4c' },
   { min: 50, label: 'Média', classes: 'bg-amber-500/15 text-amber-300', ring: '#caa733' },
   { min: 0, label: 'Requer cautela', classes: 'bg-red-500/15 text-red-300', ring: '#c0392b' },
 ]

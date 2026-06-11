@@ -1,7 +1,8 @@
 import { ResponsiveContainer, Treemap, Tooltip } from 'recharts'
 import { tooltipStyle } from './chartTheme'
 
-const COLORS = ['#024160', '#076280', '#0d7195', '#147fa8', '#1a8ab8', '#3d9dc5', '#64b1d0', '#96c9de', '#4a7c59', '#64748b']
+// [ALTERADO] Gradiente patriótico: verde → ouro (substitui o azul anterior).
+const COLORS = ['#0b4f2b', '#0f6537', '#147a43', '#1f8a4c', '#2fa15f', '#5bbe81', '#caa733', '#a98a23', '#4a7c59', '#64748b']
 
 // Treemap de gastos militares globais (US$ bi). Também usado para outros datasets.
 export default function BrazilDefenseBudget({ data = [], height = 340 }) {

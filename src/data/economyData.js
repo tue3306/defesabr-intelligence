@@ -35,8 +35,8 @@ export const brazilInflation = [
 
 // Composição do orçamento de defesa do Brasil (%).
 export const defenseBudgetBreakdown = [
-  { label: 'Pessoal e encargos', value: 73, color: '#2b6cb0' },
-  { label: 'Custeio e manutenção', value: 14, color: '#2e7d46' },
+  { label: 'Pessoal e encargos', value: 73, color: '#147a43' },
+  { label: 'Custeio e manutenção', value: 14, color: '#2fa15f' },
   { label: 'Investimentos', value: 11, color: '#caa733' },
   { label: 'Outros', value: 2, color: '#64748b' },
 ]

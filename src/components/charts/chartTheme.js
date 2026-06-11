@@ -1,7 +1,11 @@
 // Estilos compartilhados dos graficos (tema escuro/claro neutro).
+// [ALTERADO] Paleta patriótica: verde como série principal, ouro como destaque.
+export const CHART_GREEN = '#1f8a4c'
+export const CHART_GOLD = '#caa733'
+
 export const tooltipStyle = {
   contentStyle: {
-    background: '#1e2a3a',
+    background: '#232a33',
     border: '1px solid rgba(148,163,184,0.25)',
     borderRadius: 10,
     color: '#f1f5f9',

@@ -255,7 +255,7 @@ export default function DataCharts() {
         >
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {geocorrenteBulletins.map((b) => {
-              const relColor = b.relevance === 'Alta' ? '#2e7d46' : b.relevance === 'Média' ? '#caa733' : '#2b6cb0'
+              const relColor = b.relevance === 'Alta' ? '#2e7d46' : b.relevance === 'Média' ? '#caa733' : '#147a43'
               return (
                 <div key={b.id} className="rounded-lg border border-gray-700/40 bg-white/5 p-4">
                   <div className="mb-1.5 flex flex-wrap items-center gap-2 text-[11px]">

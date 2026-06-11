@@ -43,10 +43,10 @@ export default function MilitarySpendingChart({ data = [], mode = 'dual', height
         <Legend wrapperStyle={{ fontSize: 12 }} />
 
         {(mode === 'dual') && (
-          <Bar yAxisId="left" dataKey="brl" name="Gasto (R$ bi)" fill="#1a8ab8" radius={[3, 3, 0, 0]} barSize={16} />
+          <Bar yAxisId="left" dataKey="brl" name="Gasto (R$ bi)" fill="#1f8a4c" radius={[3, 3, 0, 0]} barSize={16} />
         )}
         {mode === 'usd' && (
-          <Bar yAxisId="left" dataKey="usd" name="Gasto (US$ bi)" fill="#1a8ab8" radius={[3, 3, 0, 0]} barSize={16} />
+          <Bar yAxisId="left" dataKey="usd" name="Gasto (US$ bi)" fill="#1f8a4c" radius={[3, 3, 0, 0]} barSize={16} />
         )}
         {mode !== 'usd' && (
           <>

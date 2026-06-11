@@ -4,6 +4,7 @@ import {
   Shield, Tv, Lock, GraduationCap, Home, Sparkles, DollarSign, X,
   Target, Waves, Scale, Factory, Layers, Radio, Landmark, CalendarDays, BadgeCheck,
 } from 'lucide-react'
+import Logo from '../ui/Logo'
 import { useAuthStore } from '../../store/authStore'
 
 // Navegação agrupada por seções (estilo plataforma oficial).
@@ -74,15 +75,7 @@ export default function Sidebar({ open, onClose, collapsed }) {
           ${collapsed ? 'lg:w-[72px]' : 'w-64'}`}
       >
         <div className="flex h-16 items-center gap-2 border-b border-gray-700/50 px-4">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-500/15 text-brand-400">
-            <Shield size={20} />
-          </span>
-          {!collapsed && (
-            <div className="leading-tight">
-              <p className="text-sm font-bold tracking-tight">DefesaBR</p>
-              <p className="text-[10px] uppercase tracking-widest text-brand-400">Intelligence</p>
-            </div>
-          )}
+          <Logo size="md" showText={!collapsed} />
           <button onClick={onClose} className="ml-auto rounded p-1 text-gray-400 hover:text-white lg:hidden" aria-label="Fechar menu">
             <X size={18} />
           </button>
@@ -97,7 +90,14 @@ export default function Sidebar({ open, onClose, collapsed }) {
               {collapsed && <div className="mx-3 mb-1 border-t border-gray-700/40" />}
               <div className="space-y-0.5">
                 {section.items.map((item) => (
-                  <Item key={item.to} item={item} collapsed={collapsed} onClick={onClose} locked={item.requiresAuth && !isAuthenticated} />
+                  <Item
+                    key={item.to}
+                    item={item}
+                    collapsed={collapsed}
+                    onClick={onClose}
+                    locked={item.requiresAuth && !isAuthenticated}
+                    restricted={isAuthenticated && item.requiresPermission && !hasPermission(item.requiresPermission)}
+                  />
                 ))}
               </div>
             </div>
@@ -106,7 +106,14 @@ export default function Sidebar({ open, onClose, collapsed }) {
 
         <div className="space-y-1 border-t border-gray-700/50 p-3">
           {bottomNav.map((item) => (
-            <Item key={item.to} item={item} collapsed={collapsed} onClick={onClose} locked={item.requiresAuth && !isAuthenticated} />
+            <Item
+              key={item.to}
+              item={item}
+              collapsed={collapsed}
+              onClick={onClose}
+              locked={item.requiresAuth && !isAuthenticated}
+              restricted={isAuthenticated && item.requiresPermission && !hasPermission(item.requiresPermission)}
+            />
           ))}
         </div>
       </aside>
@@ -114,14 +121,14 @@ export default function Sidebar({ open, onClose, collapsed }) {
   )
 }
 
-function Item({ item, collapsed, onClick, locked }) {
+function Item({ item, collapsed, onClick, locked, restricted }) {
   const { to, label, icon: Icon, badge, end } = item
   return (
     <NavLink
       to={to}
       end={end}
       onClick={onClick}
-      title={collapsed ? (locked ? `${label} (requer login)` : label) : undefined}
+      title={collapsed ? (locked ? `${label} (requer login)` : restricted ? `${label} (perfil Analista)` : label) : undefined}
       className={({ isActive }) =>
         `group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
           isActive
@@ -140,12 +147,21 @@ function Item({ item, collapsed, onClick, locked }) {
           <Lock size={10} />
         </span>
       )}
-      {!collapsed && !locked && badge && (
+      {/* Item exige perfil de Analista (usuário logado sem permissão) */}
+      {!collapsed && !locked && restricted && (
+        <span
+          className="inline-flex items-center gap-1 rounded-full bg-gold-500/15 px-1.5 py-0.5 text-[9px] font-bold text-gold-400"
+          title="Recurso de Analista"
+        >
+          <Lock size={9} /> ANALISTA
+        </span>
+      )}
+      {!collapsed && !locked && !restricted && badge && (
         <span className="rounded-full bg-brand-500/20 px-1.5 py-0.5 text-[9px] font-bold text-brand-300">
           {badge}
         </span>
       )}
-      {collapsed && locked && <Lock size={11} className="shrink-0 text-amber-400" />}
+      {collapsed && (locked || restricted) && <Lock size={11} className="shrink-0 text-amber-400" />}
     </NavLink>
   )
 }

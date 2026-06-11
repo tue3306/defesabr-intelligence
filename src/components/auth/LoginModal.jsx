@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Shield, LogIn } from 'lucide-react'
+import { LogIn } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Modal from '../ui/Modal'
+import Logo from '../ui/Logo'
 import { useAuthStore, DEMO_CREDENTIALS, PROFILES } from '../../store/authStore'
 
 export default function LoginModal({ open, onClose }) {
@@ -35,8 +36,8 @@ export default function LoginModal({ open, onClose }) {
   return (
     <Modal open={open} onClose={onClose} maxWidth="max-w-md">
       <div className="text-center">
-        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-500/15 text-brand-400">
-          <Shield size={26} />
+        <div className="mx-auto mb-3 flex justify-center">
+          <Logo size="lg" showText={false} />
         </div>
         <h2 className="text-xl font-bold tracking-tight">DefesaBR Intelligence</h2>
         <p className="mt-1 text-sm muted">Acesse a plataforma de inteligência</p>

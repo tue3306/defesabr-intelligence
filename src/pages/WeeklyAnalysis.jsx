@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   Bot,
@@ -13,12 +14,16 @@ import {
   FileDown,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { Lock } from 'lucide-react'
 import Badge from '../components/ui/Badge'
+import Paywall from '../components/ui/Paywall'
 import GaugeChart from '../components/charts/GaugeChart'
 import InfoTooltip from '../components/ui/InfoTooltip'
 import { useClaudeAI } from '../hooks/useClaudeAI'
 import { useNews } from '../hooks/useNews'
 import { useSettingsStore } from '../store/settingsStore'
+import { useAuthStore } from '../store/authStore'
+import { useSubscriptionStore } from '../store/subscriptionStore'
 import { FOCUS_AREAS, mockWeeklyAnalysis } from '../data/mockData'
 import { exportWeeklyToPDF } from '../utils/exportUtils'
 
@@ -60,6 +65,16 @@ export default function WeeklyAnalysis() {
   const { loading, generateWeekly, source } = useClaudeAI()
   const focusArea = useSettingsStore((s) => s.focusArea)
   const setFocusArea = useSettingsStore((s) => s.setFocusArea)
+  const hasPermission = useAuthStore((s) => s.hasPermission)
+  const isStaff = useAuthStore((s) => s.isStaff)
+  const canSeeArea = useSubscriptionStore((s) => s.canSeeArea)
+
+  // [ALTERADO] Acesso por perfil/plano:
+  // - Analista/Admin (equipe) veem tudo e geram/exportam.
+  // - Usuário Comum vê a análise da(s) área(s) do seu plano; demais ficam no paywall.
+  const canGenerate = hasPermission('generate')
+  const canExport = hasPermission('export')
+  const unlocked = isStaff() || canSeeArea(focusArea)
 
   const [result, setResult] = useState(mockWeeklyAnalysis[focusArea] || mockWeeklyAnalysis.empresarial)
   const [week, setWeek] = useState(PREV_WEEKS[0])
@@ -102,11 +117,21 @@ export default function WeeklyAnalysis() {
                 <option key={w} value={w}>{w}</option>
               ))}
             </select>
-            <button onClick={handlePDF} className="btn-ghost" title="Exportar a análise em PDF">
-              <FileDown size={16} /> PDF
+            <button
+              onClick={handlePDF}
+              disabled={!canExport}
+              className="btn-ghost"
+              title={canExport ? 'Exportar a análise em PDF' : 'Exportar é exclusivo do Analista/Admin'}
+            >
+              {!canExport && <Lock size={13} />} <FileDown size={16} /> PDF
             </button>
-            <button onClick={handleGenerate} disabled={loading} className="btn-primary">
-              <Bot size={18} /> {loading ? 'Gerando…' : 'Gerar Análise Semanal'}
+            <button
+              onClick={handleGenerate}
+              disabled={loading || !canGenerate}
+              className="btn-primary"
+              title={canGenerate ? undefined : 'Gerar com IA é exclusivo do Analista/Admin'}
+            >
+              {!canGenerate && <Lock size={15} />} <Bot size={18} /> {loading ? 'Gerando…' : 'Gerar Análise Semanal'}
             </button>
           </div>
         </div>
@@ -161,6 +186,25 @@ export default function WeeklyAnalysis() {
             </div>
           </div>
 
+          {/* Aviso premium para quem não tem a área no plano (não-equipe) */}
+          {!unlocked && (
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-gold-500/30 bg-gold-500/10 p-3 text-sm">
+              <Lock size={15} className="text-gold-400" />
+              <span className="text-gray-200">
+                A análise completa da perspectiva <strong>{FOCUS_AREAS.find((f) => f.id === focusArea)?.label || ''}</strong> é{' '}
+                <strong className="text-gold-400">premium</strong> e não está no seu plano atual.
+              </span>
+              <Link to="/planos" className="ml-auto text-xs font-semibold text-brand-300 hover:text-brand-200">Ver planos →</Link>
+            </div>
+          )}
+
+          {/* Conteúdo premium (cenários em diante) — liberado por plano/área ou equipe */}
+          <Paywall
+            active={!unlocked}
+            title="Análise completa é exclusiva de assinantes"
+            desc="Escolha esta área no seu plano (ou assine o Completo). Analista e Administrador têm acesso total."
+          >
+          <div className="space-y-6">
           {/* Bloco B — Cenários */}
           <div>
             <h2 className="mb-3 text-lg font-bold tracking-tight">Análise de cenários</h2>
@@ -262,6 +306,8 @@ export default function WeeklyAnalysis() {
 
           {/* Bloco G — Tópicos do período (ranking claro) */}
           {result.topics?.length > 0 && <TopicsRanked topics={result.topics} />}
+          </div>
+          </Paywall>
         </motion.div>
       )}
     </div>

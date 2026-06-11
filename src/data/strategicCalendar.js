@@ -5,7 +5,7 @@
 
 export const CAL_TYPES = {
   exercicio: { label: 'Exercício militar', color: '#2e7d46', icon: 'Crosshair' },
-  feira: { label: 'Feira/Indústria', color: '#2b6cb0', icon: 'Building2' },
+  feira: { label: 'Feira/Indústria', color: '#64748b', icon: 'Building2' },
   orcamento: { label: 'Orçamento/Legislativo', color: '#c0392b', icon: 'Landmark' },
   diplomacia: { label: 'Diplomacia', color: '#caa733', icon: 'Globe2' },
   marco: { label: 'Marco de programa', color: '#8b5cf6', icon: 'Flag' },

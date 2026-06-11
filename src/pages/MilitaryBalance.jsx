@@ -65,7 +65,7 @@ export default function MilitaryBalance() {
                 <span className="h-3 flex-1 overflow-hidden rounded-full bg-gray-700/30">
                   <span
                     className="block h-full rounded-full transition-all"
-                    style={{ width: `${(c[metricKey] / max) * 100}%`, background: isBR ? '#caa733' : '#2b6cb0' }}
+                    style={{ width: `${(c[metricKey] / max) * 100}%`, background: isBR ? '#caa733' : '#1f8a4c' }}
                   />
                 </span>
                 <span className={`w-16 shrink-0 text-right font-mono text-sm ${isBR ? 'font-bold text-brand-200' : 'font-semibold'}`}>

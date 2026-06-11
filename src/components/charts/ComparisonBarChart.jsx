@@ -29,7 +29,7 @@ export default function ComparisonBarChart({ data = [], highlightCode = 'BR', he
         <Tooltip {...tooltipStyle} formatter={(v) => [`${v}% do PIB`, 'Gasto militar']} cursor={{ fill: 'rgba(148,163,184,0.08)' }} />
         <Bar dataKey="pctGdp" radius={[0, 4, 4, 0]} barSize={16}>
           {sorted.map((d) => (
-            <Cell key={d.code} fill={d.code === highlightCode ? '#d4841a' : '#1a8ab8'} />
+            <Cell key={d.code} fill={d.code === highlightCode ? '#caa733' : '#1f8a4c'} />
           ))}
         </Bar>
       </BarChart>

@@ -75,7 +75,7 @@ export default function StrategicPrograms() {
                 </div>
 
                 <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-                  <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-semibold" style={{ background: `${forceMeta.color}22`, color: forceMeta.color === '#13315c' ? '#7ba0c4' : forceMeta.color }}>
+                  <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-semibold" style={{ background: `${forceMeta.color}22`, color: forceMeta.color === '#475569' ? '#a4a9b1' : forceMeta.color }}>
                     <Building2 size={12} /> {forceMeta.label}
                   </span>
                   <span className="inline-flex items-center gap-1 muted"><Calendar size={12} /> {p.startYear}–{p.deliveryYear}</span>

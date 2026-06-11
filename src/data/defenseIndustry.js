@@ -61,9 +61,9 @@ export const exportProducts = [
 
 // Destinos por região (para barra de proporção) — % ilustrativo da pauta.
 export const exportRegions = [
-  { region: 'América do Norte', share: 34, color: '#2b6cb0' },
-  { region: 'Europa', share: 28, color: '#13315c' },
+  { region: 'América do Norte', share: 34, color: '#1f8a4c' },
+  { region: 'Europa', share: 28, color: '#0f6537' },
   { region: 'Oriente Médio', share: 16, color: '#caa733' },
-  { region: 'Ásia-Pacífico', share: 13, color: '#2e7d46' },
+  { region: 'Ásia-Pacífico', share: 13, color: '#2fa15f' },
   { region: 'América Latina', share: 9, color: '#8b5cf6' },
 ]

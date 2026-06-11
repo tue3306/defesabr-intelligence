@@ -93,7 +93,7 @@ export default function Economy() {
                 <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-gray-700/30">
                   <span
                     className="block h-full rounded-full"
-                    style={{ width: `${(d.defenseUSD / maxDef) * 100}%`, background: d.code === 'BR' ? '#caa733' : '#2b6cb0' }}
+                    style={{ width: `${(d.defenseUSD / maxDef) * 100}%`, background: d.code === 'BR' ? '#caa733' : '#1f8a4c' }}
                   />
                 </span>
                 <span className="w-14 shrink-0 text-right font-mono text-sm font-bold">{d.defenseUSD}</span>

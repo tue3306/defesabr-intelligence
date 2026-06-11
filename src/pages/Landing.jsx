@@ -139,9 +139,16 @@ export default function Landing() {
           </div>
           <div className="card flex flex-col p-5">
             <h3 className="mb-1 text-base font-bold tracking-tight">Índice de alerta</h3>
-            <p className="mb-2 text-xs muted">Escala 0–100.</p>
+            <p className="mb-2 text-xs muted">Resume a tensão de segurança do momento (0–100).</p>
             <div className="flex flex-1 items-center">
               <GaugeChart value={alertIndex} height={200} />
+            </div>
+            {/* Legenda das faixas — ajuda a interpretar o número */}
+            <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-[11px] muted">
+              <span className="inline-flex items-center gap-1"><i className="h-2 w-2 rounded-full" style={{ background: '#4a7c59' }} /> Normal</span>
+              <span className="inline-flex items-center gap-1"><i className="h-2 w-2 rounded-full" style={{ background: '#d4b41a' }} /> Atenção</span>
+              <span className="inline-flex items-center gap-1"><i className="h-2 w-2 rounded-full" style={{ background: '#d4841a' }} /> Alerta</span>
+              <span className="inline-flex items-center gap-1"><i className="h-2 w-2 rounded-full" style={{ background: '#c0392b' }} /> Crítico</span>
             </div>
           </div>
           <div className="card p-5 lg:col-span-3">

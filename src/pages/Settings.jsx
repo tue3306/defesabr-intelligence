@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import {
   Rss, KeyRound, Bell, SlidersHorizontal, UserCog, Trash2, Plus, Circle, Eye, EyeOff,
   Palette, Star, Gauge, Stethoscope, Users, Sun, Moon, LogIn, ShieldCheck, CreditCard, BarChart3,
+  Check, Lock,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useSettingsStore } from '../store/settingsStore'
@@ -392,8 +393,28 @@ function Diagnostics() {
 function DemoProfileSection({ user }) {
   const loginAsDemo = useAuthStore((st) => st.loginAsDemo)
   const logout = useAuthStore((st) => st.logout)
+  const caps = PROFILES[user?.role]?.capabilities || []
   return (
     <Section icon={UserCog} title="Perfil (modo demo)">
+      {/* O que o perfil atual pode/não pode fazer */}
+      {caps.length > 0 && (
+        <div className="mb-4 rounded-xl border border-gray-700/40 bg-white/5 p-4">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide muted">
+            Seu acesso como {PROFILES[user?.role]?.label}
+          </p>
+          <ul className="space-y-1.5">
+            {caps.map((c) => (
+              <li key={c.text} className="flex items-start gap-2 text-sm">
+                {c.ok
+                  ? <Check size={15} className="mt-0.5 shrink-0 text-emerald-400" />
+                  : <Lock size={14} className="mt-0.5 shrink-0 text-gray-500" />}
+                <span className={c.ok ? 'text-gray-200' : 'muted'}>{c.text}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <p className="mb-3 text-sm">
         Conectado como <strong>{user?.name}</strong> — alterne para ver como cada perfil enxerga o site:
       </p>

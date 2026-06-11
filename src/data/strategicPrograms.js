@@ -7,9 +7,9 @@
 // -----------------------------------------------------------------------------
 
 export const PROGRAM_FORCES = {
-  Marinha: { label: 'Marinha', color: '#13315c' },
+  Marinha: { label: 'Marinha', color: '#475569' },
   'Exército': { label: 'Exército', color: '#2e7d46' },
-  FAB: { label: 'FAB', color: '#2b6cb0' },
+  FAB: { label: 'FAB', color: '#64748b' },
   Conjunto: { label: 'Conjunto', color: '#caa733' },
 }
 

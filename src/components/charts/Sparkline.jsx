@@ -1,7 +1,7 @@
 import { ResponsiveContainer, LineChart, Line, YAxis } from 'recharts'
 
 // Mini grafico de linha sem eixos (para cards de acoes/cambio).
-export default function Sparkline({ values = [], color = '#1a8ab8', height = 40 }) {
+export default function Sparkline({ values = [], color = '#1f8a4c', height = 40 }) {
   const data = values.map((v, i) => ({ i, v }))
   return (
     <ResponsiveContainer width="100%" height={height}>

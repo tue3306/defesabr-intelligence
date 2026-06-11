@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
-import { Shield, LogIn, Menu, X, Sun, Moon } from 'lucide-react'
+import { LogIn, Menu, X, Sun, Moon } from 'lucide-react'
 import Footer from './Footer'
+import Logo from '../ui/Logo'
 import LoginModal from '../auth/LoginModal'
 import { useTheme } from '../../hooks/useTheme'
 
@@ -28,14 +29,8 @@ export default function PublicLayout() {
     <div className="min-h-screen">
       <header className="on-dark sticky top-0 z-30 border-b border-gray-700/50 bg-military-darker/95 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
-          <Link to="/" className="flex items-center gap-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-500/15 text-brand-400">
-              <Shield size={20} />
-            </span>
-            <span className="leading-tight">
-              <span className="block text-sm font-bold">DefesaBR</span>
-              <span className="block text-[10px] uppercase tracking-widest text-brand-400">Intelligence</span>
-            </span>
+          <Link to="/" aria-label="DefesaBR Intelligence — início">
+            <Logo size="md" />
           </Link>
 
           <nav className="ml-6 hidden items-center gap-1 md:flex">

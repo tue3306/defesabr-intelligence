@@ -420,7 +420,7 @@ export const learningPaths = [
     title: 'Brasil no Atlântico Sul',
     level: 'Intermediário',
     duration: '~45 min',
-    color: '#13315c',
+    color: '#475569',
     steps: ['Amazônia Azul & pré-sal', 'PROSUB e poder naval', 'Boletim Geocorrente', 'Quiz: Forças Armadas'],
     summary: 'Aprofunde a dimensão marítima: soberania, recursos e os programas que sustentam a dissuasão.',
   },

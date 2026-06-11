@@ -5,18 +5,19 @@ export default {
   theme: {
     extend: {
       colors: {
-        // [ALTERADO] Azul institucional (Força Aérea) profundo e sóbrio — menos brilhante
+        // [ALTERADO] Cor principal = GRAFITE (cinza institucional/militar), sem azul.
+        // O acento patriótico fica por conta do OURO (gold) — botões, links, foco.
         brand: {
-          50: '#eef3f8',
-          100: '#d4e1ee',
-          200: '#a9c2db',
-          300: '#7ba0c4',
-          400: '#5183ad',
-          500: '#2f5d88',
-          600: '#264c70',
-          700: '#1e3c59',
-          800: '#172d43',
-          900: '#10202f',
+          50: '#f4f5f6',
+          100: '#e5e7e9',
+          200: '#c9ccd1',
+          300: '#a4a9b1', // texto-acento sobre fundo escuro
+          400: '#7d828b',
+          500: '#5c616a',
+          600: '#494e56',
+          700: '#393d44',
+          800: '#2a2d33',
+          900: '#1c1f24',
         },
         // Base grafite/cinza-chumbo (neutra) — fundo institucional
         military: {
@@ -29,10 +30,16 @@ export default {
         },
         // Paleta institucional/patriótica — uma cor por Força + Defesa
         forca: {
-          fab: '#2b6cb0',      // Azul — Força Aérea Brasileira
-          marinha: '#13315c',  // Azul-marinho — Marinha do Brasil
+          fab: '#64748b',      // Azul — Força Aérea Brasileira
+          marinha: '#475569',  // Azul-marinho — Marinha do Brasil
           exercito: '#2e7d46', // Verde — Exército Brasileiro
           defesa: '#caa733',   // Ouro — Ministério da Defesa
+        },
+        // [ALTERADO] Ouro nacional como cor de destaque/secundária
+        gold: {
+          400: '#e0c25a',
+          500: '#caa733',
+          600: '#a98a23',
         },
       },
       fontFamily: {

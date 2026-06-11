@@ -87,13 +87,14 @@ export default function GlobalHeatmap({ height = 380, withNews = true }) {
                     onClick={() => setPinned(name)}
                     style={{
                       default: {
-                        fill: isActive ? '#2b6cb0' : fill,
-                        stroke: isActive ? '#74a4df' : '#141c28',
-                        strokeWidth: isActive ? 1 : 0.4,
+                        // [ALTERADO] País selecionado: realce com anel DOURADO (em vez de azul)
+                        fill: isActive ? '#147a43' : fill,
+                        stroke: isActive ? '#caa733' : '#141c28',
+                        strokeWidth: isActive ? 2 : 0.4,
                         outline: 'none',
                       },
-                      hover: { fill: '#2b6cb0', outline: 'none', cursor: 'pointer' },
-                      pressed: { fill: '#235a96', outline: 'none' },
+                      hover: { fill: '#1f8a4c', outline: 'none', cursor: 'pointer' },
+                      pressed: { fill: '#0f6537', outline: 'none' },
                     }}
                   />
                 )
@@ -125,7 +126,7 @@ function CountryNewsPanel({ active }) {
   const { name, namePt, risk, intel } = active
   // [ALTERADO] Relevância do país para o Brasil
   const relevance = name === 'Brazil' ? 'País-foco' : AMERICAS.has(name) ? 'Alta' : 'Média'
-  const relColor = relevance === 'Alta' ? '#2e7d46' : relevance === 'Média' ? '#caa733' : '#2b6cb0'
+  const relColor = relevance === 'Alta' ? '#2e7d46' : relevance === 'Média' ? '#caa733' : '#147a43'
   return (
     <div className="mt-4 border-t border-gray-700/40 pt-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">

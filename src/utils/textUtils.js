@@ -30,10 +30,10 @@ export const categoryColors = {
   'Forças Armadas': '#2e7d46', // verde Exército
   Cibersegurança: '#8b5cf6',   // roxo
   Fronteiras: '#d4841a',       // âmbar
-  Indústria: '#2b6cb0',        // azul FAB
+  Indústria: '#64748b',        // azul FAB
   Diplomacia: '#caa733',       // ouro Defesa
   Orçamento: '#c0392b',        // vermelho
-  Inteligência: '#13315c',     // azul-marinho
+  Inteligência: '#475569',     // azul-marinho
 }
 
 export function categoryColor(cat) {

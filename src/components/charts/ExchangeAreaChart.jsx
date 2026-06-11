@@ -9,7 +9,7 @@ import {
 } from 'recharts'
 import { tooltipStyle, axisStyle, gridStroke } from './chartTheme'
 
-export default function ExchangeAreaChart({ data = [], height = 280, color = '#1a8ab8', showAxes = true }) {
+export default function ExchangeAreaChart({ data = [], height = 280, color = '#1f8a4c', showAxes = true }) {
   return (
     <ResponsiveContainer width="100%" height={height}>
       <AreaChart data={data} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>

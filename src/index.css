@@ -10,9 +10,9 @@
   --color-army: #2e5339;      /* Verde escuro — Exército Brasileiro */
   --color-defense: #caa733;   /* Amarelo/Dourado — Ministério da Defesa */
   --color-base: #1c2128;      /* Cinza chumbo — fundo base */
-  /* Aliases de uso geral */
-  --color-primary: #2f5d88;
-  --color-secondary: #2e7d46;
+  /* Aliases de uso geral — [ALTERADO] base GRAFITE, acento OURO */
+  --color-primary: #5c616a;   /* grafite */
+  --color-secondary: #caa733; /* ouro (acento) */
   --color-gold: #caa733;
   --color-surface: #232a33;   /* Card grafite */
   --color-bg: #15191e;        /* Fundo grafite */
@@ -20,7 +20,7 @@
 html:not(.dark) {
   color-scheme: light;
   --color-surface: #ffffff;
-  --color-bg: #f3f4f6;
+  --color-bg: #e7e9ec;        /* [ALTERADO] cinza suave (não branco estourado) */
 }
 
 html,
@@ -41,14 +41,15 @@ h1, h2, .font-display {
   letter-spacing: -0.01em;
 }
 
-/* Tema claro */
+/* Tema claro — [ALTERADO] fundo cinza suave para dar profundidade aos cards */
 html:not(.dark) body {
-  @apply bg-gray-50 text-gray-900;
+  @apply text-gray-900;
+  background-color: #e7e9ec;
 }
 
-/* Acessibilidade: foco visível consistente para teclado */
+/* Acessibilidade: foco visível em OURO (acento) */
 :focus-visible {
-  outline: 2px solid theme('colors.brand.400');
+  outline: 2px solid #caa733;
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -71,6 +72,25 @@ html:not(.dark) .on-dark .text-gray-300 { color: #e5e7eb; }
 html:not(.dark) .on-dark .text-gray-400 { color: #cbd5e1; }
 html:not(.dark) .on-dark .muted { color: #cbd5e1; }
 
+/* [ALTERADO] Acento = OURO. Textos/ícones de destaque (classes "text-brand-*")
+   passam a renderizar em dourado: vivo no escuro, dourado escuro (legível) no
+   claro, e dourado claro em superfícies escuras (.on-dark). */
+.text-brand-200,
+.text-brand-300,
+.text-brand-400 { color: #d9b441; }
+html:not(.dark) .text-brand-200,
+html:not(.dark) .text-brand-300,
+html:not(.dark) .text-brand-400 { color: #876c14; } /* ouro escuro — legível no branco */
+html:not(.dark) .on-dark .text-brand-200,
+html:not(.dark) .on-dark .text-brand-300,
+html:not(.dark) .on-dark .text-brand-400 { color: #e0c25a; }
+
+/* [ALTERADO] No tema claro, painéis com bg-white/5 e bg-white/10 ficam
+   invisíveis (branco sobre branco). Aqui viram cinza sutil para criar
+   profundidade — corrige a sensação de "tudo branco". */
+html:not(.dark) .bg-white\/5 { background-color: rgba(17, 24, 39, 0.05) !important; }
+html:not(.dark) .bg-white\/10 { background-color: rgba(17, 24, 39, 0.08) !important; }
+
 /* Conteúdo apenas para leitores de tela */
 .sr-only {
   position: absolute;
@@ -86,7 +106,7 @@ html:not(.dark) .on-dark .muted { color: #cbd5e1; }
 
 /* Link "pular para o conteúdo" — aparece ao focar via Tab */
 .skip-link {
-  @apply absolute left-3 top-3 z-[60] -translate-y-20 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition-transform;
+  @apply absolute left-3 top-3 z-[60] -translate-y-20 rounded-lg bg-gold-500 px-4 py-2 text-sm font-semibold text-military-darker transition-transform;
 }
 .skip-link:focus {
   @apply translate-y-0;
@@ -122,17 +142,19 @@ html:not(.dark) .on-dark .muted { color: #cbd5e1; }
   .card {
     @apply rounded-xl border border-gray-700/50 bg-military-card;
   }
+  /* [ALTERADO] Card no claro: borda mais firme p/ separar do fundo cinza */
   html:not(.dark) .card {
-    @apply border-gray-200 bg-white shadow-sm;
+    @apply border-gray-300 bg-white shadow-sm;
   }
 
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold
-           transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500/50 disabled:opacity-50
+           transition-colors focus:outline-none focus:ring-2 focus:ring-gold-500/50 disabled:opacity-50
            disabled:cursor-not-allowed;
   }
+  /* [ALTERADO] Ação primária = OURO (acento patriótico, visível nos dois temas) */
   .btn-primary {
-    @apply btn bg-brand-500 text-white hover:bg-brand-600;
+    @apply btn bg-gold-500 text-military-darker hover:bg-gold-600;
   }
   .btn-ghost {
     @apply btn border border-gray-600/60 text-gray-200 hover:bg-white/5;
@@ -143,7 +165,7 @@ html:not(.dark) .on-dark .muted { color: #cbd5e1; }
 
   .input {
     @apply w-full rounded-lg border border-gray-600/60 bg-military-darker px-3 py-2 text-sm text-gray-100
-           placeholder:text-gray-500 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500;
+           placeholder:text-gray-500 focus:border-gold-500 focus:outline-none focus:ring-1 focus:ring-gold-500;
   }
   html:not(.dark) .input {
     @apply border-gray-300 bg-white text-gray-900 placeholder:text-gray-400;
@@ -157,11 +179,11 @@ html:not(.dark) .on-dark .muted { color: #cbd5e1; }
   }
 }
 
-/* [ALTERADO] Faixa tricolor patriótica (verde Exército · ouro Defesa · azul FAB) */
+/* [ALTERADO] Faixa de acento (verde Exército · ouro Defesa · grafite) — sem azul */
 .tricolor-bar {
   height: 3px;
   width: 100%;
-  background: linear-gradient(90deg, #2e7d46 0 33.33%, #caa733 33.33% 66.66%, #2f5d88 66.66% 100%);
+  background: linear-gradient(90deg, #2e7d46 0 33.33%, #caa733 33.33% 66.66%, #475569 66.66% 100%);
 }
 
 /* Linha de citacao editorial */
