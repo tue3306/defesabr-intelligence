@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import {
   Newspaper, Globe2, BarChart3, LineChart, GraduationCap, ShieldCheck,
   ArrowRight, Sparkles, BookOpen, Brain, RotateCcw, Check, Linkedin, Twitter, Youtube, Instagram,
+  Radar, Building2, ShieldAlert, Landmark, Factory, ChevronDown, HelpCircle, Route, CircleDot,
 } from 'lucide-react'
 import NewsCard from '../components/ui/NewsCard'
 import { SkeletonCard } from '../components/ui/Skeleton'
@@ -18,9 +19,11 @@ import { useAuthStore } from '../store/authStore'
 import { useSubscriptionStore } from '../store/subscriptionStore'
 import { LANDING_FEATURES, PLANS } from '../data/plansData'
 import { glossary } from '../data/learnData'
+import { USE_CASES, DEMO_STATS, STANDARDS, FAQ, ROADMAP } from '../data/landingExtra'
 import { mockWeeklyAnalysis, militarySpendingBR, newsVolume14d, newsCategoriesKeys, alertIndex } from '../data/mockData'
 
 const FEATURE_ICONS = { Newspaper, Globe2, BarChart3, LineChart, GraduationCap, ShieldCheck }
+const USE_CASE_ICONS = { Radar, Building2, ShieldAlert, Landmark, Factory, GraduationCap }
 const SOCIALS = [
   { icon: Linkedin, label: 'LinkedIn', href: 'https://www.linkedin.com' },
   { icon: Twitter, label: 'X', href: 'https://x.com' },
@@ -92,6 +95,41 @@ export default function Landing() {
         </div>
       </Section>
 
+      {/* FAIXA DE CREDIBILIDADE — padrões como referência conceitual */}
+      <Section className="card px-5 py-5 sm:px-6">
+        <div className="flex flex-col items-center gap-4 lg:flex-row lg:justify-between">
+          <p className="text-center text-xs font-semibold uppercase tracking-wider muted lg:text-left">
+            Arquitetura e terminologia inspiradas em
+            <br className="hidden lg:block" /> referências internacionais
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            {STANDARDS.map((s) => (
+              <span key={s} className="chip">{s}</span>
+            ))}
+          </div>
+        </div>
+        <p className="mt-3 text-center text-[11px] muted lg:text-right">
+          Citadas apenas como inspiração conceitual — sem afirmar conformidade, homologação ou certificação.
+        </p>
+      </Section>
+
+      {/* MÉTRICAS DE VITRINE (demonstrativas) */}
+      <Section>
+        <div className="mb-3 flex items-center justify-center gap-2">
+          <span className="h-px w-8 bg-gray-300 dark:bg-white/10" />
+          <Badge type="demo" />
+          <span className="h-px w-8 bg-gray-300 dark:bg-white/10" />
+        </div>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {DEMO_STATS.map((s) => (
+            <div key={s.label} className="card p-5 text-center transition-transform hover:-translate-y-0.5 hover:shadow-card-hover">
+              <p className="text-3xl font-extrabold tracking-tight tabular-nums sm:text-4xl">{s.value}</p>
+              <p className="mt-1 text-xs muted">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
       {/* POR QUE USAR */}
       <Section>
         <p className="text-center text-xs font-bold uppercase tracking-widest text-brand-400">Conceitos-chave</p>
@@ -109,6 +147,29 @@ export default function Landing() {
                 </span>
                 <h3 className="font-bold tracking-tight">{f.title}</h3>
                 <p className="mt-1.5 text-sm leading-relaxed text-gray-300">{f.text}</p>
+              </div>
+            )
+          })}
+        </div>
+      </Section>
+
+      {/* PARA QUEM É / CASOS DE USO */}
+      <Section>
+        <p className="text-center text-xs font-bold uppercase tracking-widest text-brand-400">Casos de uso</p>
+        <h2 className="mt-1 text-center text-2xl font-bold tracking-tight">Feito para quem decide sob pressão</h2>
+        <p className="mx-auto mt-2 max-w-2xl text-center text-sm muted">
+          Uma camada de inteligência que organiza o caos informacional em contexto, risco e prioridade.
+        </p>
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {USE_CASES.map((u) => {
+            const Icon = USE_CASE_ICONS[u.icon] || Radar
+            return (
+              <div key={u.title} className="card group p-5 transition-transform hover:-translate-y-0.5 hover:shadow-card-hover">
+                <span className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-brand-500/10 text-brand-400 ring-1 ring-inset ring-white/10">
+                  <Icon size={22} />
+                </span>
+                <h3 className="font-bold tracking-tight">{u.title}</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-gray-300">{u.text}</p>
               </div>
             )
           })}
@@ -265,6 +326,48 @@ export default function Landing() {
                 {p.cta}
               </Link>
             </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* ROADMAP */}
+      <Section>
+        <p className="flex items-center justify-center gap-1.5 text-center text-xs font-bold uppercase tracking-widest text-brand-400">
+          <Route size={13} /> Roadmap
+        </p>
+        <h2 className="mt-1 text-center text-2xl font-bold tracking-tight">Uma plataforma em evolução</h2>
+        <p className="mx-auto mt-2 max-w-2xl text-center text-sm muted">Direção do produto — itens planejados são demonstrativos.</p>
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {ROADMAP.map((r) => (
+            <div key={r.title} className={`card p-5 ${r.done ? 'border-gold-500/30' : ''}`}>
+              <div className="flex items-center gap-2">
+                {r.done
+                  ? <Check size={15} className="shrink-0 text-emerald-500" />
+                  : <CircleDot size={15} className="shrink-0 text-gray-400" />}
+                <span className={`text-[11px] font-bold uppercase tracking-wider ${r.done ? 'text-emerald-500' : 'muted'}`}>{r.phase}</span>
+              </div>
+              <h3 className="mt-2 font-bold tracking-tight">{r.title}</h3>
+              <p className="mt-1 text-sm leading-relaxed text-gray-300">{r.text}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* FAQ */}
+      <Section>
+        <p className="flex items-center justify-center gap-1.5 text-center text-xs font-bold uppercase tracking-widest text-brand-400">
+          <HelpCircle size={13} /> Perguntas frequentes
+        </p>
+        <h2 className="mt-1 text-center text-2xl font-bold tracking-tight">Tudo o que você precisa saber</h2>
+        <div className="mx-auto mt-6 max-w-3xl space-y-3">
+          {FAQ.map((item) => (
+            <details key={item.q} className="card group p-0 [&_summary::-webkit-details-marker]:hidden">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-4 text-sm font-semibold sm:p-5">
+                {item.q}
+                <ChevronDown size={18} className="shrink-0 text-gray-400 transition-transform group-open:rotate-180" />
+              </summary>
+              <p className="px-4 pb-4 text-sm leading-relaxed text-gray-300 sm:px-5 sm:pb-5">{item.a}</p>
+            </details>
           ))}
         </div>
       </Section>

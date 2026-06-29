@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Aplicação SPA com roteamento por hash (#/...): apenas a URL canônica é
+     indexável por mecanismos de busca. As demais seções são acessadas no cliente. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://tue3306.github.io/defesabr-intelligence/</loc>
+    <lastmod>2026-06-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>

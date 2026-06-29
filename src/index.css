@@ -261,6 +261,10 @@ html:not(.dark) .on-dark .btn-ghost:hover {
   background: linear-gradient(90deg, #2e7d46 0 33.33%, #caa733 33.33% 66.66%, #475569 66.66% 100%);
 }
 
+/* FAQ nativo (details/summary): gira o chevron quando aberto — garante a
+   animação independentemente do suporte a variantes do Tailwind. */
+details[open] summary svg { transform: rotate(180deg); }
+
 /* Linha de citacao editorial */
 .editorial-quote {
   @apply border-l-4 border-brand-500 pl-4 italic text-gray-300;

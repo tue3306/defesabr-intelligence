@@ -1,0 +1,6 @@
+# DefesaBR Intelligence — robots.txt
+# Projeto demonstrativo (front-end estático). Conteúdo público e ilustrativo.
+User-agent: *
+Allow: /
+
+Sitemap: https://tue3306.github.io/defesabr-intelligence/sitemap.xml
