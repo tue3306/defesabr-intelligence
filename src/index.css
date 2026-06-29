@@ -107,6 +107,19 @@ html:not(.dark) .bg-white\/10 { background-color: rgba(17, 24, 39, 0.08) !import
 html:not(.dark) .on-dark .bg-white\/5 { background-color: rgba(255, 255, 255, 0.05) !important; }
 html:not(.dark) .on-dark .bg-white\/10 { background-color: rgba(255, 255, 255, 0.10) !important; }
 
+/* [CRÍTICO] Botão "fantasma" (.btn-ghost) DENTRO de hero escuro no tema claro:
+   sem isto ele vira CAIXA BRANCA com TEXTO BRANCO (invisível). Aqui mantém o
+   visual translúcido com texto claro. */
+html:not(.dark) .on-dark .btn-ghost {
+  border-color: rgba(255, 255, 255, 0.25);
+  background-color: transparent;
+  color: #f3f4f6;
+}
+html:not(.dark) .on-dark .btn-ghost:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
 /* Conteúdo apenas para leitores de tela */
 .sr-only {
   position: absolute;
