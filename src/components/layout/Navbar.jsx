@@ -1,18 +1,23 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Menu, Bell, Moon, Sun, LogIn, LogOut, User, PanelLeftClose, PanelLeft } from 'lucide-react'
+import { Menu, Bell, Moon, Sun, LogIn, LogOut, User, PanelLeftClose, PanelLeft, UserCog, Settings as SettingsIcon } from 'lucide-react'
 import SearchBar from '../ui/SearchBar'
 import Badge from '../ui/Badge'
 import LoginModal from '../auth/LoginModal'
-import { useAuthStore, PROFILES } from '../../store/authStore'
+import { useAuthStore, DEMO_PERSONAS, ROLES } from '../../store/authStore'
 import { useNewsStore } from '../../store/newsStore'
+import { useSubscriptionStore } from '../../store/subscriptionStore'
 import { useTheme } from '../../hooks/useTheme'
 import { timeAgo } from '../../utils/dateUtils'
+
+const PLAN_LABEL = { explorar: 'Explorar', profissional: 'Profissional', institucional: 'Institucional' }
 
 export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) {
   const navigate = useNavigate()
   const { isDark, toggleTheme } = useTheme()
   const { user, isAuthenticated, logout, loginAsDemo } = useAuthStore()
+  const plan = useSubscriptionStore((s) => s.plan)
+  const isAdmin = user?.role === 'admin'
   const notifications = useNewsStore((s) => s.notifications)
   const unread = useNewsStore((s) => s.unreadCount())
   const markAllRead = useNewsStore((s) => s.markAllRead)
@@ -161,38 +166,52 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
                 <div className="px-2 py-1.5">
                   <p className="text-sm font-semibold">{user?.name}</p>
                   <p className="text-xs muted">{user?.email}</p>
-                  <span className="mt-1 inline-block rounded bg-brand-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase text-brand-300">
-                    {PROFILES[user?.role]?.label || user?.role}
-                  </span>
+                  {/* [ALTERADO] Badge explícito: PAPEL · PLANO */}
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    <span className="inline-block rounded bg-brand-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase text-brand-300">
+                      {ROLES[user?.role]?.label || user?.role}
+                    </span>
+                    <span className="inline-block rounded bg-gold-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase text-gold-600 dark:text-gold-400">
+                      {PLAN_LABEL[plan] || plan}
+                    </span>
+                  </div>
                 </div>
 
-                {/* [ALTERADO] Troca rápida de perfil (modo demo) */}
-                <div className="mt-1 border-t border-gray-200 dark:border-gray-700/40 pt-2">
-                  <p className="px-2 pb-1 text-[10px] font-bold uppercase tracking-wide muted">Modo demo · trocar perfil</p>
-                  <div className="grid grid-cols-2 gap-1 px-1">
-                    {Object.keys(PROFILES).map((r) => (
+                {/* Atalhos de conta */}
+                <div className="mt-1 border-t border-gray-200 pt-1 dark:border-gray-700/40">
+                  <Link to="/conta" onClick={() => setUserOpen(false)} className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10">
+                    <UserCog size={15} /> Minha conta
+                  </Link>
+                  {isAdmin && (
+                    <Link to="/configuracoes" onClick={() => setUserOpen(false)} className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10">
+                      <SettingsIcon size={15} /> Configurações do sistema
+                    </Link>
+                  )}
+                </div>
+
+                {/* Troca rápida de persona (modo demonstração) */}
+                <div className="mt-1 border-t border-gray-200 pt-2 dark:border-gray-700/40">
+                  <p className="px-2 pb-1 text-[10px] font-bold uppercase tracking-wide muted">Demonstração · trocar persona</p>
+                  <div className="grid grid-cols-3 gap-1 px-1">
+                    {Object.keys(DEMO_PERSONAS).map((k) => (
                       <button
-                        key={r}
-                        onClick={() => {
-                          // [ALTERADO] Visitante = deslogado (vê só a área pública)
-                          if (r === 'visitante') { logout(); setUserOpen(false); navigate('/') }
-                          else loginAsDemo(r)
-                        }}
-                        className={`rounded-md px-2 py-1.5 text-left text-[11px] font-medium transition-colors ${
-                          user?.role === r ? 'bg-brand-500/20 text-brand-200' : 'text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10'
+                        key={k}
+                        onClick={() => loginAsDemo(k)}
+                        className={`rounded-md px-1.5 py-1.5 text-center text-[11px] font-medium transition-colors ${
+                          user?.persona === k ? 'bg-brand-500/20 text-brand-200' : 'text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10'
                         }`}
                       >
-                        {PROFILES[r].label}
+                        {DEMO_PERSONAS[k].label}
                       </button>
                     ))}
                   </div>
                 </div>
 
                 <button
-                  onClick={() => { logout(); setUserOpen(false) }}
-                  className="mt-2 flex w-full items-center gap-2 rounded-md border-t border-gray-200 dark:border-gray-700/40 px-2 py-2 pt-3 text-sm text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10"
+                  onClick={() => { logout(); setUserOpen(false); navigate('/') }}
+                  className="mt-2 flex w-full items-center gap-2 rounded-md border-t border-gray-200 px-2 py-2 pt-3 text-sm text-gray-200 hover:bg-gray-100 dark:border-gray-700/40 dark:hover:bg-white/10"
                 >
-                  <LogOut size={15} /> Sair
+                  <LogOut size={15} /> Sair (Visitante)
                 </button>
               </div>
             )}

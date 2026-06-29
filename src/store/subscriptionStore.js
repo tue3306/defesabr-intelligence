@@ -1,27 +1,34 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-// Estado de assinatura (demonstrativo). Controla o paywall e o acesso por área.
+// -----------------------------------------------------------------------------
+// PLANO (eixo "o quanto você VÊ"). Sprint 1: Explorar · Profissional · Institucional.
+// Decisão de produto: removida a "trava de 1 área" (era hostil ao usuário e
+// matava conversão). Plano pago = todas as áreas, sem armadilha.
+//   plan: 'explorar' | 'profissional' | 'institucional'
+// -----------------------------------------------------------------------------
 export const useSubscriptionStore = create(
   persist(
     (set, get) => ({
-      plan: 'gratuito', // 'gratuito' | 'simples' | 'completo'
-      area: null, // id da área escolhida no plano Simples
+      plan: 'explorar',
+      billing: 'mensal', // 'mensal' | 'anual'
+      invoices: [], // histórico de faturas (DEMO)
 
-      setPlan: (plan, area = null) =>
-        set({ plan, area: plan === 'simples' ? area : null }),
+      setPlan: (plan) => set({ plan }),
+      setBilling: (billing) => set({ billing }),
 
-      // Assinante pago (acessa análises/briefings)
-      isPaid: () => get().plan !== 'gratuito',
+      // Assinante pago (acessa análises/briefings sem paywall).
+      isPaid: () => get().plan !== 'explorar',
 
-      // Acesso a uma área específica
-      canSeeArea: (areaId) => {
-        const { plan, area } = get()
-        if (plan === 'completo') return true
-        if (plan === 'simples') return area === areaId
-        return false
-      },
+      // Compat: antes havia trava por área; agora plano pago vê todas as áreas.
+      // (mantém a assinatura da função para não quebrar chamadas existentes)
+      canSeeArea: () => get().plan !== 'explorar',
+
+      // Fatura demonstrativa (DEMO) — usada na área de Faturamento.
+      addInvoice: (invoice) =>
+        set({ invoices: [invoice, ...get().invoices].slice(0, 24) }),
     }),
-    { name: 'defesabr-subscription' }
+    // [ALTERADO] chave nova: descarta o estado de plano antigo (gratuito/simples/completo)
+    { name: 'defesabr-subscription-v2' }
   )
 )

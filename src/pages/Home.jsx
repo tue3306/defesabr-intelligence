@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import {
   ShieldCheck, Clock, ArrowRight, Activity, Target, Newspaper, Globe2,
   CalendarDays, TrendingUp, TrendingDown, Bell, Waves, Lightbulb, BarChart3,
-  Landmark, ChevronRight,
+  Landmark, ChevronRight, Bot, FileDown, Tv, Star, Bookmark, Sparkles, Lock,
 } from 'lucide-react'
 import MetricCard from '../components/ui/MetricCard'
 import NewsCard from '../components/ui/NewsCard'
@@ -18,6 +18,8 @@ import { TensionBoard } from '../components/tension/TensionPanel'
 import { useNews } from '../hooks/useNews'
 import { useNewsStore } from '../store/newsStore'
 import { useAuthStore } from '../store/authStore'
+import { useSettingsStore } from '../store/settingsStore'
+import { useSubscriptionStore } from '../store/subscriptionStore'
 import { useTensionStore, tensionBand } from '../store/tensionStore'
 import {
   newsVolume14d, newsCategoriesKeys, militarySpendingBR, mockWeeklyAnalysis,
@@ -26,7 +28,7 @@ import { strategicPrograms, programsSummary, PROGRAM_FORCES, PROGRAM_STATUS } fr
 import { calendarEvents, CAL_TYPES } from '../data/strategicCalendar'
 import { brazilIndicators } from '../data/economyData'
 import { geocorrenteBulletins } from '../data/geocorrenteData'
-import { alertMeta } from '../utils/textUtils'
+import { alertMeta, categoryColor } from '../utils/textUtils'
 import { formatTime, timeAgo, formatDateBR } from '../utils/dateUtils'
 
 const Section = ({ children, className = '' }) => (
@@ -57,10 +59,17 @@ export default function Home() {
   const notifications = useNewsStore((s) => s.notifications)
   const unread = useNewsStore((s) => s.unreadCount())
   const user = useAuthStore((s) => s.user)
+  const hasPermission = useAuthStore((s) => s.hasPermission)
+  const favorites = useNewsStore((s) => s.favorites)
+  const interestAreas = useSettingsStore((s) => s.interestAreas)
+  const plan = useSubscriptionStore((s) => s.plan)
   const regions = useTensionStore((s) => s.regions)
 
   const feed = news.slice(0, 6)
   const weekly = mockWeeklyAnalysis.empresarial
+  // [ALTERADO] Painel adaptativo: produção e upsell dependem do plano.
+  const canProduce = hasPermission('generate')
+  const isPaid = plan !== 'explorar'
 
   // ---- Indicadores computados a partir de dados reais do projeto ----
   const alert = alertMeta[latest?.alert_level] || alertMeta.ATENCAO
@@ -183,6 +192,38 @@ export default function Home() {
             hint={source === 'live' ? 'fontes ao vivo' : 'fontes (demo)'}
             accent="brand"
           />
+        </div>
+      </Section>
+
+      {/* ───────────── AÇÕES RÁPIDAS + ÁREAS MONITORADAS (adaptativo) ───────────── */}
+      <Section className="card p-5">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap gap-2">
+            <Link to="/clipping" className="btn-ghost text-sm"><Bot size={15} /> Gerar clipping</Link>
+            <Link to="/analise" className="btn-ghost text-sm"><BarChart3 size={15} /> Análise semanal</Link>
+            <Link to="/apresentacao" className="btn-ghost text-sm"><Tv size={15} /> Apresentação</Link>
+            {canProduce ? (
+              <Link to="/clipping" className="btn-ghost text-sm"><FileDown size={15} /> Exportar</Link>
+            ) : (
+              <Link to="/planos" className="btn-primary text-sm"><Sparkles size={15} /> Desbloquear produção</Link>
+            )}
+          </div>
+          <div className="min-w-0">
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider muted">Áreas monitoradas</p>
+            {interestAreas.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {interestAreas.map((a) => (
+                  <span key={a} className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium" style={{ background: `${categoryColor(a)}22`, color: categoryColor(a) }}>
+                    <span className="h-1.5 w-1.5 rounded-full" style={{ background: categoryColor(a) }} /> {a}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <Link to="/conta" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-400 hover:text-brand-300">
+                <Star size={13} /> Escolher áreas de interesse
+              </Link>
+            )}
+          </div>
         </div>
       </Section>
 
@@ -328,6 +369,53 @@ export default function Home() {
               Ver todas <ChevronRight size={14} />
             </Link>
           </Section>
+
+          {/* Minha Pasta (favoritos — store real) */}
+          <Section className="card p-5">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-base font-bold tracking-tight">
+                <Bookmark size={17} className="text-brand-400" /> Minha Pasta
+              </h2>
+              <Link to="/arquivo" className="text-xs font-semibold text-brand-400 hover:text-brand-300">Abrir</Link>
+            </div>
+            {favorites.length > 0 ? (
+              <ul className="space-y-2.5">
+                {favorites.slice(0, 4).map((f) => (
+                  <li key={f.id} className="flex items-start gap-2">
+                    <Star size={14} className="mt-0.5 shrink-0 text-gold-500 dark:text-gold-400" />
+                    <p className="truncate text-sm">{f.title}</p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm muted">Salve notícias com “Salvar” para montar seu dossiê pessoal aqui.</p>
+            )}
+          </Section>
+
+          {/* Recomendação adaptativa por plano */}
+          {!isPaid ? (
+            <Section className="card overflow-hidden">
+              <div className="bg-gradient-to-br from-gold-500/15 to-transparent p-5">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-gold-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-gold-600 dark:text-gold-400">
+                  <Sparkles size={12} /> Profissional
+                </span>
+                <h2 className="mt-2 text-base font-bold tracking-tight">Desbloqueie a inteligência completa</h2>
+                <p className="mt-1 text-sm muted">Todas as áreas, análise semanal, dossiês e exportação com IA.</p>
+                <Link to="/planos" className="btn-primary mt-3 text-sm">Ver planos <ArrowRight size={15} /></Link>
+              </div>
+            </Section>
+          ) : (
+            <Section className="card p-5">
+              <h2 className="flex items-center gap-2 text-base font-bold tracking-tight">
+                <Sparkles size={17} className="text-brand-400" /> Recomendado para você
+              </h2>
+              <p className="mt-1 text-sm muted">Aprofunde no Monitor de Narrativas e nos Dossiês “Em Foco”.</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Link to="/narrativas" className="btn-ghost text-xs">Narrativas</Link>
+                <Link to="/dossies" className="btn-ghost text-xs">Dossiês</Link>
+              </div>
+            </Section>
+          )}
         </div>
       </div>
 

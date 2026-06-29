@@ -29,6 +29,7 @@ const NotFound = lazy(() => import('./pages/NotFound'))
 const Presentation = lazy(() => import('./pages/Presentation'))
 const Notifications = lazy(() => import('./pages/Notifications'))
 const Learn = lazy(() => import('./pages/Learn'))
+const Account = lazy(() => import('./pages/Account'))
 // [ALTERADO] Novos módulos — Brasil Estratégico e Inteligência
 const StrategicPrograms = lazy(() => import('./pages/StrategicPrograms'))
 const BlueAmazon = lazy(() => import('./pages/BlueAmazon'))
@@ -78,6 +79,8 @@ export default function App() {
           <Route path="/economia" element={<ProtectedRoute><Economy /></ProtectedRoute>} />
           <Route path="/arquivo" element={<ProtectedRoute><Archive /></ProtectedRoute>} />
           <Route path="/notificacoes" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+          <Route path="/conta" element={<ProtectedRoute><Account /></ProtectedRoute>} />
+          {/* Configurações = operação/sistema (Profissional+ / Admin) */}
           <Route path="/configuracoes" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
 
           {/* Brasil Estratégico */}

@@ -308,21 +308,24 @@ export default function Landing() {
         <p className="mx-auto mt-2 max-w-xl text-center text-sm muted">Comece grátis. Faça upgrade quando quiser.</p>
         <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-3">
           {PLANS.map((p) => (
-            <div key={p.id} className={`card flex flex-col p-6 ${p.highlight ? 'border-brand-500/60 ring-1 ring-brand-500/40' : ''}`}>
-              <h3 className="text-lg font-bold tracking-tight">{p.name}</h3>
+            <div key={p.id} className={`card flex flex-col p-6 ${p.recommended ? 'border-gold-500/50 ring-1 ring-gold-500/30' : ''}`}>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold tracking-tight">{p.name}</h3>
+                {p.recommended && <span className="rounded-full bg-gold-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-gold-600 dark:text-gold-400">Recomendado</span>}
+              </div>
               <div className="mt-2 flex items-end gap-1">
-                <span className="text-2xl font-extrabold">{p.price}</span>
+                <span className="text-2xl font-extrabold">{p.priceLabel}</span>
                 <span className="mb-1 text-xs muted">{p.period}</span>
               </div>
               <ul className="mt-4 flex-1 space-y-1.5 text-sm">
                 {p.features.slice(0, 4).map((f) => (
                   <li key={f} className="flex items-start gap-2">
-                    <Check size={15} className="mt-0.5 shrink-0 text-emerald-400" />
+                    <Check size={15} className="mt-0.5 shrink-0 text-emerald-500 dark:text-emerald-400" />
                     <span className="text-gray-300">{f}</span>
                   </li>
                 ))}
               </ul>
-              <Link to="/planos" className={`mt-5 ${p.highlight ? 'btn-primary' : 'btn-ghost'} w-full justify-center`}>
+              <Link to="/planos" className={`mt-5 ${p.recommended ? 'btn-primary' : 'btn-ghost'} w-full justify-center`}>
                 {p.cta}
               </Link>
             </div>

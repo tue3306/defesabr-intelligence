@@ -1,55 +1,120 @@
 // -----------------------------------------------------------------------------
-// PLANOS DE ASSINATURA, ÁREAS e DESTAQUES da página inicial (demonstrativo)
+// PLANOS DE ASSINATURA (Sprint 1) — Explorar · Profissional · Institucional.
+// Decisões de produto: removida a "trava de 1 área"; "Profissional" é o
+// recomendado; preço anual com ~17% de economia; Institucional como âncora B2B.
+// Valores demonstrativos (sem cobrança real).
 // -----------------------------------------------------------------------------
-
-// [ALTERADO] Áreas de interesse do plano "Simples" — as 5 perspectivas da
-// plataforma (escolhe apenas UMA; as demais ficam bloqueadas neste plano).
-export const SUBSCRIPTION_AREAS = [
-  { id: 'academico', label: 'Acadêmica', icon: 'GraduationCap', color: '#64748b', desc: 'Análises voltadas à pesquisa, estudos estratégicos e produção científica em segurança e defesa.' },
-  { id: 'investimento', label: 'Investimentos', icon: 'TrendingUp', color: '#2e7d46', desc: 'Indicadores de risco-país, impacto de conflitos em mercados e oportunidades em defesa.' },
-  { id: 'comercial', label: 'Comercial/Industrial', icon: 'Factory', color: '#caa733', desc: 'Impactos geopolíticos em cadeias produtivas, comércio exterior e setor industrial.' },
-  { id: 'empresarial', label: 'Empresarial', icon: 'Briefcase', color: '#475569', desc: 'Inteligência competitiva, riscos corporativos e contexto de segurança para negócios.' },
-  { id: 'diplomatico', label: 'Diplomática', icon: 'Globe', color: '#8b5cf6', desc: 'Relações internacionais, acordos, tensões diplomáticas e posicionamento do Brasil.' },
-]
 
 export const PLANS = [
   {
-    id: 'gratuito',
-    name: 'Gratuito',
-    price: 'R$ 0',
+    id: 'explorar',
+    name: 'Explorar',
+    icon: 'Compass',
+    monthly: 0,
+    annualMonthly: 0,
+    priceLabel: 'R$ 0',
     period: 'para sempre',
-    tagline: 'Para começar a acompanhar o cenário de defesa.',
-    features: ['Notícias gerais de defesa', 'Mini glossário', 'Mapa global de risco', 'Painel público'],
-    notIncluded: ['Análises e briefings', 'Cenários estratégicos', 'Exportar relatórios'],
+    tagline: 'Conheça o cenário de defesa do Brasil.',
     cta: 'Começar grátis',
-    highlight: false,
+    features: [
+      'Notícias e mapa de risco',
+      'Painel de situação (essencial)',
+      'Centro Educacional e glossário',
+      'Prévia de dossiês e análises',
+    ],
   },
   {
-    id: 'simples',
-    name: 'Simples',
-    price: 'R$ 49',
-    period: 'por mês',
-    tagline: 'Foco total em UMA área de interesse.',
-    features: ['Tudo do Gratuito', 'Análises de uma área à sua escolha', 'Briefings da área escolhida', 'Glossário completo'],
-    notIncluded: ['Acesso às demais áreas'],
-    cta: 'Assinar Simples',
-    highlight: true,
-    requiresArea: true,
+    id: 'profissional',
+    name: 'Profissional',
+    icon: 'Crosshair',
+    recommended: true,
+    monthly: 89,
+    annualMonthly: 74, // ~17% de economia no plano anual
+    priceLabel: 'R$ 89',
+    period: '/mês',
+    tagline: 'Inteligência completa para quem decide.',
+    cta: 'Assinar agora',
+    features: [
+      'Tudo do Explorar',
+      'Todas as 5 áreas de análise',
+      'Análise semanal + cenários',
+      'Dossiês completos e Monitor de Narrativas',
+      'Gerar e exportar (PDF/CSV) com IA',
+      'Alertas personalizados e Minha Pasta',
+    ],
   },
   {
-    id: 'completo',
-    name: 'Completo',
-    price: 'R$ 99',
-    period: 'por mês',
-    tagline: 'Inteligência estratégica sem limites.',
-    features: ['Tudo do Simples', 'TODAS as áreas, sem restrição', 'Cenários e análise semanal', 'Exportar PDF e CSV', 'Alertas prioritários'],
-    notIncluded: [],
-    cta: 'Assinar Completo',
-    highlight: false,
+    id: 'institucional',
+    name: 'Institucional',
+    icon: 'Building2',
+    contact: true,
+    priceLabel: 'Sob consulta',
+    period: 'equipes e órgãos',
+    tagline: 'Para equipes, empresas e órgãos públicos.',
+    cta: 'Falar com especialistas',
+    features: [
+      'Tudo do Profissional',
+      'Múltiplos usuários (assentos)',
+      'Papéis e gestão de usuários',
+      'Onboarding e suporte prioritário',
+      'Exportações com identidade própria',
+      'Integrações / SSO (roadmap)',
+    ],
   },
 ]
 
-// "Por que usar este site?" — diferenciais exibidos na landing (item 2.1).
+export const PLAN_LABEL = { explorar: 'Explorar', profissional: 'Profissional', institucional: 'Institucional' }
+
+// Tabela comparativa (expansível na página de planos).
+export const PLAN_COMPARISON = [
+  {
+    group: 'Conteúdo',
+    rows: [
+      { label: 'Notícias e mapa de risco', explorar: true, profissional: true, institucional: true },
+      { label: 'Centro Educacional e glossário', explorar: 'Essencial', profissional: 'Completo', institucional: 'Completo' },
+      { label: 'Todas as 5 áreas de análise', explorar: false, profissional: true, institucional: true },
+      { label: 'Análise semanal e cenários', explorar: false, profissional: true, institucional: true },
+      { label: 'Dossiês "Em Foco"', explorar: 'Prévia', profissional: true, institucional: true },
+    ],
+  },
+  {
+    group: 'Produção de inteligência',
+    rows: [
+      { label: 'Gerar clipping/análise com IA', explorar: false, profissional: true, institucional: true },
+      { label: 'Exportar PDF / CSV', explorar: false, profissional: true, institucional: true },
+      { label: 'Alertas personalizados e Minha Pasta', explorar: false, profissional: true, institucional: true },
+      { label: 'Confiabilidade de fontes e narrativas', explorar: false, profissional: true, institucional: true },
+    ],
+  },
+  {
+    group: 'Equipe e governança',
+    rows: [
+      { label: 'Usuários', explorar: '1', profissional: '1', institucional: '5–∞' },
+      { label: 'Gestão de papéis e usuários', explorar: false, profissional: false, institucional: true },
+      { label: 'Suporte prioritário e onboarding', explorar: false, profissional: false, institucional: true },
+      { label: 'Integrações / SSO', explorar: false, profissional: false, institucional: 'Roadmap' },
+    ],
+  },
+]
+
+export const PLAN_FAQ = [
+  { q: 'Posso trocar de plano quando quiser?', a: 'Sim. Upgrade e downgrade são imediatos. Nesta demonstração, a troca apenas simula o acesso na interface.' },
+  { q: 'Existe fidelidade ou multa?', a: 'Não. Cancele quando quiser, sem fidelidade. (Demonstração: nenhuma cobrança é realizada.)' },
+  { q: 'Qual a diferença entre papel e plano?', a: 'Papel é o que você pode FAZER (Usuário ou Administrador). Plano é o quanto você pode VER e produzir (Explorar, Profissional, Institucional).' },
+  { q: 'O plano anual compensa?', a: 'Sim: no anual o mês sai por ~R$ 74 — cerca de 17% de economia frente ao mensal.' },
+  { q: 'Os números exibidos são reais?', a: 'Não. Todos os dados, indicadores e cenários são ilustrativos/demonstrativos.' },
+]
+
+// Áreas temáticas (perspectivas de análise) — todas liberadas no plano pago.
+export const SUBSCRIPTION_AREAS = [
+  { id: 'academico', label: 'Acadêmica', icon: 'GraduationCap', color: '#0d9488', desc: 'Pesquisa, estudos estratégicos e produção científica.' },
+  { id: 'investimento', label: 'Investimentos', icon: 'TrendingUp', color: '#2e7d46', desc: 'Risco-país, impacto de conflitos e oportunidades.' },
+  { id: 'comercial', label: 'Comercial/Industrial', icon: 'Factory', color: '#caa733', desc: 'Cadeias produtivas, comércio exterior e indústria.' },
+  { id: 'empresarial', label: 'Empresarial', icon: 'Briefcase', color: '#475569', desc: 'Inteligência competitiva e riscos corporativos.' },
+  { id: 'diplomatico', label: 'Diplomática', icon: 'Globe', color: '#8b5cf6', desc: 'Relações internacionais e posicionamento do Brasil.' },
+]
+
+// "Por que usar este site?" — diferenciais exibidos na landing.
 export const LANDING_FEATURES = [
   { icon: 'Newspaper', title: 'Clipping diário com IA', text: 'Notícias de defesa reunidas, resumidas e classificadas por urgência automaticamente.' },
   { icon: 'Globe2', title: 'Panorama global de risco', text: 'Mapa de calor com a intensidade de eventos por país e a relação de cada um com o Brasil.' },

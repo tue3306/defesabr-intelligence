@@ -7,11 +7,11 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useSettingsStore } from '../store/settingsStore'
-import { useAuthStore, PROFILES } from '../store/authStore'
+import { useAuthStore, ROLES } from '../store/authStore'
 import { useSubscriptionStore } from '../store/subscriptionStore'
 import { useTheme } from '../hooks/useTheme'
 import { FOCUS_AREAS, CATEGORIES } from '../data/mockData'
-import { PLANS, SUBSCRIPTION_AREAS } from '../data/plansData'
+import { PLANS, PLAN_LABEL } from '../data/plansData'
 import { isApiConfigured } from '../api/anthropic'
 import { categoryColor } from '../utils/textUtils'
 import { TensionEditor } from '../components/tension/TensionPanel'
@@ -33,9 +33,12 @@ function Section({ icon: Icon, title, badge, children }) {
 export default function Settings() {
   const s = useSettingsStore()
   const { user, isAuthenticated } = useAuthStore()
-  const role = user?.role || 'visitante'
+  const hasPermission = useAuthStore((st) => st.hasPermission)
+  const plan = useSubscriptionStore((st) => st.plan)
+  const role = user?.role || 'user'
 
-  const isAnalyst = role === 'analista' || role === 'admin'
+  // [ALTERADO] Produção depende do PLANO (Profissional+); admin depende do PAPEL.
+  const canProduce = hasPermission('tension')
   const isAdmin = role === 'admin'
 
   return (
@@ -44,14 +47,19 @@ export default function Settings() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Configurações</h1>
           <p className="text-sm muted">
-            Opções disponíveis conforme o seu perfil
-            {isAuthenticated && <> — <span className="font-semibold text-brand-300">{PROFILES[role]?.label || role}</span></>}.
+            Operação e sistema. Suas opções pessoais ficam em{' '}
+            <Link to="/conta" className="font-semibold text-brand-400 hover:text-brand-300">Minha conta</Link>.
           </p>
         </div>
         {isAuthenticated && (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-500/15 px-3 py-1 text-xs font-bold text-brand-300">
-            <ShieldCheck size={13} /> {PROFILES[role]?.label}
-          </span>
+          <div className="flex flex-wrap gap-1.5">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-500/15 px-3 py-1 text-xs font-bold text-brand-300">
+              <ShieldCheck size={13} /> {ROLES[role]?.label || role}
+            </span>
+            <span className="inline-flex items-center rounded-full bg-gold-500/15 px-3 py-1 text-xs font-bold text-gold-600 dark:text-gold-400">
+              {PLAN_LABEL[plan] || plan}
+            </span>
+          </div>
         )}
       </div>
 
@@ -80,10 +88,10 @@ export default function Settings() {
       {/* NOTIFICAÇÕES — logados */}
       {isAuthenticated && <NotificationsSection enabled={s.notificationsEnabled} onToggle={s.toggleNotifications} />}
 
-      {/* ANALISTA: análise, fontes, tensão */}
-      {isAnalyst && (
+      {/* PRODUÇÃO (plano Profissional+): análise, tensão, fontes */}
+      {canProduce && (
         <>
-          <Section icon={SlidersHorizontal} title="Preferências de análise" badge="Analista">
+          <Section icon={SlidersHorizontal} title="Preferências de análise" badge="Produção">
             <div className="space-y-5">
               <div>
                 <label className="mb-1 flex items-center justify-between text-sm font-medium">
@@ -101,11 +109,11 @@ export default function Settings() {
             </div>
           </Section>
 
-          <Section icon={Gauge} title="Avaliação de nível de tensão" badge="Analista">
+          <Section icon={Gauge} title="Avaliação de nível de tensão" badge="Produção">
             <TensionEditor />
           </Section>
 
-          <Section icon={Rss} title="Fontes monitoradas" badge="Analista">
+          <Section icon={Rss} title="Fontes monitoradas" badge="Produção">
             <SourcesEditor s={s} />
           </Section>
         </>
@@ -132,15 +140,19 @@ export default function Settings() {
         </>
       )}
 
-      {/* PERFIL DEMO — sempre que logado (troca entre os 4 perfis) */}
-      {isAuthenticated && <DemoProfileSection user={user} />}
-
-      {/* dica de permissão */}
-      {isAuthenticated && !isAnalyst && (
-        <p className="text-center text-xs muted">
-          Algumas opções (análise, fontes, tensão) aparecem apenas para Analista e Administrador.
-          Use o seletor de perfil acima para visualizar.
-        </p>
+      {/* Sem ferramentas de operação/sistema para este acesso */}
+      {isAuthenticated && !canProduce && !isAdmin && (
+        <Section icon={Lock} title="Sem ferramentas de operação neste plano">
+          <p className="text-sm muted">
+            As ferramentas de produção (análise, tensão, fontes) fazem parte do plano{' '}
+            <strong>Profissional</strong>. Suas opções pessoais ficam em{' '}
+            <Link to="/conta" className="font-semibold text-brand-400 hover:text-brand-300">Minha conta</Link>.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link to="/planos" className="btn-primary">Ver planos</Link>
+            <Link to="/conta" className="btn-ghost">Ir para Minha conta</Link>
+          </div>
+        </Section>
       )}
     </div>
   )
@@ -169,28 +181,19 @@ function AppearanceSection() {
   )
 }
 
-// [ALTERADO] Plano atual + gerenciamento (Usuário)
+// Plano atual (resumo). Gestão completa fica em Minha conta › Assinatura.
 function PlanSection() {
   const plan = useSubscriptionStore((st) => st.plan)
-  const area = useSubscriptionStore((st) => st.area)
   const current = PLANS.find((p) => p.id === plan) || PLANS[0]
-  const areaLabel = SUBSCRIPTION_AREAS.find((a) => a.id === area)?.label
 
   return (
     <Section icon={CreditCard} title="Plano atual">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-lg font-bold">{current.name} <span className="text-sm font-normal muted">· {current.price} {current.period}</span></p>
-          {plan === 'simples' && (
-            <p className="mt-0.5 text-sm muted">
-              Área escolhida: <span className="font-semibold text-brand-300">{areaLabel || '—'}</span>
-              {' '}· demais áreas <span className="text-amber-300">disponíveis no Plano Completo</span>
-            </p>
-          )}
-          {plan === 'completo' && <p className="mt-0.5 text-sm text-emerald-300">Todas as áreas liberadas.</p>}
-          {plan === 'gratuito' && <p className="mt-0.5 text-sm muted">Apenas notícias públicas e mapa básico.</p>}
+          <p className="mt-0.5 text-sm muted">{current.tagline}</p>
         </div>
-        <Link to="/planos" className="btn-ghost shrink-0">Gerenciar plano</Link>
+        <Link to="/conta" className="btn-ghost shrink-0">Gerenciar assinatura</Link>
       </div>
     </Section>
   )
@@ -390,54 +393,5 @@ function Diagnostics() {
   )
 }
 
-function DemoProfileSection({ user }) {
-  const loginAsDemo = useAuthStore((st) => st.loginAsDemo)
-  const logout = useAuthStore((st) => st.logout)
-  const caps = PROFILES[user?.role]?.capabilities || []
-  return (
-    <Section icon={UserCog} title="Perfil (modo demo)">
-      {/* O que o perfil atual pode/não pode fazer */}
-      {caps.length > 0 && (
-        <div className="mb-4 rounded-xl border border-gray-700/40 bg-white/5 p-4">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide muted">
-            Seu acesso como {PROFILES[user?.role]?.label}
-          </p>
-          <ul className="space-y-1.5">
-            {caps.map((c) => (
-              <li key={c.text} className="flex items-start gap-2 text-sm">
-                {c.ok
-                  ? <Check size={15} className="mt-0.5 shrink-0 text-emerald-400" />
-                  : <Lock size={14} className="mt-0.5 shrink-0 text-gray-500" />}
-                <span className={c.ok ? 'text-gray-200' : 'muted'}>{c.text}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <p className="mb-3 text-sm">
-        Conectado como <strong>{user?.name}</strong> — alterne para ver como cada perfil enxerga o site:
-      </p>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        {Object.keys(PROFILES).map((r) => {
-          const p = PROFILES[r]
-          const active = user?.role === r
-          return (
-            <button
-              key={r}
-              onClick={() => {
-                // [ALTERADO] Visitante = sair (experiência pública)
-                if (r === 'visitante') { logout(); toast('Modo visitante (deslogado)', { icon: '👋' }) }
-                else { loginAsDemo(r); toast.success(`Perfil: ${p.label}`) }
-              }}
-              className={`rounded-lg border p-3 text-left transition-colors ${active ? 'border-brand-500 bg-brand-500/10' : 'border-gray-600/50 hover:border-brand-500/40'}`}
-            >
-              <p className="text-sm font-semibold">{p.label}</p>
-              <p className="mt-0.5 text-xs muted">{p.description}</p>
-            </button>
-          )
-        })}
-      </div>
-    </Section>
-  )
-}
+// [REMOVIDO] DemoProfileSection — a troca de persona agora vive no menu do
+// usuário (Navbar), evitando duplicação. "Menos, porém melhor."

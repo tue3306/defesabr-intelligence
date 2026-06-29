@@ -1,101 +1,128 @@
 import { useState } from 'react'
-import { Check, X, Sparkles, GraduationCap, TrendingUp, Factory, Briefcase, Globe, AlertTriangle, BadgeCheck } from 'lucide-react'
 import toast from 'react-hot-toast'
-import Modal from '../components/ui/Modal'
+import {
+  Check, Minus, Sparkles, Compass, Crosshair, Building2, BadgeCheck,
+  ChevronDown, ShieldCheck, HelpCircle, ArrowRight, Info,
+} from 'lucide-react'
 import { useSubscriptionStore } from '../store/subscriptionStore'
-import { PLANS, SUBSCRIPTION_AREAS } from '../data/plansData'
+import { PLANS, PLAN_COMPARISON, PLAN_FAQ } from '../data/plansData'
 
-// [ALTERADO] Ícones das 5 áreas de interesse
-const AREA_ICONS = { GraduationCap, TrendingUp, Factory, Briefcase, Globe }
+const PLAN_ICONS = { Compass, Crosshair, Building2 }
 
 export default function Plans() {
   const plan = useSubscriptionStore((s) => s.plan)
-  const currentArea = useSubscriptionStore((s) => s.area)
+  const billing = useSubscriptionStore((s) => s.billing)
   const setPlan = useSubscriptionStore((s) => s.setPlan)
-
-  const [areaModal, setAreaModal] = useState(false)
-  const [pickedArea, setPickedArea] = useState(null)
+  const setBilling = useSubscriptionStore((s) => s.setBilling)
+  const annual = billing === 'anual'
 
   const choose = (p) => {
-    if (p.requiresArea) {
-      setPickedArea(currentArea || null)
-      setAreaModal(true)
+    if (p.contact) {
+      // DEMO: em produção abriria um formulário/CRM. // TODO: conectar backend real
+      toast.success('Interesse registrado — nossa equipe entraria em contato (demonstração).')
       return
     }
     setPlan(p.id)
-    toast.success(`Plano ${p.name} ativado (demonstração)`)
-  }
-
-  const confirmArea = () => {
-    if (!pickedArea) return
-    setPlan('simples', pickedArea)
-    setAreaModal(false)
-    const label = SUBSCRIPTION_AREAS.find((a) => a.id === pickedArea)?.label
-    toast.success(`Plano Simples ativado — área: ${label}`)
+    toast.success(`Plano ${p.name} ativado (demonstração)`) // DEMO: sem cobrança real
   }
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
+      {/* CABEÇALHO */}
       <div className="text-center">
         <span className="inline-flex items-center gap-2 rounded-full bg-brand-500/15 px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-300">
-          <Sparkles size={14} /> Planos de assinatura
+          <Sparkles size={14} /> Planos
         </span>
         <h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Escolha seu nível de acesso</h1>
         <p className="mx-auto mt-2 max-w-xl text-sm muted">
-          Comece grátis e evolua conforme sua necessidade. Os valores são demonstrativos.
+          Comece grátis e evolua quando precisar. Cancele quando quiser. Valores demonstrativos.
+        </p>
+
+        {/* Toggle Mensal / Anual */}
+        <div className="mt-6 inline-flex items-center rounded-full border border-gray-200 bg-white p-1 text-sm font-semibold dark:border-white/10 dark:bg-white/5">
+          <button
+            onClick={() => setBilling('mensal')}
+            className={`rounded-full px-4 py-1.5 transition-colors ${!annual ? 'bg-brand-500/15 text-brand-300' : 'muted'}`}
+            aria-pressed={!annual}
+          >
+            Mensal
+          </button>
+          <button
+            onClick={() => setBilling('anual')}
+            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 transition-colors ${annual ? 'bg-brand-500/15 text-brand-300' : 'muted'}`}
+            aria-pressed={annual}
+          >
+            Anual
+            <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-300">−17%</span>
+          </button>
+        </div>
+      </div>
+
+      {/* PAPEL × PLANO (explícito) */}
+      <div className="card flex items-start gap-3 p-4">
+        <Info size={18} className="mt-0.5 shrink-0 text-brand-400" />
+        <p className="text-sm muted">
+          <strong className="text-gray-900 dark:text-gray-100">Papel</strong> é o que você pode <em>fazer</em> (Usuário ou Administrador).{' '}
+          <strong className="text-gray-900 dark:text-gray-100">Plano</strong> é o quanto você pode <em>ver e produzir</em>. Esta página define o seu plano.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+      {/* CARDS */}
+      <div className="grid grid-cols-1 items-stretch gap-5 md:grid-cols-3">
         {PLANS.map((p) => {
+          const Icon = PLAN_ICONS[p.icon] || Compass
           const active = plan === p.id
+          const price =
+            p.contact ? p.priceLabel : p.monthly === 0 ? 'R$ 0' : `R$ ${annual ? p.annualMonthly : p.monthly}`
+          const period = p.contact ? p.period : p.monthly === 0 ? p.period : annual ? '/mês · anual' : '/mês'
           return (
             <div
               key={p.id}
-              className={`card relative flex flex-col p-6 ${
-                p.highlight ? 'border-brand-500/60 ring-1 ring-brand-500/40' : ''
+              className={`card relative flex flex-col p-6 transition-transform ${
+                p.recommended
+                  ? 'border-gold-500/50 ring-1 ring-gold-500/30 shadow-card-hover md:-my-2 md:scale-[1.02]'
+                  : ''
               }`}
             >
-              {p.highlight && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-brand-500 px-3 py-0.5 text-[11px] font-bold text-white">
-                  MAIS POPULAR
+              {p.recommended && (
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gold-500 px-3 py-0.5 text-[11px] font-bold text-military-darker">
+                  RECOMENDADO
                 </span>
               )}
+              <span className={`mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl ${p.recommended ? 'bg-gold-500/15 text-gold-600 dark:text-gold-400' : 'bg-brand-500/10 text-brand-400'}`}>
+                <Icon size={20} />
+              </span>
               <h2 className="text-lg font-bold tracking-tight">{p.name}</h2>
               <p className="mt-1 text-sm muted">{p.tagline}</p>
               <div className="mt-4 flex items-end gap-1">
-                <span className="text-3xl font-extrabold">{p.price}</span>
-                <span className="mb-1 text-xs muted">{p.period}</span>
+                <span className="text-3xl font-extrabold tracking-tight">{price}</span>
+                <span className="mb-1 text-xs muted">{period}</span>
               </div>
+              {!p.contact && p.monthly > 0 && (
+                <p className="mt-1 text-xs muted">
+                  {annual ? `R$ ${p.annualMonthly * 12}/ano · ~R$ ${(p.annualMonthly / 30).toFixed(0)}/dia` : 'ou R$ 890/ano (2 meses grátis)'}
+                </p>
+              )}
 
               <ul className="mt-5 flex-1 space-y-2 text-sm">
                 {p.features.map((f) => (
                   <li key={f} className="flex items-start gap-2">
-                    <Check size={16} className="mt-0.5 shrink-0 text-emerald-400" />
-                    <span className="text-gray-200">{f}</span>
-                  </li>
-                ))}
-                {p.notIncluded.map((f) => (
-                  <li key={f} className="flex items-start gap-2 opacity-60">
-                    <X size={16} className="mt-0.5 shrink-0 text-red-400" />
-                    <span className="text-gray-400 line-through">{f}</span>
+                    <Check size={16} className="mt-0.5 shrink-0 text-emerald-500 dark:text-emerald-400" />
+                    <span className="text-gray-300">{f}</span>
                   </li>
                 ))}
               </ul>
 
               {active ? (
-                <div className="mt-6 flex items-center justify-center gap-2 rounded-lg bg-emerald-500/15 py-2.5 text-sm font-semibold text-emerald-300">
+                <div className="mt-6 flex items-center justify-center gap-2 rounded-lg bg-emerald-500/15 py-2.5 text-sm font-semibold text-emerald-600 dark:text-emerald-300">
                   <BadgeCheck size={16} /> Plano atual
-                  {p.id === 'simples' && currentArea && (
-                    <span className="text-xs">· {SUBSCRIPTION_AREAS.find((a) => a.id === currentArea)?.label}</span>
-                  )}
                 </div>
               ) : (
                 <button
                   onClick={() => choose(p)}
-                  className={`mt-6 ${p.highlight ? 'btn-primary' : 'btn-ghost'} w-full justify-center`}
+                  className={`mt-6 w-full justify-center ${p.recommended || (!active && p.monthly > 0) ? 'btn-primary' : 'btn-ghost'}`}
                 >
-                  {p.cta}
+                  {p.cta} {p.contact ? null : <ArrowRight size={15} />}
                 </button>
               )}
             </div>
@@ -103,55 +130,88 @@ export default function Plans() {
         })}
       </div>
 
-      <p className="text-center text-xs muted">
-        Demonstração — nenhuma cobrança é realizada. A escolha apenas simula o acesso na interface.
-      </p>
+      {/* GARANTIA */}
+      <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-center text-xs muted">
+        <span className="inline-flex items-center gap-1.5"><ShieldCheck size={14} className="text-emerald-500 dark:text-emerald-400" /> Cancele quando quiser, sem fidelidade</span>
+        <span className="inline-flex items-center gap-1.5"><Check size={14} className="text-emerald-500 dark:text-emerald-400" /> Upgrade/downgrade imediato</span>
+        <span className="inline-flex items-center gap-1.5"><Info size={14} /> Demonstração — nenhuma cobrança é realizada</span>
+      </div>
 
-      {/* Seleção de área para o plano Simples */}
-      <Modal open={areaModal} onClose={() => setAreaModal(false)} title="Plano Simples — escolha 1 área" maxWidth="max-w-xl">
-        {/* [ALTERADO] Aviso explícito antes da confirmação */}
-        <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-200">
-          <AlertTriangle size={18} className="mt-0.5 shrink-0" />
-          <p>
-            <strong>Atenção:</strong> após confirmar sua área de interesse, você não poderá visualizar o
-            conteúdo das demais áreas neste plano. Para acesso completo, considere o <strong>Plano Completo</strong>.
-          </p>
+      {/* COMPARATIVO (expansível) */}
+      <details className="card group overflow-hidden p-0 [&_summary::-webkit-details-marker]:hidden">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-5 text-sm font-bold">
+          Comparar todos os recursos
+          <ChevronDown size={18} className="text-gray-400 transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="overflow-x-auto border-t border-gray-200 dark:border-white/10">
+          <table className="w-full min-w-[560px] text-sm">
+            <thead>
+              <tr className="border-b border-gray-200 text-left dark:border-white/10">
+                <th className="p-3 font-semibold">Recurso</th>
+                <th className="p-3 text-center font-semibold">Explorar</th>
+                <th className="p-3 text-center font-semibold text-gold-600 dark:text-gold-400">Profissional</th>
+                <th className="p-3 text-center font-semibold">Institucional</th>
+              </tr>
+            </thead>
+            <tbody>
+              {PLAN_COMPARISON.map((g) => (
+                <FragmentGroup key={g.group} group={g} />
+              ))}
+            </tbody>
+          </table>
         </div>
+      </details>
 
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {SUBSCRIPTION_AREAS.map((a) => {
-            const Icon = AREA_ICONS[a.icon] || GraduationCap
-            const sel = pickedArea === a.id
-            return (
-              <button
-                key={a.id}
-                onClick={() => setPickedArea(a.id)}
-                className={`flex items-start gap-3 rounded-lg border p-3 text-left text-sm transition-colors ${
-                  sel ? 'border-brand-500 bg-brand-500/10' : 'border-gray-600/50 hover:border-brand-500/40'
-                }`}
-              >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white" style={{ background: a.color }}>
-                  <Icon size={18} />
-                </span>
-                <span className="min-w-0">
-                  <span className="flex items-center gap-1.5 font-semibold">
-                    {a.label}
-                    {sel && <Check size={15} className="text-brand-400" />}
-                  </span>
-                  <span className="mt-0.5 block text-xs muted">{a.desc}</span>
-                </span>
-              </button>
-            )
-          })}
+      {/* FAQ */}
+      <section>
+        <h2 className="mb-4 flex items-center justify-center gap-2 text-center text-lg font-bold tracking-tight">
+          <HelpCircle size={18} className="text-brand-400" /> Perguntas frequentes
+        </h2>
+        <div className="mx-auto max-w-3xl space-y-3">
+          {PLAN_FAQ.map((item) => (
+            <details key={item.q} className="card group p-0 [&_summary::-webkit-details-marker]:hidden">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-4 text-sm font-semibold">
+                {item.q}
+                <ChevronDown size={18} className="shrink-0 text-gray-400 transition-transform group-open:rotate-180" />
+              </summary>
+              <p className="px-4 pb-4 text-sm leading-relaxed text-gray-300">{item.a}</p>
+            </details>
+          ))}
         </div>
-
-        <div className="mt-5 flex justify-end gap-2">
-          <button onClick={() => setAreaModal(false)} className="btn-ghost">Cancelar</button>
-          <button onClick={confirmArea} disabled={!pickedArea} className="btn-primary">
-            Confirmar área
-          </button>
-        </div>
-      </Modal>
+      </section>
     </div>
+  )
+}
+
+// Linhas da tabela comparativa agrupadas por seção.
+function FragmentGroup({ group }) {
+  return (
+    <>
+      <tr className="bg-gray-50 dark:bg-white/[0.03]">
+        <td colSpan={4} className="px-3 py-2 text-[11px] font-bold uppercase tracking-wide muted">{group.group}</td>
+      </tr>
+      {group.rows.map((r) => (
+        <tr key={r.label} className="border-b border-gray-100 dark:border-white/[0.05]">
+          <td className="p-3 text-gray-300">{r.label}</td>
+          <Cell v={r.explorar} />
+          <Cell v={r.profissional} highlight />
+          <Cell v={r.institucional} />
+        </tr>
+      ))}
+    </>
+  )
+}
+
+function Cell({ v, highlight }) {
+  return (
+    <td className={`p-3 text-center ${highlight ? 'bg-gold-500/[0.04]' : ''}`}>
+      {v === true ? (
+        <Check size={16} className="mx-auto text-emerald-500 dark:text-emerald-400" />
+      ) : v === false ? (
+        <Minus size={15} className="mx-auto text-gray-400" />
+      ) : (
+        <span className="text-xs font-semibold text-gray-300">{v}</span>
+      )}
+    </td>
   )
 }

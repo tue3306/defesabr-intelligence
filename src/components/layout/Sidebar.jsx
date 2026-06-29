@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Newspaper, BarChart3, LineChart, Archive, Settings, HelpCircle,
   Shield, Tv, Lock, GraduationCap, Home, Sparkles, DollarSign, X,
-  Target, Waves, Scale, Factory, Layers, Radio, Landmark, CalendarDays, BadgeCheck,
+  Target, Waves, Scale, Factory, Layers, Radio, Landmark, CalendarDays, BadgeCheck, UserCircle,
 } from 'lucide-react'
 import Logo from '../ui/Logo'
 import { useAuthStore } from '../../store/authStore'
@@ -57,6 +57,7 @@ const NAV_SECTIONS = [
 
 const bottomNav = [
   { to: '/planos', label: 'Planos', icon: Sparkles },
+  { to: '/conta', label: 'Minha conta', icon: UserCircle, requiresAuth: true },
   { to: '/configuracoes', label: 'Configurações', icon: Settings, requiresAuth: true },
   { to: '/sobre', label: 'Sobre', icon: HelpCircle },
 ]
@@ -128,7 +129,7 @@ function Item({ item, collapsed, onClick, locked, restricted }) {
       to={to}
       end={end}
       onClick={onClick}
-      title={collapsed ? (locked ? `${label} (requer login)` : restricted ? `${label} (perfil Analista)` : label) : undefined}
+      title={collapsed ? (locked ? `${label} (requer login)` : restricted ? `${label} (plano Profissional)` : label) : undefined}
       className={({ isActive }) =>
         `group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
           isActive
@@ -151,9 +152,9 @@ function Item({ item, collapsed, onClick, locked, restricted }) {
       {!collapsed && !locked && restricted && (
         <span
           className="inline-flex items-center gap-1 rounded-full bg-gold-500/15 px-1.5 py-0.5 text-[9px] font-bold text-gold-600 dark:text-gold-400"
-          title="Recurso de Analista"
+          title="Recurso do plano Profissional"
         >
-          <Lock size={9} /> ANALISTA
+          <Lock size={9} /> PRO
         </span>
       )}
       {!collapsed && !locked && !restricted && badge && (

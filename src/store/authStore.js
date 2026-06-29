@@ -1,94 +1,64 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { useSubscriptionStore } from './subscriptionStore'
 
 const DEMO_CREDENTIALS = { email: 'admin@defesabr.com', password: 'defesa2025' }
 
 // -----------------------------------------------------------------------------
-// PAPÉIS DE ACESSO (RBAC, modo demonstração) — hierarquia clara, do público ao
-// administrador. O PAPEL define O QUE a pessoa pode FAZER; o PLANO (Gratuito /
-// Simples / Completo) é um eixo separado que libera o conteúdo premium.
-//   `tier`        : nível hierárquico (0→3), só para ordenação/exibição.
-//   `tagline`     : função do papel em uma linha.
-//   `permissions` : controla o gating de rotas/ações (NÃO alterar as chaves).
-//   `capabilities`: lista legível exibida nas Configurações.
+// IDENTIDADE — FONTE DE VERDADE ÚNICA (Sprint 0)
+//
+// Dois eixos, claramente separados:
+//   • PAPEL  (role)  = o que a pessoa pode FAZER  → só 2: Usuário, Administrador.
+//   • PLANO          = o quanto a pessoa pode VER → vive no subscriptionStore.
+//
+// Decisões de produto (simplificação agressiva — "menos, porém melhor"):
+//   - "Analista" DEIXOU de ser papel: produzir inteligência (gerar/exportar/
+//     tensão/fontes/narrativas) virou capacidade do PLANO Profissional.
+//   - "Visitante" é ESTADO (não autenticado), não um papel.
+//   - Restam 2 papéis com permissões realmente distintas (gerir sistema = admin).
 // -----------------------------------------------------------------------------
-export const PROFILES = {
-  visitante: {
-    role: 'visitante',
-    label: 'Visitante',
-    tier: 0,
-    tagline: 'Acesso público, sem login',
-    description: 'Conhece a plataforma sem login: notícias públicas, mapa de risco, planos e Centro Educacional. As análises completas ficam no paywall.',
-    permissions: ['read'],
-    capabilities: [
-      { ok: true, text: 'Notícias públicas, mapa de risco e Centro Educacional' },
-      { ok: true, text: 'Conhecer os planos e a proposta da plataforma' },
-      { ok: false, text: 'Painel e módulos do Brasil Estratégico (exigem login)' },
-      { ok: false, text: 'Análises e briefings completos' },
-    ],
+
+export const ROLES = {
+  user: { id: 'user', label: 'Usuário', tagline: 'Consulta e produção de inteligência' },
+  admin: { id: 'admin', label: 'Administrador', tagline: 'Governança da plataforma' },
+}
+
+// Personas de DEMONSTRAÇÃO = combinação coerente de papel + plano.
+// Substituem os 4 "perfis" antigos por 3 escolhas claras na tela de login.
+export const DEMO_PERSONAS = {
+  explorar: {
+    key: 'explorar', role: 'user', plan: 'explorar',
+    name: 'Convidado', email: 'explorar@defesabr.com',
+    label: 'Explorar', tagline: 'Gratuito — leitura e descoberta',
   },
-  gratuito: {
-    role: 'gratuito',
-    label: 'Usuário',
-    tier: 1,
-    tagline: 'Consulta & leitura da inteligência',
-    description: 'Consome a inteligência publicada — painel, módulos estratégicos e dados. O acesso às análises completas segue o plano contratado (Gratuito, Simples ou Completo).',
-    permissions: ['read', 'interests'],
-    capabilities: [
-      { ok: true, text: 'Painel, Clipping (leitura), Arquivo e Minha Pasta' },
-      { ok: true, text: 'Brasil Estratégico, Dados, Economia e Calendário' },
-      { ok: false, text: 'Gerar e exportar com IA (papel de Analista)' },
-      { ok: false, text: 'Análise completa por área — conforme o plano' },
-      { ok: false, text: 'Ferramentas de análise (Fontes, Narrativas)' },
-    ],
-  },
-  analista: {
-    role: 'analista',
-    label: 'Analista',
-    tier: 2,
-    tagline: 'Produção de inteligência',
-    description: 'Produz inteligência: gera e exporta clipping/análise com IA, define o nível de tensão por região e usa as ferramentas de fontes e narrativas — tudo sem paywall.',
-    permissions: ['read', 'interests', 'generate', 'export', 'publish', 'tension', 'analyst'],
-    capabilities: [
-      { ok: true, text: 'Tudo do papel Usuário — sem paywall' },
-      { ok: true, text: 'Gerar e exportar clipping/análise com IA' },
-      { ok: true, text: 'Definir o nível de tensão por região' },
-      { ok: true, text: 'Confiabilidade das Fontes e Monitor de Narrativas' },
-      { ok: false, text: 'Configurações do sistema e gestão de usuários' },
-    ],
+  profissional: {
+    key: 'profissional', role: 'user', plan: 'profissional',
+    name: 'Ana Lima', email: 'ana@defesabr.com',
+    label: 'Profissional', tagline: 'Tudo liberado — produz e exporta',
   },
   admin: {
-    role: 'admin',
-    label: 'Administrador',
-    tier: 3,
-    tagline: 'Governança da plataforma',
-    description: 'Governa a plataforma: configurações, gestão de usuários, analytics e diagnóstico do sistema — além de todas as capacidades do Analista.',
-    permissions: ['read', 'interests', 'generate', 'export', 'publish', 'tension', 'analyst', 'settings', 'regenerate', 'admin', 'diagnostics'],
-    capabilities: [
-      { ok: true, text: 'Tudo do papel Analista' },
-      { ok: true, text: 'Configurações do sistema e chave de API' },
-      { ok: true, text: 'Gestão de usuários e analytics' },
-      { ok: true, text: 'Diagnóstico e status do sistema' },
-    ],
+    key: 'admin', role: 'admin', plan: 'institucional',
+    name: 'Administrador', email: DEMO_CREDENTIALS.email,
+    label: 'Administrador', tagline: 'Governança + Institucional',
   },
 }
 
-// Permissão necessária por perfil mínimo (para mensagens de "acesso restrito").
-export const PERMISSION_MIN_ROLE = {
-  analyst: 'analista',
-  generate: 'analista',
-  export: 'analista',
-  tension: 'analista',
-  publish: 'analista',
-  admin: 'admin',
-  settings: 'admin',
-  diagnostics: 'admin',
+// Permissões: ADMIN depende do PAPEL; PRO (produção) depende do PLANO.
+const ADMIN_PERMS = ['settings', 'admin', 'diagnostics', 'regenerate']
+const PRO_PERMS = ['generate', 'export', 'publish', 'tension', 'analyst']
+const PAID_PLANS = ['profissional', 'institucional']
+const currentPlan = () => useSubscriptionStore.getState().plan
+
+// Motivo do bloqueio (para mensagens claras de "por que não posso?").
+export const PERMISSION_REASON = {
+  generate: 'plan', export: 'plan', publish: 'plan', tension: 'plan', analyst: 'plan',
+  settings: 'role', admin: 'role', diagnostics: 'role', regenerate: 'role',
 }
 
 export const useAuthStore = create(
   persist(
     (set, get) => ({
-      user: null,
+      user: null, // { name, email, role, avatar, persona }
       isAuthenticated: false,
 
       login: (email, password) => {
@@ -96,23 +66,18 @@ export const useAuthStore = create(
           email?.trim().toLowerCase() === DEMO_CREDENTIALS.email &&
           password === DEMO_CREDENTIALS.password
         ) {
-          set({
-            user: { name: 'Administrador', email: DEMO_CREDENTIALS.email, ...PROFILES.admin },
-            isAuthenticated: true,
-          })
+          get().loginAsDemo('admin')
           return { ok: true }
         }
-        return { ok: false, error: 'Credenciais inválidas. Use a conta demo abaixo.' }
+        return { ok: false, error: 'Credenciais inválidas. Use uma conta demo abaixo.' }
       },
 
-      loginAsDemo: (role = 'analista') => {
-        const profile = PROFILES[role] || PROFILES.analista
+      // Aplica papel + plano de uma só vez (mantém os dois eixos coerentes).
+      loginAsDemo: (key = 'profissional') => {
+        const p = DEMO_PERSONAS[key] || DEMO_PERSONAS.profissional
+        useSubscriptionStore.getState().setPlan(p.plan) // sincroniza o plano
         set({
-          user: {
-            name: profile.label,
-            email: `${role}@defesabr.com`,
-            ...profile,
-          },
+          user: { name: p.name, email: p.email, role: p.role, avatar: null, persona: p.key },
           isAuthenticated: true,
         })
         return { ok: true }
@@ -120,17 +85,26 @@ export const useAuthStore = create(
 
       logout: () => set({ user: null, isAuthenticated: false }),
 
+      // Edição de perfil (área /conta) — DEMO, salvo em localStorage.
+      updateProfile: (patch) =>
+        set((s) => ({ user: s.user ? { ...s.user, ...patch } : s.user })),
+
+      // ── Helpers de permissão (usados em todo o app) ──
       hasPermission: (perm) => {
         const user = get().user
-        return !!user && user.permissions?.includes(perm)
+        if (!user) return false
+        if (ADMIN_PERMS.includes(perm)) return user.role === 'admin'
+        if (PRO_PERMS.includes(perm)) return user.role === 'admin' || PAID_PLANS.includes(currentPlan())
+        return true // read / interests — qualquer autenticado
       },
-
-      // Equipe (acessa conteúdo premium sem paywall e ferramentas de análise).
-      isStaff: () => ['analista', 'admin'].includes(get().user?.role),
+      can: (perm) => get().hasPermission(perm), // alias semântico solicitado
+      isRole: (role) => get().user?.role === role,
+      isAdmin: () => get().user?.role === 'admin',
+      // Acessa conteúdo premium sem paywall (plano pago OU admin).
+      isStaff: () => get().user?.role === 'admin' || PAID_PLANS.includes(currentPlan()),
     }),
-    // [ALTERADO] chave nova: descarta a sessão demo salva com o rótulo de perfil
-    // antigo, para o novo modelo de papéis aparecer corretamente.
-    { name: 'defesabr-auth-v2' }
+    // [ALTERADO] chave nova: descarta sessões com o modelo de perfis antigo.
+    { name: 'defesabr-auth-v3' }
   )
 )
 
