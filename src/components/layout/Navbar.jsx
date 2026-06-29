@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Menu, Bell, Moon, Sun, LogIn, LogOut, User, PanelLeftClose, PanelLeft, UserCog, Settings as SettingsIcon } from 'lucide-react'
+import { Menu, Bell, Moon, Sun, LogIn, LogOut, User, PanelLeftClose, PanelLeft, UserCog, Settings as SettingsIcon, Check } from 'lucide-react'
 import SearchBar from '../ui/SearchBar'
 import Badge from '../ui/Badge'
 import LoginModal from '../auth/LoginModal'
@@ -162,7 +162,7 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
               <span className="hidden text-sm font-medium md:inline">{user?.name}</span>
             </button>
             {userOpen && (
-              <div className="card absolute right-0 z-40 mt-2 w-60 origin-top-right animate-scale-in p-2 shadow-dropdown">
+              <div className="card absolute right-0 z-40 mt-2 w-72 origin-top-right animate-scale-in p-2 shadow-dropdown">
                 <div className="px-2 py-1.5">
                   <p className="text-sm font-semibold">{user?.name}</p>
                   <p className="text-xs muted">{user?.email}</p>
@@ -189,21 +189,29 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
                   )}
                 </div>
 
-                {/* Troca rápida de persona (modo demonstração) */}
+                {/* Trocar de conta de demonstração — lista vertical (sem corte) */}
                 <div className="mt-1 border-t border-gray-200 pt-2 dark:border-gray-700/40">
-                  <p className="px-2 pb-1 text-[10px] font-bold uppercase tracking-wide muted">Demonstração · trocar persona</p>
-                  <div className="grid grid-cols-3 gap-1 px-1">
-                    {Object.keys(DEMO_PERSONAS).map((k) => (
-                      <button
-                        key={k}
-                        onClick={() => loginAsDemo(k)}
-                        className={`rounded-md px-1.5 py-1.5 text-center text-[11px] font-medium transition-colors ${
-                          user?.persona === k ? 'bg-brand-500/20 text-brand-200' : 'text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10'
-                        }`}
-                      >
-                        {DEMO_PERSONAS[k].label}
-                      </button>
-                    ))}
+                  <p className="px-2 pb-1 text-[10px] font-bold uppercase tracking-wide muted">Ver como (demonstração)</p>
+                  <div className="space-y-1">
+                    {Object.keys(DEMO_PERSONAS).map((k) => {
+                      const p = DEMO_PERSONAS[k]
+                      const active = user?.persona === k
+                      return (
+                        <button
+                          key={k}
+                          onClick={() => loginAsDemo(k)}
+                          className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors ${
+                            active ? 'bg-brand-500/15' : 'hover:bg-gray-100 dark:hover:bg-white/10'
+                          }`}
+                        >
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-xs font-semibold text-gray-900 dark:text-white">{p.label}</span>
+                            <span className="block truncate text-[10px] muted">{p.roleLabel} · {p.planLabel}</span>
+                          </span>
+                          {active && <Check size={14} className="shrink-0 text-emerald-500 dark:text-emerald-400" />}
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
 

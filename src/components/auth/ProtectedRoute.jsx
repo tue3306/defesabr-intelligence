@@ -17,8 +17,9 @@ export default function ProtectedRoute({ children, permission }) {
   const loginAsDemo = useAuthStore((s) => s.loginAsDemo)
 
   const enter = (key) => {
+    const p = DEMO_PERSONAS[key]
     loginAsDemo(key)
-    toast.success(`Conectado como ${DEMO_PERSONAS[key].label}`)
+    toast.success(`Conectado · ${p.roleLabel} · ${p.planLabel}`)
   }
 
   // 1) Não autenticado → muro de login (3 personas).

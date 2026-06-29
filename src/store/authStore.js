@@ -29,17 +29,23 @@ export const DEMO_PERSONAS = {
   explorar: {
     key: 'explorar', role: 'user', plan: 'explorar',
     name: 'Convidado', email: 'explorar@defesabr.com',
-    label: 'Explorar', tagline: 'Gratuito — leitura e descoberta',
+    label: 'Conta gratuita',
+    roleLabel: 'Usuário', planLabel: 'Explorar',
+    tagline: 'Leitura e descoberta · análises no paywall',
   },
   profissional: {
     key: 'profissional', role: 'user', plan: 'profissional',
     name: 'Ana Lima', email: 'ana@defesabr.com',
-    label: 'Profissional', tagline: 'Tudo liberado — produz e exporta',
+    label: 'Conta Profissional',
+    roleLabel: 'Usuário', planLabel: 'Profissional',
+    tagline: 'Acesso total · produz e exporta com IA',
   },
   admin: {
     key: 'admin', role: 'admin', plan: 'institucional',
     name: 'Administrador', email: DEMO_CREDENTIALS.email,
-    label: 'Administrador', tagline: 'Governança + Institucional',
+    label: 'Conta de Administrador',
+    roleLabel: 'Administrador', planLabel: 'Institucional',
+    tagline: 'Governança do sistema · acesso total',
   },
 }
 

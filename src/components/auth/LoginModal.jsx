@@ -53,8 +53,9 @@ export default function LoginModal({ open, onClose }) {
   }
 
   const demo = (key) => {
+    const p = DEMO_PERSONAS[key]
     loginAsDemo(key)
-    toast.success(`Conectado como ${DEMO_PERSONAS[key].label}`)
+    toast.success(`Conectado · ${p.roleLabel} · ${p.planLabel}`)
     close(); navigate('/painel')
   }
 
