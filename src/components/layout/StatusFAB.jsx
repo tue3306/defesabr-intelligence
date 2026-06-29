@@ -41,7 +41,7 @@ export default function StatusFAB() {
           >
             <div className="mb-3 flex items-center justify-between">
               <span className="text-sm font-bold">Status do sistema</span>
-              <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-white" aria-label="Fechar">
+              <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-900 dark:hover:text-white" aria-label="Fechar">
                 <X size={16} />
               </button>
             </div>

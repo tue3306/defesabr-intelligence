@@ -68,7 +68,9 @@ export const useSettingsStore = create(
       completeOnboarding: () => set({ onboardingDone: true }),
       resetOnboarding: () => set({ onboardingDone: false }),
     }),
-    { name: 'defesabr-settings' }
+    // [ALTERADO] chave nova para descartar a preferência de tema ANTIGA salva no
+    // navegador (que fazia o app abrir escuro/"antigo"). Agora carrega o padrão claro.
+    { name: 'defesabr-settings-v2' }
   )
 )
 

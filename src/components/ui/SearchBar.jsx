@@ -43,7 +43,7 @@ export default function SearchBar({
             setValue('')
             onChange?.('')
           }}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-gray-400 hover:text-white"
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-gray-400 hover:text-gray-900 dark:hover:text-white"
           aria-label="Limpar busca"
         >
           <X size={15} />

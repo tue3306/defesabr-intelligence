@@ -73,9 +73,10 @@ html:not(.dark) body {
    Superfícies propositalmente escuras (heróis, mapa) recebem a classe
    `.on-dark`, que mantém o texto claro mesmo no tema claro.
 ----------------------------------------------------------------------- */
+html:not(.dark) .text-gray-100 { color: #111827; } /* [ALTERADO] texto primário (gray-900) */
+html:not(.dark) .text-gray-200 { color: #1f2937; } /* gray-800 */
 html:not(.dark) .text-gray-300 { color: #374151; } /* gray-700 */
 html:not(.dark) .text-gray-400 { color: #4b5563; } /* gray-600 */
-html:not(.dark) .text-gray-200 { color: #1f2937; } /* gray-800 */
 
 html:not(.dark) .on-dark,
 html:not(.dark) .on-dark .text-gray-100,
@@ -102,6 +103,9 @@ html:not(.dark) .on-dark .text-brand-400 { color: #e0c25a; }
    profundidade — corrige a sensação de "tudo branco". */
 html:not(.dark) .bg-white\/5 { background-color: rgba(17, 24, 39, 0.05) !important; }
 html:not(.dark) .bg-white\/10 { background-color: rgba(17, 24, 39, 0.08) !important; }
+/* ...mas dentro de superfícies escuras (.on-dark) o branco translúcido permanece claro */
+html:not(.dark) .on-dark .bg-white\/5 { background-color: rgba(255, 255, 255, 0.05) !important; }
+html:not(.dark) .on-dark .bg-white\/10 { background-color: rgba(255, 255, 255, 0.10) !important; }
 
 /* Conteúdo apenas para leitores de tela */
 .sr-only {

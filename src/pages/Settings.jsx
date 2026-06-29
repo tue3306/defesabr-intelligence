@@ -314,7 +314,7 @@ function ApiKeyEditor({ s }) {
           <input type={showKey ? 'text' : 'password'} value={s.apiKeyOverride}
             onChange={(e) => s.setApiKeyOverride(e.target.value)} placeholder="sk-ant-..." className="input pr-10 font-mono" />
           <button type="button" onClick={() => setShowKey((v) => !v)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white" aria-label="Mostrar/ocultar chave">
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900 dark:hover:text-white" aria-label="Mostrar/ocultar chave">
             {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>
         </div>
