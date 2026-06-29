@@ -73,19 +73,30 @@ export default function LoginModal({ open, onClose }) {
       </form>
 
       <div className="my-4 flex items-center gap-3 text-xs muted">
-        <span className="h-px flex-1 bg-gray-600/40" />
-        ou acesse como
-        <span className="h-px flex-1 bg-gray-600/40" />
+        <span className="h-px flex-1 bg-gray-300 dark:bg-gray-600/40" />
+        entrar como (demonstração)
+        <span className="h-px flex-1 bg-gray-300 dark:bg-gray-600/40" />
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
-        <button onClick={() => demo('admin')} className="btn-ghost text-xs">Administrador</button>
-        <button onClick={() => demo('analista')} className="btn-ghost text-xs">Analista</button>
-        <button onClick={() => demo('gratuito')} className="btn-ghost text-xs">Usuário Comum</button>
+      {/* [ALTERADO] Papéis de acesso com função explícita — ordenados por nível */}
+      <div className="space-y-2">
+        {['gratuito', 'analista', 'admin'].map((r) => (
+          <button
+            key={r}
+            onClick={() => demo(r)}
+            className="flex w-full items-center justify-between gap-3 rounded-lg border border-gray-300 px-3 py-2 text-left transition-colors hover:border-gold-500/40 hover:bg-gray-50 dark:border-white/10 dark:hover:bg-white/5"
+          >
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold">{PROFILES[r].label}</span>
+              <span className="block truncate text-xs muted">{PROFILES[r].tagline}</span>
+            </span>
+            <LogIn size={15} className="shrink-0 text-gray-400" />
+          </button>
+        ))}
       </div>
-      {/* [ALTERADO] Visitante = continuar sem login (somente área pública) */}
+      {/* Visitante = continuar sem login (somente área pública) */}
       <button onClick={() => onClose?.()} className="mt-2 w-full text-center text-xs muted hover:text-brand-400">
-        Continuar como visitante (sem login)
+        Continuar como <strong className="font-semibold">Visitante</strong> (sem login)
       </button>
 
       <div className="mt-4 rounded-lg bg-brand-500/10 p-3 text-xs text-brand-200">

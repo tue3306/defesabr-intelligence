@@ -59,7 +59,7 @@ export default function ProtectedRoute({ children, permission }) {
               Administrador <ArrowRight size={15} />
             </button>
             <button onClick={() => enter('analista')} className="btn-ghost justify-center">Analista</button>
-            <button onClick={() => enter('gratuito')} className="btn-ghost justify-center">Usuário Comum</button>
+            <button onClick={() => enter('gratuito')} className="btn-ghost justify-center">{PROFILES.gratuito.label}</button>
           </div>
           <p className="mt-3 text-xs muted">Acesso instantâneo • sem cadastro • dados de demonstração</p>
         </div>

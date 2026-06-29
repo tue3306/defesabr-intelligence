@@ -162,7 +162,7 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
                   <p className="text-sm font-semibold">{user?.name}</p>
                   <p className="text-xs muted">{user?.email}</p>
                   <span className="mt-1 inline-block rounded bg-brand-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase text-brand-300">
-                    {user?.role}
+                    {PROFILES[user?.role]?.label || user?.role}
                   </span>
                 </div>
 

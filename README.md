@@ -43,7 +43,7 @@ no GitHub Pages, sem backend, com **dados mockados realistas**.
 | Perfil | Escopo |
 |--------|--------|
 | **Visitante** | Páginas públicas, notícias e planos; análises completas no paywall |
-| **Usuário Comum** | Painel e módulos; análise por área conforme o plano |
+| **Usuário** | Consulta & leitura: painel e módulos; análise por área conforme o plano |
 | **Analista** | Gera/exporta com IA, define nível de tensão, ferramentas de fontes e narrativas |
 | **Administrador** | Acesso total: configurações, usuários, analytics e diagnóstico |
 

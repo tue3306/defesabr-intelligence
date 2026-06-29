@@ -71,7 +71,7 @@ export default function Settings() {
         </Section>
       )}
 
-      {/* PLANO ATUAL — logados (Usuário Comum gerencia aqui) */}
+      {/* PLANO ATUAL — logados (Usuário gerencia aqui) */}
       {isAuthenticated && <PlanSection />}
 
       {/* ÁREAS DE INTERESSE — logados */}
@@ -169,7 +169,7 @@ function AppearanceSection() {
   )
 }
 
-// [ALTERADO] Plano atual + gerenciamento (Usuário Comum)
+// [ALTERADO] Plano atual + gerenciamento (Usuário)
 function PlanSection() {
   const plan = useSubscriptionStore((st) => st.plan)
   const area = useSubscriptionStore((st) => st.area)
@@ -328,8 +328,8 @@ function ApiKeyEditor({ s }) {
 const MOCK_USERS = [
   { name: 'Administrador', email: 'admin@defesabr.com', role: 'Administrador', status: 'ativo' },
   { name: 'Ana Lima', email: 'ana@defesabr.com', role: 'Analista', status: 'ativo' },
-  { name: 'João Souza', email: 'joao@exemplo.com', role: 'Assinante Gratuito', status: 'ativo' },
-  { name: 'Marina Reis', email: 'marina@exemplo.com', role: 'Assinante Gratuito', status: 'inativo' },
+  { name: 'João Souza', email: 'joao@exemplo.com', role: 'Usuário', status: 'ativo' },
+  { name: 'Marina Reis', email: 'marina@exemplo.com', role: 'Usuário', status: 'inativo' },
 ]
 
 function UsersTable() {
