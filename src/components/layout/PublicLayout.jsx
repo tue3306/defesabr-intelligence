@@ -22,12 +22,12 @@ export default function PublicLayout() {
 
   const linkClass = ({ isActive }) =>
     `rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-      isActive ? 'text-brand-300' : 'text-gray-300 hover:text-white'
+      isActive ? 'text-brand-300' : 'text-gray-500 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'
     }`
 
   return (
     <div className="min-h-screen">
-      <header className="on-dark sticky top-0 z-30 border-b border-gray-700/50 bg-military-darker/95 backdrop-blur">
+      <header className="sticky top-0 z-30 border-b border-gray-200 bg-white/80 backdrop-blur-xl dark:border-white/[0.06] dark:bg-military-darker/80">
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
           <Link to="/" aria-label="DefesaBR Intelligence — início">
             <Logo size="md" />
@@ -40,13 +40,13 @@ export default function PublicLayout() {
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
-            <button onClick={toggleTheme} className="rounded-lg p-2 text-gray-300 hover:bg-white/5" aria-label="Alternar tema">
+            <button onClick={toggleTheme} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-white" aria-label="Alternar tema">
               {isDark ? <Sun size={18} /> : <Moon size={18} />}
             </button>
             <button onClick={() => setLoginOpen(true)} className="btn-primary px-3 py-1.5 text-sm">
               <LogIn size={15} /> Entrar
             </button>
-            <button onClick={() => setMenuOpen((o) => !o)} className="rounded-lg p-2 text-gray-300 hover:bg-white/5 md:hidden" aria-label="Menu">
+            <button onClick={() => setMenuOpen((o) => !o)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-white md:hidden" aria-label="Menu">
               {menuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
           </div>
@@ -56,14 +56,14 @@ export default function PublicLayout() {
         <div className="tricolor-bar" />
 
         {menuOpen && (
-          <nav className="space-y-1 border-t border-gray-700/50 px-4 py-2 md:hidden">
+          <nav className="space-y-1 border-t border-gray-200 px-4 py-2 dark:border-white/[0.06] md:hidden">
             {PUBLIC_NAV.map((n) => (
               <NavLink
                 key={n.to}
                 to={n.to}
                 end={n.end}
                 onClick={() => setMenuOpen(false)}
-                className="block rounded-lg px-3 py-2 text-sm text-gray-200 hover:bg-white/5"
+                className="block rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-white/5"
               >
                 {n.label}
               </NavLink>

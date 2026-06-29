@@ -19,26 +19,26 @@ export default function Modal({ open, onClose, title, children, maxWidth = 'max-
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={onClose} />
           <motion.div
             role="dialog"
             aria-modal="true"
             aria-label={title}
-            initial={{ scale: 0.95, y: 12, opacity: 0 }}
+            initial={{ scale: 0.96, y: 14, opacity: 0 }}
             animate={{ scale: 1, y: 0, opacity: 1 }}
-            exit={{ scale: 0.95, y: 12, opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className={`card relative z-10 w-full ${maxWidth} p-6`}
+            exit={{ scale: 0.96, y: 14, opacity: 0 }}
+            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            className={`card relative z-10 max-h-[88vh] w-full overflow-y-auto rounded-2xl p-6 shadow-modal ${maxWidth}`}
           >
             {title && (
-              <div className="mb-4 flex items-center justify-between">
+              <div className="mb-5 flex items-center justify-between gap-4">
                 <h2 className="text-lg font-bold tracking-tight">{title}</h2>
                 <button
                   onClick={onClose}
-                  className="rounded-lg p-1 text-gray-400 hover:bg-white/5 hover:text-white"
+                  className="-mr-1 inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
                   aria-label="Fechar"
                 >
-                  <X size={20} />
+                  <X size={18} />
                 </button>
               </div>
             )}

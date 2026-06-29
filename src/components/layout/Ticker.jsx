@@ -37,7 +37,7 @@ export default function Ticker() {
   const loop = [...items, ...items]
 
   return (
-    <div className="on-dark overflow-hidden border-b border-gray-700/50 bg-military-dark">
+    <div className="overflow-hidden border-b border-gray-200 bg-gray-50 dark:border-gray-700/50 dark:bg-military-dark">
       <div className="flex w-max animate-marquee items-center gap-8 whitespace-nowrap py-1.5 pl-8 text-xs">
         {loop.map((it, i) => (
           <span key={i} className="inline-flex items-center gap-1.5 text-gray-300">

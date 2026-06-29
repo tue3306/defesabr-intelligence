@@ -37,7 +37,7 @@ export default function NewsCard({ news, variant = 'compact', defaultOpen = fals
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="card p-4 transition-colors hover:border-brand-500/40"
+      className="card p-4 hover:border-gold-500/25 hover:shadow-card-hover"
     >
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <Badge type="urgency" value={news.urgency} />

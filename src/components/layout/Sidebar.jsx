@@ -70,13 +70,13 @@ export default function Sidebar({ open, onClose, collapsed }) {
       {open && <div className="fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={onClose} />}
 
       <aside
-        className={`on-dark fixed inset-y-0 left-0 z-40 flex flex-col border-r border-gray-700/50 bg-military-darker transition-all duration-300
+        className={`fixed inset-y-0 left-0 z-40 flex flex-col border-r border-gray-200 bg-white transition-all duration-300 dark:border-white/[0.06] dark:bg-military-darker
           ${open ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0
           ${collapsed ? 'lg:w-[72px]' : 'w-64'}`}
       >
-        <div className="flex h-16 items-center gap-2 border-b border-gray-700/50 px-4">
+        <div className="flex h-16 items-center gap-2 border-b border-gray-200 px-4 dark:border-white/[0.06]">
           <Logo size="md" showText={!collapsed} />
-          <button onClick={onClose} className="ml-auto rounded p-1 text-gray-400 hover:text-white lg:hidden" aria-label="Fechar menu">
+          <button onClick={onClose} className="ml-auto rounded p-1 text-gray-400 hover:text-gray-900 dark:hover:text-white lg:hidden" aria-label="Fechar menu">
             <X size={18} />
           </button>
         </div>
@@ -87,7 +87,7 @@ export default function Sidebar({ open, onClose, collapsed }) {
               {!collapsed && (
                 <p className="px-3 pb-1 pt-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">{section.title}</p>
               )}
-              {collapsed && <div className="mx-3 mb-1 border-t border-gray-700/40" />}
+              {collapsed && <div className="mx-3 mb-1 border-t border-gray-200 dark:border-white/[0.06]" />}
               <div className="space-y-0.5">
                 {section.items.map((item) => (
                   <Item
@@ -104,7 +104,7 @@ export default function Sidebar({ open, onClose, collapsed }) {
           ))}
         </nav>
 
-        <div className="space-y-1 border-t border-gray-700/50 p-3">
+        <div className="space-y-1 border-t border-gray-200 p-3 dark:border-white/[0.06]">
           {bottomNav.map((item) => (
             <Item
               key={item.to}
@@ -130,10 +130,10 @@ function Item({ item, collapsed, onClick, locked, restricted }) {
       onClick={onClick}
       title={collapsed ? (locked ? `${label} (requer login)` : restricted ? `${label} (perfil Analista)` : label) : undefined}
       className={({ isActive }) =>
-        `group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+        `group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
           isActive
-            ? 'bg-brand-500/15 text-brand-300'
-            : 'text-gray-400 hover:bg-white/5 hover:text-gray-100'
+            ? 'bg-gray-100 text-gray-900 dark:bg-white/[0.06] dark:text-white before:absolute before:left-0 before:top-1/2 before:h-5 before:w-[3px] before:-translate-y-1/2 before:rounded-r-full before:bg-gold-500'
+            : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/[0.04] dark:hover:text-gray-100'
         }`
       }
     >
@@ -150,7 +150,7 @@ function Item({ item, collapsed, onClick, locked, restricted }) {
       {/* Item exige perfil de Analista (usuário logado sem permissão) */}
       {!collapsed && !locked && restricted && (
         <span
-          className="inline-flex items-center gap-1 rounded-full bg-gold-500/15 px-1.5 py-0.5 text-[9px] font-bold text-gold-400"
+          className="inline-flex items-center gap-1 rounded-full bg-gold-500/15 px-1.5 py-0.5 text-[9px] font-bold text-gold-600 dark:text-gold-400"
           title="Recurso de Analista"
         >
           <Lock size={9} /> ANALISTA

@@ -1,6 +1,6 @@
-// Loaders de esqueleto reutilizáveis
+// Loaders de esqueleto reutilizáveis (brilho/shimmer via classe .skeleton)
 export function Skeleton({ className = '', style }) {
-  return <div style={style} className={`animate-pulse rounded-md bg-gray-600/30 ${className}`} />
+  return <div style={style} className={`skeleton ${className}`} />
 }
 
 export function SkeletonCard() {

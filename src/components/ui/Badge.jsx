@@ -43,7 +43,7 @@ function Pill({ children, className = '', style }) {
   return (
     <span
       style={style}
-      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${className}`}
+      className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${className}`}
     >
       {children}
     </span>

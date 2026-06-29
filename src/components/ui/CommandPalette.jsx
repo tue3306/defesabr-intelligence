@@ -105,8 +105,8 @@ export default function CommandPalette() {
   return createPortal(
     <div className="fixed inset-0 z-[55] flex items-start justify-center p-4 pt-[12vh]">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setOpen(false)} />
-      <div role="dialog" aria-modal="true" aria-label="Paleta de comandos" className="card relative z-10 w-full max-w-lg overflow-hidden p-0 shadow-2xl">
-        <div className="flex items-center gap-2 border-b border-gray-700/40 px-4">
+      <div role="dialog" aria-modal="true" aria-label="Paleta de comandos" className="card relative z-10 w-full max-w-lg animate-scale-in overflow-hidden p-0 shadow-modal">
+        <div className="flex items-center gap-2 border-b border-gray-200 px-4 dark:border-gray-700/40">
           <Search size={18} className="text-gray-400" />
           <input
             ref={inputRef}
@@ -115,9 +115,9 @@ export default function CommandPalette() {
             onKeyDown={onInputKey}
             placeholder="Buscar páginas, ações ou conteúdo…"
             aria-label="Buscar comandos"
-            className="w-full bg-transparent py-3.5 text-sm text-gray-100 placeholder:text-gray-500 focus:outline-none"
+            className="w-full bg-transparent py-3.5 text-sm text-gray-900 placeholder:text-gray-500 focus:outline-none dark:text-gray-100"
           />
-          <kbd className="hidden rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold text-gray-300 sm:block">ESC</kbd>
+          <kbd className="hidden rounded border border-gray-200 bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-500 dark:border-transparent dark:bg-white/10 dark:text-gray-300 sm:block">ESC</kbd>
         </div>
 
         <ul className="max-h-[55vh] overflow-y-auto p-2">
@@ -132,7 +132,7 @@ export default function CommandPalette() {
                   onClick={() => choose(cmd)}
                   onMouseEnter={() => setActive(i)}
                   className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
-                    i === active ? 'bg-brand-500/15 text-brand-100' : 'text-gray-200 hover:bg-white/5'
+                    i === active ? 'bg-gold-500/10 text-gray-900 dark:bg-brand-500/15 dark:text-brand-100' : 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-white/5'
                   }`}
                 >
                   <Icon size={17} className={i === active ? 'text-brand-300' : 'text-gray-400'} />

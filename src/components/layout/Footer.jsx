@@ -13,7 +13,7 @@ export default function Footer() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   return (
     // pb extra no mobile para o botão flutuante de status não cobrir o rodapé
-    <footer className="border-t border-gray-700/50 px-6 pb-24 pt-6 text-sm sm:pb-6">
+    <footer className="border-t border-white/[0.06] px-6 pb-24 pt-8 text-sm sm:pb-8">
       <div className="mx-auto flex max-w-7xl flex-col items-center gap-4 sm:flex-row sm:justify-between">
         <div className="flex items-center gap-2 muted">
           <Shield size={16} className="text-brand-400" />
@@ -51,7 +51,7 @@ export default function Footer() {
       </div>
 
       {/* [ALTERADO] Links legais/institucionais */}
-      <div className="mx-auto mt-4 flex max-w-7xl flex-wrap items-center justify-center gap-x-4 gap-y-1 border-t border-gray-700/40 pt-4 text-xs muted">
+      <div className="mx-auto mt-4 flex max-w-7xl flex-wrap items-center justify-center gap-x-4 gap-y-1 border-t border-white/[0.06] pt-4 text-xs muted">
         <Link to="/sobre" className="hover:text-brand-400">Sobre</Link>
         <span className="text-gray-600">·</span>
         <Link to="/sobre" className="hover:text-brand-400">Termos de Uso</Link>

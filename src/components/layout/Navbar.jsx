@@ -41,13 +41,13 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
   }, [])
 
   return (
-    <header className="on-dark sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-gray-700/50 bg-military-darker/95 px-4 backdrop-blur">
-      <button onClick={onToggleMobile} className="rounded-lg p-2 text-gray-400 hover:bg-white/5 lg:hidden" aria-label="Abrir menu">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-gray-200 bg-white/80 px-4 backdrop-blur-xl dark:border-white/[0.06] dark:bg-military-darker/80">
+      <button onClick={onToggleMobile} className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 lg:hidden" aria-label="Abrir menu">
         <Menu size={20} />
       </button>
       <button
         onClick={onToggleCollapse}
-        className="hidden rounded-lg p-2 text-gray-400 hover:bg-white/5 lg:inline-flex"
+        className="hidden rounded-lg p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 lg:inline-flex"
         aria-label="Recolher menu lateral"
       >
         {collapsed ? <PanelLeft size={20} /> : <PanelLeftClose size={20} />}
@@ -66,7 +66,7 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
         <div className="relative" ref={notifRef}>
           <button
             onClick={() => { setNotifOpen((o) => !o) }}
-            className="relative rounded-lg p-2 text-gray-400 hover:bg-white/5"
+            className="relative rounded-lg p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10"
             aria-label={`Notificações${unread ? ` (${unread} não lidas)` : ''}`}
           >
             <Bell size={20} className={unread > 0 ? 'animate-wiggle' : ''} />
@@ -80,8 +80,8 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
             )}
           </button>
           {notifOpen && (
-            <div className="card fixed left-3 right-3 top-[4.25rem] z-50 overflow-hidden p-0 shadow-2xl sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-80">
-              <div className="flex items-center justify-between border-b border-gray-700/40 px-3 py-2.5">
+            <div className="card fixed left-3 right-3 top-[4.25rem] z-50 animate-scale-in overflow-hidden p-0 shadow-dropdown sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-80">
+              <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700/40 px-3 py-2.5">
                 <span className="flex items-center gap-2 text-sm font-semibold">
                   Notificações
                   {unread > 0 && (
@@ -108,7 +108,7 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
                       <li key={n.id}>
                         <button
                           onClick={() => markRead(n.id)}
-                          className={`flex w-full items-start gap-2.5 px-3 py-2.5 text-left text-sm transition-colors hover:bg-white/5 ${
+                          className={`flex w-full items-start gap-2.5 px-3 py-2.5 text-left text-sm transition-colors hover:bg-gray-100 dark:hover:bg-white/10 ${
                             n.read ? 'opacity-55' : ''
                           }`}
                         >
@@ -127,7 +127,7 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
                   <Link
                     to="/notificacoes"
                     onClick={() => setNotifOpen(false)}
-                    className="block border-t border-gray-700/40 px-3 py-2.5 text-center text-sm font-semibold text-brand-400 hover:bg-white/5"
+                    className="block border-t border-gray-200 dark:border-gray-700/40 px-3 py-2.5 text-center text-sm font-semibold text-brand-400 hover:bg-gray-100 dark:hover:bg-white/10"
                   >
                     Ver todas as notificações
                   </Link>
@@ -139,7 +139,7 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
         )}
 
         {/* Tema */}
-        <button onClick={toggleTheme} className="rounded-lg p-2 text-gray-400 hover:bg-white/5" aria-label="Alternar tema">
+        <button onClick={toggleTheme} className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10" aria-label="Alternar tema">
           {isDark ? <Sun size={20} /> : <Moon size={20} />}
         </button>
 
@@ -148,7 +148,7 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
           <div className="relative" ref={userRef}>
             <button
               onClick={() => setUserOpen((o) => !o)}
-              className="flex items-center gap-2 rounded-lg p-1.5 pr-3 hover:bg-white/5"
+              className="flex items-center gap-2 rounded-lg p-1.5 pr-3 hover:bg-gray-100 dark:hover:bg-white/10"
               aria-label="Menu do usuário"
             >
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-500/20 text-brand-300">
@@ -157,7 +157,7 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
               <span className="hidden text-sm font-medium md:inline">{user?.name}</span>
             </button>
             {userOpen && (
-              <div className="card absolute right-0 z-40 mt-2 w-60 p-2 shadow-xl">
+              <div className="card absolute right-0 z-40 mt-2 w-60 origin-top-right animate-scale-in p-2 shadow-dropdown">
                 <div className="px-2 py-1.5">
                   <p className="text-sm font-semibold">{user?.name}</p>
                   <p className="text-xs muted">{user?.email}</p>
@@ -167,7 +167,7 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
                 </div>
 
                 {/* [ALTERADO] Troca rápida de perfil (modo demo) */}
-                <div className="mt-1 border-t border-gray-700/40 pt-2">
+                <div className="mt-1 border-t border-gray-200 dark:border-gray-700/40 pt-2">
                   <p className="px-2 pb-1 text-[10px] font-bold uppercase tracking-wide muted">Modo demo · trocar perfil</p>
                   <div className="grid grid-cols-2 gap-1 px-1">
                     {Object.keys(PROFILES).map((r) => (
@@ -179,7 +179,7 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
                           else loginAsDemo(r)
                         }}
                         className={`rounded-md px-2 py-1.5 text-left text-[11px] font-medium transition-colors ${
-                          user?.role === r ? 'bg-brand-500/20 text-brand-200' : 'text-gray-300 hover:bg-white/5'
+                          user?.role === r ? 'bg-brand-500/20 text-brand-200' : 'text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10'
                         }`}
                       >
                         {PROFILES[r].label}
@@ -190,7 +190,7 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
 
                 <button
                   onClick={() => { logout(); setUserOpen(false) }}
-                  className="mt-2 flex w-full items-center gap-2 rounded-md border-t border-gray-700/40 px-2 py-2 pt-3 text-sm text-gray-200 hover:bg-white/5"
+                  className="mt-2 flex w-full items-center gap-2 rounded-md border-t border-gray-200 dark:border-gray-700/40 px-2 py-2 pt-3 text-sm text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10"
                 >
                   <LogOut size={15} /> Sair
                 </button>

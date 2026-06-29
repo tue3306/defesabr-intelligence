@@ -5,7 +5,7 @@ import { RSS_SOURCES } from '../data/mockData'
 export const useSettingsStore = create(
   persist(
     (set, get) => ({
-      theme: 'dark', // 'dark' | 'light'
+      theme: 'light', // 'dark' | 'light' — padrão CLARO (visual)
       rssSources: RSS_SOURCES,
       newsPerClipping: 5, // 3-10
       focusArea: 'empresarial',

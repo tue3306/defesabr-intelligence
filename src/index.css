@@ -20,7 +20,7 @@
 html:not(.dark) {
   color-scheme: light;
   --color-surface: #ffffff;
-  --color-bg: #e7e9ec;        /* [ALTERADO] cinza suave (não branco estourado) */
+  --color-bg: #f7f8fa;        /* [ALTERADO] claro/branco premium (tema padrão) */
 }
 
 html,
@@ -32,19 +32,31 @@ body,
 body {
   @apply bg-military-dark text-gray-100 antialiased;
   font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
 }
 
-/* [ALTERADO] Tipografia institucional: títulos serifados (autoridade/seriedade),
-   corpo em sans-serif técnica. Aplica-se aos títulos principais (h1/h2). */
-h1, h2, .font-display {
-  font-family: 'Lora', Georgia, Cambria, 'Times New Roman', serif;
-  letter-spacing: -0.01em;
+/* [ALTERADO] Tipografia moderna (SaaS): Inter em todos os títulos, com tracking
+   ajustado e pesos firmes — mais limpo e tecnológico que o serif anterior. */
+h1, h2, h3, .font-display {
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+h1 { letter-spacing: -0.03em; }
+
+/* Seleção de texto com leve tom do acento (ouro) */
+::selection {
+  background: rgba(202, 167, 51, 0.28);
 }
 
-/* Tema claro — [ALTERADO] fundo cinza suave para dar profundidade aos cards */
+/* Tema claro (PADRÃO) — fundo branco/claro premium; profundidade vem das
+   bordas sutis e sombras suaves, não de um cinza pesado. */
 html:not(.dark) body {
   @apply text-gray-900;
-  background-color: #e7e9ec;
+  background-color: #f7f8fa;
 }
 
 /* Acessibilidade: foco visível em OURO (acento) */
@@ -123,52 +135,69 @@ html:not(.dark) .bg-white\/10 { background-color: rgba(17, 24, 39, 0.08) !import
   }
 }
 
-/* Scrollbar customizada */
+/* Scrollbar customizada — fina e discreta (estilo moderno) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+}
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   @apply bg-transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-600/50 rounded-full;
+  @apply rounded-full;
+  background-color: rgba(148, 163, 184, 0.3);
+  border: 2px solid transparent;
+  background-clip: content-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-500/70;
+  background-color: rgba(148, 163, 184, 0.55);
 }
 
 @layer components {
+  /* Cartão base — borda translúcida sutil + sombra suave (estilo moderno) */
   .card {
-    @apply rounded-xl border border-gray-700/50 bg-military-card;
+    @apply rounded-xl border border-white/[0.07] bg-military-card;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
   }
-  /* [ALTERADO] Card no claro: borda mais firme p/ separar do fundo cinza */
   html:not(.dark) .card {
-    @apply border-gray-300 bg-white shadow-sm;
+    @apply border-gray-200 bg-white shadow-card;
+  }
+  /* Cartão clicável: leve elevação no hover */
+  .card-interactive {
+    @apply cursor-pointer;
+  }
+  .card-interactive:hover {
+    @apply -translate-y-0.5 border-gold-500/30 shadow-card-hover;
   }
 
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold
-           transition-colors focus:outline-none focus:ring-2 focus:ring-gold-500/50 disabled:opacity-50
-           disabled:cursor-not-allowed;
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold
+           transition-all duration-150 ease-out
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent
+           active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
   }
-  /* [ALTERADO] Ação primária = OURO (acento patriótico, visível nos dois temas) */
+  /* Ação primária = OURO (acento patriótico, visível nos dois temas) */
   .btn-primary {
-    @apply btn bg-gold-500 text-military-darker hover:bg-gold-600;
+    @apply btn bg-gold-500 text-military-darker shadow-sm hover:bg-gold-400 hover:shadow-glow-gold;
   }
   .btn-ghost {
-    @apply btn border border-gray-600/60 text-gray-200 hover:bg-white/5;
+    @apply btn border border-white/10 bg-white/[0.02] text-gray-200 hover:border-white/20 hover:bg-white/[0.06];
   }
   html:not(.dark) .btn-ghost {
-    @apply border-gray-300 text-gray-700 hover:bg-gray-100;
+    @apply border-gray-300 bg-white text-gray-700 hover:bg-gray-100;
   }
 
   .input {
-    @apply w-full rounded-lg border border-gray-600/60 bg-military-darker px-3 py-2 text-sm text-gray-100
-           placeholder:text-gray-500 focus:border-gold-500 focus:outline-none focus:ring-1 focus:ring-gold-500;
+    @apply w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-gray-100
+           placeholder:text-gray-500 transition-colors duration-150
+           hover:border-white/20 focus:border-gold-500 focus:outline-none focus:ring-2 focus:ring-gold-500/25;
   }
   html:not(.dark) .input {
-    @apply border-gray-300 bg-white text-gray-900 placeholder:text-gray-400;
+    @apply border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 hover:border-gray-400;
   }
 
   .muted {
@@ -176,6 +205,35 @@ html:not(.dark) .bg-white\/10 { background-color: rgba(17, 24, 39, 0.08) !import
   }
   html:not(.dark) .muted {
     @apply text-gray-500;
+  }
+
+  /* Chip/etiqueta neutra reutilizável */
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-0.5 text-xs font-medium text-gray-300;
+  }
+  html:not(.dark) .chip {
+    @apply border-gray-200 bg-gray-50 text-gray-600;
+  }
+
+  /* Divisória sutil */
+  .divider {
+    @apply border-white/[0.07];
+  }
+  html:not(.dark) .divider {
+    @apply border-gray-200;
+  }
+
+  /* Esqueleto com brilho (shimmer) em vez de pulse */
+  .skeleton {
+    @apply relative overflow-hidden rounded-md bg-gray-500/15;
+  }
+  .skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+    animation: shimmer 1.6s infinite;
   }
 }
 
