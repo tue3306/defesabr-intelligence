@@ -1,0 +1,50 @@
+name: 🐛 Reportar bug
+description: Relate um comportamento incorreto na plataforma
+title: "[bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por reportar! Preencha os campos abaixo para ajudarmos a reproduzir o problema.
+        Lembre-se: este é um projeto **demonstrativo** com dados **ilustrativos**.
+  - type: textarea
+    id: description
+    attributes:
+      label: Descrição do bug
+      description: Descreva de forma clara e objetiva o que aconteceu.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Passos para reproduzir
+      description: Como podemos reproduzir o comportamento?
+      placeholder: |
+        1. Vá para '...'
+        2. Clique em '...'
+        3. Veja o erro
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportamento esperado
+      description: O que você esperava que acontecesse?
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Ambiente
+      description: Navegador, sistema operacional e versão do Node (se aplicável).
+      placeholder: "Ex.: Chrome 126 / Windows 11 / Node 20"
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / capturas de tela
+      description: Cole logs do console ou anexe imagens, se possível.
+    validations:
+      required: false
