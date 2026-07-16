@@ -7,6 +7,10 @@
 **Plataforma demonstrativa de inteligência estratégica, análise de riscos e apoio à decisão**
 no contexto brasileiro de Segurança e Defesa.
 
+<a href="https://tue3306.github.io/defesabr-intelligence/">
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=22&pause=1000&color=2E7D46&center=true&vCenter=true&width=560&lines=Inteligencia+Estrategica;Analise+de+Riscos;Apoio+a+Decisao;100%25+Front-end+%C2%B7+Dados+Ilustrativos" alt="Typing SVG" />
+</a>
+
 [![Build](https://github.com/tue3306/defesabr-intelligence/actions/workflows/ci.yml/badge.svg)](https://github.com/tue3306/defesabr-intelligence/actions/workflows/ci.yml)
 [![Deploy](https://github.com/tue3306/defesabr-intelligence/actions/workflows/deploy.yml/badge.svg)](https://github.com/tue3306/defesabr-intelligence/actions/workflows/deploy.yml)
 [![React 18](https://img.shields.io/badge/React-18-149eca?logo=react&logoColor=white)](https://react.dev/)
