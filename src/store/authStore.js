@@ -2,7 +2,10 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { useSubscriptionStore } from './subscriptionStore'
 
-const DEMO_CREDENTIALS = { email: 'admin@defesabr.com', password: 'defesa2025' }
+// Credenciais de conveniência para a persona de governança (DEMO).
+// NÃO são exibidas na interface — o acesso de demonstração é feito pelos
+// botões de persona. Mantidas apenas como atalho interno de compatibilidade.
+const LEGACY_ADMIN = { email: 'governanca@defesabr.com', password: 'defesa2025' }
 
 // -----------------------------------------------------------------------------
 // IDENTIDADE — FONTE DE VERDADE ÚNICA (Sprint 0)
@@ -42,7 +45,7 @@ export const DEMO_PERSONAS = {
   },
   admin: {
     key: 'admin', role: 'admin', plan: 'institucional',
-    name: 'Administrador', email: DEMO_CREDENTIALS.email,
+    name: 'Administrador', email: LEGACY_ADMIN.email,
     label: 'Conta de Administrador',
     roleLabel: 'Administrador', planLabel: 'Institucional',
     tagline: 'Governança do sistema · acesso total',
@@ -67,15 +70,23 @@ export const useAuthStore = create(
       user: null, // { name, email, role, avatar, persona }
       isAuthenticated: false,
 
+      // Login (DEMO): sem credenciais publicadas na interface.
+      //  • Atalho de governança (legado) entra como Administrador.
+      //  • Qualquer e-mail/senha válidos entram como conta gratuita (Explorar),
+      //    preservando a identidade informada — assim o formulário funciona de
+      //    forma realista sem expor nenhuma senha.
       login: (email, password) => {
-        if (
-          email?.trim().toLowerCase() === DEMO_CREDENTIALS.email &&
-          password === DEMO_CREDENTIALS.password
-        ) {
-          get().loginAsDemo('admin')
-          return { ok: true }
+        const mail = email?.trim().toLowerCase()
+        if (!mail || !password) {
+          return { ok: false, error: 'Informe e-mail e senha para entrar.' }
         }
-        return { ok: false, error: 'Credenciais inválidas. Use uma conta demo abaixo.' }
+        if (mail === LEGACY_ADMIN.email && password === LEGACY_ADMIN.password) {
+          get().loginAsDemo('admin')
+          return { ok: true, persona: 'admin' }
+        }
+        get().loginAsDemo('explorar')
+        get().updateProfile({ email: email.trim() })
+        return { ok: true, persona: 'explorar' }
       },
 
       // Aplica papel + plano de uma só vez (mantém os dois eixos coerentes).
@@ -114,4 +125,3 @@ export const useAuthStore = create(
   )
 )
 
-export { DEMO_CREDENTIALS }

@@ -4,7 +4,7 @@ import { LogIn, UserPlus, ArrowLeft, Loader2, MailCheck } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Modal from '../ui/Modal'
 import Logo from '../ui/Logo'
-import { useAuthStore, DEMO_CREDENTIALS, DEMO_PERSONAS } from '../../store/authStore'
+import { useAuthStore, DEMO_PERSONAS } from '../../store/authStore'
 
 // Fluxos de autenticação (DEMO): Entrar · Criar conta · Recuperar senha.
 // Tudo simulado no front-end. // TODO: conectar backend real (auth/e-mail).
@@ -26,8 +26,10 @@ export default function LoginModal({ open, onClose }) {
   const submitLogin = (e) => {
     e.preventDefault()
     const res = login(form.email, form.password)
-    if (res.ok) { toast.success('Bem-vindo, Administrador'); close(); navigate('/painel') }
-    else setError(res.error)
+    if (res.ok) {
+      toast.success(res.persona === 'admin' ? 'Bem-vindo, Administrador' : 'Bem-vindo à plataforma')
+      close(); navigate('/painel')
+    } else setError(res.error)
   }
 
   const submitSignup = (e) => {
@@ -77,7 +79,7 @@ export default function LoginModal({ open, onClose }) {
       {view === 'login' && (
         <>
           <form onSubmit={submitLogin} className="mt-6 space-y-3">
-            <Input label="E-mail" type="email" value={form.email} onChange={set('email')} placeholder="admin@defesabr.com" autoComplete="username" />
+            <Input label="E-mail" type="email" value={form.email} onChange={set('email')} placeholder="voce@exemplo.com" autoComplete="username" />
             <div>
               <div className="mb-1 flex items-center justify-between">
                 <label className="text-xs font-medium muted">Senha</label>
@@ -111,9 +113,9 @@ export default function LoginModal({ open, onClose }) {
           <button onClick={close} className="mt-2 w-full text-center text-xs muted hover:text-brand-400">
             Continuar como <strong className="font-semibold">Visitante</strong> (sem login)
           </button>
-          <div className="mt-4 rounded-lg bg-brand-500/10 p-3 text-xs text-brand-200">
-            📌 Demo: <strong>{DEMO_CREDENTIALS.email}</strong> · senha <strong>{DEMO_CREDENTIALS.password}</strong>
-          </div>
+          <p className="mt-4 rounded-lg bg-brand-500/10 p-3 text-center text-xs text-brand-200">
+            Ambiente de demonstração — os dados são ilustrativos e nenhuma informação real é enviada.
+          </p>
         </>
       )}
 

@@ -1,9 +1,12 @@
 import { useState } from 'react'
-import { BadgeCheck, ChevronDown, ShieldQuestion } from 'lucide-react'
+import { BadgeCheck, ChevronDown, ShieldQuestion, Database, Globe2, Workflow } from 'lucide-react'
 import InfoTooltip from '../components/ui/InfoTooltip'
 import {
   sourceReliability, reliabilityTier, reliabilityCriteria,
 } from '../data/sourceReliability'
+import {
+  sourcesByCategory, SOURCE_STATUS, sourceStatusSummary,
+} from '../data/monitoredSources'
 
 const TYPES = ['Todas', 'Oficial', 'Imprensa', 'Especializada', 'Internacional', 'Redes']
 
@@ -103,6 +106,107 @@ export default function SourceReliability() {
       </div>
 
       <p className="text-center text-xs muted">Avaliações demonstrativas — não constituem julgamento definitivo sobre os veículos.</p>
+
+      {/* CATÁLOGO DE FONTES MONITORADAS */}
+      <MonitoredSources />
+    </div>
+  )
+}
+
+// -----------------------------------------------------------------------------
+// Catálogo de fontes cadastradas no pipeline de coleta. As fontes estão
+// CONFIGURADAS/PREPARADAS para integração — sem coleta ao vivo nesta fase.
+// -----------------------------------------------------------------------------
+function MonitoredSources() {
+  const groups = sourcesByCategory()
+  const summary = sourceStatusSummary()
+
+  return (
+    <div className="space-y-5">
+      <div className="card p-6">
+        <div className="flex items-start gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-500/15 text-brand-400">
+            <Database size={22} />
+          </span>
+          <div className="min-w-0">
+            <h2 className="flex items-center gap-2 text-xl font-bold tracking-tight">
+              Fontes monitoradas
+              <InfoTooltip text="Veículos cadastrados no pipeline de coleta. Nesta demonstração as fontes estão configuradas/preparadas — a coleta ao vivo depende de um backend/proxy." />
+            </h2>
+            <p className="text-sm muted">Catálogo de fontes com metadados, prontas para integração via conector.</p>
+          </div>
+        </div>
+
+        {/* Resumo honesto de status */}
+        <div className="mt-4 flex flex-wrap gap-2">
+          {Object.entries(summary).map(([key, count]) => {
+            const meta = SOURCE_STATUS[key]
+            if (!meta) return null
+            return (
+              <span key={key} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${meta.classes}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} /> {count} {meta.label.toLowerCase()}
+              </span>
+            )
+          })}
+        </div>
+
+        {/* Pipeline de ingestão (arquitetura preparada para backend) */}
+        <div className="mt-4 flex items-center gap-2 overflow-x-auto rounded-lg bg-white/5 px-3 py-2 text-[11px] font-medium text-gray-400">
+          <Workflow size={14} className="shrink-0 text-brand-400" />
+          {['Fonte', 'Conector', 'Coleta', 'Normalização', 'Classificação', 'Armazenamento', 'Análise', 'UI'].map((step, i, arr) => (
+            <span key={step} className="flex shrink-0 items-center gap-2">
+              <span className="whitespace-nowrap">{step}</span>
+              {i < arr.length - 1 && <span className="text-gray-600">→</span>}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {groups.map((cat) => (
+        <div key={cat.id} className="space-y-3">
+          <h3 className="px-1 text-xs font-bold uppercase tracking-wider text-gray-500">{cat.label}</h3>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            {cat.items.map((s) => {
+              const tier = reliabilityTier(s.reliability)
+              const st = SOURCE_STATUS[s.status]
+              return (
+                <div key={s.id} className="card p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h4 className="truncate font-bold tracking-tight">{s.name}</h4>
+                      <a
+                        href={`https://${s.domain}`} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 font-mono text-xs text-brand-400 hover:text-brand-300"
+                      >
+                        <Globe2 size={11} /> {s.domain}
+                      </a>
+                    </div>
+                    <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${st.classes}`} title={st.desc}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${st.dot}`} /> {st.label}
+                    </span>
+                  </div>
+
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] font-semibold uppercase">
+                    <span className="rounded-full bg-white/5 px-2 py-0.5 muted">{s.type}</span>
+                    <span className="rounded-full bg-white/5 px-2 py-0.5 muted">{s.country}</span>
+                    <span className="rounded-full bg-white/5 px-2 py-0.5 muted">{s.cadence}</span>
+                    <span className={`rounded-full px-2 py-0.5 ${tier.classes}`}>Confiab. {s.reliability}</span>
+                  </div>
+
+                  <p className="mt-2 text-xs muted">
+                    <span className="font-semibold text-gray-400">Relevância p/ o Brasil:</span> {s.brRelevance}
+                  </p>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      ))}
+
+      <p className="text-center text-xs muted">
+        Fontes configuradas para integração futura. Nenhuma coleta ao vivo é feita nesta demonstração —
+        os conectores serão implementados por trás destes mesmos metadados quando houver backend.
+      </p>
     </div>
   )
 }

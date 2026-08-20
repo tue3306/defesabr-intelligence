@@ -274,6 +274,11 @@ function SourcesEditor({ s }) {
   const [url, setUrl] = useState('')
   return (
     <>
+      <p className="mb-3 text-xs muted">
+        Neste demo (sem backend) as fontes vêm <strong>desativadas</strong> — o painel usa conteúdo
+        demonstrativo coerente. Ative uma fonte para tentar a coleta ao vivo (pode falhar por CORS/limite;
+        há fallback). Em produção, a coleta real deve rodar atrás de um backend/proxy.
+      </p>
       <div className="space-y-2">
         {s.rssSources.map((src) => (
           <div key={src.id} className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2 text-sm">
@@ -329,7 +334,7 @@ function ApiKeyEditor({ s }) {
 }
 
 const MOCK_USERS = [
-  { name: 'Administrador', email: 'admin@defesabr.com', role: 'Administrador', status: 'ativo' },
+  { name: 'Administrador', email: 'governanca@defesabr.com', role: 'Administrador', status: 'ativo' },
   { name: 'Ana Lima', email: 'ana@defesabr.com', role: 'Analista', status: 'ativo' },
   { name: 'João Souza', email: 'joao@exemplo.com', role: 'Usuário', status: 'ativo' },
   { name: 'Marina Reis', email: 'marina@exemplo.com', role: 'Usuário', status: 'inativo' },

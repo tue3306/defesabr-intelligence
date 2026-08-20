@@ -6,7 +6,12 @@ export const useSettingsStore = create(
   persist(
     (set, get) => ({
       theme: 'light', // 'dark' | 'light' — padrão CLARO (visual)
-      rssSources: RSS_SOURCES,
+      // Fontes ao vivo DESLIGADAS por padrão: este é um demo 100% front-end
+      // (sem backend/proxy). Buscar RSS de terceiros direto do browser falha por
+      // CORS/limite e polui o console — sem agregar dado real. O app carrega com
+      // conteúdo demonstrativo coerente e o usuário pode ativar fontes ao vivo em
+      // Configurações (a coleta real deve viver atrás de um backend — ver roadmap).
+      rssSources: RSS_SOURCES.map((s) => ({ ...s, enabled: false })),
       newsPerClipping: 5, // 3-10
       focusArea: 'empresarial',
       notificationsEnabled: true,
@@ -68,9 +73,9 @@ export const useSettingsStore = create(
       completeOnboarding: () => set({ onboardingDone: true }),
       resetOnboarding: () => set({ onboardingDone: false }),
     }),
-    // [ALTERADO] chave nova para descartar a preferência de tema ANTIGA salva no
-    // navegador (que fazia o app abrir escuro/"antigo"). Agora carrega o padrão claro.
-    { name: 'defesabr-settings-v2' }
+    // [ALTERADO] chave nova (v3): descarta o estado antigo que trazia as fontes
+    // RSS habilitadas por padrão (origem dos erros 422 no console do demo).
+    { name: 'defesabr-settings-v3' }
   )
 )
 
