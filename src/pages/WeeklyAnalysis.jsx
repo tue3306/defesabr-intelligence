@@ -198,7 +198,7 @@ export default function WeeklyAnalysis() {
           <Paywall
             active={!unlocked}
             title="Análise completa é exclusiva de assinantes"
-            desc="Escolha esta área no seu plano (ou assine o Completo). Analista e Administrador têm acesso total."
+            desc="Cenários, riscos e recomendações por perfil fazem parte do plano Profissional."
           >
           <div className="space-y-6">
           {/* Bloco B — Cenários */}

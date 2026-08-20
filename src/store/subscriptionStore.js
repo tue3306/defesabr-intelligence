@@ -18,11 +18,9 @@ export const useSubscriptionStore = create(
       setBilling: (billing) => set({ billing }),
 
       // Assinante pago (acessa análises/briefings sem paywall).
+      // Observação: para AUTORIZAÇÃO use `useCan`/`can()` (src/auth/permissions.js).
+      // Este helper serve à camada de assinatura/cobrança (exibição de plano).
       isPaid: () => get().plan !== 'explorar',
-
-      // Compat: antes havia trava por área; agora plano pago vê todas as áreas.
-      // (mantém a assinatura da função para não quebrar chamadas existentes)
-      canSeeArea: () => get().plan !== 'explorar',
 
       // Fatura demonstrativa (DEMO) — usada na área de Faturamento.
       addInvoice: (invoice) =>

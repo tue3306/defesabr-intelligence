@@ -18,7 +18,7 @@ import { TensionBoard } from '../components/tension/TensionPanel'
 import { useNews } from '../hooks/useNews'
 import { useNewsStore } from '../store/newsStore'
 import { useAuthStore } from '../store/authStore'
-import { useCan } from '../auth/useCan'
+import Can from '../auth/Can'
 import { useSettingsStore } from '../store/settingsStore'
 import { useTensionStore, tensionBand } from '../store/tensionStore'
 import {
@@ -61,14 +61,12 @@ export default function ProDashboard() {
   const notifications = useNewsStore((s) => s.notifications)
   const unread = useNewsStore((s) => s.unreadCount())
   const user = useAuthStore((s) => s.user)
-  const can = useCan()
   const favorites = useNewsStore((s) => s.favorites)
   const interestAreas = useSettingsStore((s) => s.interestAreas)
   const regions = useTensionStore((s) => s.regions)
 
   const feed = news.slice(0, 6)
   const weekly = mockWeeklyAnalysis.empresarial
-  const canProduce = can('ai.generate')
 
   // ---- Indicadores computados a partir de dados reais do projeto ----
   const alert = alertMeta[latest?.alert_level] || alertMeta.ATENCAO
@@ -201,11 +199,13 @@ export default function ProDashboard() {
             <Link to="/clipping" className="btn-ghost text-sm"><Bot size={15} /> Gerar clipping</Link>
             <Link to="/analise" className="btn-ghost text-sm"><BarChart3 size={15} /> Análise semanal</Link>
             <Link to="/apresentacao" className="btn-ghost text-sm"><Tv size={15} /> Apresentação</Link>
-            {canProduce ? (
+            {/* Gate declarativo reutilizável (src/auth/Can.jsx) */}
+            <Can
+              do="reports.export"
+              fallback={<Link to="/planos" className="btn-primary text-sm"><Sparkles size={15} /> Desbloquear produção</Link>}
+            >
               <Link to="/clipping" className="btn-ghost text-sm"><FileDown size={15} /> Exportar</Link>
-            ) : (
-              <Link to="/planos" className="btn-primary text-sm"><Sparkles size={15} /> Desbloquear produção</Link>
-            )}
+            </Can>
           </div>
           <div className="min-w-0">
             <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider muted">Áreas monitoradas</p>

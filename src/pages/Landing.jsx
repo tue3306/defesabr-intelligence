@@ -160,16 +160,20 @@ export default function Landing() {
         <p className="mx-auto mt-2 max-w-2xl text-center text-sm muted">
           Uma camada de inteligência que organiza o caos informacional em contexto, risco e prioridade.
         </p>
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Lista compacta: mesma informação, sem repetir a grade de cards acima
+            (evita duas grades visualmente idênticas em sequência — §5). */}
+        <div className="mx-auto mt-6 grid max-w-3xl grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
           {USE_CASES.map((u) => {
             const Icon = USE_CASE_ICONS[u.icon] || Radar
             return (
-              <div key={u.title} className="card group p-5 transition-transform hover:-translate-y-0.5 hover:shadow-card-hover">
-                <span className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-brand-500/10 text-brand-400 ring-1 ring-inset ring-white/10">
-                  <Icon size={22} />
+              <div key={u.title} className="flex items-start gap-3">
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-500/10 text-brand-400">
+                  <Icon size={16} />
                 </span>
-                <h3 className="font-bold tracking-tight">{u.title}</h3>
-                <p className="mt-1.5 text-sm leading-relaxed text-gray-300">{u.text}</p>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold tracking-tight">{u.title}</h3>
+                  <p className="text-sm leading-snug muted">{u.text}</p>
+                </div>
               </div>
             )
           })}
@@ -276,7 +280,7 @@ export default function Landing() {
               <BookOpen size={20} className="text-brand-400" /> Glossário essencial
             </h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {glossary.slice(0, 6).map((g) => (
+              {glossary.slice(0, 4).map((g) => (
                 <div key={g.term} className="card p-4">
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="font-bold tracking-tight">{g.term}</h3>
@@ -287,7 +291,7 @@ export default function Landing() {
               ))}
             </div>
             <p className="mt-3 text-sm muted">
-              Glossário completo no <Link to="/planos" className="font-semibold text-brand-400 hover:text-brand-300">plano Simples ou Completo</Link>{' '}
+              Glossário completo no <Link to="/planos" className="font-semibold text-brand-400 hover:text-brand-300">plano Profissional</Link>{' '}
               · ou explore o <Link to="/aprender" className="font-semibold text-brand-400 hover:text-brand-300">Centro Educacional</Link>.
             </p>
           </div>

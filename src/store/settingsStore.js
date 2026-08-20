@@ -71,7 +71,6 @@ export const useSettingsStore = create(
       toggleNotifications: () => set({ notificationsEnabled: !get().notificationsEnabled }),
       setApiKeyOverride: (apiKeyOverride) => set({ apiKeyOverride }),
       completeOnboarding: () => set({ onboardingDone: true }),
-      resetOnboarding: () => set({ onboardingDone: false }),
     }),
     // [ALTERADO] chave nova (v3): descarta o estado antigo que trazia as fontes
     // RSS habilitadas por padrão (origem dos erros 422 no console do demo).
