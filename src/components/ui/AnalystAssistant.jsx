@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkles, X, Send, Bot, User } from 'lucide-react'
+import { Sparkles, X, Send, Bot, User, Lock, ArrowRight } from 'lucide-react'
 import { answerQuestion, suggestedQuestions } from '../../utils/analystKnowledge'
+import { useCan } from '../../auth/useCan'
 
 // Renderiza **negrito** e quebras de linha simples.
 function RichText({ text }) {
@@ -22,6 +23,8 @@ function RichText({ text }) {
 }
 
 export default function AnalystAssistant() {
+  const can = useCan()
+  const allowed = can('ai.assistant')
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
   const [typing, setTyping] = useState(false)
@@ -49,6 +52,52 @@ export default function AnalystAssistant() {
       setMessages((m) => [...m, { role: 'bot', ...ans }])
       setTyping(false)
     }, 650)
+  }
+
+  // Perfil sem a capacidade: convite elegante (não bloqueio agressivo, §7).
+  if (!allowed) {
+    return (
+      <div className="fixed bottom-5 right-5 z-40 print:hidden">
+        <AnimatePresence>
+          {open && (
+            <motion.div
+              initial={{ opacity: 0, y: 16, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.96 }}
+              className="card mb-3 w-[min(92vw,20rem)] overflow-hidden p-5 shadow-2xl"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gold-500/15 text-gold-600 dark:text-gold-400">
+                  <Lock size={18} />
+                </span>
+                <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-900 dark:hover:text-white" aria-label="Fechar">
+                  <X size={17} />
+                </button>
+              </div>
+              <h3 className="mt-3 text-base font-bold tracking-tight">Assistente Analista</h3>
+              <p className="mt-1 text-sm muted">
+                Pergunte sobre programas, cenários e riscos e transforme a resposta em análise.
+                Disponível no plano <strong>Profissional</strong>.
+              </p>
+              <Link to="/planos" onClick={() => setOpen(false)} className="btn-primary mt-4 w-full justify-center text-sm">
+                Ver planos <ArrowRight size={15} />
+              </Link>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        {!open && (
+          <button
+            onClick={() => setOpen(true)}
+            className="group flex items-center gap-2 rounded-full border border-gold-500/40 bg-white py-3 pl-3 pr-4 text-gray-900 shadow-lg transition-colors hover:bg-gray-50 dark:bg-military-card dark:text-white dark:hover:bg-white/10"
+            aria-label="Conhecer o Assistente Analista (plano Profissional)"
+          >
+            <Sparkles size={20} className="text-gold-500 dark:text-gold-400" />
+            <span className="text-sm font-semibold">Pergunte ao Analista</span>
+            <Lock size={13} className="text-gray-400" />
+          </button>
+        )}
+      </div>
+    )
   }
 
   return (

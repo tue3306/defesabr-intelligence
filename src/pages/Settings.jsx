@@ -7,8 +7,9 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useSettingsStore } from '../store/settingsStore'
-import { useAuthStore, ROLES } from '../store/authStore'
+import { useAuthStore } from '../store/authStore'
 import { useSubscriptionStore } from '../store/subscriptionStore'
+import { useCan, useProfileMeta } from '../auth/useCan'
 import { useTheme } from '../hooks/useTheme'
 import { FOCUS_AREAS, CATEGORIES } from '../data/mockData'
 import { PLANS, PLAN_LABEL } from '../data/plansData'
@@ -33,13 +34,13 @@ function Section({ icon: Icon, title, badge, children }) {
 export default function Settings() {
   const s = useSettingsStore()
   const { user, isAuthenticated } = useAuthStore()
-  const hasPermission = useAuthStore((st) => st.hasPermission)
   const plan = useSubscriptionStore((st) => st.plan)
-  const role = user?.role || 'user'
+  const can = useCan()
+  const profileMeta = useProfileMeta()
 
-  // [ALTERADO] Produção depende do PLANO (Profissional+); admin depende do PAPEL.
-  const canProduce = hasPermission('tension')
-  const isAdmin = role === 'admin'
+  // Autorização declarativa — nada de checar papel/plano direto aqui (§10).
+  const canProduce = can('tension.edit')
+  const isAdmin = can('admin.settings')
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -54,7 +55,7 @@ export default function Settings() {
         {isAuthenticated && (
           <div className="flex flex-wrap gap-1.5">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-500/15 px-3 py-1 text-xs font-bold text-brand-300">
-              <ShieldCheck size={13} /> {ROLES[role]?.label || role}
+              <ShieldCheck size={13} /> {profileMeta.label}
             </span>
             <span className="inline-flex items-center rounded-full bg-gold-500/15 px-3 py-1 text-xs font-bold text-gold-600 dark:text-gold-400">
               {PLAN_LABEL[plan] || plan}
@@ -127,8 +128,14 @@ export default function Settings() {
             <ApiKeyEditor s={s} />
           </Section>
 
-          <Section icon={Users} title="Usuários" badge="Admin">
-            <UsersTable />
+          <Section icon={Users} title="Usuários e governança" badge="Admin">
+            <p className="text-sm muted">
+              A gestão de usuários, perfis, fontes, integrações e auditoria fica no{' '}
+              <Link to="/admin" className="font-semibold text-brand-400 hover:text-brand-300">
+                Console de governança
+              </Link>{' '}
+              — fonte única, para não duplicar informação.
+            </p>
           </Section>
 
           <Section icon={BarChart3} title="Analytics do site" badge="Admin">
@@ -333,45 +340,6 @@ function ApiKeyEditor({ s }) {
       </div>
       <p className="mt-2 text-xs text-yellow-400/80">⚠️ Em produção, não exponha a chave no front-end. Use um backend/proxy.</p>
     </>
-  )
-}
-
-const MOCK_USERS = [
-  { name: 'Administrador', email: 'governanca@defesabr.com', role: 'Administrador', status: 'ativo' },
-  { name: 'Ana Lima', email: 'ana@defesabr.com', role: 'Analista', status: 'ativo' },
-  { name: 'João Souza', email: 'joao@exemplo.com', role: 'Usuário', status: 'ativo' },
-  { name: 'Marina Reis', email: 'marina@exemplo.com', role: 'Usuário', status: 'inativo' },
-]
-
-function UsersTable() {
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-gray-700/50 text-left text-xs uppercase muted">
-            <th className="py-2 pr-4">Nome</th>
-            <th className="py-2 pr-4">E-mail</th>
-            <th className="py-2 pr-4">Perfil</th>
-            <th className="py-2">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {MOCK_USERS.map((u) => (
-            <tr key={u.email} className="border-b border-gray-700/30">
-              <td className="py-2 pr-4 font-medium">{u.name}</td>
-              <td className="py-2 pr-4 muted">{u.email}</td>
-              <td className="py-2 pr-4">{u.role}</td>
-              <td className="py-2">
-                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${u.status === 'ativo' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-gray-600/30 text-gray-400'}`}>
-                  {u.status}
-                </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <p className="mt-2 text-xs muted">Gestão de usuários (demonstração).</p>
-    </div>
   )
 }
 

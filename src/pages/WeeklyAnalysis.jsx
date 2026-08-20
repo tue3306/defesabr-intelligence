@@ -22,8 +22,7 @@ import InfoTooltip from '../components/ui/InfoTooltip'
 import { useClaudeAI } from '../hooks/useClaudeAI'
 import { useNews } from '../hooks/useNews'
 import { useSettingsStore } from '../store/settingsStore'
-import { useAuthStore } from '../store/authStore'
-import { useSubscriptionStore } from '../store/subscriptionStore'
+import { useCan } from '../auth/useCan'
 import { FOCUS_AREAS, mockWeeklyAnalysis } from '../data/mockData'
 import { exportWeeklyToPDF } from '../utils/exportUtils'
 
@@ -65,16 +64,13 @@ export default function WeeklyAnalysis() {
   const { loading, generateWeekly, source } = useClaudeAI()
   const focusArea = useSettingsStore((s) => s.focusArea)
   const setFocusArea = useSettingsStore((s) => s.setFocusArea)
-  const hasPermission = useAuthStore((s) => s.hasPermission)
-  const isStaff = useAuthStore((s) => s.isStaff)
-  const canSeeArea = useSubscriptionStore((s) => s.canSeeArea)
+  const can = useCan()
 
-  // [ALTERADO] Acesso por perfil/plano:
-  // - Analista/Admin (equipe) veem tudo e geram/exportam.
-  // - Usuário Comum vê a análise da(s) área(s) do seu plano; demais ficam no paywall.
-  const canGenerate = hasPermission('generate')
-  const canExport = hasPermission('export')
-  const unlocked = isStaff() || canSeeArea(focusArea)
+  // Autorização por capacidade (§10): a análise completa é da camada PRO;
+  // o perfil gratuito vê a prévia com paywall elegante.
+  const canGenerate = can('ai.generate')
+  const canExport = can('reports.export')
+  const unlocked = can('analysis.full')
 
   const [result, setResult] = useState(mockWeeklyAnalysis[focusArea] || mockWeeklyAnalysis.empresarial)
   const [week, setWeek] = useState(PREV_WEEKS[0])

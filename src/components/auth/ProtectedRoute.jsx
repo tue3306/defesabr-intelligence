@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Lock, ShieldCheck, Bot, FileDown, Sparkles, ArrowRight, ShieldAlert, Check } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { useAuthStore, DEMO_PERSONAS, PERMISSION_REASON } from '../../store/authStore'
+import { useAuthStore, DEMO_PERSONAS } from '../../store/authStore'
 
 const BENEFITS = [
   { icon: Bot, text: 'Painel de situação e mapa de risco' },
@@ -11,10 +11,13 @@ const BENEFITS = [
 
 // Bloqueia o conteúdo até autenticar e, opcionalmente, exige uma permissão.
 // O bloqueio explica se é por PLANO (produção) ou por PAPEL (administração).
-export default function ProtectedRoute({ children, permission }) {
+export default function ProtectedRoute({ children, permission, capability }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  const hasPermission = useAuthStore((s) => s.hasPermission)
+  const can = useAuthStore((s) => s.can)
+  const denialFor = useAuthStore((s) => s.denialFor)
   const loginAsDemo = useAuthStore((s) => s.loginAsDemo)
+  // `capability` é o nome novo; `permission` fica por compatibilidade.
+  const required = capability || permission
 
   const enter = (key) => {
     const p = DEMO_PERSONAS[key]
@@ -64,8 +67,8 @@ export default function ProtectedRoute({ children, permission }) {
   }
 
   // 2) Autenticado, mas sem a permissão → explica se é PLANO ou PAPEL.
-  if (permission && !hasPermission(permission)) {
-    const reason = PERMISSION_REASON[permission] || 'plan'
+  if (required && !can(required)) {
+    const reason = denialFor(required) || 'plan'
     const isPlan = reason === 'plan'
     const targetPersona = isPlan ? 'profissional' : 'admin'
     const title = isPlan ? 'Recurso do plano Profissional' : 'Recurso do Administrador'

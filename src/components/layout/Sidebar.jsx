@@ -3,11 +3,16 @@ import {
   LayoutDashboard, Newspaper, BarChart3, LineChart, Archive, Settings, HelpCircle,
   Shield, Tv, Lock, GraduationCap, Home, Sparkles, DollarSign, X,
   Target, Waves, Scale, Factory, Layers, Radio, Landmark, CalendarDays, BadgeCheck, UserCircle,
+  ShieldCheck,
 } from 'lucide-react'
 import Logo from '../ui/Logo'
 import { useAuthStore } from '../../store/authStore'
+import { useCan, useProfile } from '../../auth/useCan'
 
-// Navegação agrupada por seções (estilo plataforma oficial).
+// Navegação declarativa: cada item pede uma CAPACIDADE (src/auth/permissions.js).
+//  • `capability`  → item aparece bloqueado (upsell) se o perfil não tiver.
+//  • `adminOnly`   → item nem aparece fora do perfil Administrador
+//                    (governança não é upsell: não faz sentido oferecer).
 const NAV_SECTIONS = [
   {
     title: 'Visão geral',
@@ -21,10 +26,10 @@ const NAV_SECTIONS = [
     items: [
       { to: '/clipping', label: 'Clipping Diário', icon: Newspaper, requiresAuth: true },
       { to: '/analise', label: 'Análise Semanal', icon: BarChart3, requiresAuth: true },
-      { to: '/dossies', label: 'Dossiês "Em Foco"', icon: Layers, requiresAuth: true, badge: 'NOVO' },
-      { to: '/narrativas', label: 'Monitor de Narrativas', icon: Radio, requiresAuth: true, requiresPermission: 'analyst' },
+      { to: '/dossies', label: 'Dossiês "Em Foco"', icon: Layers, requiresAuth: true },
+      { to: '/narrativas', label: 'Monitor de Narrativas', icon: Radio, requiresAuth: true, capability: 'narratives.access' },
       { to: '/calendario', label: 'Calendário Estratégico', icon: CalendarDays, requiresAuth: true },
-      { to: '/fontes', label: 'Confiabilidade das Fontes', icon: BadgeCheck, requiresAuth: true, requiresPermission: 'analyst' },
+      { to: '/fontes', label: 'Confiabilidade das Fontes', icon: BadgeCheck, requiresAuth: true, capability: 'sources.reliability' },
       { to: '/arquivo', label: 'Arquivo & Pasta', icon: Archive, requiresAuth: true },
     ],
   },
@@ -53,6 +58,14 @@ const NAV_SECTIONS = [
       { to: '/apresentacao', label: 'Apresentação', icon: Tv, requiresAuth: true },
     ],
   },
+  {
+    // Só existe para o Administrador (§9/§12).
+    title: 'Administração',
+    adminOnly: true,
+    items: [
+      { to: '/admin', label: 'Console de Governança', icon: ShieldCheck, requiresAuth: true, capability: 'admin.access', adminOnly: true },
+    ],
+  },
 ]
 
 const bottomNav = [
@@ -64,7 +77,14 @@ const bottomNav = [
 
 export default function Sidebar({ open, onClose, collapsed }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  const hasPermission = useAuthStore((s) => s.hasPermission)
+  const can = useCan()
+  const profile = useProfile()
+  const isAdmin = profile === 'admin'
+  // Governança some para quem não é Administrador; o resto adapta-se por capacidade.
+  const sections = NAV_SECTIONS
+    .filter((sec) => !sec.adminOnly || isAdmin)
+    .map((sec) => ({ ...sec, items: sec.items.filter((it) => !it.adminOnly || isAdmin) }))
+    .filter((sec) => sec.items.length > 0)
   return (
     <>
       {/* Overlay mobile */}
@@ -83,7 +103,7 @@ export default function Sidebar({ open, onClose, collapsed }) {
         </div>
 
         <nav className="flex-1 space-y-4 overflow-y-auto p-3">
-          {NAV_SECTIONS.map((section) => (
+          {sections.map((section) => (
             <div key={section.title}>
               {!collapsed && (
                 <p className="px-3 pb-1 pt-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">{section.title}</p>
@@ -97,7 +117,7 @@ export default function Sidebar({ open, onClose, collapsed }) {
                     collapsed={collapsed}
                     onClick={onClose}
                     locked={item.requiresAuth && !isAuthenticated}
-                    restricted={isAuthenticated && item.requiresPermission && !hasPermission(item.requiresPermission)}
+                    restricted={isAuthenticated && item.capability && !can(item.capability)}
                   />
                 ))}
               </div>
@@ -113,7 +133,7 @@ export default function Sidebar({ open, onClose, collapsed }) {
               collapsed={collapsed}
               onClick={onClose}
               locked={item.requiresAuth && !isAuthenticated}
-              restricted={isAuthenticated && item.requiresPermission && !hasPermission(item.requiresPermission)}
+              restricted={isAuthenticated && item.capability && !can(item.capability)}
             />
           ))}
         </div>

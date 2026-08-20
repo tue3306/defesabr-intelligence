@@ -1,6 +1,9 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { useSubscriptionStore } from './subscriptionStore'
+import {
+  resolveProfile, profileCan, denialReason, normalizeCapability,
+} from '../auth/permissions'
 
 // Credenciais de conveniência para a persona de governança (DEMO).
 // NÃO são exibidas na interface — o acesso de demonstração é feito pelos
@@ -52,17 +55,9 @@ export const DEMO_PERSONAS = {
   },
 }
 
-// Permissões: ADMIN depende do PAPEL; PRO (produção) depende do PLANO.
-const ADMIN_PERMS = ['settings', 'admin', 'diagnostics', 'regenerate']
-const PRO_PERMS = ['generate', 'export', 'publish', 'tension', 'analyst']
-const PAID_PLANS = ['profissional', 'institucional']
+// A autorização vive em src/auth/permissions.js (fonte de verdade única, §10).
+// Este store apenas expõe helpers que consultam aquele módulo.
 const currentPlan = () => useSubscriptionStore.getState().plan
-
-// Motivo do bloqueio (para mensagens claras de "por que não posso?").
-export const PERMISSION_REASON = {
-  generate: 'plan', export: 'plan', publish: 'plan', tension: 'plan', analyst: 'plan',
-  settings: 'role', admin: 'role', diagnostics: 'role', regenerate: 'role',
-}
 
 export const useAuthStore = create(
   persist(
@@ -106,19 +101,28 @@ export const useAuthStore = create(
       updateProfile: (patch) =>
         set((s) => ({ user: s.user ? { ...s.user, ...patch } : s.user })),
 
-      // ── Helpers de permissão (usados em todo o app) ──
-      hasPermission: (perm) => {
-        const user = get().user
-        if (!user) return false
-        if (ADMIN_PERMS.includes(perm)) return user.role === 'admin'
-        if (PRO_PERMS.includes(perm)) return user.role === 'admin' || PAID_PLANS.includes(currentPlan())
-        return true // read / interests — qualquer autenticado
-      },
-      can: (perm) => get().hasPermission(perm), // alias semântico solicitado
-      isRole: (role) => get().user?.role === role,
-      isAdmin: () => get().user?.role === 'admin',
+      // ── Helpers de permissão — TODOS delegam a src/auth/permissions.js ──
+
+      // Perfil efetivo: 'visitor' | 'free' | 'pro' | 'admin'.
+      profile: () =>
+        resolveProfile({
+          isAuthenticated: get().isAuthenticated,
+          role: get().user?.role,
+          plan: currentPlan(),
+        }),
+
+      // Verificação central de capacidade (aceita nomes novos e legados).
+      can: (capability) => profileCan(get().profile(), normalizeCapability(capability)),
+
+      // Alias histórico mantido para não quebrar chamadas existentes.
+      hasPermission: (capability) => get().can(capability),
+
+      // Por que está bloqueado: 'auth' | 'plan' | 'role' | null.
+      denialFor: (capability) => denialReason(get().profile(), normalizeCapability(capability)),
+
+      isAdmin: () => get().profile() === 'admin',
       // Acessa conteúdo premium sem paywall (plano pago OU admin).
-      isStaff: () => get().user?.role === 'admin' || PAID_PLANS.includes(currentPlan()),
+      isStaff: () => ['pro', 'admin'].includes(get().profile()),
     }),
     // [ALTERADO] chave nova: descarta sessões com o modelo de perfis antigo.
     { name: 'defesabr-auth-v3' }

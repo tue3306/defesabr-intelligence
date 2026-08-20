@@ -65,6 +65,34 @@ export const auditLog = [
   { id: 6, time: '2026-06-03T10:01:00-03:00', actor: 'sistema', action: 'Tentativa de acesso a área restrita sem permissão', target: 'Auth · /fontes', level: 'warn' },
 ]
 
+// Usuários da plataforma (DEMONSTRATION DATA) — base da gestão de usuários.
+// `role` e `plan` seguem exatamente os eixos de src/auth/permissions.js.
+export const platformUsers = [
+  { id: 'u1', name: 'Administrador', email: 'governanca@defesabr.com', role: 'admin', plan: 'institucional', status: 'ativo', lastAccess: '2026-06-04T14:22:00-03:00' },
+  { id: 'u2', name: 'Ana Lima', email: 'ana@defesabr.com', role: 'user', plan: 'profissional', status: 'ativo', lastAccess: '2026-06-04T11:05:00-03:00' },
+  { id: 'u3', name: 'João Souza', email: 'joao@exemplo.com', role: 'user', plan: 'profissional', status: 'ativo', lastAccess: '2026-06-03T17:40:00-03:00' },
+  { id: 'u4', name: 'Marina Reis', email: 'marina@exemplo.com', role: 'user', plan: 'explorar', status: 'ativo', lastAccess: '2026-06-02T08:15:00-03:00' },
+  { id: 'u5', name: 'Carlos Andrade', email: 'carlos@exemplo.com', role: 'user', plan: 'explorar', status: 'inativo', lastAccess: '2026-05-21T19:02:00-03:00' },
+  { id: 'u6', name: 'Beatriz Nunes', email: 'beatriz@exemplo.com', role: 'user', plan: 'institucional', status: 'ativo', lastAccess: '2026-06-04T09:30:00-03:00' },
+]
+
+// Planos comercializados — parâmetros de governança (assentos, limites).
+export const platformPlans = [
+  { id: 'explorar', label: 'Explorar', price: 'R$ 0', seats: '1', features: 'Leitura, descoberta e educação', users: 128 },
+  { id: 'profissional', label: 'Profissional', price: 'R$ 89/mês', seats: '1', features: 'Análise, IA, relatórios e exportação', users: 34 },
+  { id: 'institucional', label: 'Institucional', price: 'Sob consulta', seats: 'Múltiplos', features: 'Profissional + gestão de equipe', users: 6 },
+]
+
+// Categorias de conteúdo (parâmetros de classificação da ingestão).
+export const contentCategories = [
+  { id: 'forcas', label: 'Forças Armadas', items: 42 },
+  { id: 'ciber', label: 'Cibersegurança', items: 38 },
+  { id: 'fronteiras', label: 'Fronteiras', items: 21 },
+  { id: 'industria', label: 'Indústria (BID)', items: 27 },
+  { id: 'diplomacia', label: 'Diplomacia', items: 18 },
+  { id: 'orcamento', label: 'Orçamento', items: 15 },
+]
+
 export const AUDIT_LEVEL = {
   info: { label: 'info', classes: 'bg-brand-500/15 text-brand-300' },
   warn: { label: 'alerta', classes: 'bg-amber-500/15 text-amber-300' },

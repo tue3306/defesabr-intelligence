@@ -18,8 +18,8 @@ import { TensionBoard } from '../components/tension/TensionPanel'
 import { useNews } from '../hooks/useNews'
 import { useNewsStore } from '../store/newsStore'
 import { useAuthStore } from '../store/authStore'
+import { useCan } from '../auth/useCan'
 import { useSettingsStore } from '../store/settingsStore'
-import { useSubscriptionStore } from '../store/subscriptionStore'
 import { useTensionStore, tensionBand } from '../store/tensionStore'
 import {
   newsVolume14d, newsCategoriesKeys, militarySpendingBR, mockWeeklyAnalysis,
@@ -61,16 +61,14 @@ export default function ProDashboard() {
   const notifications = useNewsStore((s) => s.notifications)
   const unread = useNewsStore((s) => s.unreadCount())
   const user = useAuthStore((s) => s.user)
-  const hasPermission = useAuthStore((s) => s.hasPermission)
+  const can = useCan()
   const favorites = useNewsStore((s) => s.favorites)
   const interestAreas = useSettingsStore((s) => s.interestAreas)
-  const plan = useSubscriptionStore((s) => s.plan)
   const regions = useTensionStore((s) => s.regions)
 
   const feed = news.slice(0, 6)
   const weekly = mockWeeklyAnalysis.empresarial
-  const canProduce = hasPermission('generate')
-  const isPaid = plan !== 'explorar'
+  const canProduce = can('ai.generate')
 
   // ---- Indicadores computados a partir de dados reais do projeto ----
   const alert = alertMeta[latest?.alert_level] || alertMeta.ATENCAO
@@ -393,30 +391,17 @@ export default function ProDashboard() {
             )}
           </Section>
 
-          {/* Recomendação adaptativa por plano */}
-          {!isPaid ? (
-            <Section className="card overflow-hidden">
-              <div className="bg-gradient-to-br from-gold-500/15 to-transparent p-5">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-gold-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-gold-600 dark:text-gold-400">
-                  <Sparkles size={12} /> Profissional
-                </span>
-                <h2 className="mt-2 text-base font-bold tracking-tight">Desbloqueie a inteligência completa</h2>
-                <p className="mt-1 text-sm muted">Todas as áreas, análise semanal, dossiês e exportação com IA.</p>
-                <Link to="/planos" className="btn-primary mt-3 text-sm">Ver planos <ArrowRight size={15} /></Link>
-              </div>
-            </Section>
-          ) : (
-            <Section className="card p-5">
-              <h2 className="flex items-center gap-2 text-base font-bold tracking-tight">
-                <Sparkles size={17} className="text-brand-400" /> Recomendado para você
-              </h2>
-              <p className="mt-1 text-sm muted">Aprofunde no Monitor de Narrativas e nos Dossiês “Em Foco”.</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Link to="/narrativas" className="btn-ghost text-xs">Narrativas</Link>
-                <Link to="/dossies" className="btn-ghost text-xs">Dossiês</Link>
-              </div>
-            </Section>
-          )}
+          {/* Aprofundamento analítico (este painel é sempre de perfil pago/admin) */}
+          <Section className="card p-5">
+            <h2 className="flex items-center gap-2 text-base font-bold tracking-tight">
+              <Sparkles size={17} className="text-brand-400" /> Recomendado para você
+            </h2>
+            <p className="mt-1 text-sm muted">Aprofunde no Monitor de Narrativas e nos Dossiês “Em Foco”.</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Link to="/narrativas" className="btn-ghost text-xs">Narrativas</Link>
+              <Link to="/dossies" className="btn-ghost text-xs">Dossiês</Link>
+            </div>
+          </Section>
         </div>
       </div>
 

@@ -41,6 +41,8 @@ const Legislative = lazy(() => import('./pages/Legislative'))
 const Narratives = lazy(() => import('./pages/Narratives'))
 const StrategicCalendar = lazy(() => import('./pages/Calendar'))
 const SourceReliability = lazy(() => import('./pages/SourceReliability'))
+// [ALTERADO] Console de governança (Administrador)
+const AdminConsole = lazy(() => import('./pages/AdminConsole'))
 
 function PageLoader() {
   return (
@@ -94,9 +96,12 @@ export default function App() {
           <Route path="/dossies" element={<ProtectedRoute><Dossiers /></ProtectedRoute>} />
           <Route path="/legislativo" element={<ProtectedRoute><Legislative /></ProtectedRoute>} />
           <Route path="/calendario" element={<ProtectedRoute><StrategicCalendar /></ProtectedRoute>} />
-          {/* Ferramentas de Analista (exigem permissão) */}
-          <Route path="/narrativas" element={<ProtectedRoute permission="analyst"><Narratives /></ProtectedRoute>} />
-          <Route path="/fontes" element={<ProtectedRoute permission="analyst"><SourceReliability /></ProtectedRoute>} />
+          {/* Ferramentas de Analista (camada PRO) */}
+          <Route path="/narrativas" element={<ProtectedRoute capability="narratives.access"><Narratives /></ProtectedRoute>} />
+          <Route path="/fontes" element={<ProtectedRoute capability="sources.reliability"><SourceReliability /></ProtectedRoute>} />
+
+          {/* Governança (camada ADMIN) */}
+          <Route path="/admin" element={<ProtectedRoute capability="admin.access"><AdminConsole /></ProtectedRoute>} />
 
           <Route path="*" element={<NotFound />} />
         </Route>

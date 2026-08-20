@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Menu, Bell, Moon, Sun, LogIn, LogOut, User, PanelLeftClose, PanelLeft, UserCog, Settings as SettingsIcon, Check } from 'lucide-react'
+import { Menu, Bell, Moon, Sun, LogIn, LogOut, User, PanelLeftClose, PanelLeft, UserCog, Settings as SettingsIcon, Check, ShieldCheck } from 'lucide-react'
 import SearchBar from '../ui/SearchBar'
 import Badge from '../ui/Badge'
 import LoginModal from '../auth/LoginModal'
 import { useAuthStore, DEMO_PERSONAS, ROLES } from '../../store/authStore'
 import { useNewsStore } from '../../store/newsStore'
 import { useSubscriptionStore } from '../../store/subscriptionStore'
+import { useCan } from '../../auth/useCan'
 import { useTheme } from '../../hooks/useTheme'
 import { timeAgo } from '../../utils/dateUtils'
 
@@ -17,7 +18,8 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
   const { isDark, toggleTheme } = useTheme()
   const { user, isAuthenticated, logout, loginAsDemo } = useAuthStore()
   const plan = useSubscriptionStore((s) => s.plan)
-  const isAdmin = user?.role === 'admin'
+  const can = useCan()
+  const isAdmin = can('admin.access')
   const notifications = useNewsStore((s) => s.notifications)
   const unread = useNewsStore((s) => s.unreadCount())
   const markAllRead = useNewsStore((s) => s.markAllRead)
@@ -183,9 +185,14 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
                     <UserCog size={15} /> Minha conta
                   </Link>
                   {isAdmin && (
-                    <Link to="/configuracoes" onClick={() => setUserOpen(false)} className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10">
-                      <SettingsIcon size={15} /> Configurações do sistema
-                    </Link>
+                    <>
+                      <Link to="/admin" onClick={() => setUserOpen(false)} className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10">
+                        <ShieldCheck size={15} /> Console de governança
+                      </Link>
+                      <Link to="/configuracoes" onClick={() => setUserOpen(false)} className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10">
+                        <SettingsIcon size={15} /> Configurações do sistema
+                      </Link>
+                    </>
                   )}
                 </div>
 

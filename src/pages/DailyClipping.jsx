@@ -19,7 +19,7 @@ import AITypingIndicator from '../components/ui/AITypingIndicator'
 import { useClaudeAI } from '../hooks/useClaudeAI'
 import { useNews } from '../hooks/useNews'
 import { useNewsStore } from '../store/newsStore'
-import { useAuthStore } from '../store/authStore'
+import { useCan } from '../auth/useCan'
 import { useSettingsStore } from '../store/settingsStore'
 import { alertMeta, categoryColor } from '../utils/textUtils'
 import { formatFullDate } from '../utils/dateUtils'
@@ -32,14 +32,14 @@ export default function DailyClipping() {
   const addClipping = useNewsStore((s) => s.addClipping)
   const latest = useNewsStore((s) => s.latestClipping)
   const clippings = useNewsStore((s) => s.clippings)
-  const hasPermission = useAuthStore((s) => s.hasPermission)
+  const can = useCan()
 
   const [result, setResult] = useState(latest)
   const [sourcesOpen, setSourcesOpen] = useState(false)
   const printRef = useRef()
 
-  const canGenerate = hasPermission('generate')
-  const canExport = hasPermission('export')
+  const canGenerate = can('ai.generate')
+  const canExport = can('reports.export')
 
   const handleGenerate = async () => {
     const clip = await generateClipping(news.length ? news : undefined)
