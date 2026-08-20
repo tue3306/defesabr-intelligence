@@ -86,7 +86,7 @@ export default function DailyClipping() {
           <div className="flex flex-wrap items-center gap-3">
             <label className="flex items-center gap-2 rounded-lg border border-gray-600/50 px-3 py-2 text-sm">
               <CalendarDays size={16} className="text-brand-400" />
-              <input type="date" onChange={handleDateChange} className="bg-transparent text-sm focus:outline-none" />
+              <input type="date" onChange={handleDateChange} className="bg-transparent text-sm focus:outline-none" aria-label="Selecionar data do clipping" />
             </label>
             <button
               onClick={handleGenerate}
