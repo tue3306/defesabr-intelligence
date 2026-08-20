@@ -116,7 +116,7 @@ function ProfileTab() {
           <Field label="E-mail" type="email" value={email} onChange={setEmail} />
           <div>
             <label className="mb-1 block text-xs font-medium muted">Idioma</label>
-            <select value={lang} onChange={(e) => setLang(e.target.value)} className="input">
+            <select value={lang} onChange={(e) => setLang(e.target.value)} className="input" aria-label="Idioma">
               <option value="pt-BR">Português (BR)</option>
               <option value="en" disabled>English (em breve)</option>
             </select>
@@ -148,9 +148,9 @@ function SecurityTab() {
     <div className="space-y-6">
       <Card title="Senha" desc="Use uma senha forte e única.">
         <form onSubmit={changePassword} className="grid grid-cols-1 gap-3 sm:max-w-md">
-          <input type="password" className="input" placeholder="Senha atual" autoComplete="current-password" />
-          <input type="password" className="input" placeholder="Nova senha" autoComplete="new-password" />
-          <input type="password" className="input" placeholder="Confirmar nova senha" autoComplete="new-password" />
+          <input type="password" className="input" placeholder="Senha atual" autoComplete="current-password" aria-label="Senha atual" />
+          <input type="password" className="input" placeholder="Nova senha" autoComplete="new-password" aria-label="Nova senha" />
+          <input type="password" className="input" placeholder="Confirmar nova senha" autoComplete="new-password" aria-label="Confirmar nova senha" />
           <button type="submit" className="btn-primary w-fit"><KeyRound size={15} /> Alterar senha</button>
         </form>
       </Card>
@@ -160,7 +160,7 @@ function SecurityTab() {
           <span className="text-sm">{twoFA ? 'Ativada' : 'Desativada'}</span>
           <button
             onClick={() => { setTwoFA((v) => !v); toast(twoFA ? '2FA desativada' : '2FA ativada (demonstração)') }}
-            role="switch" aria-checked={twoFA}
+            role="switch" aria-checked={twoFA} aria-label="Verificação em duas etapas (2FA)"
             className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${twoFA ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'}`}
           >
             <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${twoFA ? 'translate-x-6' : 'translate-x-1'}`} />
@@ -367,7 +367,7 @@ function PreferencesTab() {
         <label className="flex cursor-pointer items-center justify-between">
           <span className="flex items-center gap-2 text-sm"><Bell size={16} className="text-brand-400" /> Alertas de notícias críticas (no app)</span>
           <button
-            onClick={toggleNotifications} role="switch" aria-checked={notificationsEnabled}
+            onClick={toggleNotifications} role="switch" aria-checked={notificationsEnabled} aria-label="Alertas de notícias críticas no app"
             className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${notificationsEnabled ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'}`}
           >
             <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${notificationsEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
@@ -386,7 +386,7 @@ function Field({ label, value, onChange, type = 'text' }) {
   return (
     <div>
       <label className="mb-1 block text-xs font-medium muted">{label}</label>
-      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} className="input" />
+      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} className="input" aria-label={label} />
     </div>
   )
 }

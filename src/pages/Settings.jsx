@@ -98,11 +98,12 @@ export default function Settings() {
                   Notícias por clipping <span className="font-mono text-brand-400">{s.newsPerClipping}</span>
                 </label>
                 <input type="range" min={3} max={10} value={s.newsPerClipping}
-                  onChange={(e) => s.setNewsPerClipping(e.target.value)} className="w-full accent-brand-500" />
+                  onChange={(e) => s.setNewsPerClipping(e.target.value)} className="w-full accent-brand-500"
+                  aria-label="Notícias por clipping" />
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium">Foco padrão da análise</label>
-                <select value={s.focusArea} onChange={(e) => s.setFocusArea(e.target.value)} className="input max-w-xs">
+                <select value={s.focusArea} onChange={(e) => s.setFocusArea(e.target.value)} className="input max-w-xs" aria-label="Foco padrão da análise">
                   {FOCUS_AREAS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
                 </select>
               </div>
@@ -171,7 +172,7 @@ function AppearanceSection() {
         </div>
         <div className="flex items-center justify-between">
           <span className="text-sm">Idioma</span>
-          <select className="input max-w-[160px]" defaultValue="pt-BR">
+          <select className="input max-w-[160px]" defaultValue="pt-BR" aria-label="Idioma da interface">
             <option value="pt-BR">Português (BR)</option>
             <option value="en" disabled>English (em breve)</option>
           </select>
@@ -261,6 +262,7 @@ function NotificationsSection({ enabled, onToggle }) {
           onClick={onToggle}
           className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${enabled ? 'bg-brand-500' : 'bg-gray-600'}`}
           role="switch"
+          aria-label="Ativar ou desativar notificações"
           aria-checked={enabled}
         >
           <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${enabled ? 'translate-x-6' : 'translate-x-1'}`} />
@@ -302,7 +304,7 @@ function SourcesEditor({ s }) {
         onSubmit={(e) => { e.preventDefault(); if (url.trim()) { s.addSource(url.trim()); setUrl(''); toast.success('Fonte adicionada') } }}
         className="mt-3 flex gap-2"
       >
-        <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://exemplo.com/feed.rss" className="input" />
+        <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://exemplo.com/feed.rss" className="input" aria-label="URL da nova fonte RSS" />
         <button type="submit" className="btn-ghost shrink-0"><Plus size={16} /> Adicionar</button>
       </form>
     </>
@@ -320,7 +322,8 @@ function ApiKeyEditor({ s }) {
       <div className="flex gap-2">
         <div className="relative flex-1">
           <input type={showKey ? 'text' : 'password'} value={s.apiKeyOverride}
-            onChange={(e) => s.setApiKeyOverride(e.target.value)} placeholder="sk-ant-..." className="input pr-10 font-mono" />
+            onChange={(e) => s.setApiKeyOverride(e.target.value)} placeholder="sk-ant-..." className="input pr-10 font-mono"
+            aria-label="Chave da API da Anthropic" />
           <button type="button" onClick={() => setShowKey((v) => !v)}
             className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900 dark:hover:text-white" aria-label="Mostrar/ocultar chave">
             {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
