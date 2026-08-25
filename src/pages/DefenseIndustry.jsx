@@ -1,5 +1,9 @@
-import { Factory, Building2, Globe2, Package, ArrowRight } from 'lucide-react'
+import { Factory, Building2, Globe2, Package, ArrowRight, ShieldAlert, Download, ChevronRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { riskMatrix, RISK_SEVERITY } from '../data/riskMatrix'
+import Can from '../auth/Can'
+import { exportCSV } from '../utils/exportUtils'
+import toast from 'react-hot-toast'
 import MetricCard from '../components/ui/MetricCard'
 import InfoTooltip from '../components/ui/InfoTooltip'
 import {
@@ -7,6 +11,21 @@ import {
 } from '../data/defenseIndustry'
 
 export default function DefenseIndustry() {
+  // Catálogo de exportação em CSV — útil para quem prospecta parcerias.
+  const exportCatalog = () => {
+    exportCSV(
+      exportProducts.map((p) => ({
+        Produto: p.product,
+        Fabricante: p.maker,
+        Categoria: p.type,
+        Clientes: p.clients.join(', '),
+        Destaque: p.highlight,
+      })),
+      `bid-catalogo-exportacao-${new Date().toISOString().slice(0, 10)}.csv`
+    )
+    toast.success('Catálogo de exportação baixado em CSV')
+  }
+
   return (
     <div className="space-y-8">
       {/* HERO */}
@@ -72,10 +91,19 @@ export default function DefenseIndustry() {
 
       {/* PRODUTOS E CLIENTES */}
       <section>
-        <h2 className="mb-1 flex items-center gap-2 text-lg font-bold tracking-tight">
-          <Package size={20} className="text-brand-400" /> Produtos e clientes
-        </h2>
-        <p className="mb-4 text-sm muted">Principais plataformas exportadas e seus mercados.</p>
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
+              <Package size={20} className="text-brand-400" /> Produtos e clientes
+            </h2>
+            <p className="mt-0.5 text-sm muted">Principais plataformas exportadas e seus mercados.</p>
+          </div>
+          <Can do="reports.export">
+            <button onClick={exportCatalog} className="btn-ghost text-sm">
+              <Download size={15} /> Exportar catálogo
+            </button>
+          </Can>
+        </div>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {exportProducts.map((p) => (
             <div key={p.product} className="card p-5">
@@ -99,6 +127,9 @@ export default function DefenseIndustry() {
         </div>
       </section>
 
+      {/* DEPENDÊNCIAS CRÍTICAS — o que limita a autonomia da BID */}
+      <DependenciesSection />
+
       {/* CTA */}
       <div className="card flex flex-col items-center gap-3 p-6 text-center sm:flex-row sm:justify-between sm:text-left">
         <div>
@@ -112,5 +143,71 @@ export default function DefenseIndustry() {
 
       <p className="text-center text-xs muted">Valores demonstrativos para fins de visualização.</p>
     </div>
+  )
+}
+
+// -----------------------------------------------------------------------------
+// DEPENDÊNCIAS CRÍTICAS
+//
+// Uma base industrial não se mede só pelo que exporta, mas pelo que precisa
+// importar para produzir. Este bloco liga a BID ao risco correspondente da
+// matriz — a mesma avaliação, lida a partir do ângulo industrial.
+// -----------------------------------------------------------------------------
+function DependenciesSection() {
+  const risk = riskMatrix.find((r) => r.id === 'risk-dependencia')
+  if (!risk) return null
+  const sev = RISK_SEVERITY[risk.severity] || {}
+
+  return (
+    <section className="card border-l-4 p-5" style={{ borderLeftColor: sev.color }}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="flex items-center gap-2 text-base font-bold tracking-tight">
+            <ShieldAlert size={18} style={{ color: sev.color }} /> Dependências críticas
+          </h2>
+          <p className="mt-0.5 text-sm muted">
+            O que a base industrial ainda não produz sozinha — e por que isso importa.
+          </p>
+        </div>
+        <span className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${sev.classes || ''}`}>
+          Risco {sev.label} · {risk.score}
+        </span>
+      </div>
+
+      <p className="mt-3 text-sm leading-relaxed text-gray-700 dark:text-gray-300">{risk.description}</p>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div>
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide muted">O que pressiona</p>
+          <ul className="space-y-1.5">
+            {risk.drivers.map((d) => (
+              <li key={d} className="flex gap-2 text-sm">
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: sev.color }} />
+                <span className="text-gray-700 dark:text-gray-300">{d}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide muted">Caminhos de mitigação</p>
+          <ul className="space-y-1.5">
+            {risk.mitigations.map((mit) => (
+              <li key={mit} className="flex gap-2 text-sm">
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-military-green" />
+                <span className="text-gray-700 dark:text-gray-300">{mit}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      <p className="mt-4 rounded-lg bg-white/5 p-3 text-sm leading-relaxed text-gray-700 dark:text-gray-300">
+        <strong className="font-semibold">Impacto: </strong>{risk.impactBR}
+      </p>
+
+      <Link to="/riscos" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-brand-500 hover:text-brand-400 dark:text-brand-400">
+        Ver na matriz de riscos <ChevronRight size={15} />
+      </Link>
+    </section>
   )
 }
