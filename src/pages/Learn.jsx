@@ -1,10 +1,9 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   GraduationCap, BookOpen, Brain, Search, Shield, Globe2, LineChart, Cpu, ArrowRight,
-  PlayCircle, Clock, Compass, Anchor, ShieldAlert, FileText, ExternalLink, Library,
-} from 'lucide-react'
+  PlayCircle, Clock, Compass, Anchor, ShieldAlert, FileText, ExternalLink, Library, CheckCircle2, Circle, RotateCcw } from 'lucide-react'
 import Quiz from '../components/learn/Quiz'
 import {
   glossary, glossaryCategories, learnConcepts,
@@ -21,7 +20,52 @@ const LEVEL_CLR = {
   'Avançado': 'bg-red-500/15 text-red-300',
 }
 
+
+// -----------------------------------------------------------------------------
+// PROGRESSO DAS TRILHAS
+//
+// Guardado no navegador: aprender é um processo com continuidade, e perder a
+// marcação a cada visita torna a trilha inútil. Chave própria, para não colidir
+// com o estado das lojas do produto.
+// -----------------------------------------------------------------------------
+const PROGRESS_KEY = 'defesabr-learn-progress'
+
+function useLearnProgress() {
+  const [done, setDone] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}')
+    } catch {
+      return {}
+    }
+  })
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(PROGRESS_KEY, JSON.stringify(done))
+    } catch {
+      /* modo privado: o progresso vale apenas para esta sessão */
+    }
+  }, [done])
+
+  const toggle = useCallback((pathTitle, stepIndex) => {
+    setDone((prev) => {
+      const steps = prev[pathTitle] || []
+      const next = steps.includes(stepIndex)
+        ? steps.filter((i) => i !== stepIndex)
+        : [...steps, stepIndex]
+      return { ...prev, [pathTitle]: next }
+    })
+  }, [])
+
+  const reset = useCallback((pathTitle) => {
+    setDone((prev) => ({ ...prev, [pathTitle]: [] }))
+  }, [])
+
+  return { done, toggle, reset }
+}
+
 export default function Learn() {
+  const progress = useLearnProgress()
   const [q, setQ] = useState('')
   const [cat, setCat] = useState('')
 
@@ -60,7 +104,9 @@ export default function Learn() {
         <h2 className="mb-1 flex items-center gap-2 text-lg font-bold tracking-tight">
           <Compass size={20} className="text-brand-400" /> Trilhas de estudo
         </h2>
-        <p className="mb-4 text-sm muted">Caminhos guiados por nível — siga a ordem sugerida.</p>
+        <p className="mb-4 text-sm muted">
+          Caminhos guiados por nível — marque os passos concluídos. O progresso fica salvo neste navegador.
+        </p>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {learningPaths.map((p, i) => {
             const Icon = PATH_ICONS[p.icon] || Compass
@@ -81,15 +127,57 @@ export default function Learn() {
                 </div>
                 <h3 className="mt-3 font-bold tracking-tight">{p.title}</h3>
                 <p className="mt-1 text-sm muted">{p.summary}</p>
-                <ol className="mt-3 space-y-1.5 text-sm">
-                  {p.steps.map((s, j) => (
-                    <li key={s} className="flex items-center gap-2 text-gray-300">
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/5 text-[10px] font-bold text-brand-300">{j + 1}</span>
-                      {s}
-                    </li>
-                  ))}
+                <ol className="mt-3 space-y-1 text-sm">
+                  {p.steps.map((step, j) => {
+                    const checked = (progress.done[p.title] || []).includes(j)
+                    return (
+                      <li key={step}>
+                        <button
+                          onClick={() => progress.toggle(p.title, j)}
+                          aria-pressed={checked}
+                          className="flex w-full items-center gap-2 rounded-md px-1.5 py-1 text-left transition-colors hover:bg-gray-100 dark:hover:bg-white/5"
+                        >
+                          {checked
+                            ? <CheckCircle2 size={16} className="shrink-0" style={{ color: p.color }} />
+                            : <Circle size={16} className="shrink-0 text-gray-400" />}
+                          <span className={checked ? 'text-gray-500 line-through dark:text-gray-400' : 'text-gray-700 dark:text-gray-300'}>
+                            {step}
+                          </span>
+                        </button>
+                      </li>
+                    )
+                  })}
                 </ol>
-                <p className="mt-3 flex items-center gap-1.5 text-xs muted"><Clock size={12} /> {p.duration}</p>
+
+                {/* Progresso da trilha */}
+                {(() => {
+                  const doneCount = (progress.done[p.title] || []).length
+                  const pct = Math.round((doneCount / p.steps.length) * 100)
+                  return (
+                    <div className="mt-3">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="muted">{doneCount} de {p.steps.length} concluídos</span>
+                        <span className="font-mono font-bold tabular-nums" style={{ color: p.color }}>{pct}%</span>
+                      </div>
+                      <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-gray-200 dark:bg-white/10">
+                        <span className="block h-full rounded-full transition-all" style={{ width: `${pct}%`, background: p.color }} />
+                      </span>
+                    </div>
+                  )
+                })()}
+
+                <div className="mt-3 flex items-center justify-between">
+                  <p className="flex items-center gap-1.5 text-xs muted"><Clock size={12} /> {p.duration}</p>
+                  {(progress.done[p.title] || []).length > 0 && (
+                    <button
+                      onClick={() => progress.reset(p.title)}
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold muted hover:text-brand-400"
+                      aria-label={`Reiniciar progresso da trilha ${p.title}`}
+                    >
+                      <RotateCcw size={11} /> Reiniciar
+                    </button>
+                  )}
+                </div>
               </motion.div>
             )
           })}
