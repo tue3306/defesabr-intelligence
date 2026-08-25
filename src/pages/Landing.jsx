@@ -5,6 +5,7 @@ import {
   Newspaper, Globe2, BarChart3, LineChart, GraduationCap, ShieldCheck,
   ArrowRight, Sparkles, BookOpen, Brain, RotateCcw, Check, Linkedin, Twitter, Youtube, Instagram,
   Radar, Building2, ShieldAlert, Landmark, Factory, ChevronDown, HelpCircle, Route, CircleDot,
+  Eye, UserCircle, PenTool, ShieldQuestion, Target, Database,
 } from 'lucide-react'
 import NewsCard from '../components/ui/NewsCard'
 import { SkeletonCard } from '../components/ui/Skeleton'
@@ -15,14 +16,57 @@ import MilitarySpendingChart from '../components/charts/MilitarySpendingChart'
 import NewsVolumeChart from '../components/charts/NewsVolumeChart'
 import GaugeChart from '../components/charts/GaugeChart'
 import { useNews } from '../hooks/useNews'
+import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
+import { PROFILES, PROFILE_ORDER } from '../auth/permissions'
 import { useSubscriptionStore } from '../store/subscriptionStore'
 import { LANDING_FEATURES, PLANS } from '../data/plansData'
 import { glossary } from '../data/learnData'
 import { USE_CASES, DEMO_STATS, STANDARDS, FAQ, ROADMAP } from '../data/landingExtra'
 import { mockWeeklyAnalysis, militarySpendingBR, newsVolume14d, newsCategoriesKeys, alertIndex } from '../data/mockData'
+import { programsSummary } from '../data/strategicPrograms'
+import { riskSummary } from '../data/riskMatrix'
+import { monitoredSources } from '../data/monitoredSources'
+import { alertMeta } from '../utils/textUtils'
 
 const FEATURE_ICONS = { Newspaper, Globe2, BarChart3, LineChart, GraduationCap, ShieldCheck }
+
+// Os 4 perfis do produto, com a persona de demonstracao correspondente e a
+// rota-ancora de cada um. Os rotulos vem sempre de src/auth/permissions.js.
+const PROFILE_ENTRY = {
+  visitor: {
+    persona: 'visitante', icon: Eye, to: '/planos', cta: 'Continuar explorando',
+    does: [
+      'Le o conteudo publico e as previas das analises',
+      'Acessa o Centro Educacional por completo',
+      'Compara os planos antes de decidir',
+    ],
+  },
+  user: {
+    persona: 'usuario', icon: UserCircle, to: '/painel', cta: 'Ver como Usuario',
+    does: [
+      'Acompanha o painel de situacao e o clipping diario',
+      'Explora programas, fronteiras e Amazonia Azul',
+      'Salva conteudos na pasta pessoal e recebe alertas',
+    ],
+  },
+  analyst: {
+    persona: 'analista', icon: PenTool, to: '/mesa', cta: 'Ver como Analista',
+    does: [
+      'Gera clipping e analises com apoio de IA',
+      'Avalia nivel de tensao, fontes e narrativas (FIMI)',
+      'Conduz fila de producao, RFIs e plano de coleta',
+    ],
+  },
+  admin: {
+    persona: 'admin', icon: ShieldQuestion, to: '/admin', cta: 'Ver como Administrador',
+    does: [
+      'Gere contas, papeis e planos da plataforma',
+      'Configura fontes de coleta e integracoes',
+      'Acompanha auditoria e saude do sistema',
+    ],
+  },
+}
 const USE_CASE_ICONS = { Radar, Building2, ShieldAlert, Landmark, Factory, GraduationCap }
 const SOCIALS = [
   { icon: Linkedin, label: 'LinkedIn', href: 'https://www.linkedin.com' },
@@ -45,6 +89,8 @@ const Section = ({ children, className = '' }) => (
 
 export default function Landing() {
   const { news, loading } = useNews()
+  const navigate = useNavigate()
+  const loginAsDemo = useAuthStore((s) => s.loginAsDemo)
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const user = useAuthStore((s) => s.user)
   const isPaid = useSubscriptionStore((s) => s.isPaid)()
@@ -177,6 +223,92 @@ export default function Landing() {
               </div>
             )
           })}
+        </div>
+      </Section>
+
+      {/* PARA CADA PERFIL - o coracao da demonstracao */}
+      <Section>
+        <h2 className="text-center text-2xl font-bold tracking-tight">Uma plataforma, quatro experiências</h2>
+        <p className="mx-auto mt-2 max-w-2xl text-center text-sm muted">
+          O que você vê depende de quem você é. Entre em qualquer perfil de demonstração e
+          percorra a plataforma exatamente como aquela pessoa a usaria.
+        </p>
+
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {PROFILE_ORDER.map((id) => {
+            const profile = PROFILES[id]
+            const entry = PROFILE_ENTRY[id]
+            const Icon = entry.icon
+            return (
+              <div key={id} className="card flex flex-col p-5 transition-colors hover:border-gold-500/40">
+                <span
+                  className="flex h-11 w-11 items-center justify-center rounded-xl"
+                  style={{ background: `${profile.color}22`, color: profile.color }}
+                >
+                  <Icon size={21} />
+                </span>
+                <h3 className="mt-3 text-base font-bold tracking-tight">{profile.label}</h3>
+                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: profile.color }}>
+                  {profile.tagline}
+                </p>
+                <ul className="mt-3 flex-1 space-y-1.5">
+                  {entry.does.map((item) => (
+                    <li key={item} className="flex gap-2 text-xs leading-relaxed muted">
+                      <Check size={13} className="mt-0.5 shrink-0 text-emerald-500 dark:text-emerald-400" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  onClick={() => { loginAsDemo(entry.persona); navigate(entry.to) }}
+                  className={`mt-4 w-full justify-center text-sm ${id === 'analyst' ? 'btn-primary' : 'btn-ghost'}`}
+                >
+                  {entry.cta} <ArrowRight size={14} />
+                </button>
+              </div>
+            )
+          })}
+        </div>
+
+        <p className="mt-3 text-center text-xs muted">
+          A troca de perfil é livre no modo demonstração — também pelo menu do usuário, a qualquer momento.
+        </p>
+      </Section>
+
+      {/* PREVIA DO PRODUTO - numeros lidos dos modulos, nao promessas */}
+      <Section className="card p-5 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg font-bold tracking-tight">O que já está monitorado agora</h2>
+          <Badge type="demo" />
+        </div>
+        <p className="mt-1 text-sm muted">
+          Números lidos diretamente dos módulos da plataforma — não são texto de vitrine.
+        </p>
+        <div className="mt-5 grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <PreviewStat
+            icon={ShieldCheck}
+            value={alertMeta.ATENCAO.label}
+            label="Nível de alerta do dia"
+            hint={`${alertIndex}/100 na escala de postura`}
+          />
+          <PreviewStat
+            icon={Target}
+            value={`${programsSummary.emExecucao}/${programsSummary.total}`}
+            label="Programas em execução"
+            hint={`${programsSummary.progressoMedio}% de avanço médio`}
+          />
+          <PreviewStat
+            icon={ShieldAlert}
+            value={String(riskSummary.total)}
+            label="Riscos estratégicos mapeados"
+            hint={`${riskSummary.rising} em elevação`}
+          />
+          <PreviewStat
+            icon={Database}
+            value={String(monitoredSources.length)}
+            label="Fontes catalogadas"
+            hint="oficiais, especializadas e internacionais"
+          />
         </div>
       </Section>
 
@@ -390,6 +522,17 @@ export default function Landing() {
           </div>
         </div>
       </Section>
+    </div>
+  )
+}
+
+function PreviewStat({ icon: Icon, value, label, hint }) {
+  return (
+    <div className="rounded-xl bg-white/5 p-4">
+      <Icon size={18} className="text-gold-600 dark:text-gold-400" />
+      <p className="mt-2 text-2xl font-extrabold leading-none tracking-tight tabular-nums">{value}</p>
+      <p className="mt-1.5 text-xs font-semibold">{label}</p>
+      <p className="text-[11px] muted">{hint}</p>
     </div>
   )
 }

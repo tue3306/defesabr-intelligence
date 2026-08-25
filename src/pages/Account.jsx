@@ -5,9 +5,11 @@ import jsPDF from 'jspdf'
 import {
   User, Shield, CreditCard, SlidersHorizontal, Camera, Check, KeyRound,
   Smartphone, Monitor, LogOut, QrCode, Copy, FileDown, Sun, Moon, Star,
-  BadgeCheck, ArrowUpRight, Bell,
+  BadgeCheck, ArrowUpRight, Bell, KeySquare, Lock, Info,
 } from 'lucide-react'
-import { useAuthStore } from '../store/authStore'
+import { useAuthStore, ROLES } from '../store/authStore'
+import { useProfileMeta, useCapabilities } from '../auth/useCan'
+import { CAPABILITIES, PROFILES, PROFILE_ORDER, PLAN_LABELS } from '../auth/permissions'
 import { useSubscriptionStore } from '../store/subscriptionStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { useTheme } from '../hooks/useTheme'
@@ -19,8 +21,21 @@ const TABS = [
   { id: 'perfil', label: 'Perfil', icon: User },
   { id: 'seguranca', label: 'Segurança', icon: Shield },
   { id: 'assinatura', label: 'Assinatura', icon: CreditCard },
+  { id: 'permissoes', label: 'Permissões', icon: KeySquare },
   { id: 'preferencias', label: 'Preferências', icon: SlidersHorizontal },
 ]
+
+// Ordem em que as camadas de capacidade são apresentadas — do básico ao
+// privilegiado, para que a progressão do produto fique legível de cima a baixo.
+const TIER_ORDER = ['Usuário', 'Profissional', 'Institucional', 'Analista', 'Administrador']
+
+const TIER_HINT = {
+  'Usuário': 'Leitura e acompanhamento — vem do papel de qualquer conta autenticada.',
+  'Profissional': 'Profundidade analítica — vem do PLANO Profissional ou superior.',
+  'Institucional': 'Escala de equipe e integração — vem do PLANO Institucional.',
+  'Analista': 'Produção de inteligência — vem do PAPEL Analista.',
+  'Administrador': 'Governança da plataforma — vem do PAPEL Administrador.',
+}
 
 export default function Account() {
   const [tab, setTab] = useState('perfil')
@@ -60,6 +75,7 @@ export default function Account() {
       {tab === 'perfil' && <ProfileTab />}
       {tab === 'seguranca' && <SecurityTab />}
       {tab === 'assinatura' && <SubscriptionTab />}
+      {tab === 'permissoes' && <PermissionsTab />}
       {tab === 'preferencias' && <PreferencesTab />}
 
       <p className="text-center text-xs muted">Área demonstrativa — alterações ficam salvas apenas neste navegador.</p>
@@ -323,6 +339,159 @@ function SubscriptionTab() {
 }
 
 // ─────────────────────── PREFERÊNCIAS ──────────────────────
+// -----------------------------------------------------------------------------
+// PERMISSÕES — transparência sobre o que este acesso realmente pode fazer.
+//
+// Em vez de descobrir um bloqueio ao esbarrar nele, a pessoa vê de antemão o
+// mapa completo: o que já tem, o que falta e de qual eixo (papel ou plano)
+// cada capacidade vem.
+// -----------------------------------------------------------------------------
+function PermissionsTab() {
+  const user = useAuthStore((s) => s.user)
+  const plan = useSubscriptionStore((s) => s.plan)
+  const profileMeta = useProfileMeta()
+  const active = useCapabilities()
+  const activeSet = new Set(active)
+
+  // Agrupa TODO o catálogo por camada, marcando o que este acesso possui.
+  const groups = TIER_ORDER.map((tier) => {
+    const items = Object.entries(CAPABILITIES)
+      .filter(([, meta]) => meta.tier === tier)
+      .map(([id, meta]) => ({ id, label: meta.label, granted: activeSet.has(id) }))
+    return { tier, items, granted: items.filter((i) => i.granted).length }
+  }).filter((g) => g.items.length > 0)
+
+  const total = Object.keys(CAPABILITIES).length
+
+  return (
+    <div className="space-y-6">
+      <Card
+        title="Perfil efetivo"
+        desc="O perfil nasce do cruzamento de dois eixos independentes: o PAPEL define o que você pode fazer; o PLANO define o quanto você pode ver."
+      >
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="rounded-xl border-l-4 p-4" style={{ borderColor: profileMeta.color, background: `${profileMeta.color}12` }}>
+            <p className="text-[10px] font-bold uppercase tracking-wider muted">Perfil efetivo</p>
+            <p className="mt-0.5 text-lg font-bold tracking-tight">{profileMeta.label}</p>
+            <p className="text-xs muted">{profileMeta.tagline}</p>
+          </div>
+          <div className="rounded-xl bg-white/5 p-4">
+            <p className="text-[10px] font-bold uppercase tracking-wider muted">Papel</p>
+            <p className="mt-0.5 text-lg font-bold tracking-tight">{ROLES[user?.role]?.label || 'Visitante'}</p>
+            <p className="text-xs muted">{ROLES[user?.role]?.description || 'Sem sessão autenticada.'}</p>
+          </div>
+          <div className="rounded-xl bg-white/5 p-4">
+            <p className="text-[10px] font-bold uppercase tracking-wider muted">Plano</p>
+            <p className="mt-0.5 text-lg font-bold tracking-tight">{PLAN_LABELS[plan] || plan}</p>
+            <p className="text-xs muted">Define a profundidade analítica disponível.</p>
+          </div>
+        </div>
+
+        <p className="mt-4 text-sm leading-relaxed muted">{profileMeta.description}</p>
+
+        <div className="mt-4 flex items-center gap-3">
+          <span className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-white/10">
+            <span
+              className="block h-full rounded-full transition-all"
+              style={{ width: `${Math.round((active.length / total) * 100)}%`, background: profileMeta.color }}
+            />
+          </span>
+          <span className="shrink-0 font-mono text-sm font-bold tabular-nums">
+            {active.length}/{total}
+          </span>
+        </div>
+        <p className="mt-1 text-xs muted">capacidades ativas no catálogo da plataforma</p>
+      </Card>
+
+      <Card
+        title="Capacidades por camada"
+        desc="Cada linha é uma permissão concreta do produto. As marcadas você já possui; as demais indicam o caminho de evolução."
+      >
+        <div className="space-y-5">
+          {groups.map((group) => (
+            <section key={group.tier}>
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h3 className="flex items-center gap-2 text-sm font-bold tracking-tight">
+                  {group.tier}
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums ${
+                    group.granted === group.items.length
+                      ? 'bg-military-green/20 text-emerald-700 dark:text-emerald-300'
+                      : group.granted === 0
+                        ? 'bg-white/10 text-gray-500 dark:text-gray-400'
+                        : 'bg-military-amber/20 text-amber-700 dark:text-amber-300'
+                  }`}>
+                    {group.granted}/{group.items.length}
+                  </span>
+                </h3>
+              </div>
+              <p className="mt-0.5 text-xs muted">{TIER_HINT[group.tier]}</p>
+              <ul className="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                {group.items.map((item) => (
+                  <li
+                    key={item.id}
+                    className={`flex items-start gap-2 rounded-lg px-2.5 py-1.5 text-sm ${
+                      item.granted ? 'bg-white/5' : 'opacity-55'
+                    }`}
+                  >
+                    {item.granted
+                      ? <Check size={15} className="mt-0.5 shrink-0 text-emerald-500 dark:text-emerald-400" />
+                      : <Lock size={14} className="mt-0.5 shrink-0 text-gray-400" />}
+                    <span className="min-w-0">
+                      <span className="block leading-snug">{item.label}</span>
+                      <span className="block font-mono text-[10px] muted">{item.id}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+      </Card>
+
+      <Card
+        title="Os quatro perfis do produto"
+        desc="Como cada perfil se posiciona na plataforma."
+      >
+        <ul className="space-y-2">
+          {PROFILE_ORDER.map((id) => {
+            const profile = PROFILES[id]
+            const current = profileMeta.id === id
+            return (
+              <li
+                key={id}
+                className={`flex items-start gap-3 rounded-lg border p-3 ${
+                  current ? 'border-gold-500 bg-gold-500/5' : 'border-gray-200 dark:border-white/10'
+                }`}
+              >
+                <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: profile.color }} />
+                <div className="min-w-0">
+                  <p className="flex flex-wrap items-center gap-2 text-sm font-bold tracking-tight">
+                    {profile.label}
+                    {current && (
+                      <span className="rounded-full bg-gold-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-gold-600 dark:text-gold-400">
+                        você está aqui
+                      </span>
+                    )}
+                  </p>
+                  <p className="mt-0.5 text-xs leading-relaxed muted">{profile.description}</p>
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+
+        <p className="mt-4 flex items-start gap-2 rounded-lg bg-brand-500/10 p-3 text-xs leading-relaxed">
+          <Info size={14} className="mt-0.5 shrink-0 text-brand-500 dark:text-brand-300" />
+          <span className="text-gray-700 dark:text-gray-300">
+            No modo demonstração você troca de perfil livremente pelo menu do usuário, no topo da tela.
+            Em produção, o papel é definido pela governança e o plano, pela assinatura.
+          </span>
+        </p>
+      </Card>
+    </div>
+  )
+}
+
 function PreferencesTab() {
   const { isDark, toggleTheme } = useTheme()
   const interestAreas = useSettingsStore((s) => s.interestAreas)
