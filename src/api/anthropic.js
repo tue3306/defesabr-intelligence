@@ -2,18 +2,21 @@
 // de DEMONSTRAÇÃO. Em produção real, a chave NÃO deve ficar no front-end —
 // use um backend/proxy. Aqui usamos o header oficial de "direct browser access".
 import { mockDailyClipping, mockWeeklyAnalysis } from '../data/mockData'
+import { SETTINGS_STORAGE_KEY } from '../services/config'
 
 const API_URL = 'https://api.anthropic.com/v1/messages'
 const MODEL = 'claude-sonnet-4-20250514'
 
-// Resolve a chave: override local (Configurações) tem prioridade sobre o .env
+// Resolve a chave: override local (Configurações) tem prioridade sobre o .env.
+// A chave de armazenamento vem de services/config para não divergir do store
+// (o valor estava desatualizado e o override nunca era aplicado).
 export function getAnthropicKey() {
   let override = ''
   try {
-    const raw = localStorage.getItem('defesabr-settings')
+    const raw = localStorage.getItem(SETTINGS_STORAGE_KEY)
     if (raw) override = JSON.parse(raw)?.state?.apiKeyOverride || ''
   } catch {
-    /* ignore */
+    /* armazenamento indisponível ou JSON inválido — segue com o .env */
   }
   return override || import.meta.env.VITE_ANTHROPIC_API_KEY || ''
 }

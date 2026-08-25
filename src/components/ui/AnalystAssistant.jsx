@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkles, X, Send, Bot, User, Lock, ArrowRight } from 'lucide-react'
+import { Sparkles, X, Send, Bot, User, Lock, ArrowRight, RotateCcw } from 'lucide-react'
 import { answerQuestion, suggestedQuestions } from '../../utils/analystKnowledge'
 import { useCan } from '../../auth/useCan'
 
@@ -22,23 +22,37 @@ function RichText({ text }) {
   )
 }
 
+const INTRO =
+  'Olá! Sou o **Analista virtual** do DefesaBR. Pergunte sobre programas estratégicos, riscos, a Amazônia Azul, fronteiras, a balança militar regional ou os dossiês — respondo a partir dos dados da própria plataforma.'
+
 export default function AnalystAssistant() {
   const can = useCan()
   const allowed = can('ai.assistant')
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
   const [typing, setTyping] = useState(false)
-  const [messages, setMessages] = useState([
-    {
-      role: 'bot',
-      text: 'Olá! Sou o **Analista virtual** do DefesaBR. Pergunte sobre programas, conceitos, a Amazônia Azul, a balança militar ou os dossiês.',
-    },
-  ])
+  const [messages, setMessages] = useState([{ role: 'bot', text: INTRO }])
   const scrollRef = useRef(null)
+  const inputRef = useRef(null)
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages, typing, open])
+
+  // Escape fecha o assistente; ao abrir, o foco vai para o campo de pergunta.
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e) => e.key === 'Escape' && setOpen(false)
+    document.addEventListener('keydown', onKey)
+    const t = setTimeout(() => inputRef.current?.focus(), 120)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      clearTimeout(t)
+    }
+  }, [open])
+
+  const clearConversation = () =>
+    setMessages([{ role: 'bot', text: INTRO }])
 
   const ask = (question) => {
     const text = (question ?? input).trim()
@@ -119,13 +133,25 @@ export default function AnalystAssistant() {
                 <p className="text-sm font-bold">Pergunte ao Analista</p>
                 <p className="text-[10px] text-emerald-300">● disponível (modo demonstração)</p>
               </div>
-              <button onClick={() => setOpen(false)} className="ml-auto text-gray-400 hover:text-white" aria-label="Fechar assistente">
-                <X size={18} />
-              </button>
+              <div className="ml-auto flex items-center gap-1">
+                {messages.length > 1 && (
+                  <button
+                    onClick={clearConversation}
+                    className="rounded p-1 text-gray-400 hover:text-white"
+                    aria-label="Limpar conversa"
+                    title="Limpar conversa"
+                  >
+                    <RotateCcw size={15} />
+                  </button>
+                )}
+                <button onClick={() => setOpen(false)} className="rounded p-1 text-gray-400 hover:text-white" aria-label="Fechar assistente">
+                  <X size={18} />
+                </button>
+              </div>
             </div>
 
             {/* Mensagens */}
-            <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-3">
+            <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-3" role="log" aria-live="polite" aria-label="Conversa com o analista virtual">
               {messages.map((m, i) => (
                 <div key={i} className={`flex gap-2 ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
                   <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${m.role === 'user' ? 'bg-gray-600/40 text-gray-200' : 'bg-brand-500/20 text-brand-300'}`}>
@@ -185,6 +211,7 @@ export default function AnalystAssistant() {
               className="flex items-center gap-2 border-t border-gray-700/50 p-3"
             >
               <input
+                ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Digite sua pergunta…"

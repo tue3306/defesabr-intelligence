@@ -1,30 +1,46 @@
-import { useState, useRef } from 'react'
+import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   Bot,
+  Bookmark,
+  BookmarkCheck,
   CalendarDays,
-  FileDown,
-  Mail,
-  Share2,
-  Save,
-  Rss,
   ChevronDown,
-  Plus,
   Circle,
+  Copy,
+  ExternalLink,
+  FileDown,
+  Filter,
+  Lock,
+  Newspaper,
+  Printer,
+  Rss,
+  Save,
+  ShieldCheck,
+  SlidersHorizontal,
 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import NewsCard from '../components/ui/NewsCard'
+import PageHeader from '../components/ui/PageHeader'
+import EmptyState from '../components/ui/EmptyState'
+import { ErrorState } from '../components/ui/DataState'
 import Badge from '../components/ui/Badge'
+import SearchBar from '../components/ui/SearchBar'
+import TagFilter from '../components/ui/TagFilter'
 import AITypingIndicator from '../components/ui/AITypingIndicator'
+import Can from '../auth/Can'
 import { useClaudeAI } from '../hooks/useClaudeAI'
 import { useNews } from '../hooks/useNews'
 import { useNewsStore } from '../store/newsStore'
-import { useCan } from '../auth/useCan'
 import { useSettingsStore } from '../store/settingsStore'
-import { alertMeta, categoryColor } from '../utils/textUtils'
-import { formatFullDate } from '../utils/dateUtils'
+import { URGENCY_LEVELS } from '../data/mockData'
+import { alertMeta, categoryColor, clipboard, urgencyMeta } from '../utils/textUtils'
+import { formatDateTimeBR, formatFullDate } from '../utils/dateUtils'
 import { exportClippingToPDF } from '../utils/exportUtils'
-import { clipboard } from '../utils/textUtils'
+
+// Quem assina a edição publicada. O produto é demonstrativo: creditamos a mesa
+// editorial, não uma pessoa real, para não apresentar dado inventado como oficial.
+const EDITORIAL_DESK = 'Mesa de Análise · DefesaBR Intelligence'
 
 export default function DailyClipping() {
   const { news } = useNews()
@@ -32,21 +48,54 @@ export default function DailyClipping() {
   const addClipping = useNewsStore((s) => s.addClipping)
   const latest = useNewsStore((s) => s.latestClipping)
   const clippings = useNewsStore((s) => s.clippings)
-  const can = useCan()
+  const activeSources = useSettingsStore((s) => s.rssSources.filter((src) => src.enabled).length)
 
   const [result, setResult] = useState(latest)
+  const [genError, setGenError] = useState(null)
   const [sourcesOpen, setSourcesOpen] = useState(false)
-  const printRef = useRef()
 
-  const canGenerate = can('ai.generate')
-  const canExport = can('reports.export')
+  // Filtros da edição em tela
+  const [query, setQuery] = useState('')
+  const [cats, setCats] = useState([])
+  const [urgency, setUrgency] = useState('')
 
-  const handleGenerate = async () => {
-    const clip = await generateClipping(news.length ? news : undefined)
-    setResult(clip)
+  const allNews = result?.news || []
+  const hasFilters = Boolean(query.trim() || cats.length || urgency)
+
+  // As categorias disponíveis vêm da própria edição: nada de chip que não filtra nada.
+  const availableCats = useMemo(
+    () => [...new Set(allNews.map((n) => n.category).filter(Boolean))],
+    [allNews]
+  )
+
+  const filteredNews = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return allNews.filter((n) => {
+      if (cats.length && !cats.includes(n.category)) return false
+      if (urgency && n.urgency !== urgency) return false
+      if (!q) return true
+      return `${n.title} ${n.summary} ${n.source} ${n.impact_br || ''}`.toLowerCase().includes(q)
+    })
+  }, [allNews, query, cats, urgency])
+
+  const clearFilters = () => {
+    setQuery('')
+    setCats([])
+    setUrgency('')
   }
 
-  const handleSave = () => {
+  const handleGenerate = async () => {
+    setGenError(null)
+    try {
+      const clip = await generateClipping(news.length ? news : undefined)
+      if (clip) setResult(clip)
+    } catch (err) {
+      // O hook já trata a falha da IA; aqui cobrimos qualquer erro inesperado.
+      setGenError(err)
+    }
+  }
+
+  const handleSaveToArchive = () => {
     if (!result) return
     addClipping(result)
     toast.success('Clipping salvo no arquivo')
@@ -55,164 +104,353 @@ export default function DailyClipping() {
   const handlePDF = () => {
     if (!result) return
     exportClippingToPDF(result)
+    toast.success('PDF do clipping gerado')
   }
 
   const handleDateChange = (e) => {
     const iso = e.target.value
+    if (!iso) return
     const found = clippings.find((c) => c.date === iso)
     if (found) {
       setResult(found.data)
-      toast.success(`Clipping de ${found.date} carregado`)
+      clearFilters()
+      toast.success(`Edição de ${found.date} carregada`)
     } else {
       toast('Sem clipping arquivado nesta data', { icon: '📭' })
     }
   }
 
   const alert = alertMeta[result?.alert_level] || alertMeta.NORMAL
+  const publishedAt = result?.generatedAt || result?.date
 
   return (
     <div className="space-y-6">
-      {/* HEADER */}
-      <div className="card p-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-brand-400">Clipping Diário</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight">{formatFullDate()}</h1>
-            <p className="mt-1 text-sm muted">
-              {result?.news?.length || 5} notícias selecionadas de {news.length || 47} encontradas
-              {!apiConfigured && <span className="ml-2 text-yellow-400">· chave de IA não configurada</span>}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <label className="flex items-center gap-2 rounded-lg border border-gray-600/50 px-3 py-2 text-sm">
-              <CalendarDays size={16} className="text-brand-400" />
-              <input type="date" onChange={handleDateChange} className="bg-transparent text-sm focus:outline-none" aria-label="Selecionar data do clipping" />
+      <PageHeader
+        icon={Newspaper}
+        title="Clipping Diário"
+        description="Seleção editorial do que aconteceu em segurança e defesa, com resumo executivo, impacto para o Brasil e nível de alerta do dia."
+        help="O nível de alerta resume a intensidade dos eventos do dia: NORMAL, ATENÇÃO, ALERTA ou CRÍTICO."
+        breadcrumb={[{ label: 'Inteligência' }, { label: 'Clipping Diário' }]}
+        badges={
+          <>
+            <Badge type="alert" value={result?.alert_level} />
+            <Badge type={source === 'ai' ? 'live' : 'demo'} />
+          </>
+        }
+        meta={[
+          { label: 'Edição', value: result?.date || formatFullDate() },
+          { label: 'Notícias', value: String(allNews.length) },
+          { label: 'Fontes ativas', value: String(activeSources) },
+        ]}
+        actions={
+          <>
+            <label className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-white/10">
+              <CalendarDays size={16} className="text-gold-500" />
+              <span className="sr-only">Carregar clipping arquivado por data</span>
+              <input
+                type="date"
+                onChange={handleDateChange}
+                className="bg-transparent text-sm focus:outline-none"
+                aria-label="Carregar clipping arquivado por data"
+              />
             </label>
-            <button
-              onClick={handleGenerate}
-              disabled={loading || !canGenerate}
-              className="btn-primary"
-              title={!canGenerate ? 'Seu perfil não permite gerar (visitante)' : undefined}
-            >
-              <Bot size={18} /> {loading ? 'Gerando…' : 'Gerar Clipping com IA'}
+
+            <Can do="ai.generate" fallback={<PublishedNote at={publishedAt} />}>
+              <button onClick={handleGenerate} disabled={loading} className="btn-primary" aria-busy={loading}>
+                <Bot size={18} /> {loading ? 'Gerando…' : 'Gerar clipping com IA'}
+              </button>
+            </Can>
+          </>
+        }
+      >
+        {/* Barra de ações do documento */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Can
+            do="reports.export"
+            fallback={
+              <Link to="/planos" className="btn-ghost" title="Exportar PDF faz parte do plano Profissional">
+                <Lock size={14} /> Exportar PDF
+              </Link>
+            }
+          >
+            <button onClick={handlePDF} disabled={!result} className="btn-ghost">
+              <FileDown size={16} /> Exportar PDF
             </button>
-          </div>
+          </Can>
+          <button onClick={handleSaveToArchive} disabled={!result} className="btn-ghost">
+            <Save size={16} /> Salvar no arquivo
+          </button>
+          <button onClick={() => window.print()} className="btn-ghost">
+            <Printer size={16} /> Imprimir
+          </button>
+          {!apiConfigured && (
+            <span className="text-xs muted">
+              Chave de IA não configurada — a geração devolve a edição demonstrativa.
+            </span>
+          )}
         </div>
-      </div>
+      </PageHeader>
 
-      {/* PROGRESSO */}
-      {loading && <AITypingIndicator steps={steps} current={step} />}
+      {/* Progresso da geração — anunciado a leitores de tela */}
+      {loading && (
+        <div role="status" aria-live="polite" aria-busy="true">
+          <AITypingIndicator steps={steps} current={step} />
+        </div>
+      )}
 
-      {/* RESULTADO */}
+      {genError && !loading && (
+        <ErrorState
+          title="A geração do clipping falhou"
+          error={genError}
+          onRetry={handleGenerate}
+          compact
+        />
+      )}
+
+      {!result && !loading && (
+        <EmptyState
+          icon={Newspaper}
+          title="Nenhuma edição publicada ainda"
+          hint="Assim que a mesa de análise publicar o clipping do dia, ele aparece aqui com resumo executivo e nível de alerta."
+          action={{ label: 'Ver edições arquivadas', to: '/arquivo', icon: CalendarDays }}
+        />
+      )}
+
       {result && !loading && (
         <motion.div
-          ref={printRef}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
           className="space-y-6"
         >
-          {/* Bloco A — Resumo executivo */}
-          <div className={`card border-l-4 p-6 ${alert.classes.split(' ').find((c) => c.startsWith('border')) || ''}`}>
+          {/* Resumo executivo */}
+          <section
+            className={`card border-l-4 p-5 sm:p-6 ${alert.classes.split(' ').find((c) => c.startsWith('border')) || ''}`}
+          >
             <div className="mb-3 flex flex-wrap items-center gap-3">
-              <h2 className="text-lg font-bold tracking-tight">Resumo Executivo</h2>
+              <h2 className="text-lg font-bold tracking-tight">Resumo executivo</h2>
               <Badge type="alert" value={result.alert_level} />
-              <Badge type={source === 'ai' ? 'live' : 'demo'} />
             </div>
             {result.summary_executive?.split('\n').filter(Boolean).map((p, i) => (
-              <p key={i} className="mb-2 text-sm leading-relaxed text-gray-300">{p}</p>
+              <p key={i} className="mb-2 text-sm leading-relaxed text-gray-700 dark:text-gray-300">{p}</p>
             ))}
             {result.editor_note && (
               <blockquote className="editorial-quote mt-4">
-                <span className="font-semibold not-italic text-brand-300">Nota do analista: </span>
+                <span className="font-semibold not-italic text-gold-600 dark:text-gold-400">Nota do analista: </span>
                 {result.editor_note}
               </blockquote>
             )}
-          </div>
+          </section>
 
-          {/* Bloco B — Notícias */}
-          <div>
-            <h2 className="mb-3 text-lg font-bold tracking-tight">
-              Principais notícias ({result.news?.length || 0})
-            </h2>
-            <div className="space-y-4">
-              {result.news?.map((n, i) => (
-                <NewsCard key={n.id || i} news={n} variant="full" defaultOpen={i === 0} />
-              ))}
+          {/* Filtros da edição */}
+          <section className="card space-y-4 p-5">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <SearchBar
+                placeholder="Buscar nesta edição (ex.: submarino, cibersegurança)…"
+                defaultValue={query}
+                onChange={setQuery}
+              />
+              <select
+                value={urgency}
+                onChange={(e) => setUrgency(e.target.value)}
+                className="input"
+                aria-label="Filtrar por urgência"
+              >
+                <option value="">Todas as urgências</option>
+                {URGENCY_LEVELS.map((lv) => (
+                  <option key={lv} value={lv}>{urgencyMeta[lv]?.label || lv}</option>
+                ))}
+              </select>
             </div>
-          </div>
+            {availableCats.length > 1 && (
+              <div>
+                <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase muted">
+                  <Filter size={13} /> Categorias
+                </p>
+                <TagFilter
+                  options={availableCats}
+                  selected={cats}
+                  getColor={categoryColor}
+                  onToggle={(c) => setCats((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]))}
+                />
+              </div>
+            )}
+            <div className="flex flex-wrap items-center gap-3 border-t border-gray-200 pt-3 text-sm dark:border-white/[0.07]">
+              <span className="muted" aria-live="polite">
+                <strong className="text-gray-700 dark:text-gray-200">{filteredNews.length}</strong> de {allNews.length} notícias
+              </span>
+              {hasFilters && (
+                <button onClick={clearFilters} className="text-xs font-semibold text-gold-600 hover:underline dark:text-gold-400">
+                  Limpar filtros
+                </button>
+              )}
+            </div>
+          </section>
 
-          {/* Bloco C0 — Notícias por tema */}
-          {result.news?.length > 0 && (
-            <ThemeCounter news={result.news} />
+          {/* Notícias */}
+          {filteredNews.length === 0 ? (
+            <EmptyState
+              icon={Filter}
+              tone="filter"
+              title="Nenhuma notícia corresponde aos filtros"
+              hint="Ajuste a busca, a urgência ou as categorias para ver as demais notícias desta edição."
+              action={{ label: 'Limpar filtros', onClick: clearFilters, icon: SlidersHorizontal }}
+            />
+          ) : (
+            <section className="space-y-3">
+              <h2 className="text-lg font-bold tracking-tight">Notícias selecionadas</h2>
+              {filteredNews.map((n, i) => (
+                <ClippingNewsItem key={n.id ?? i} news={n} defaultOpen={i === 0} />
+              ))}
+            </section>
           )}
 
-          {/* Bloco C — Tendências */}
+          {allNews.length > 0 && <ThemeCounter news={allNews} />}
+
           {result.trends?.length > 0 && (
-            <div className="card p-5">
+            <section className="card p-5">
               <h3 className="mb-3 text-sm font-bold uppercase tracking-wide muted">Tendências do dia</h3>
               <div className="flex flex-wrap gap-2">
-                {result.trends.map((t, i) => (
-                  <span key={i} className="rounded-full border border-brand-500/40 bg-brand-500/10 px-3 py-1 text-sm text-brand-200">
-                    {t}
-                  </span>
+                {result.trends.map((t) => (
+                  <span key={t} className="chip">{t}</span>
                 ))}
               </div>
-            </div>
+            </section>
           )}
-
-          {/* Bloco D — Ações */}
-          <div className="card flex flex-wrap gap-3 p-4">
-            <button onClick={handlePDF} disabled={!canExport} className="btn-ghost" title={!canExport ? 'Perfil sem permissão de exportar' : undefined}>
-              <FileDown size={16} /> Exportar PDF
-            </button>
-            <button onClick={() => toast.success('Envio por e-mail simulado')} className="btn-ghost">
-              <Mail size={16} /> Simular e-mail
-            </button>
-            <button
-              onClick={() => clipboard(window.location.href).then(() => toast.success('Link copiado'))}
-              className="btn-ghost"
-            >
-              <Share2 size={16} /> Compartilhar
-            </button>
-            <button onClick={handleSave} className="btn-ghost">
-              <Save size={16} /> Salvar no arquivo
-            </button>
-          </div>
         </motion.div>
       )}
 
-      {/* Fontes configuradas */}
       <SourcesPanel open={sourcesOpen} onToggle={() => setSourcesOpen((o) => !o)} />
+
+      <p className="text-xs muted">
+        Dados ilustrativos. O clipping é um produto editorial de demonstração e não substitui a análise humana especializada.
+      </p>
     </div>
   )
 }
 
-// Contador de notícias por tema/categoria, com mini-barras de proporção.
+// Crédito discreto para quem só LÊ a edição (sem capacidade de gerar).
+function PublishedNote({ at }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-2 text-xs muted">
+      <ShieldCheck size={14} className="text-emerald-500 dark:text-emerald-400" />
+      Publicado por {EDITORIAL_DESK}
+      {at && <span className="font-mono">· {formatDateTimeBR(at)}</span>}
+    </span>
+  )
+}
+
+// Notícia do clipping com as três ações do leitor: fonte, link e pasta pessoal.
+function ClippingNewsItem({ news, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen)
+  const toggleFavorite = useNewsStore((s) => s.toggleFavorite)
+  const saved = useNewsStore((s) => s.favorites.some((f) => f.id === news.id))
+
+  const copyLink = () => {
+    clipboard(news.url || news.title)
+      .then(() => toast.success('Link copiado'))
+      .catch(() => toast.error('Não foi possível copiar o link'))
+  }
+
+  const save = () => {
+    const added = toggleFavorite(news)
+    toast.success(added ? 'Salvo na sua pasta' : 'Removido da pasta')
+  }
+
+  return (
+    <article className="card p-4 transition-colors hover:border-gold-500/25">
+      <div className="flex flex-wrap items-center gap-2 text-xs">
+        <Badge type="urgency" value={news.urgency} />
+        <Badge type="category" value={news.category} />
+        <span className="muted">{news.source}</span>
+        {news.region && <span className="muted">· {news.region}</span>}
+      </div>
+
+      <h3 className="mt-2 text-base font-bold leading-snug tracking-tight">{news.title}</h3>
+      <p className="mt-1.5 text-sm leading-relaxed text-gray-700 dark:text-gray-300">{news.summary}</p>
+
+      {(news.key_points?.length > 0 || news.impact_br) && (
+        <>
+          <button
+            onClick={() => setOpen((o) => !o)}
+            className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-gold-600 hover:underline dark:text-gold-400"
+            aria-expanded={open}
+          >
+            <ChevronDown size={16} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+            {open ? 'Recolher detalhes' : 'Ver pontos-chave'}
+          </button>
+          {open && (
+            <div className="mt-3 space-y-3 border-t border-gray-200 pt-3 text-sm dark:border-white/[0.07]">
+              {news.key_points?.length > 0 && (
+                <ul className="space-y-1">
+                  {news.key_points.map((p, i) => (
+                    <li key={i} className="flex gap-2">
+                      <span className="text-gold-500">•</span>
+                      <span className="text-gray-700 dark:text-gray-300">{p}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {news.impact_br && (
+                <p className="rounded-lg bg-gold-500/10 p-3 text-gray-700 dark:text-gray-300">
+                  <span className="font-semibold text-gold-600 dark:text-gold-400">Impacto para o Brasil: </span>
+                  {news.impact_br}
+                </p>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      <div className="mt-3 flex flex-wrap gap-2 border-t border-gray-200 pt-3 dark:border-white/[0.07]">
+        {news.url && (
+          <a href={news.url} target="_blank" rel="noreferrer" className="btn-ghost px-2.5 py-1.5 text-xs">
+            <ExternalLink size={13} /> Abrir fonte
+          </a>
+        )}
+        <button onClick={copyLink} className="btn-ghost px-2.5 py-1.5 text-xs">
+          <Copy size={13} /> Copiar link
+        </button>
+        <Can do="folder.save">
+          <button
+            onClick={save}
+            className={`btn-ghost px-2.5 py-1.5 text-xs ${saved ? 'border-gold-500/50 text-gold-600 dark:text-gold-400' : ''}`}
+            aria-pressed={saved}
+          >
+            {saved ? <BookmarkCheck size={13} /> : <Bookmark size={13} />}
+            {saved ? 'Na sua pasta' : 'Salvar na pasta'}
+          </button>
+        </Can>
+      </div>
+    </article>
+  )
+}
+
+// Distribuição da edição por tema — dá a leitura de onde o dia se concentrou.
 function ThemeCounter({ news }) {
-  const counts = news.reduce((acc, n) => {
-    acc[n.category] = (acc[n.category] || 0) + 1
-    return acc
-  }, {})
-  const rows = Object.entries(counts).sort((a, b) => b[1] - a[1])
+  const rows = useMemo(() => {
+    const counts = news.reduce((acc, n) => {
+      acc[n.category] = (acc[n.category] || 0) + 1
+      return acc
+    }, {})
+    return Object.entries(counts).sort((a, b) => b[1] - a[1])
+  }, [news])
   const max = Math.max(...rows.map(([, c]) => c), 1)
 
   return (
-    <div className="card p-5">
-      <h3 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wide muted">
+    <section className="card p-5">
+      <h3 className="mb-3 flex flex-wrap items-center gap-2 text-sm font-bold uppercase tracking-wide muted">
         Notícias por tema
-        <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-semibold normal-case">
-          {news.length} no total
-        </span>
+        <span className="chip normal-case">{news.length} no total</span>
       </h3>
       <div className="space-y-2.5">
         {rows.map(([cat, count]) => (
           <div key={cat} className="flex items-center gap-3">
-            <span className="flex w-40 shrink-0 items-center gap-2 text-sm">
+            <span className="flex w-32 shrink-0 items-center gap-2 text-sm sm:w-40">
               <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: categoryColor(cat) }} />
               <span className="truncate font-medium">{cat}</span>
             </span>
-            <span className="h-2 flex-1 overflow-hidden rounded-full bg-gray-700/30">
+            <span className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700/30">
               <span
                 className="block h-full rounded-full"
                 style={{ width: `${(count / max) * 100}%`, background: categoryColor(cat) }}
@@ -222,66 +460,51 @@ function ThemeCounter({ news }) {
           </div>
         ))}
       </div>
-    </div>
+    </section>
   )
 }
 
+// Painel informativo: quais fontes alimentam a edição. A gestão das fontes
+// vive em Configurações — aqui a lista é apenas de consulta.
 function SourcesPanel({ open, onToggle }) {
   const sources = useSettingsStore((s) => s.rssSources)
-  const toggleSource = useSettingsStore((s) => s.toggleSource)
-  const addSource = useSettingsStore((s) => s.addSource)
-  const [url, setUrl] = useState('')
-
-  const add = (e) => {
-    e.preventDefault()
-    if (!url.trim()) return
-    addSource(url.trim())
-    setUrl('')
-    toast.success('Fonte adicionada')
-  }
+  const online = sources.filter((s) => s.status === 'online').length
 
   return (
-    <div className="card overflow-hidden">
-      <button onClick={onToggle} className="flex w-full items-center justify-between p-4" aria-expanded={open}>
+    <section className="card overflow-hidden">
+      <button onClick={onToggle} className="flex w-full items-center justify-between gap-3 p-4" aria-expanded={open}>
         <span className="flex items-center gap-2 font-semibold">
-          <Rss size={17} className="text-brand-400" /> Fontes configuradas ({sources.length})
+          <Rss size={17} className="text-gold-500" /> Fontes monitoradas ({sources.length})
         </span>
-        <ChevronDown size={18} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+        <span className="flex items-center gap-3">
+          <span className="text-xs muted">{online} online</span>
+          <ChevronDown size={18} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+        </span>
       </button>
       {open && (
-        <div className="space-y-2 border-t border-gray-700/40 p-4">
+        <div className="space-y-2 border-t border-gray-200 p-4 dark:border-white/[0.07]">
           {sources.map((s) => (
-            <div key={s.id} className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2 text-sm">
-              <span className="flex items-center gap-2">
+            <div
+              key={s.id}
+              className="flex items-center justify-between gap-3 rounded-lg bg-gray-50 px-3 py-2 text-sm dark:bg-white/5"
+            >
+              <span className="flex min-w-0 items-center gap-2">
                 <Circle
                   size={9}
                   className={s.status === 'online' ? 'fill-emerald-400 text-emerald-400' : 'fill-red-400 text-red-400'}
                 />
-                <span className="font-medium">{s.name}</span>
+                <span className="truncate font-medium">{s.name}</span>
               </span>
-              <button
-                onClick={() => toggleSource(s.id)}
-                className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                  s.enabled ? 'bg-brand-500/20 text-brand-300' : 'bg-gray-600/30 text-gray-400'
-                }`}
-              >
-                {s.enabled ? 'Ativa' : 'Inativa'}
-              </button>
+              <span className={`chip shrink-0 ${s.enabled ? 'text-emerald-600 dark:text-emerald-300' : ''}`}>
+                {s.enabled ? 'Coletando' : 'Pausada'}
+              </span>
             </div>
           ))}
-          <form onSubmit={add} className="flex gap-2 pt-2">
-            <input
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://exemplo.com/feed.rss"
-              className="input"
-            />
-            <button type="submit" className="btn-ghost shrink-0">
-              <Plus size={16} /> Adicionar
-            </button>
-          </form>
+          <Link to="/configuracoes" className="btn-ghost mt-1 w-full justify-center text-xs">
+            <SlidersHorizontal size={14} /> Gerenciar fontes em Configurações
+          </Link>
         </div>
       )}
-    </div>
+    </section>
   )
 }

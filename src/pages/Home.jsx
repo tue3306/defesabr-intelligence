@@ -1,18 +1,18 @@
-import { useAuthStore } from '../store/authStore'
-import { useSubscriptionStore } from '../store/subscriptionStore'
-import FreeDashboard from './FreeDashboard'
-import ProDashboard from './ProDashboard'
+import { useProfile } from '../auth/useCan'
+import UserDashboard from './UserDashboard'
+import AnalystDashboard from './AnalystDashboard'
 import AdminDashboard from './AdminDashboard'
 
-// Painel adaptado por perfil (§11–12): cada persona tem sua própria experiência.
-//   • Administrador → governança/observabilidade da plataforma.
-//   • Profissional/Institucional → experiência analítica completa.
-//   • Explorar (gratuita) → leitura, descoberta e educação, com upsell elegante.
+// Despacho do painel pelo PERFIL efetivo (nunca por papel cru — §10):
+//   • Administrador → governança e observabilidade da plataforma.
+//   • Analista      → mesa de situação da produção de inteligência.
+//   • Usuário       → consumo de inteligência (profundidade vem do plano).
+// Visitante não chega aqui: a rota /painel já é protegida. Ainda assim ele cai
+// no painel de leitura, que degrada sozinho para o conteúdo básico.
 export default function Home() {
-  const isAdmin = useAuthStore((s) => s.isAdmin())
-  const isPaid = useSubscriptionStore((s) => s.isPaid())
+  const profile = useProfile()
 
-  if (isAdmin) return <AdminDashboard />
-  if (isPaid) return <ProDashboard />
-  return <FreeDashboard />
+  if (profile === 'admin') return <AdminDashboard />
+  if (profile === 'analyst') return <AnalystDashboard />
+  return <UserDashboard />
 }
