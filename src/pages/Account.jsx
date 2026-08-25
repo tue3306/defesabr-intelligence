@@ -110,7 +110,8 @@ function ProfileTab() {
     reader.readAsDataURL(f)
   }
 
-  const save = () => { updateProfile({ name, email }); toast.success('Perfil salvo') } // DEMO // TODO: conectar backend real
+  // DEMO: persiste no navegador. Com backend, esta chamada vira services/authService.updateProfile.
+  const save = () => { updateProfile({ name, email }); toast.success('Perfil salvo') }
 
   return (
     <div className="space-y-6">
@@ -134,7 +135,7 @@ function ProfileTab() {
             <label className="mb-1 block text-xs font-medium muted">Idioma</label>
             <select value={lang} onChange={(e) => setLang(e.target.value)} className="input" aria-label="Idioma">
               <option value="pt-BR">Português (BR)</option>
-              <option value="en" disabled>English (em breve)</option>
+
             </select>
           </div>
         </div>
@@ -156,7 +157,8 @@ function SecurityTab() {
   const [sessions, setSessions] = useState(SEED_SESSIONS)
   const backupCodes = ['8F2K-9QX1', '4D7M-2WZ8', 'A1C5-7YH3', 'KP90-3RT6'] // DEMO
 
-  const changePassword = (e) => { e.preventDefault(); toast.success('Senha alterada (demonstração)') } // DEMO // TODO: backend
+  // DEMO: nenhuma senha e realmente trocada — o fluxo existe para demonstrar a tela.
+  const changePassword = (e) => { e.preventDefault(); toast.success('Senha alterada (demonstração)') }
   const revoke = (id) => { setSessions((s) => s.filter((x) => x.id !== id)); toast.success('Sessão encerrada') }
   const revokeAll = () => { setSessions((s) => s.filter((x) => x.current)); toast.success('Outras sessões encerradas') }
 
@@ -250,7 +252,7 @@ function SubscriptionTab() {
       : []
 
   const downloadInvoice = (inv) => {
-    // DEMO: gera um PDF de fatura proceduralmente (jsPDF). // TODO: backend real
+    // DEMO: a fatura e desenhada no cliente com jsPDF. Com backend, viria pronta do servico de cobranca.
     const pdf = new jsPDF('p', 'mm', 'a4')
     pdf.setFillColor(28, 31, 36); pdf.rect(0, 0, 210, 26, 'F')
     pdf.setTextColor(255, 255, 255); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(16)

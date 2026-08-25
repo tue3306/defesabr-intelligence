@@ -76,24 +76,40 @@ no GitHub Pages, sem backend, com **dados mockados realistas**.
 
 | Área | Recursos |
 |------|----------|
-| **Inteligência & Análise** | Clipping diário (resumo por IA), Análise Semanal de cenários, Dossiês "Em Foco", Monitor de Narrativas (FIMI), Calendário estratégico, Arquivo + "Minha Pasta" (favoritos) |
+| **Inteligência & Análise** | Clipping diário (resumo por IA), Análise Semanal de cenários, Dossiês "Em Foco", Monitor de Narrativas (FIMI), **Matriz de Riscos** (probabilidade × impacto), Calendário estratégico, Arquivo + "Minha Pasta" |
 | **Brasil Estratégico** | Programas Estratégicos (PROSUB, FX-2, Tamandaré…), Amazônia Azul, Fronteiras & Amazônia, Balança Militar Sul-Americana, Base Industrial de Defesa |
 | **Dados & Economia** | Mapa de risco interativo, gastos de defesa (R$ e % do PIB), câmbio ao vivo, índice de alerta, indicadores macro |
 | **Apoio à decisão** | Assistente "Pergunte ao Analista", nível de tensão por região, confiabilidade de fontes |
 | **Educação** | Centro Educacional: trilhas, vídeo-aulas, glossário pesquisável, biblioteca (PND/END/LBDN), quiz |
-| **Plataforma** | 4 perfis de acesso demo, 3 planos com paywall, tema claro/escuro, busca global (Ctrl+K), tour guiado, exportação em PDF |
+| **Produção (Analista)** | **Mesa de trabalho**: fila editorial (kanban), requisitos de informação (RFI) e plano de coleta (PIR/EEI) com lacunas; classificação de narrativas e reavaliação de fontes |
+| **Relatórios** | **Central de Relatórios**: construtor com pré-visualização fiel, histórico e entregas programadas; exportação em PDF, CSV e JSON |
+| **Governança (Admin)** | Console com contas e papéis, fontes de coleta, integrações, trilha de auditoria e saúde do sistema |
+| **Plataforma** | 4 perfis de acesso, 3 planos com paywall honesto, tema claro/escuro, busca global (Ctrl+K), tour guiado, modo apresentação |
 
-## 🧩 Perfis de acesso (demonstrativo)
+## 🧩 Perfis de acesso
 
-| Perfil | Escopo |
-|--------|--------|
-| **Visitante** | Páginas públicas, notícias e planos; análises completas no paywall |
-| **Usuário** | Consulta & leitura: painel e módulos; análise por área conforme o plano |
-| **Analista** | Gera/exporta com IA, define nível de tensão, ferramentas de fontes e narrativas |
-| **Administrador** | Acesso total: configurações, usuários, analytics e diagnóstico |
+A plataforma tem **quatro perfis**, resolvidos a partir de **dois eixos independentes**:
 
-> A autenticação é **simulada** (sem servidor). Troque de perfil no menu do usuário ou em Configurações.
-> **Login demo:** `admin@defesabr.com` · senha `defesa2025` — ou use os botões de perfil no modal de login.
+- **PAPEL** (`user` · `analyst` · `admin`) — o que a pessoa pode **fazer**.
+- **PLANO** (`explorar` · `profissional` · `institucional`) — o quanto ela pode **ver**.
+
+A capacidade efetiva é a **união** dos dois: `caps = capsDoPapel ∪ capsDoPlano`.
+
+| Perfil | Quem é | O que faz | Casa |
+|--------|--------|-----------|------|
+| **Visitante** | Não autenticado | Conteúdo público, prévias de análise, Centro Educacional e planos | `/` |
+| **Usuário** | Consome inteligência | Painel de situação, clipping, dossiês, módulos estratégicos, pasta pessoal. A profundidade vem do plano | `/painel` |
+| **Analista** | **Produz** inteligência | Gera com IA, avalia nível de tensão, classifica fontes e narrativas, conduz a fila de produção, RFIs e o plano de coleta | `/mesa` |
+| **Administrador** | Governa a plataforma | Contas e papéis, fontes de coleta, integrações, auditoria, saúde do sistema | `/admin` |
+
+> A autorização é **centralizada** em [`src/auth/permissions.js`](src/auth/permissions.js): nenhum
+> componente verifica `role === 'admin'` — tudo passa por **capacidades** declarativas
+> (`can('ai.generate')`, `<Can do="tension.edit">`, `<ProtectedRoute capability="admin.access">`).
+> Quando algo é bloqueado, a interface explica **se é por plano ou por papel** e oferece o caminho.
+
+**Demonstração:** a autenticação é simulada (sem servidor). Troque de perfil no menu do usuário,
+no muro de acesso de qualquer área restrita, ou pela seção "Uma plataforma, quatro experiências"
+na página inicial. Nenhuma credencial é publicada na interface.
 
 ## 🛠️ Tecnologias
 
@@ -113,25 +129,62 @@ Aplicação **SPA estática**, organizada por domínio. Detalhes completos em
 
 ```
 src/
-├── api/            # Integrações externas (câmbio, World Bank, IA) com fallback mockado
+├── services/       # ★ CAMADA DE DADOS — única fronteira com a origem do dado
+│   ├── config.js         # DATA_MODE ('mock' | 'api'), URL base, latência simulada
+│   ├── client.js         # request() com contrato { data, meta } e ApiError normalizado
+│   ├── newsService.js    # notícias, clipping, arquivo, análise semanal, notificações
+│   ├── intelligenceService.js  # narrativas, dossiês, fontes, riscos, programas, agenda
+│   ├── taskingService.js # mesa do analista: fila, RFIs, plano de coleta
+│   ├── adminService.js   # contas, fontes, auditoria, saúde, diagnóstico
+│   └── reportsService.js # modelos, histórico e composição de relatórios
+├── auth/           # permissions.js (fonte de verdade), useCan, <Can>
+├── api/            # Integrações externas diretas (câmbio, World Bank, IA) com fallback
 ├── components/
 │   ├── layout/     # Sidebar, Navbar, Footer, Ticker, layouts público/app
 │   ├── charts/     # Gráficos e mapas (Recharts, react-simple-maps)
-│   ├── ui/         # Design system: Card, Badge, Modal, MetricCard, Logo…
-│   ├── auth/       # Rota protegida + modal de login (simulado)
+│   ├── ui/         # PageHeader, EmptyState, DataState, Pagination, ConfirmDialog, Modal…
+│   ├── system/     # ErrorBoundary (por rota e por bloco)
+│   ├── auth/       # ProtectedRoute + modal de login (simulado)
 │   ├── tension/    # Painel/editor de nível de tensão
 │   └── learn/      # Quiz do Centro Educacional
-├── pages/          # Telas (Landing, Painel, Clipping, Dossiês, Programas…)
+├── pages/          # Telas (Landing, Painel, Mesa, Riscos, Relatórios, Admin…)
 ├── store/          # Zustand: auth, settings, news, subscription, tension
-├── data/           # Dados mockados realistas (notícias, programas, indicadores…)
-├── hooks/          # useNews, useClaudeAI, useTheme…
-└── utils/          # datas, texto, exportação PDF, busca semântica
+├── data/           # Repositórios locais realistas (notícias, riscos, produção, relatórios…)
+├── hooks/          # useResource/useAction, useNews, useClaudeAI, useTheme…
+└── utils/          # datas, texto, exportação (PDF/CSV/JSON), busca semântica
 ```
 
-Princípios: **componentização**, tokens de design centralizados (`tailwind.config.js` + `index.css`),
-estado isolado por domínio e **degradação graciosa** (todo recurso que dependeria de backend tem
-versão demonstrativa). Toda chamada externa tem **timeout, retry e fallback** — o app nunca mostra
-tela de erro vazia.
+### Preparado para backend
+
+Toda leitura passa por `src/services`. O contrato de retorno é idêntico nos dois modos:
+
+```js
+const { data, loading, error, refetch, meta } =
+  useResource(() => intelligenceService.risks({ severity: 'critico' }), ['critico'])
+```
+
+Ligar um backend real é definir **duas variáveis de ambiente** — nenhuma tela muda:
+
+```bash
+VITE_DATA_MODE=api
+VITE_API_BASE_URL=https://sua-api.exemplo.br/v1
+```
+
+Em modo `mock`, os resolvedores locais respondem com **latência simulada**, para que os estados de
+carregamento sejam reais e os defeitos de _loading_ apareçam em desenvolvimento.
+
+
+**Princípios**
+
+- **Autorização centralizada** — capacidades declarativas, nunca `if (role === …)` espalhado.
+- **Uma fronteira de dados** — a interface não sabe se o dado veio de mock ou de API.
+- **Quatro estados sempre tratados** — carregando, erro (com nova tentativa), vazio e conteúdo,
+  padronizados em `<DataState>`.
+- **Falha isolada** — `ErrorBoundary` por rota e em blocos de risco: um gráfico quebrado não
+  derruba a página, e a página não derruba a aplicação.
+- **Honestidade** — dado demonstrativo é rotulado como tal; bloqueio explica o motivo e o caminho;
+  serviço que exige backend aparece como *planejado*, não como pronto.
+- **Tokens de design centralizados** (`tailwind.config.js` + `index.css`), tema claro/escuro real.
 
 ## 🚀 Como executar
 
