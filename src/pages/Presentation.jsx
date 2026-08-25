@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Shield, X, ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react'
+import { Shield, X, ChevronLeft, ChevronRight, Pause, Play, ShieldAlert, Activity, Target } from 'lucide-react'
 import MilitarySpendingChart from '../components/charts/MilitarySpendingChart'
 import NewsVolumeChart from '../components/charts/NewsVolumeChart'
 import GaugeChart from '../components/charts/GaugeChart'
@@ -13,9 +13,118 @@ import {
   militarySpendingBR, newsVolume14d, newsCategoriesKeys, alertIndex,
   southAmericaSpending, globalSpendingTreemap, categoryRadar,
 } from '../data/mockData'
+import { useTensionStore, tensionBand } from '../store/tensionStore'
+import { riskMatrix, RISK_SEVERITY } from '../data/riskMatrix'
+import { strategicPrograms, programsSummary, PROGRAM_FORCES } from '../data/strategicPrograms'
+import { alertMeta } from '../utils/textUtils'
 import { formatTime, formatFullDate } from '../utils/dateUtils'
 
+// Slides de CONTEXTO — poucos elementos, grandes, legíveis a distância. Vêm
+// antes dos gráficos porque uma apresentação começa pela situação, não pelo dado.
+function PostureSlide() {
+  const alert = alertMeta.ATENCAO
+  return (
+    <div className="flex flex-col items-center py-6 text-center sm:py-10">
+      <span className="text-xs font-bold uppercase tracking-[0.3em] text-gold-400">Postura nacional</span>
+      <p className="mt-4 text-5xl font-extrabold tracking-tight sm:text-7xl" style={{ color: '#caa733' }}>
+        {alert.label}
+      </p>
+      <p className="mt-2 font-mono text-xl muted sm:text-2xl">{alert.value}/100</p>
+      <div className="mt-6 h-3 w-full max-w-xl overflow-hidden rounded-full bg-white/10">
+        <div className="h-full rounded-full bg-gold-500" style={{ width: `${alert.value}%` }} />
+      </div>
+      <div className="mt-2 flex w-full max-w-xl justify-between text-xs uppercase tracking-wide muted">
+        <span>Normal</span><span>Crítico</span>
+      </div>
+    </div>
+  )
+}
+
+function TensionSlide() {
+  const regions = useTensionStore((s) => s.regions)
+  return (
+    <ul className="space-y-3 py-2 sm:space-y-4 sm:py-4">
+      {regions.map((r) => {
+        const band = tensionBand(r.level)
+        return (
+          <li key={r.region}>
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="truncate text-base font-bold tracking-tight sm:text-xl">{r.region}</span>
+              <span className="shrink-0 font-mono text-lg font-extrabold tabular-nums sm:text-2xl" style={{ color: band.color }}>
+                {r.level}
+              </span>
+            </div>
+            <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-white/10 sm:h-3">
+              <div className="h-full rounded-full" style={{ width: `${r.level}%`, background: band.color }} />
+            </div>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
+function RisksSlide() {
+  const top = [...riskMatrix].sort((a, b) => b.score - a.score).slice(0, 5)
+  return (
+    <ul className="space-y-3 py-2 sm:space-y-4 sm:py-4">
+      {top.map((r) => {
+        const sev = RISK_SEVERITY[r.severity]
+        return (
+          <li key={r.id} className="flex items-center gap-3 sm:gap-5">
+            <span
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl font-mono text-lg font-extrabold sm:h-14 sm:w-14 sm:text-2xl"
+              style={{ background: `${sev.color}25`, color: sev.color }}
+            >
+              {r.score}
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-bold tracking-tight sm:text-lg">{r.title}</span>
+              <span className="block text-xs muted sm:text-sm">{sev.label} · {r.horizon}</span>
+            </span>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
+function ProgramsSlide() {
+  const top = [...strategicPrograms].sort((a, b) => b.progress - a.progress).slice(0, 6)
+  return (
+    <div className="py-2 sm:py-4">
+      <p className="mb-4 text-center text-sm muted sm:text-base">
+        {programsSummary.emExecucao} de {programsSummary.total} em execução ·
+        {' '}{programsSummary.progressoMedio}% de avanço médio
+      </p>
+      <ul className="space-y-3">
+        {top.map((prog) => {
+          const force = PROGRAM_FORCES[prog.force] || {}
+          return (
+            <li key={prog.id}>
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="truncate text-sm font-bold tracking-tight sm:text-lg">
+                  {prog.name}
+                  <span className="ml-2 text-xs font-normal muted">{force.label}</span>
+                </span>
+                <span className="shrink-0 font-mono text-sm font-extrabold tabular-nums sm:text-lg">{prog.progress}%</span>
+              </div>
+              <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-white/10">
+                <div className="h-full rounded-full" style={{ width: `${prog.progress}%`, background: force.color }} />
+              </div>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
 const SLIDES = [
+  { title: 'Postura nacional do período', icon: Activity, render: () => <PostureSlide /> },
+  { title: 'Nível de tensão por região', icon: Activity, render: () => <TensionSlide /> },
+  { title: 'Riscos estratégicos de maior severidade', icon: ShieldAlert, render: () => <RisksSlide /> },
+  { title: 'Programas estratégicos — avanço', icon: Target, render: () => <ProgramsSlide /> },
   { title: 'Gastos militares — Brasil', render: (h) => <MilitarySpendingChart data={militarySpendingBR} mode="dual" height={h} /> },
   { title: 'Gastos militares globais (US$ bi)', render: (h) => <BrazilDefenseBudget data={globalSpendingTreemap} height={h} /> },
   { title: 'América do Sul — % do PIB em defesa', render: (h) => <ComparisonBarChart data={southAmericaSpending} highlightCode="BR" height={h} /> },
@@ -35,6 +144,7 @@ function chartHeightFor(width) {
 }
 
 export default function Presentation() {
+  const navigate = useNavigate()
   const [index, setIndex] = useState(0)
   const [playing, setPlaying] = useState(true)
   const [now, setNow] = useState(formatTime())
@@ -65,16 +175,17 @@ export default function Presentation() {
     return () => clearInterval(rot)
   }, [playing, index, next])
 
-  // Atalhos de teclado
+  // Atalhos de teclado: setas navegam, espaco pausa, Esc sai.
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === 'ArrowRight') next()
       else if (e.key === 'ArrowLeft') prev()
       else if (e.key === ' ') { e.preventDefault(); setPlaying((p) => !p) }
+      else if (e.key === 'Escape') navigate('/painel')
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [next, prev])
+  }, [next, prev, navigate])
 
   const slide = SLIDES[index]
 
@@ -96,11 +207,12 @@ export default function Presentation() {
         <div className="flex items-center justify-between gap-3 sm:justify-end">
           <span className="font-mono text-2xl font-bold text-brand-400 sm:text-3xl">{now}</span>
           <Link
-            to="/"
-            className="rounded-lg border border-gray-600/50 p-2 text-gray-400 hover:text-white"
-            aria-label="Sair da apresentação"
+            to="/painel"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-600/50 px-3 py-2 text-xs font-semibold text-gray-300 hover:text-white"
+            aria-label="Sair da apresentação (Esc)"
+            title="Sair da apresentação (Esc)"
           >
-            <X size={20} />
+            <X size={16} /> <span className="hidden sm:inline">Sair</span>
           </Link>
         </div>
       </header>
@@ -119,8 +231,8 @@ export default function Presentation() {
             >
               <div className="mb-4 flex items-center justify-between gap-2">
                 <h2 className="text-base font-bold tracking-tight sm:text-xl">{slide.title}</h2>
-                <span className="shrink-0 text-xs muted">
-                  {index + 1} / {SLIDES.length}
+                <span className="shrink-0 text-xs muted" aria-live="polite">
+                  Slide {index + 1} de {SLIDES.length}
                 </span>
               </div>
               {slide.render(chartH)}
@@ -143,6 +255,14 @@ export default function Presentation() {
             <ChevronRight size={20} />
           </button>
         </div>
+      </div>
+
+      {/* PROGRESSO DA APRESENTAÇÃO */}
+      <div className="mx-auto mt-4 h-1 w-full max-w-6xl overflow-hidden rounded-full bg-white/10">
+        <div
+          className="h-full rounded-full bg-gold-500 transition-all duration-500"
+          style={{ width: `${((index + 1) / SLIDES.length) * 100}%` }}
+        />
       </div>
 
       {/* CONTROLES */}
@@ -184,6 +304,10 @@ export default function Presentation() {
           <ChevronRight size={20} />
         </button>
       </div>
+
+      <p className="mt-3 text-center text-[11px] muted">
+        ← → navegar · espaço pausa · Esc sai · dados demonstrativos
+      </p>
     </div>
   )
 }
