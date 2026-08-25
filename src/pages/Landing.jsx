@@ -31,39 +31,39 @@ import { alertMeta } from '../utils/textUtils'
 
 const FEATURE_ICONS = { Newspaper, Globe2, BarChart3, LineChart, GraduationCap, ShieldCheck }
 
-// Os 4 perfis do produto, com a persona de demonstracao correspondente e a
-// rota-ancora de cada um. Os rotulos vem sempre de src/auth/permissions.js.
+// Os 4 perfis do produto, com a persona de demonstração correspondente e a
+// rota-âncora de cada um. Os rótulos vêm sempre de src/auth/permissions.js.
 const PROFILE_ENTRY = {
   visitor: {
     persona: 'visitante', icon: Eye, to: '/planos', cta: 'Continuar explorando',
     does: [
-      'Le o conteudo publico e as previas das analises',
+      'Lê o conteúdo público e as prévias das análises',
       'Acessa o Centro Educacional por completo',
       'Compara os planos antes de decidir',
     ],
   },
   user: {
-    persona: 'usuario', icon: UserCircle, to: '/painel', cta: 'Ver como Usuario',
+    persona: 'usuario', icon: UserCircle, to: '/painel', cta: 'Ver como Usuário',
     does: [
-      'Acompanha o painel de situacao e o clipping diario',
-      'Explora programas, fronteiras e Amazonia Azul',
-      'Salva conteudos na pasta pessoal e recebe alertas',
+      'Acompanha o painel de situação e o clipping diário',
+      'Explora programas, fronteiras e Amazônia Azul',
+      'Salva conteúdos na pasta pessoal e recebe alertas',
     ],
   },
   analyst: {
     persona: 'analista', icon: PenTool, to: '/mesa', cta: 'Ver como Analista',
     does: [
-      'Gera clipping e analises com apoio de IA',
-      'Avalia nivel de tensao, fontes e narrativas (FIMI)',
-      'Conduz fila de producao, RFIs e plano de coleta',
+      'Gera clipping e análises com apoio de IA',
+      'Avalia nível de tensão, fontes e narrativas (FIMI)',
+      'Conduz fila de produção, RFIs e plano de coleta',
     ],
   },
   admin: {
     persona: 'admin', icon: ShieldQuestion, to: '/admin', cta: 'Ver como Administrador',
     does: [
-      'Gere contas, papeis e planos da plataforma',
-      'Configura fontes de coleta e integracoes',
-      'Acompanha auditoria e saude do sistema',
+      'Gere contas, papéis e planos da plataforma',
+      'Configura fontes de coleta e integrações',
+      'Acompanha auditoria e saúde do sistema',
     ],
   },
 }
@@ -226,7 +226,7 @@ export default function Landing() {
         </div>
       </Section>
 
-      {/* PARA CADA PERFIL - o coracao da demonstracao */}
+      {/* PARA CADA PERFIL — o coração da demonstração */}
       <Section>
         <h2 className="text-center text-2xl font-bold tracking-tight">Uma plataforma, quatro experiências</h2>
         <p className="mx-auto mt-2 max-w-2xl text-center text-sm muted">
@@ -275,7 +275,7 @@ export default function Landing() {
         </p>
       </Section>
 
-      {/* PREVIA DO PRODUTO - numeros lidos dos modulos, nao promessas */}
+      {/* PRÉVIA DO PRODUTO — números lidos dos módulos, não promessas */}
       <Section className="card p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-bold tracking-tight">O que já está monitorado agora</h2>
