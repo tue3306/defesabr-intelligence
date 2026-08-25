@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { Shield, Cpu, Database, AlertTriangle, Github, Send, Star, GitFork, ExternalLink, Code2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Shield, Cpu, Database, AlertTriangle, Github, Send, Star, GitFork, ExternalLink, Code2, Compass, Radar, Cog, Brain, Share2, Layers, PlugZap } from 'lucide-react'
+import { DATA_MODE, APP_VERSION } from '../services/config'
 import toast from 'react-hot-toast'
 
 const REPO_URL = 'https://github.com/tue3306/defesabr-intelligence'
@@ -12,6 +14,36 @@ const APIS = [
   { name: 'rss2json', use: 'Leitura de feeds RSS de defesa', free: true },
   { name: 'Alpha Vantage', use: 'Ações do setor de defesa', free: true },
   { name: 'Anthropic Claude', use: 'Compilação, resumo e análise por IA', free: false },
+]
+
+
+// Etapas do ciclo de inteligência mapeadas aos módulos que as materializam.
+const INTEL_CYCLE = [
+  { title: 'Direção', icon: Compass, module: 'Mesa do Analista', to: '/mesa',
+    text: 'Definir o que precisa ser respondido: requisitos prioritários (PIR) e pedidos formais (RFI).' },
+  { title: 'Coleta', icon: Radar, module: 'Confiabilidade das Fontes', to: '/fontes',
+    text: 'Reunir material de fontes públicas, com a confiabilidade de cada uma declarada.' },
+  { title: 'Processamento', icon: Cog, module: 'Clipping Diário', to: '/clipping',
+    text: 'Filtrar por relevância, classificar por urgência e organizar o volume bruto em um produto legível.' },
+  { title: 'Análise', icon: Brain, module: 'Matriz de Riscos', to: '/riscos',
+    text: 'Interpretar: cenários, probabilidade × impacto, narrativas e o que isso significa para o Brasil.' },
+  { title: 'Difusão', icon: Share2, module: 'Central de Relatórios', to: '/relatorios',
+    text: 'Entregar a quem decide, no formato e no prazo em que a decisão será tomada.' },
+]
+
+const ARCHITECTURE_NOTES = [
+  {
+    title: 'Uma fronteira única de dados',
+    text: 'Todo módulo lê por src/services. Em modo demonstração os dados vêm de repositórios locais com latência simulada; em modo API, do backend — com contratos idênticos.',
+  },
+  {
+    title: 'Autorização centralizada',
+    text: 'Nenhuma tela verifica papel diretamente. Tudo passa por capacidades declarativas, e todo bloqueio explica se é por plano ou por papel.',
+  },
+  {
+    title: 'O que ainda exige backend',
+    text: 'Coleta ao vivo de fontes, chamadas de IA com chave protegida, persistência entre dispositivos, envio de e-mail e SSO institucional aparecem como planejados — nunca como prontos.',
+  },
 ]
 
 export default function About() {
@@ -180,6 +212,83 @@ export default function About() {
 function Card({ icon: Icon, title, children }) {
   return (
     <div className="card p-6">
+      {/* CICLO DE INTELIGÊNCIA — a metodologia por trás dos módulos */}
+      <section className="card p-6">
+        <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
+          <Compass size={18} className="text-brand-400" /> O ciclo de inteligência
+        </h2>
+        <p className="mt-1 max-w-2xl text-sm leading-relaxed muted">
+          Os módulos da plataforma não são telas soltas: cada um corresponde a uma etapa do ciclo
+          clássico de produção de inteligência. É por isso que a Mesa do Analista existe — sem
+          direção e coleta, o resto vira apenas leitura de notícias.
+        </p>
+
+        <ol className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {INTEL_CYCLE.map((phase, i) => {
+            const Icon = phase.icon
+            return (
+              <li key={phase.title} className="rounded-xl border border-gray-200 p-4 dark:border-white/10">
+                <div className="flex items-center justify-between">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gold-500/15 text-gold-600 dark:text-gold-400">
+                    <Icon size={17} />
+                  </span>
+                  <span className="font-mono text-xs font-bold muted">{i + 1}</span>
+                </div>
+                <h3 className="mt-3 text-sm font-bold tracking-tight">{phase.title}</h3>
+                <p className="mt-1 text-xs leading-relaxed muted">{phase.text}</p>
+                <Link
+                  to={phase.to}
+                  className="mt-2 inline-block text-[11px] font-semibold text-brand-500 hover:underline dark:text-brand-400"
+                >
+                  {phase.module} →
+                </Link>
+              </li>
+            )
+          })}
+        </ol>
+      </section>
+
+      {/* ARQUITETURA — honestidade sobre o que é real e o que é simulado */}
+      <section className="card p-6">
+        <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
+          <Layers size={18} className="text-brand-400" /> Arquitetura e limites
+        </h2>
+        <p className="mt-1 max-w-2xl text-sm leading-relaxed muted">
+          A plataforma é hoje <strong>100% front-end</strong>. Isso é uma escolha de demonstração, não
+          uma limitação de projeto: toda leitura de dado passa por uma camada de serviços única, e
+          trocar os repositórios locais por uma API é mudar duas variáveis de ambiente.
+        </p>
+
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="rounded-lg bg-white/5 p-3">
+            <p className="text-[10px] font-bold uppercase tracking-wider muted">Modo de dados</p>
+            <p className="mt-0.5 text-sm font-bold tracking-tight">
+              {DATA_MODE === 'api' ? 'API conectada' : 'Demonstração (local)'}
+            </p>
+          </div>
+          <div className="rounded-lg bg-white/5 p-3">
+            <p className="text-[10px] font-bold uppercase tracking-wider muted">Versão</p>
+            <p className="mt-0.5 font-mono text-sm font-bold">{APP_VERSION}</p>
+          </div>
+          <div className="rounded-lg bg-white/5 p-3">
+            <p className="text-[10px] font-bold uppercase tracking-wider muted">Perfis</p>
+            <p className="mt-0.5 text-sm font-bold tracking-tight">4 (papel × plano)</p>
+          </div>
+        </div>
+
+        <div className="mt-4 space-y-2">
+          {ARCHITECTURE_NOTES.map((note) => (
+            <div key={note.title} className="flex items-start gap-2.5 rounded-lg border border-gray-200 p-3 dark:border-white/10">
+              <PlugZap size={15} className="mt-0.5 shrink-0 text-brand-400" />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">{note.title}</p>
+                <p className="mt-0.5 text-xs leading-relaxed muted">{note.text}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <h2 className="mb-3 flex items-center gap-2 text-lg font-bold tracking-tight">
         <Icon size={18} className="text-brand-400" /> {title}
       </h2>
