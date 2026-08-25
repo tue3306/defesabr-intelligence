@@ -2,14 +2,42 @@ import { useState } from 'react'
 import toast from 'react-hot-toast'
 import {
   Check, Minus, Sparkles, Compass, Crosshair, Building2, BadgeCheck,
-  ChevronDown, ShieldCheck, HelpCircle, ArrowRight, Info,
+  ChevronDown, ShieldCheck, HelpCircle, ArrowRight, Info, Eye, UserCircle, PenTool, UserCog, Layers,
 } from 'lucide-react'
 import { useSubscriptionStore } from '../store/subscriptionStore'
-import { PLANS, PLAN_COMPARISON, PLAN_FAQ } from '../data/plansData'
+import { useAuthStore, ROLES } from '../store/authStore'
+import { useProfileMeta } from '../auth/useCan'
+import { PROFILES } from '../auth/permissions'
+import ConfirmDialog from '../components/ui/ConfirmDialog'
+import { PLANS, PLAN_COMPARISON, PLAN_FAQ, PLAN_LABEL } from '../data/plansData'
 
 const PLAN_ICONS = { Compass, Crosshair, Building2 }
 
+// Os dois eixos que definem o acesso — a confusão mais comum do produto.
+const AXES = [
+  {
+    id: 'plano',
+    title: 'PLANO — o quanto você vê',
+    icon: Layers,
+    text: 'Define a PROFUNDIDADE do conteúdo: prévias, análises completas, cenários, matriz de riscos, relatórios e exportações. É o que você assina.',
+    items: ['Explorar', 'Profissional', 'Institucional'],
+  },
+  {
+    id: 'papel',
+    title: 'PAPEL — o que você faz',
+    icon: PenTool,
+    text: 'Define as AÇÕES disponíveis: consumir, produzir inteligência ou governar a plataforma. É atribuído pela organização, não comprado.',
+    items: ['Usuário', 'Analista', 'Administrador'],
+  },
+]
+
+const PROFILE_ICONS = { visitor: Eye, user: UserCircle, analyst: PenTool, admin: UserCog }
+
 export default function Plans() {
+  const [confirm, setConfirm] = useState(null)
+  const profileMeta = useProfileMeta()
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const role = useAuthStore((s) => s.user?.role)
   const plan = useSubscriptionStore((s) => s.plan)
   const billing = useSubscriptionStore((s) => s.billing)
   const setPlan = useSubscriptionStore((s) => s.setPlan)
@@ -18,12 +46,21 @@ export default function Plans() {
 
   const choose = (p) => {
     if (p.contact) {
-      // DEMO: em produção abriria um formulário/CRM. // TODO: conectar backend real
+      // DEMO: em produção abriria um formulário/CRM ligado ao backend comercial.
       toast.success('Interesse registrado — nossa equipe entraria em contato (demonstração).')
       return
     }
+    if (p.id === plan) {
+      toast('Este já é o seu plano atual.', { icon: 'ℹ️' })
+      return
+    }
+    // Trocar de plano muda o que a pessoa enxerga em toda a plataforma: pede confirmação.
+    setConfirm(p)
+  }
+
+  const applyPlan = (p) => {
     setPlan(p.id)
-    toast.success(`Plano ${p.name} ativado (demonstração)`) // DEMO: sem cobrança real
+    toast.success(`Plano ${p.name} ativado (demonstração — sem cobrança real)`)
   }
 
   return (
@@ -137,6 +174,64 @@ export default function Plans() {
         <span className="inline-flex items-center gap-1.5"><Info size={14} /> Demonstração — nenhuma cobrança é realizada</span>
       </div>
 
+      {/* PLANO x PAPEL — os dois eixos do acesso */}
+      <section className="card p-5 sm:p-6">
+        <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
+          <Info size={18} className="text-brand-400" /> Plano e papel são coisas diferentes
+        </h2>
+        <p className="mt-1 max-w-2xl text-sm muted">
+          O acesso de cada pessoa nasce do cruzamento de dois eixos independentes. Assinar um plano
+          melhor não transforma alguém em Analista — e ser Analista não depende de assinatura.
+        </p>
+
+        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {AXES.map((axis) => {
+            const Icon = axis.icon
+            return (
+              <div key={axis.id} className="rounded-xl border border-gray-200 p-4 dark:border-white/10">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gold-500/15 text-gold-600 dark:text-gold-400">
+                  <Icon size={17} />
+                </span>
+                <h3 className="mt-3 text-sm font-bold tracking-tight">{axis.title}</h3>
+                <p className="mt-1 text-xs leading-relaxed muted">{axis.text}</p>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {axis.items.map((item) => (
+                    <span key={item} className="chip">{item}</span>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Perfil efetivo de quem está lendo */}
+        <div className="mt-5 flex flex-wrap items-center gap-3 rounded-xl bg-white/5 p-4">
+          {(() => {
+            const Icon = PROFILE_ICONS[profileMeta.id] || Eye
+            return (
+              <span
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+                style={{ background: `${profileMeta.color}22`, color: profileMeta.color }}
+              >
+                <Icon size={20} />
+              </span>
+            )
+          })()}
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-bold uppercase tracking-wider muted">Seu perfil efetivo agora</p>
+            <p className="text-base font-bold tracking-tight">{profileMeta.label}</p>
+            <p className="text-xs muted">
+              {isAuthenticated
+                ? `Papel ${ROLES[role]?.label || 'Usuário'} · plano ${PLAN_LABEL[plan] || plan}`
+                : 'Sem login — apenas conteúdo público e prévias.'}
+            </p>
+          </div>
+          <p className="w-full text-xs leading-relaxed muted sm:w-auto sm:max-w-xs">
+            {PROFILES[profileMeta.id]?.description}
+          </p>
+        </div>
+      </section>
+
       {/* COMPARATIVO (expansível) */}
       <details className="card group overflow-hidden p-0 [&_summary::-webkit-details-marker]:hidden">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-5 text-sm font-bold">
@@ -179,6 +274,16 @@ export default function Plans() {
           ))}
         </div>
       </section>
+
+      <ConfirmDialog
+        open={!!confirm}
+        onClose={() => setConfirm(null)}
+        onConfirm={() => applyPlan(confirm)}
+        tone="default"
+        title={confirm ? `Ativar o plano ${confirm.name}?` : ''}
+        description="Isto muda o que você enxerga em toda a plataforma. Nenhuma cobrança é feita: este é um ambiente de demonstração."
+        confirmLabel="Ativar plano"
+      />
     </div>
   )
 }

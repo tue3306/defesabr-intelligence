@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import {
   Rss, KeyRound, Bell, SlidersHorizontal, UserCog, Trash2, Plus, Circle, Eye, EyeOff,
   Palette, Star, Gauge, Stethoscope, Users, Sun, Moon, LogIn, ShieldCheck, CreditCard, BarChart3,
-  Check, Lock,
+  Check, Lock, Server, Database, PlugZap,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useSettingsStore } from '../store/settingsStore'
@@ -14,6 +14,8 @@ import { useTheme } from '../hooks/useTheme'
 import { FOCUS_AREAS, CATEGORIES } from '../data/mockData'
 import { PLANS, PLAN_LABEL } from '../data/plansData'
 import { isApiConfigured } from '../api/anthropic'
+import { DATA_MODE, API_BASE_URL, APP_VERSION, isDemoMode } from '../services/config'
+import { listMockEndpoints } from '../services'
 import { categoryColor } from '../utils/textUtils'
 import { TensionEditor } from '../components/tension/TensionPanel'
 
@@ -145,6 +147,10 @@ export default function Settings() {
           <Section icon={Stethoscope} title="Diagnóstico do sistema" badge="Admin">
             <Diagnostics />
           </Section>
+
+          <Section icon={Server} title="Camada de dados" badge="Admin">
+            <DataLayerSection />
+          </Section>
         </>
       )}
 
@@ -177,12 +183,14 @@ function AppearanceSection() {
             {isDark ? <><Sun size={15} /> Claro</> : <><Moon size={15} /> Escuro</>}
           </button>
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-sm">Idioma</span>
-          <select className="input max-w-[160px]" defaultValue="pt-BR" aria-label="Idioma da interface">
-            <option value="pt-BR">Português (BR)</option>
-            <option value="en" disabled>English (em breve)</option>
-          </select>
+        <div className="flex items-center justify-between gap-3">
+          <span className="min-w-0">
+            <span className="block text-sm">Idioma</span>
+            <span className="block text-xs muted">
+              A plataforma é publicada em português do Brasil.
+            </span>
+          </span>
+          <span className="chip shrink-0">Português (BR)</span>
         </div>
       </div>
     </Section>
@@ -371,3 +379,59 @@ function Diagnostics() {
 
 // [REMOVIDO] DemoProfileSection — a troca de persona agora vive no menu do
 // usuário (Navbar), evitando duplicação. "Menos, porém melhor."
+
+// -----------------------------------------------------------------------------
+// CAMADA DE DADOS — onde a troca por um backend real acontece.
+// Nenhum componente da interface conhece a origem do dado: tudo passa por
+// src/services. Esta seção existe para tornar isso auditável pela governança.
+// -----------------------------------------------------------------------------
+function DataLayerSection() {
+  const endpoints = listMockEndpoints()
+  const demo = isDemoMode()
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="rounded-lg bg-white/5 p-3">
+          <p className="text-[10px] font-bold uppercase tracking-wider muted">Modo</p>
+          <p className="mt-0.5 flex items-center gap-1.5 text-sm font-bold tracking-tight">
+            <span className={`h-2 w-2 rounded-full ${demo ? 'bg-amber-400' : 'bg-emerald-400'}`} />
+            {DATA_MODE === 'api' ? 'API conectada' : 'Demonstração (local)'}
+          </p>
+        </div>
+        <div className="rounded-lg bg-white/5 p-3">
+          <p className="text-[10px] font-bold uppercase tracking-wider muted">Endereço da API</p>
+          <p className="mt-0.5 truncate font-mono text-xs">{API_BASE_URL || 'não configurado'}</p>
+        </div>
+        <div className="rounded-lg bg-white/5 p-3">
+          <p className="text-[10px] font-bold uppercase tracking-wider muted">Versão</p>
+          <p className="mt-0.5 font-mono text-sm font-bold">{APP_VERSION}</p>
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-gray-200 p-3 dark:border-white/10">
+        <p className="flex items-center gap-1.5 text-sm font-semibold">
+          <PlugZap size={15} className="text-brand-400" /> Como ligar um backend
+        </p>
+        <p className="mt-1 text-xs leading-relaxed muted">
+          Defina <code className="font-mono text-gold-600 dark:text-gold-400">VITE_DATA_MODE=api</code> e{' '}
+          <code className="font-mono text-gold-600 dark:text-gold-400">VITE_API_BASE_URL</code> no ambiente.
+          Os contratos são os mesmos nos dois modos — nenhuma tela precisa ser alterada.
+        </p>
+      </div>
+
+      <details className="rounded-lg border border-gray-200 p-3 dark:border-white/10">
+        <summary className="flex cursor-pointer items-center gap-1.5 text-sm font-semibold">
+          <Database size={15} className="text-brand-400" />
+          Endpoints registrados
+          <span className="chip ml-1">{endpoints.length}</span>
+        </summary>
+        <ul className="mt-3 grid grid-cols-1 gap-1 sm:grid-cols-2">
+          {endpoints.map((e) => (
+            <li key={e} className="rounded bg-white/5 px-2 py-1 font-mono text-[11px] muted">{e}</li>
+          ))}
+        </ul>
+      </details>
+    </div>
+  )
+}
