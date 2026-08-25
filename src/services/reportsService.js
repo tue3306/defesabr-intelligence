@@ -2,7 +2,7 @@ import { request, registerMock } from './client'
 import {
   reportTemplates, reportHistory, reportSchedules, REPORT_FORMATS, REPORT_PERIODS,
 } from '../data/reports'
-import { riskMatrix, RISK_METHODOLOGY, riskSummary } from '../data/riskMatrix'
+import { riskMatrix, RISK_METHODOLOGY, riskSummary, riskCategories, RISK_SEVERITY } from '../data/riskMatrix'
 import { strategicPrograms, PROGRAM_FORCES, PROGRAM_STATUS } from '../data/strategicPrograms'
 import { borderSegments, borderThreats, borderOperations, borderResults } from '../data/borderData'
 import { narratives, fimiSignals } from '../data/narratives'
@@ -36,6 +36,9 @@ registerMock('GET /reports/history', ({ template, format } = {}) => {
 })
 
 registerMock('GET /reports/schedules', () => ({ items: reportSchedules }))
+
+// Rótulos legíveis de tendência — os enums não devem vazar para o documento.
+const TREND_LABEL = { up: 'Em elevação', down: 'Em redução', flat: 'Estável' }
 
 // ── Resolvedores de seção: cada um devolve { label, type, rows|text|bullets } ──
 const SECTION_RESOLVERS = {
@@ -74,20 +77,21 @@ const SECTION_RESOLVERS = {
   matriz: () => ({
     type: 'table',
     columns: ['Risco', 'Categoria', 'Probabilidade', 'Impacto', 'Severidade', 'Tendência'],
+    // Os enums são chaves de lógica; o relatório precisa dos RÓTULOS legíveis.
     rows: riskMatrix.map((r) => ({
       Risco: r.title,
-      Categoria: r.category,
-      Probabilidade: r.probability,
-      Impacto: r.impact,
-      Severidade: r.severity,
-      Tendência: r.trend,
+      Categoria: riskCategories.find((c) => c.id === r.category)?.label || r.category,
+      Probabilidade: `${r.probability}/5`,
+      Impacto: `${r.impact}/5`,
+      Severidade: RISK_SEVERITY[r.severity]?.label || r.severity,
+      Tendência: TREND_LABEL[r.trend] || r.trend,
     })),
   }),
   metodologia: () => ({ type: 'bullets', bullets: RISK_METHODOLOGY }),
   detalhe: () => ({
     type: 'blocks',
     blocks: riskMatrix.map((r) => ({
-      title: `${r.title} — severidade ${r.severity} (${r.score})`,
+      title: `${r.title} — severidade ${RISK_SEVERITY[r.severity]?.label || r.severity} (${r.score})`,
       text: r.description,
       bullets: [`Horizonte: ${r.horizon}`, `Confiança: ${r.confidence}`, `Impacto para o Brasil: ${r.impactBR}`],
     })),
