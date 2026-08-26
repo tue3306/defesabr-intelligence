@@ -33,6 +33,7 @@ const Presentation = lazy(() => import('./pages/Presentation'))
 const Notifications = lazy(() => import('./pages/Notifications'))
 const Learn = lazy(() => import('./pages/Learn'))
 const Account = lazy(() => import('./pages/Account'))
+const Search = lazy(() => import('./pages/Search'))
 // Brasil Estratégico
 const StrategicPrograms = lazy(() => import('./pages/StrategicPrograms'))
 const BlueAmazon = lazy(() => import('./pages/BlueAmazon'))
@@ -113,6 +114,7 @@ export default function App() {
 
           {/* ── USUÁRIO — leitura e acompanhamento ── */}
           <Route path="/painel" element={<Guarded scope="Painel"><Home /></Guarded>} />
+          <Route path="/busca" element={<Guarded scope="Busca global"><Search /></Guarded>} />
           <Route path="/clipping" element={<Guarded scope="Clipping Diário"><DailyClipping /></Guarded>} />
           <Route path="/analise" element={<Guarded scope="Análise Semanal"><WeeklyAnalysis /></Guarded>} />
           <Route path="/dados" element={<Guarded scope="Dados & Gráficos"><DataCharts /></Guarded>} />

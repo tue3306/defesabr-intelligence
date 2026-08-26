@@ -17,6 +17,7 @@ import TagFilter from '../components/ui/TagFilter'
 import Can from '../auth/Can'
 import { useResource } from '../hooks/useResource'
 import { intelligenceService } from '../services'
+import { REFERENCE_DATE } from '../services/config'
 import { CAL_TYPES } from '../data/strategicCalendar'
 import { exportCSV } from '../utils/exportUtils'
 import { formatDateBR, formatMonthYear, deadlineLabel, parseDate, MESES, DIAS } from '../utils/dateUtils'
@@ -24,8 +25,9 @@ import { formatDateBR, formatMonthYear, deadlineLabel, parseDate, MESES, DIAS } 
 // Os tipos declaram o ícone por nome (dado puro); aqui ligamos ao componente.
 const TYPE_ICONS = { Crosshair, Building2, Landmark, Globe2, Flag }
 
-// Data de referência do produto demonstrativo.
-const TODAY = '2026-08-24'
+// A agenda distingue passado de futuro a partir da data de referência do
+// conjunto demonstrativo (services/config), não do relógio do navegador.
+const TODAY = REFERENCE_DATE
 
 const WEEKDAYS = DIAS.map((d) => d.slice(0, 3).toUpperCase())
 

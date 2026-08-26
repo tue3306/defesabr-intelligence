@@ -14,6 +14,7 @@ import { SkeletonCard } from '../components/ui/Skeleton'
 import { TensionBoard } from '../components/tension/TensionPanel'
 import { useResource } from '../hooks/useResource'
 import { taskingService } from '../services'
+import { REFERENCE_DATE } from '../services/config'
 import { useNewsStore } from '../store/newsStore'
 import { useAuthStore } from '../store/authStore'
 import { useTensionStore, tensionBand } from '../store/tensionStore'
@@ -34,8 +35,9 @@ const Section = ({ children, className = '' }) => (
   </motion.section>
 )
 
-// Data de referência do produto demonstrativo — usada para "atrasado/no prazo".
-const TODAY = '2026-08-24'
+// A data de referência do conjunto demonstrativo vive em services/config:
+// os prazos da fila só fazem sentido em relação a ela.
+const TODAY = REFERENCE_DATE
 
 const ALERT_ACCENT = { NORMAL: 'green', ATENCAO: 'amber', ALERTA: 'amber', CRITICO: 'red' }
 

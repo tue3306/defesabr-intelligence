@@ -94,8 +94,8 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
 
       <div className="hidden max-w-md flex-1 sm:block">
         <SearchBar
-          placeholder="Buscar no acervo (Ctrl + K para comandos)…"
-          onSearch={(q) => q && navigate(`/arquivo?q=${encodeURIComponent(q)}`)}
+          placeholder="Buscar em todos os módulos (Ctrl + K para comandos)…"
+          onSearch={(q) => navigate(q ? `/busca?q=${encodeURIComponent(q)}` : '/busca')}
         />
       </div>
 

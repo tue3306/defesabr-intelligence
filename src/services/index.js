@@ -11,6 +11,7 @@
 // Nenhum componente precisa ser alterado — os contratos são os mesmos.
 // -----------------------------------------------------------------------------
 export { newsService } from './newsService'
+export { searchService } from './searchService'
 export { intelligenceService } from './intelligenceService'
 export { adminService } from './adminService'
 export { taskingService } from './taskingService'
@@ -19,4 +20,5 @@ export { reportsService } from './reportsService'
 export { request, requestWithFallback, registerMock, listMockEndpoints, ApiError } from './client'
 export {
   DATA_MODE, API_BASE_URL, APP_NAME, APP_VERSION, isDemoMode, SETTINGS_STORAGE_KEY,
+  REFERENCE_DATE, referenceDate,
 } from './config'

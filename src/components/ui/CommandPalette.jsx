@@ -53,6 +53,7 @@ export default function CommandPalette() {
       { id: 'calendario', group: 'Inteligência', label: 'Abrir Calendário Estratégico', icon: CalendarDays, run: go('/calendario'), auth: true },
       { id: 'fontes', group: 'Inteligência', label: 'Abrir Confiabilidade das Fontes', icon: BadgeCheck, run: go('/fontes'), auth: true, cap: 'sources.reliability' },
       { id: 'arquivo', group: 'Inteligência', label: 'Abrir Arquivo & Pasta', icon: ArchiveIcon, run: go('/arquivo'), auth: true },
+      { id: 'busca', group: 'Navegação', label: 'Abrir Busca global', icon: Search, run: go('/busca'), auth: true },
 
       // Brasil Estratégico
       { id: 'programas', group: 'Brasil Estratégico', label: 'Abrir Programas Estratégicos', icon: Target, run: go('/programas'), auth: true },
@@ -122,9 +123,9 @@ export default function CommandPalette() {
       list.push({
         id: 'busca',
         group: 'Ações',
-        label: `Buscar "${query.trim()}" no acervo`,
+        label: `Buscar "${query.trim()}" em todos os módulos`,
         icon: Search,
-        run: () => navigate(`/arquivo?q=${encodeURIComponent(query.trim())}`),
+        run: () => navigate(`/busca?q=${encodeURIComponent(query.trim())}`),
       })
     }
     return list

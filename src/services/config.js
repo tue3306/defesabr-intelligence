@@ -43,3 +43,23 @@ export const SETTINGS_STORAGE_KEY = 'defesabr-settings-v3'
 
 /** true quando a plataforma roda em modo demonstração (sem backend). */
 export const isDemoMode = () => DATA_MODE === 'mock' || !API_BASE_URL
+
+/**
+ * DATA DE REFERÊNCIA DO CONJUNTO DEMONSTRATIVO.
+ *
+ * O acervo de demonstração foi escrito em torno de uma data fixa: prazos da
+ * fila de produção, agenda estratégica, marcos de programas e trilha de
+ * auditoria são coerentes entre si a partir dela. Usar `new Date()` faria a
+ * demonstração envelhecer sozinha — prazos venceriam, a agenda esvaziaria e o
+ * conjunto perderia a coerência interna.
+ *
+ * Ao ligar um backend real, troque por `new Date().toISOString().slice(0, 10)`
+ * num único lugar: nenhuma tela precisa mudar.
+ */
+export const REFERENCE_DATE = env.VITE_REFERENCE_DATE || '2026-08-24'
+
+/** A data de referência como Date no fuso local (evita o desvio de UTC). */
+export function referenceDate() {
+  const [y, m, d] = REFERENCE_DATE.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}

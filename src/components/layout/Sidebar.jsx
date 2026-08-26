@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Newspaper, BarChart3, LineChart, Archive, Settings, HelpCircle,
   Shield, Tv, Lock, GraduationCap, Home, Sparkles, DollarSign, X,
   Target, Waves, Scale, Factory, Layers, Radio, Landmark, CalendarDays, BadgeCheck,
-  UserCircle, ShieldCheck, ShieldAlert, FileText, ClipboardList,
+  UserCircle, ShieldCheck, ShieldAlert, FileText, ClipboardList, Search,
 } from 'lucide-react'
 import Logo from '../ui/Logo'
 import { useAuthStore } from '../../store/authStore'
@@ -29,6 +29,7 @@ const NAV_SECTIONS = [
     items: [
       { to: '/', label: 'Início', icon: Home, end: true },
       { to: '/painel', label: 'Painel', icon: LayoutDashboard, requiresAuth: true },
+      { to: '/busca', label: 'Busca global', icon: Search, requiresAuth: true },
     ],
   },
   {

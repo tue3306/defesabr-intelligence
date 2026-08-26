@@ -18,6 +18,7 @@ import { SkeletonMetric } from '../components/ui/Skeleton'
 import Can from '../auth/Can'
 import { useResource } from '../hooks/useResource'
 import { taskingService } from '../services'
+import { REFERENCE_DATE } from '../services/config'
 import { PRODUCTION_STAGES, PRIORITY, RFI_STATUS } from '../data/tasking'
 import { useAuthStore } from '../store/authStore'
 import { timeAgo } from '../utils/dateUtils'
@@ -36,7 +37,6 @@ import { timeAgo } from '../utils/dateUtils'
 // -----------------------------------------------------------------------------
 
 /** Data de referência do produto — usada para destacar prazos vencidos. */
-const REFERENCE_DATE = '2026-08-24'
 
 /** Estágios na ordem do fluxo editorial (rascunho → publicado). */
 const STAGE_ORDER = Object.values(PRODUCTION_STAGES).sort((a, b) => a.order - b.order)

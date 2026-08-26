@@ -43,7 +43,7 @@ export default function NotFound() {
   const search = (e) => {
     e.preventDefault()
     const q = query.trim()
-    navigate(q ? `/arquivo?q=${encodeURIComponent(q)}` : '/arquivo')
+    navigate(q ? `/busca?q=${encodeURIComponent(q)}` : '/busca')
   }
 
   return (
@@ -67,7 +67,7 @@ export default function NotFound() {
             id="busca-404"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Procurar no acervo (ex.: PROSUB, fronteira)…"
+            placeholder="Procurar em todos os módulos (ex.: PROSUB, fronteira)…"
             className="input pl-9"
           />
         </div>
