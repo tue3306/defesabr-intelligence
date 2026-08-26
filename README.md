@@ -79,6 +79,7 @@ no GitHub Pages, sem backend, com **dados mockados realistas**.
 | **Inteligência & Análise** | Clipping diário (resumo por IA), Análise Semanal de cenários, Dossiês "Em Foco", Monitor de Narrativas (FIMI), **Matriz de Riscos** (probabilidade × impacto), Calendário estratégico, Arquivo + "Minha Pasta" |
 | **Brasil Estratégico** | Programas Estratégicos (PROSUB, FX-2, Tamandaré…), Amazônia Azul, Fronteiras & Amazônia, Balança Militar Sul-Americana, Base Industrial de Defesa |
 | **Dados & Economia** | Mapa de risco interativo, gastos de defesa (R$ e % do PIB), câmbio ao vivo, índice de alerta, indicadores macro |
+| **Busca** | Busca global em todos os módulos com expansão de sinônimos do domínio, agrupamento por tipo e sinalização do que exige plano ou perfil superior |
 | **Apoio à decisão** | Assistente "Pergunte ao Analista", nível de tensão por região, confiabilidade de fontes |
 | **Educação** | Centro Educacional: trilhas, vídeo-aulas, glossário pesquisável, biblioteca (PND/END/LBDN), quiz |
 | **Produção (Analista)** | **Mesa de trabalho**: fila editorial (kanban), requisitos de informação (RFI) e plano de coleta (PIR/EEI) com lacunas; classificação de narrativas e reavaliação de fontes |
@@ -136,7 +137,8 @@ src/
 │   ├── intelligenceService.js  # narrativas, dossiês, fontes, riscos, programas, agenda
 │   ├── taskingService.js # mesa do analista: fila, RFIs, plano de coleta
 │   ├── adminService.js   # contas, fontes, auditoria, saúde, diagnóstico
-│   └── reportsService.js # modelos, histórico e composição de relatórios
+│   ├── reportsService.js # modelos, histórico e composição de relatórios
+│   └── searchService.js  # índice global de busca (todos os domínios)
 ├── auth/           # permissions.js (fonte de verdade), useCan, <Can>
 ├── api/            # Integrações externas diretas (câmbio, World Bank, IA) com fallback
 ├── components/
@@ -172,6 +174,13 @@ VITE_API_BASE_URL=https://sua-api.exemplo.br/v1
 
 Em modo `mock`, os resolvedores locais respondem com **latência simulada**, para que os estados de
 carregamento sejam reais e os defeitos de _loading_ apareçam em desenvolvimento.
+
+### Empacotamento
+
+O build separa os vendors (`react`, `framer-motion`, `lucide`, mapas) em chunks próprios: o código
+da aplicação fica em ~84 kB gzip e as bibliotecas — cerca de 143 kB gzip — permanecem em cache
+entre versões. As bibliotecas de PDF (~590 kB) são carregadas **sob demanda**, apenas quando
+alguém realmente exporta.
 
 
 **Princípios**
