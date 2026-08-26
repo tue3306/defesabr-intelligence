@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import {
   Rss, KeyRound, Bell, SlidersHorizontal, UserCog, Trash2, Plus, Circle, Eye, EyeOff,
   Palette, Star, Gauge, Stethoscope, Users, Sun, Moon, LogIn, ShieldCheck, CreditCard, BarChart3,
-  Check, Lock, Server, Database, PlugZap,
+  Check, Lock, Server, Database, PlugZap, ShieldAlert,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useSettingsStore } from '../store/settingsStore'
@@ -332,7 +332,9 @@ function ApiKeyEditor({ s }) {
     <>
       <p className="mb-3 text-sm muted">
         Opcional. Sobrescreve a variável de ambiente apenas neste navegador.{' '}
-        {isApiConfigured() ? <span className="text-emerald-400">● IA configurada</span> : <span className="text-yellow-400">● modo demonstração</span>}
+        {isApiConfigured()
+          ? <span className="font-semibold text-emerald-600 dark:text-emerald-400">● IA configurada</span>
+          : <span className="font-semibold text-yellow-600 dark:text-yellow-400">● modo demonstração</span>}
       </p>
       <div className="flex gap-2">
         <div className="relative flex-1">
@@ -346,7 +348,29 @@ function ApiKeyEditor({ s }) {
         </div>
         <button onClick={() => { s.setApiKeyOverride(''); toast.success('Chave removida') }} className="btn-ghost shrink-0">Limpar</button>
       </div>
-      <p className="mt-2 text-xs text-yellow-400/80">⚠️ Em produção, não exponha a chave no front-end. Use um backend/proxy.</p>
+      <div className="mt-3 rounded-lg border border-military-red/40 bg-military-red/10 p-3">
+        <p className="flex items-center gap-1.5 text-sm font-bold text-red-700 dark:text-red-300">
+          <ShieldAlert size={15} /> Isto não é seguro em produção
+        </p>
+        <ul className="mt-1.5 space-y-1 text-xs leading-relaxed text-gray-700 dark:text-gray-300">
+          <li>
+            A chave fica em <strong>texto puro no armazenamento deste navegador</strong> e é enviada
+            diretamente da máquina de quem usa — qualquer script na página, extensão ou pessoa com
+            acesso ao dispositivo consegue lê-la.
+          </li>
+          <li>
+            Toda chamada consome a <strong>sua cota</strong>, sem limite por usuário e sem trilha de
+            quem gastou o quê.
+          </li>
+          <li>
+            Em produção, a chave vive <strong>apenas no servidor</strong>: o front chama um endpoint
+            próprio, que autentica a pessoa e repassa a requisição.
+          </li>
+        </ul>
+        <p className="mt-2 text-[11px] muted">
+          Use este campo apenas com uma chave descartável, de teste, e remova-a ao terminar.
+        </p>
+      </div>
     </>
   )
 }

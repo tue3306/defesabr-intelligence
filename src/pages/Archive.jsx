@@ -111,10 +111,28 @@ export default function Archive() {
     setSelected([])
   }
 
-  const exportSelected = () => {
+  // Um PDF de cada vez: a biblioteca é compartilhada e gerar em paralelo
+  // embaralharia os documentos. O aviso só vem quando todos existem.
+  const exportSelected = async () => {
     const items = clippings.filter((c) => selected.includes(c.id))
-    items.forEach((c) => exportClippingToPDF(c.data))
-    toast.success(`${items.length} PDF(s) gerado(s)`)
+    try {
+      for (const c of items) {
+        // eslint-disable-next-line no-await-in-loop
+        await exportClippingToPDF(c.data)
+      }
+      toast.success(`${items.length} PDF(s) gerado(s)`)
+    } catch {
+      toast.error('Falha ao gerar um dos PDFs. Tente novamente.')
+    }
+  }
+
+  // Exportação individual, com aviso de erro em vez de falha silenciosa.
+  const exportOne = async (clipping) => {
+    try {
+      await exportClippingToPDF(clipping)
+    } catch {
+      toast.error('Não foi possível gerar o PDF.')
+    }
   }
 
   return (
@@ -296,7 +314,7 @@ export default function Archive() {
                     <div className="flex shrink-0 gap-2">
                       <button onClick={() => setOpenItem(c)} className="btn-primary px-3 py-1.5 text-xs"><Eye size={14} /> Abrir</button>
                       <Can do="reports.export">
-                        <button onClick={() => exportClippingToPDF(c.data)} className="btn-ghost px-2.5 py-1.5 text-xs">
+                        <button onClick={() => exportOne(c.data)} className="btn-ghost px-2.5 py-1.5 text-xs">
                           <FileDown size={14} /> PDF
                         </button>
                       </Can>
@@ -422,7 +440,7 @@ export default function Archive() {
               <Badge type="alert" value={openItem.data.alert_level} />
               <span className="text-xs muted">{openItem.data.date}</span>
               <Can do="reports.export">
-                <button onClick={() => exportClippingToPDF(openItem.data)} className="btn-ghost ml-auto px-2.5 py-1 text-xs">
+                <button onClick={() => exportOne(openItem.data)} className="btn-ghost ml-auto px-2.5 py-1 text-xs">
                   <FileDown size={13} /> Exportar PDF
                 </button>
               </Can>

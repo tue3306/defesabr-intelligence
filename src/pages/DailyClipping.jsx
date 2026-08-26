@@ -101,10 +101,16 @@ export default function DailyClipping() {
     toast.success('Clipping salvo no arquivo')
   }
 
-  const handlePDF = () => {
+  // A geração do PDF é assíncrona (a biblioteca é carregada sob demanda):
+  // o aviso de sucesso só pode vir depois que o arquivo existe de fato.
+  const handlePDF = async () => {
     if (!result) return
-    exportClippingToPDF(result)
-    toast.success('PDF do clipping gerado')
+    try {
+      await exportClippingToPDF(result)
+      toast.success('PDF do clipping gerado')
+    } catch {
+      toast.error('Não foi possível gerar o PDF deste clipping.')
+    }
   }
 
   const handleDateChange = (e) => {

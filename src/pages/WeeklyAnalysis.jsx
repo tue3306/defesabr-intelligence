@@ -85,11 +85,17 @@ export default function WeeklyAnalysis() {
     setResult(r)
   }
 
-  const handlePDF = () => {
+  // A geração do PDF é assíncrona (a biblioteca é carregada sob demanda):
+  // o aviso de sucesso só pode vir depois que o arquivo existe de fato.
+  const handlePDF = async () => {
     if (!result) return
     const focusLabel = FOCUS_AREAS.find((f) => f.id === focusArea)?.label || 'Geral'
-    exportWeeklyToPDF(result, { week, focusLabel })
-    toast.success('Relatório PDF gerado')
+    try {
+      await exportWeeklyToPDF(result, { week, focusLabel })
+      toast.success('Relatório PDF gerado')
+    } catch {
+      toast.error('Não foi possível gerar o PDF desta análise.')
+    }
   }
 
   return (
