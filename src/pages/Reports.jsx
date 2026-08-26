@@ -107,7 +107,7 @@ export default function Reports() {
     // Pequena espera para o estado de carregamento ser perceptível — a geração
     // de um PDF grande realmente leva esse tempo.
     await new Promise((r) => setTimeout(r, 350))
-    const result = downloadReport(preview.data, format)
+    const result = await downloadReport(preview.data, format)
     setGenerating(false)
 
     if (!result.ok) {

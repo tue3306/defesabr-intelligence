@@ -1,5 +1,20 @@
-import jsPDF from 'jspdf'
-import html2canvas from 'html2canvas'
+// -----------------------------------------------------------------------------
+// As bibliotecas de PDF pesam ~590 kB somadas. Importá-las no topo colocava
+// esse peso no bundle de TODA página que exporta qualquer coisa — inclusive as
+// que só geram CSV. Aqui elas são carregadas sob demanda, na primeira vez que
+// um PDF é realmente pedido.
+// -----------------------------------------------------------------------------
+let jsPDFModule = null
+async function loadJsPDF() {
+  if (!jsPDFModule) jsPDFModule = (await import('jspdf')).default
+  return jsPDFModule
+}
+
+let html2canvasModule = null
+async function loadHtml2Canvas() {
+  if (!html2canvasModule) html2canvasModule = (await import('html2canvas')).default
+  return html2canvasModule
+}
 
 // Download generico de blob
 function download(blob, filename) {
@@ -31,6 +46,7 @@ export function exportCSV(rows = [], filename = 'export.csv') {
 // Captura um elemento do DOM e gera PDF (paginado)
 export async function exportElementToPDF(element, filename = 'documento.pdf') {
   if (!element) return
+  const [jsPDF, html2canvas] = await Promise.all([loadJsPDF(), loadHtml2Canvas()])
   const canvas = await html2canvas(element, {
     scale: 2,
     backgroundColor: '#141c28',
@@ -56,7 +72,8 @@ export async function exportElementToPDF(element, filename = 'documento.pdf') {
 }
 
 // PDF "de inteligência" gerado proceduralmente a partir do clipping
-export function exportClippingToPDF(clipping) {
+export async function exportClippingToPDF(clipping) {
+  const jsPDF = await loadJsPDF()
   const pdf = new jsPDF('p', 'mm', 'a4')
   const W = pdf.internal.pageSize.getWidth()
   const H = pdf.internal.pageSize.getHeight()
@@ -165,8 +182,9 @@ export function exportClippingToPDF(clipping) {
 }
 
 // PDF da Análise Semanal (cenários, oportunidades, riscos, recomendações e indicadores)
-export function exportWeeklyToPDF(analysis, meta = {}) {
+export async function exportWeeklyToPDF(analysis, meta = {}) {
   if (!analysis) return
+  const jsPDF = await loadJsPDF()
   const pdf = new jsPDF('p', 'mm', 'a4')
   const W = pdf.internal.pageSize.getWidth()
   const H = pdf.internal.pageSize.getHeight()

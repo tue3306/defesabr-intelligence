@@ -1,4 +1,10 @@
-import jsPDF from 'jspdf'
+// A biblioteca de PDF (~390 kB) só é carregada quando um PDF é realmente
+// pedido — quem exporta apenas CSV ou JSON não paga por ela.
+let jsPDFModule = null
+async function loadJsPDF() {
+  if (!jsPDFModule) jsPDFModule = (await import('jspdf')).default
+  return jsPDFModule
+}
 
 // =============================================================================
 // RENDERIZAÇÃO DE RELATÓRIOS COMPOSTOS
@@ -45,7 +51,8 @@ const stamp = (doc) =>
 // ─────────────────────────────────────────────────────────────────────────────
 // PDF
 // ─────────────────────────────────────────────────────────────────────────────
-export function exportReportToPDF(doc) {
+export async function exportReportToPDF(doc) {
+  const jsPDF = await loadJsPDF()
   const pdf = new jsPDF('p', 'mm', 'a4')
   const W = pdf.internal.pageSize.getWidth()
   const H = pdf.internal.pageSize.getHeight()
@@ -259,13 +266,13 @@ export function exportReportToJSON(doc) {
  * interface mostre um aviso coerente em vez de quebrar a tela.
  * @returns {{ok: true, filename: string} | {ok: false, error: string}}
  */
-export function downloadReport(doc, format = 'pdf') {
+export async function downloadReport(doc, format = 'pdf') {
   if (!doc) return { ok: false, error: 'Nenhum relatório foi montado.' }
   try {
     const filename =
       format === 'csv' ? exportReportToCSV(doc)
         : format === 'json' ? exportReportToJSON(doc)
-          : exportReportToPDF(doc)
+          : await exportReportToPDF(doc)
     return { ok: true, filename }
   } catch (err) {
     return { ok: false, error: err?.message || 'Falha ao gerar o arquivo.' }
