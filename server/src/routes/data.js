@@ -117,6 +117,74 @@ router.get('/economy/comparison', (req, res) => {
 
 // ═══════════════════════════ FONTES ═══════════════════════════
 
+// GET /api/economy/exports — exportações da indústria de defesa (Comex Stat)
+//
+// Duas ressalvas que precisam viajar COM o número, e por isso estão no corpo
+// da resposta e não apenas na tela:
+//
+//   O capítulo 88 da NCM inclui aviação CIVIL. A maior parte do que o Brasil
+//   exporta ali são jatos comerciais da Embraer, não material militar. Somar
+//   isso como "exportação de defesa" infla o número numa ordem de grandeza.
+//
+//   O valor é FOB em dólares correntes, e o ano corrente está INCOMPLETO — vai
+//   até o último mês que o MDIC publicou.
+router.get('/economy/exports', (req, res) => {
+  const linhas = all(
+    `SELECT code, country, period, value
+     FROM indicators
+     WHERE provider = 'comexstat'
+     ORDER BY period DESC, value DESC`
+  )
+
+  if (!linhas.length) {
+    return res.json({
+      ano: null, periodos: [], porCapitulo: [], porPais: [], totalUSD: 0,
+      provider: 'Comex Stat — MDIC',
+      nota: 'Sem dados do Comex Stat ainda — a coleta ocorre junto das demais.',
+    })
+  }
+
+  const CAP = {
+    'NCM-88': { nome: 'Aeronaves e partes', aviso: 'Inclui aviação civil (Embraer comercial).' },
+    'NCM-93': { nome: 'Armas e munições', aviso: 'Uso militar e civil.' },
+  }
+
+  const periodos = [...new Set(linhas.map((l) => l.period))].sort().reverse()
+  const recente = periodos[0]
+  const doAno = linhas.filter((l) => l.period === recente)
+
+  const somaPor = (chave, rotulo) => {
+    const m = new Map()
+    for (const l of doAno) m.set(l[chave], (m.get(l[chave]) || 0) + l.value)
+    return [...m.entries()]
+      .map(([k, v]) => ({
+        [rotulo]: k,
+        valorUSD: Math.round(v),
+        valorUSDbi: Math.round((v / 1e9) * 100) / 100,
+        valorUSDmi: Math.round((v / 1e6) * 10) / 10,
+      }))
+      .sort((a, b) => b.valorUSD - a.valorUSD)
+  }
+
+  const porCapitulo = somaPor('code', 'codigo').map((c) => ({
+    ...c,
+    nome: CAP[c.codigo]?.nome || c.codigo,
+    aviso: CAP[c.codigo]?.aviso || null,
+  }))
+
+  res.json({
+    ano: recente,
+    periodos,
+    porCapitulo,
+    porPais: somaPor('country', 'pais').slice(0, 15),
+    totalUSD: doAno.reduce((a, l) => a + l.value, 0),
+    provider: 'Comex Stat — MDIC',
+    nota: 'Valor FOB em dólares correntes. O capítulo 88 (aeronaves) inclui aviação CIVIL: '
+      + 'a maior parte é jato comercial da Embraer, não material militar. O ano corrente está '
+      + 'incompleto, até o último mês publicado pelo MDIC.',
+  })
+})
+
 router.get('/sources', (req, res) => {
   const itens = all(
     `SELECT s.*, (SELECT COUNT(*) FROM articles a WHERE a.source_id = s.id) AS artigos,

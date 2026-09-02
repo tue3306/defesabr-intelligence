@@ -22,17 +22,30 @@ export class ErroDeColeta extends Error {
   }
 }
 
-async function buscar(url, { aceita, timeoutMs = config.coleta.timeoutMs } = {}) {
+async function buscar(url, {
+  aceita,
+  timeoutMs = config.coleta.timeoutMs,
+  // O Comex Stat só responde a POST com a consulta no corpo. Antes esta função
+  // montava sempre um GET e descartava silenciosamente qualquer método ou
+  // corpo que lhe passassem — um jeito discreto de a chamada falhar sem que o
+  // chamador entendesse por quê.
+  method = 'GET',
+  body,
+  headers: extras,
+} = {}) {
   const controlador = new AbortController()
   const relogio = setTimeout(() => controlador.abort(), timeoutMs)
   try {
     const resposta = await fetch(url, {
       signal: controlador.signal,
       redirect: 'follow',
+      method,
+      body,
       headers: {
         'User-Agent': config.coleta.userAgent,
         Accept: aceita,
         'Accept-Language': 'pt-BR,pt;q=0.9',
+        ...extras,
       },
     })
     if (!resposta.ok) {
