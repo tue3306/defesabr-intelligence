@@ -31,3 +31,11 @@ logs
 *.njsproj
 *.sln
 *.sw?
+
+# Banco local. E RECRIADO na primeira subida do servidor, com as fontes
+# cadastradas e uma coleta real — versiona-lo so embarcaria noticias velhas.
+server/data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
