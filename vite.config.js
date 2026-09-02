@@ -7,7 +7,11 @@ export default defineConfig({
   base: '/',
   plugins: [react()],
   server: {
-    port: 5173,
+    // A porta vem do ambiente quando quem sobe o processo escolhe uma. Fixar
+    // 5173 aqui fazia a ferramenta de preview falhar sempre que a porta
+    // estivesse ocupada — inclusive por uma instância anterior deste mesmo
+    // projeto, que é o caso mais comum.
+    port: Number(process.env.PORT) || 5173,
     // Proxy de /api para o servidor local. E o que permite ao front usar
     // caminho relativo em desenvolvimento e em producao: mesma origem nos dois,
     // portanto nenhum CORS para depurar e nenhuma variavel de ambiente para

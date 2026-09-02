@@ -1,70 +1,114 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
-  Landmark, ExternalLink, RefreshCw, Loader2, Filter, X, Download, Database, Info,
+  Landmark, Building, FileText, Filter, X, Download, ChevronRight,
+  Gavel, TrendingUp, CircleDot, CheckCircle2, Archive as ArchiveIcon, Clock,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PageHeader from '../components/ui/PageHeader'
 import MetricCard from '../components/ui/MetricCard'
 import EmptyState from '../components/ui/EmptyState'
 import DataState from '../components/ui/DataState'
+import Badge from '../components/ui/Badge'
+import Modal from '../components/ui/Modal'
 import SearchBar from '../components/ui/SearchBar'
+import Can from '../auth/Can'
 import { useResource } from '../hooks/useResource'
-import { legislativo } from '../services'
+import { intelligenceService } from '../services'
+import { LEG_STAGE } from '../data/legislative'
 import { exportCSV } from '../utils/exportUtils'
 import { formatDateBR, timeAgo } from '../utils/dateUtils'
+
+const HOUSES = ['Todas', 'Câmara', 'Senado']
+
+const RELEVANCE_CLR = {
+  Alta: 'bg-military-red/20 text-red-700 dark:text-red-300',
+  Média: 'bg-military-amber/20 text-amber-700 dark:text-amber-300',
+  Baixa: 'bg-military-green/20 text-emerald-700 dark:text-emerald-300',
+}
+
+// A tramitação real tem muitas etapas; aqui usamos as quatro que importam para
+// quem acompanha impacto: comissão → plenário → sanção → aprovado.
+const FLOW = ['comissao', 'plenario', 'sancao', 'aprovado']
+
+const STAGE_ICON = {
+  comissao: CircleDot,
+  plenario: Gavel,
+  sancao: FileText,
+  aprovado: CheckCircle2,
+  arquivado: ArchiveIcon,
+}
+
+const SORTS = [
+  { id: 'stage', label: 'Estágio mais avançado' },
+  { id: 'recent', label: 'Atualização mais recente' },
+  { id: 'relevance', label: 'Maior relevância' },
+]
+
+const RELEVANCE_WEIGHT = { Alta: 3, 'Média': 2, Baixa: 1 }
 
 // -----------------------------------------------------------------------------
 // RADAR LEGISLATIVO
 //
-// Proposições REAIS dos Dados Abertos da Câmara: número, ementa, data e link
-// para a tramitação oficial.
-//
-// O que esta tela NÃO faz: dizer o que cada proposição significa para a
-// defesa. Isso é análise, exige julgamento, e nenhuma API o fornece. A palavra
-// que trouxe a proposição para o acervo é mostrada como pista de por que ela
-// está aqui — mas pista não é análise, e a tela não finge que é.
+// Uma proposição só interessa a este produto quando muda a capacidade, o
+// orçamento ou as regras de emprego das Forças. Por isso cada item carrega o
+// IMPACTO declarado, e não apenas o número e a ementa.
 // -----------------------------------------------------------------------------
 export default function Legislative() {
-  const [consulta, setConsulta] = useState('')
-  const [palavra, setPalavra] = useState('')
-  const [atualizando, setAtualizando] = useState(null)
+  const { data, loading, error, refetch } = useResource(() => intelligenceService.legislative(), [])
 
-  const { data, loading, error, refetch } = useResource(
-    () => legislativo.listar({ q: consulta || undefined, keyword: palavra || undefined }),
-    [consulta, palavra],
-    { keepPreviousData: true }
-  )
+  const [query, setQuery] = useState('')
+  const [house, setHouse] = useState('Todas')
+  const [stage, setStage] = useState('')
+  const [sort, setSort] = useState('stage')
+  const [open, setOpen] = useState(null)
 
-  const itens = data?.items || []
-  const temFiltro = !!(consulta || palavra)
+  const items = data?.items || []
 
-  const atualizarTramitacao = async (b) => {
-    setAtualizando(b.id)
-    try {
-      const { data: r } = await legislativo.atualizarTramitacao(b.id)
-      toast[r.ok ? 'success' : 'error'](r.mensagem)
-      refetch()
-    } catch (err) {
-      toast.error(err?.userMessage || 'Não foi possível consultar a Câmara.')
-    } finally {
-      setAtualizando(null)
-    }
-  }
+  const filtered = useMemo(() => {
+    const needle = query.trim().toLowerCase()
+    let list = items.filter((i) => {
+      if (house !== 'Todas' && i.house !== house) return false
+      if (stage && i.stage !== stage) return false
+      if (needle && !`${i.code} ${i.title} ${i.summary} ${i.theme}`.toLowerCase().includes(needle)) return false
+      return true
+    })
+    list = [...list].sort((a, b) => {
+      if (sort === 'recent') return (b.updated || '').localeCompare(a.updated || '')
+      if (sort === 'relevance') {
+        return (RELEVANCE_WEIGHT[b.relevance] || 0) - (RELEVANCE_WEIGHT[a.relevance] || 0)
+      }
+      return (LEG_STAGE[b.stage]?.pct || 0) - (LEG_STAGE[a.stage]?.pct || 0)
+    })
+    return list
+  }, [items, query, house, stage, sort])
 
-  const exportar = () => {
+  const stats = useMemo(() => ({
+    total: items.length,
+    advanced: items.filter((i) => ['plenario', 'sancao', 'aprovado'].includes(i.stage)).length,
+    highRelevance: items.filter((i) => i.relevance === 'Alta').length,
+    approved: items.filter((i) => i.stage === 'aprovado').length,
+  }), [items])
+
+  const hasFilters = !!(query || house !== 'Todas' || stage)
+  const clearFilters = () => { setQuery(''); setHouse('Todas'); setStage('') }
+
+  const exportItems = () => {
     exportCSV(
-      itens.map((b) => ({
-        Identificador: b.code,
-        Casa: b.house,
-        Ementa: b.summary || '',
-        Apresentada: b.presentedAt ? formatDateBR(b.presentedAt) : '',
-        'Situação': b.statusText || 'não consultada',
-        'Palavra que a trouxe': b.keyword || '',
-        Link: b.url || '',
+      filtered.map((i) => ({
+        Identificador: i.code,
+        Título: i.title,
+        Casa: i.house,
+        Tema: i.theme,
+        Estágio: LEG_STAGE[i.stage]?.label || i.stage,
+        Relevância: i.relevance,
+        Relator: i.rapporteur,
+        Atualizado: formatDateBR(i.updated),
+        Ementa: i.summary,
+        'Impacto para a defesa': i.impactBR,
       })),
-      `legislativo-${new Date().toISOString().slice(0, 10)}.csv`
+      `radar-legislativo-${new Date().toISOString().slice(0, 10)}.csv`
     )
-    toast.success(`${itens.length} proposição(ões) exportada(s)`)
+    toast.success(`${filtered.length} proposição(ões) exportada(s) em CSV`)
   }
 
   return (
@@ -72,144 +116,233 @@ export default function Legislative() {
       <PageHeader
         icon={Landmark}
         title="Radar Legislativo"
-        description="Proposições em tramitação na Câmara que tocam defesa, segurança, fronteiras e soberania."
-        help="Vêm dos Dados Abertos da Câmara, buscadas por 13 palavras-chave do domínio e deduplicadas por identificador."
-        breadcrumb={[{ label: 'Dados públicos' }, { label: 'Legislativo' }]}
-        meta={data ? [
-          { label: 'Fonte', value: data.provider },
-          { label: 'Coletado', value: data.lastFetchAt ? timeAgo(data.lastFetchAt) : '—' },
-        ] : []}
+        description="Proposições em tramitação no Congresso Nacional que alteram capacidade, orçamento ou regras de emprego das Forças Armadas."
+        help="Conteúdo demonstrativo. Em produção, alimentado pelas APIs abertas da Câmara dos Deputados e do Senado Federal."
+        breadcrumb={[{ label: 'Brasil Estratégico' }, { label: 'Radar Legislativo' }]}
+        badges={<Badge type="demo" />}
         actions={
-          <button onClick={exportar} disabled={!itens.length} className="btn-ghost text-sm">
-            <Download size={15} /> CSV
-          </button>
+          <Can do="reports.export">
+            <button onClick={exportItems} className="btn-ghost text-sm" disabled={!filtered.length}>
+              <Download size={15} /> Exportar CSV
+            </button>
+          </Can>
         }
       />
 
-      <DataState loading={loading && !data} error={error} onRetry={refetch} skeletonCount={4}>
-        {itens.length === 0 && !temFiltro ? (
-          <EmptyState
-            icon={Database}
-            title="Nenhuma proposição coletada"
-            hint="A coleta consulta os Dados Abertos da Câmara por palavras-chave de defesa. Dispare uma coleta no painel de status."
-            action={{ label: 'Ir para o Status', to: '/status' }}
-          />
-        ) : (
-          <>
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-              <MetricCard icon={Landmark} label="Proposições" value={String(data.total)} hint="acompanhadas" accent="brand" />
-              <MetricCard
-                icon={Info}
-                label="Com tramitação"
-                value={String(data.total - data.semSituacao)}
-                hint={`${data.semSituacao} ainda não consultadas`}
-                accent={data.semSituacao > data.total / 2 ? 'amber' : 'green'}
-              />
-              <MetricCard icon={Filter} label="Palavras-chave" value={String(data.keywords?.length ?? 0)} hint="usadas na busca" accent="brand" />
-              <MetricCard icon={RefreshCw} label="Última coleta" value={data.lastFetchAt ? timeAgo(data.lastFetchAt) : '—'} hint={data.provider} accent="brand" />
-            </div>
+      {/* INDICADORES */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <MetricCard icon={FileText} label="Proposições acompanhadas" value={String(stats.total || '—')} hint="com impacto sobre defesa" accent="brand" />
+        <MetricCard icon={TrendingUp} label="Em tramitação avançada" value={String(stats.advanced)} hint="plenário, sanção ou aprovadas" accent="amber" />
+        <MetricCard icon={Gavel} label="Alta relevância" value={String(stats.highRelevance)} hint="prioridade de acompanhamento" accent="red" />
+        <MetricCard icon={CheckCircle2} label="Já aprovadas" value={String(stats.approved)} hint="convertidas em norma" accent="green" />
+      </div>
 
-            {/* A ressalva sobre a tramitação: ela chega em lote, não de uma vez. */}
-            {data.semSituacao > 0 && (
-              <p className="flex items-start gap-2 rounded-lg bg-brand-500/10 p-3 text-sm leading-relaxed">
-                <Info size={15} className="mt-0.5 shrink-0 text-brand-500 dark:text-brand-300" />
-                <span className="text-gray-700 dark:text-gray-300">
-                  {data.semSituacao} proposição(ões) ainda sem situação de tramitação. Consultá-la exige
-                  uma requisição por proposição, então o servidor a preenche em lotes pequenos a cada
-                  coleta — ou você pode pedir uma agora, item a item.
-                </span>
-              </p>
-            )}
+      {/* FILTROS */}
+      <section className="card space-y-4 p-5">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <SearchBar placeholder="Buscar por número, título ou tema…" defaultValue={query} onChange={setQuery} />
+          <select value={house} onChange={(e) => setHouse(e.target.value)} className="input" aria-label="Filtrar por casa legislativa">
+            {HOUSES.map((h) => <option key={h} value={h}>{h === 'Todas' ? 'Todas as casas' : h}</option>)}
+          </select>
+          <select value={sort} onChange={(e) => setSort(e.target.value)} className="input" aria-label="Ordenação">
+            {SORTS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+          </select>
+        </div>
 
-            <section className="card space-y-3 p-5">
-              <SearchBar placeholder="Buscar por número ou ementa…" defaultValue={consulta} onChange={setConsulta} />
-              <div className="flex flex-wrap items-center gap-2 border-t border-gray-200 pt-3 dark:border-white/10">
-                <span className="text-xs font-semibold uppercase muted">Trazida por</span>
-                {(data.keywords || []).map((k) => (
-                  <button
-                    key={k}
-                    onClick={() => setPalavra(palavra === k ? '' : k)}
-                    aria-pressed={palavra === k}
-                    className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors ${
-                      palavra === k ? 'bg-gold-500/20 text-gold-600 dark:text-gold-400' : 'muted hover:text-gray-900 dark:hover:text-gray-100'
-                    }`}
-                  >
-                    {k}
-                  </button>
-                ))}
-                {temFiltro && (
-                  <button onClick={() => { setConsulta(''); setPalavra('') }} className="btn-ghost ml-auto px-2.5 py-1 text-xs">
-                    <X size={13} /> Limpar
-                  </button>
-                )}
-              </div>
-            </section>
+        <div>
+          <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase muted">
+            <Filter size={13} /> Estágio de tramitação
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(LEG_STAGE).map(([id, meta]) => {
+              const Icon = STAGE_ICON[id] || CircleDot
+              return (
+                <button
+                  key={id}
+                  onClick={() => setStage(stage === id ? '' : id)}
+                  aria-pressed={stage === id}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-all ${meta.classes} ${
+                    stage === id ? 'ring-2 ring-gold-500/60' : ''
+                  }`}
+                >
+                  <Icon size={12} /> {meta.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
 
-            {itens.length === 0 ? (
-              <EmptyState
-                icon={Landmark}
-                tone="filter"
-                title="Nenhuma proposição corresponde aos filtros"
-                hint="Ajuste a busca ou a palavra-chave."
-                action={{ label: 'Limpar filtros', onClick: () => { setConsulta(''); setPalavra('') }, icon: X }}
-              />
-            ) : (
-              <div className="space-y-3">
-                {itens.map((b) => (
-                  <article key={b.id} className="card p-5 transition-colors hover:border-gold-500/40">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono text-sm font-bold text-gold-600 dark:text-gold-400">{b.code}</span>
-                      <span className="chip text-[10px]">{b.house}</span>
-                      {b.statusText ? (
-                        <span className="rounded-full bg-brand-500/15 px-2 py-0.5 text-[10px] font-semibold text-brand-600 dark:text-brand-300">
-                          {b.statusText}
-                        </span>
-                      ) : (
-                        <span className="rounded-full bg-gray-500/15 px-2 py-0.5 text-[10px] font-semibold muted">
-                          tramitação não consultada
-                        </span>
-                      )}
-                      {b.presentedAt && (
-                        <span className="ml-auto text-[11px] muted">
-                          apresentada em {formatDateBR(b.presentedAt)}
-                        </span>
-                      )}
-                    </div>
-
-                    {b.summary && (
-                      <p className="mt-2 text-sm leading-relaxed text-gray-700 dark:text-gray-300">{b.summary}</p>
-                    )}
-
-                    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-gray-200 pt-2.5 text-[11px] dark:border-white/[0.06]">
-                      {b.keyword && <span className="muted">trazida pela busca por "{b.keyword}"</span>}
-                      {b.url && (
-                        <a href={b.url} target="_blank" rel="noreferrer"
-                          className="inline-flex items-center gap-1 font-semibold text-brand-500 hover:underline dark:text-brand-400">
-                          Ver na Câmara <ExternalLink size={10} />
-                        </a>
-                      )}
-                      <button
-                        onClick={() => atualizarTramitacao(b)}
-                        disabled={atualizando === b.id}
-                        className="btn-ghost ml-auto px-2.5 py-1 text-xs"
-                      >
-                        {atualizando === b.id ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-                        Consultar tramitação
-                      </button>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
-          </>
+        {hasFilters && (
+          <div className="flex items-center justify-between gap-2 border-t border-gray-200 pt-3 dark:border-white/[0.06]">
+            <p className="text-sm muted">{filtered.length} de {items.length} proposição(ões)</p>
+            <button onClick={clearFilters} className="btn-ghost px-2.5 py-1 text-xs">
+              <X size={13} /> Limpar filtros
+            </button>
+          </div>
         )}
+      </section>
+
+      {/* LISTA */}
+      <DataState
+        loading={loading}
+        error={error}
+        empty={filtered.length === 0}
+        onRetry={refetch}
+        skeletonCount={3}
+        emptyProps={{
+          icon: Landmark,
+          tone: 'filter',
+          title: hasFilters ? 'Nenhuma proposição corresponde aos filtros' : 'Nenhuma proposição acompanhada',
+          hint: hasFilters ? 'Ajuste a busca, a casa ou o estágio de tramitação.' : 'O radar legislativo ainda não foi alimentado.',
+          action: hasFilters ? { label: 'Limpar filtros', onClick: clearFilters, icon: X } : undefined,
+        }}
+      >
+        <div className="space-y-3">
+          {filtered.map((item) => (
+            <ProposalCard key={item.id} item={item} onOpen={() => setOpen(item)} />
+          ))}
+        </div>
       </DataState>
 
-      <p className="text-center text-xs leading-relaxed muted">
-        Identificação, ementa e tramitação vêm dos Dados Abertos da Câmara dos Deputados.
-        Esta plataforma <strong>não interpreta</strong> o impacto de cada proposição — isso é análise,
-        e exige julgamento humano.
+      <p className="text-center text-xs muted">
+        Conteúdo demonstrativo — proposições ilustrativas, sem valor oficial.
       </p>
+
+      <Modal open={!!open} onClose={() => setOpen(null)} title={open?.code} maxWidth="max-w-2xl">
+        {open && <ProposalDetail item={open} />}
+      </Modal>
+    </div>
+  )
+}
+
+// ── Cartão de proposição ─────────────────────────────────────────────────────
+function ProposalCard({ item, onOpen }) {
+  const stage = LEG_STAGE[item.stage] || {}
+  const Icon = STAGE_ICON[item.stage] || CircleDot
+
+  return (
+    <button onClick={onOpen} className="card w-full p-5 text-left transition-colors hover:border-gold-500/40">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="font-mono text-xs font-bold text-gold-600 dark:text-gold-400">{item.code}</span>
+        <span className="inline-flex items-center gap-1 text-[11px] muted">
+          <Building size={11} /> {item.house}
+        </span>
+        <span className="chip">{item.theme}</span>
+        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${RELEVANCE_CLR[item.relevance] || ''}`}>
+          Relevância {item.relevance}
+        </span>
+        <span className="ml-auto inline-flex items-center gap-1 text-[11px] muted">
+          <Clock size={11} /> {timeAgo(item.updated)}
+        </span>
+      </div>
+
+      <h3 className="mt-2 text-base font-bold leading-snug tracking-tight">{item.title}</h3>
+      <p className="mt-1 line-clamp-2 text-sm leading-relaxed muted">{item.summary}</p>
+
+      {/* Barra de tramitação */}
+      <div className="mt-4">
+        <div className="flex items-center justify-between">
+          <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${stage.classes || ''}`}>
+            <Icon size={11} /> {stage.label}
+          </span>
+          <span className="font-mono text-xs font-bold tabular-nums muted">{stage.pct}%</span>
+        </div>
+        <span className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-gray-200 dark:bg-white/10">
+          <span
+            className="block h-full rounded-full bg-gold-500 transition-all"
+            style={{ width: `${stage.pct || 0}%` }}
+          />
+        </span>
+      </div>
+
+      <p className="mt-3 inline-flex items-center gap-0.5 text-xs font-semibold text-brand-500 dark:text-brand-400">
+        Ver tramitação e impacto <ChevronRight size={13} />
+      </p>
+    </button>
+  )
+}
+
+// ── Detalhe com linha do tempo das etapas ────────────────────────────────────
+function ProposalDetail({ item }) {
+  const stage = LEG_STAGE[item.stage] || {}
+  const currentIndex = FLOW.indexOf(item.stage)
+  const archived = item.stage === 'arquivado'
+
+  return (
+    <div className="max-h-[70vh] space-y-5 overflow-y-auto pr-1">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${stage.classes || ''}`}>{stage.label}</span>
+        <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${RELEVANCE_CLR[item.relevance] || ''}`}>
+          Relevância {item.relevance}
+        </span>
+        <span className="chip">{item.house}</span>
+        <span className="chip">{item.theme}</span>
+      </div>
+
+      <div>
+        <h3 className="text-lg font-bold leading-snug tracking-tight">{item.title}</h3>
+        <p className="mt-2 text-sm leading-relaxed text-gray-700 dark:text-gray-300">{item.summary}</p>
+      </div>
+
+      {/* Linha do tempo da tramitação */}
+      <section>
+        <h4 className="text-sm font-bold tracking-tight">Tramitação</h4>
+        {archived ? (
+          <p className="mt-2 flex items-center gap-2 rounded-lg bg-white/5 p-3 text-sm muted">
+            <ArchiveIcon size={15} /> Proposição arquivada — não seguiu adiante nesta legislatura.
+          </p>
+        ) : (
+          <ol className="mt-3 space-y-0">
+            {FLOW.map((step, i) => {
+              const meta = LEG_STAGE[step]
+              const Icon = STAGE_ICON[step] || CircleDot
+              const done = i < currentIndex
+              const current = i === currentIndex
+              const last = i === FLOW.length - 1
+              return (
+                <li key={step} className="flex gap-3">
+                  <div className="flex flex-col items-center">
+                    <span
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
+                        done ? 'bg-military-green/20 text-emerald-600 dark:text-emerald-400'
+                          : current ? 'bg-gold-500 text-military-darker'
+                            : 'bg-white/10 text-gray-400'
+                      }`}
+                    >
+                      <Icon size={14} />
+                    </span>
+                    {!last && (
+                      <span
+                        className={`w-0.5 flex-1 ${done ? 'bg-military-green/40' : 'bg-gray-200 dark:bg-white/10'}`}
+                        style={{ minHeight: 22 }}
+                      />
+                    )}
+                  </div>
+                  <div className={`pb-4 ${current ? '' : 'opacity-70'}`}>
+                    <p className="text-sm font-semibold leading-tight">{meta.label}</p>
+                    {current && (
+                      <p className="mt-0.5 text-xs text-gold-600 dark:text-gold-400">
+                        etapa atual · atualizado em {formatDateBR(item.updated)}
+                      </p>
+                    )}
+                  </div>
+                </li>
+              )
+            })}
+          </ol>
+        )}
+      </section>
+
+      <section className="rounded-xl border-l-4 border-gold-500 bg-white/5 p-4">
+        <h4 className="text-sm font-bold tracking-tight">Impacto para a defesa</h4>
+        <p className="mt-1.5 text-sm leading-relaxed text-gray-700 dark:text-gray-300">{item.impactBR}</p>
+      </section>
+
+      {item.rapporteur && (
+        <p className="text-xs muted">
+          Relatoria: <strong className="text-gray-700 dark:text-gray-300">{item.rapporteur}</strong>
+        </p>
+      )}
     </div>
   )
 }

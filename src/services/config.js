@@ -1,114 +1,74 @@
 // -----------------------------------------------------------------------------
 // CONFIGURAÇÃO DA CAMADA DE DADOS
 //
-// A plataforma tem BACKEND. Toda leitura passa por `src/services/*`, que fala
-// HTTP com a API em `server/`.
+// A plataforma TEM backend (`server/`). Toda leitura passa por
+// `src/services/*`, que hoje resolve de três formas — nesta ordem:
 //
-// Não existe mais modo de demonstração. Se a API não responder, a interface diz
-// isso — ela não substitui o dado ausente por conteúdo local, porque um sistema
-// de monitoramento que preenche lacunas com invenção é pior que um vazio.
+//   1. PONTE      endpoint com backend real  → HTTP     (meta.source = 'live')
+//   2. LOCAL      endpoint sem backend       → src/data (meta.source = 'demo')
+//   3. RESERVA    API caiu no meio           → src/data (meta.source = 'fallback')
+//
+// A ponte (`apiBridge.js`) ativa SOZINHA quando a API responde: ela usa o
+// caminho relativo `/api`, que o Vite encaminha em desenvolvimento e que o
+// próprio servidor atende em produção. Não há variável para configurar.
+//
+// Por que híbrido: parte do produto tem fonte pública verificável — notícias,
+// proposições, indicadores, saúde do sistema — e parte não tem e não terá
+// enquanto não houver analista ou modelo de linguagem. Os selos "AO VIVO" e
+// "DEMO" já existentes na interface dizem qual é qual, tela a tela.
+//
+// `DATA_MODE` continua existindo para forçar HTTP em TODOS os endpoints
+// (inclusive os sem backend), o que só faz sentido quando a API cobrir tudo.
 // -----------------------------------------------------------------------------
 
 const env = import.meta.env || {}
 
-/**
- * Endereço da API.
- *
- * Vazio por padrão, e isso é intencional: em produção o mesmo processo Node
- * serve a interface e a API, então o caminho relativo `/api` já aponta para o
- * lugar certo — sem variável para configurar no Railway e sem CORS.
- *
- * Em desenvolvimento o Vite faz proxy de `/api` para a porta 3001
- * (ver vite.config.js), então o padrão também funciona.
- */
+/** 'mock' | 'api' */
+export const DATA_MODE = (env.VITE_DATA_MODE || 'mock').toLowerCase() === 'api' ? 'api' : 'mock'
+
+/** Base da API quando DATA_MODE === 'api' (ex.: https://api.defesabr.gov.br/v1). */
 export const API_BASE_URL = (env.VITE_API_BASE_URL || '').replace(/\/$/, '')
 
+/** Identidade da aplicação (exibida em rodapés, PDFs e cabeçalhos HTTP). */
 export const APP_NAME = env.VITE_APP_NAME || 'DefesaBR Intelligence'
-export const APP_VERSION = env.VITE_APP_VERSION || '2.0.0'
+export const APP_VERSION = env.VITE_APP_VERSION || '1.0.0'
 
-/** Timeout das requisições. A coleta manual demora mais e pede o seu próprio. */
-export const REQUEST_TIMEOUT = Number(env.VITE_API_TIMEOUT || 20000)
-export const COLLECT_TIMEOUT = Number(env.VITE_COLLECT_TIMEOUT || 90000)
-
-export const SETTINGS_STORAGE_KEY = 'defesabr-settings-v4'
+/** Timeout padrão das requisições (ms). */
+export const REQUEST_TIMEOUT = Number(env.VITE_API_TIMEOUT || 12000)
 
 /**
- * IDENTIFICADOR DO NAVEGADOR.
- *
- * Não há contas nesta versão. Os favoritos precisam de algum dono, então a
- * interface gera um identificador aleatório e o guarda localmente.
- *
- * O que ele é: uma chave para separar os favoritos deste navegador dos de
- * outro. O que ele NÃO é: identificação de pessoa. Não sai daqui para lugar
- * nenhum além da própria API, e some se o usuário limpar os dados do site.
+ * Latência simulada no modo mock. Sem ela, os estados de carregamento nunca
+ * aparecem e a demonstração parece irreal — e defeitos de "loading" passam
+ * despercebidos. Pode ser desligada com VITE_MOCK_LATENCY=0.
  */
-export function clientId() {
-  const chave = 'defesabr-client-id'
-  try {
-    let id = localStorage.getItem(chave)
-    if (!id) {
-      id = `c_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`
-      localStorage.setItem(chave, id)
-    }
-    return id
-  } catch {
-    // Modo privado bloqueia localStorage. Sem identificador, os favoritos
-    // simplesmente não persistem — a interface avisa em vez de quebrar.
-    return ''
-  }
+export const MOCK_LATENCY = (() => {
+  const raw = env.VITE_MOCK_LATENCY
+  if (raw === '0' || raw === 'false') return { min: 0, max: 0 }
+  return { min: 180, max: 520 }
+})()
+
+/** Chave de persistência dos ajustes (usada também fora do store). */
+export const SETTINGS_STORAGE_KEY = 'defesabr-settings-v3'
+
+/** true quando a plataforma roda em modo demonstração (sem backend). */
+export const isDemoMode = () => DATA_MODE === 'mock' || !API_BASE_URL
+
+/**
+ * DATA DE REFERÊNCIA DO CONJUNTO DEMONSTRATIVO.
+ *
+ * O acervo de demonstração foi escrito em torno de uma data fixa: prazos da
+ * fila de produção, agenda estratégica, marcos de programas e trilha de
+ * auditoria são coerentes entre si a partir dela. Usar `new Date()` faria a
+ * demonstração envelhecer sozinha — prazos venceriam, a agenda esvaziaria e o
+ * conjunto perderia a coerência interna.
+ *
+ * Ao ligar um backend real, troque por `new Date().toISOString().slice(0, 10)`
+ * num único lugar: nenhuma tela precisa mudar.
+ */
+export const REFERENCE_DATE = env.VITE_REFERENCE_DATE || '2026-08-24'
+
+/** A data de referência como Date no fuso local (evita o desvio de UTC). */
+export function referenceDate() {
+  const [y, m, d] = REFERENCE_DATE.split('-').map(Number)
+  return new Date(y, m - 1, d)
 }
-
-/** Fontes que a plataforma realmente consulta. Exibido em Sobre e no painel. */
-export const FONTES = [
-  {
-    nome: 'Ministério da Defesa',
-    tipo: 'RSS',
-    url: 'https://www.gov.br/defesa',
-    nota: 'Feed oficial do MD — a fonte de maior relevância direta para o domínio.',
-  },
-  {
-    nome: 'Agência Brasil / Agência Gov (EBC)',
-    tipo: 'RSS',
-    url: 'https://agenciabrasil.ebc.com.br',
-    nota: 'Seis editorias públicas, filtradas por relevância de defesa na coleta.',
-  },
-  {
-    nome: 'Dados Abertos da Câmara dos Deputados',
-    tipo: 'API',
-    url: 'https://dadosabertos.camara.leg.br',
-    nota: 'Proposições em tramitação: número, ementa e situação.',
-  },
-  {
-    nome: 'World Bank Open Data',
-    tipo: 'API',
-    url: 'https://data.worldbank.org',
-    nota: 'Gasto militar, efetivo e PIB — Brasil e cinco vizinhos, mesmo método.',
-  },
-  {
-    nome: 'AwesomeAPI',
-    tipo: 'API',
-    url: 'https://docs.awesomeapi.com.br',
-    nota: 'Cotação USD/BRL e EUR/BRL.',
-  },
-]
-
-/** O que esta versão deliberadamente NÃO faz. Exibido em Sobre e no painel. */
-export const NAO_IMPLEMENTADO = [
-  {
-    titulo: 'Análise por inteligência artificial',
-    texto: 'Nenhum texto desta plataforma foi escrito por máquina. Resumo executivo e síntese '
-      + 'exigiriam um modelo de linguagem — previsto para a próxima etapa.',
-  },
-  {
-    titulo: 'Contas e permissões',
-    texto: 'A plataforma é aberta. Não há login, e nenhum dado é por usuário — os favoritos usam '
-      + 'um identificador do navegador, que não identifica pessoa.',
-  },
-  {
-    titulo: 'Dossiês e avaliações de analista',
-    texto: 'Conteúdo analítico é juízo humano e precisa de autoria registrada. Sem contas, não há '
-      + 'a quem atribuir — então a funcionalidade não existe, em vez de existir com autor fictício.',
-  },
-]
-
-export default { API_BASE_URL, APP_NAME, APP_VERSION, REQUEST_TIMEOUT, clientId, FONTES }

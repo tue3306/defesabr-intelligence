@@ -33,6 +33,22 @@ function encaminhar(nome, fluxo) {
 
 const filhos = []
 
+/**
+ * Ambiente de cada filho.
+ *
+ * A API e o Vite leem a MESMA variavel PORT. Rodando os dois juntos, uma PORT
+ * definida no ambiente faria os dois tentarem a mesma porta e o segundo
+ * morreria — com uma mensagem que nao explica a causa.
+ *
+ * Quem define PORT quase sempre quer mudar a porta da API, entao ela fica com
+ * a variavel e o Vite volta ao proprio padrao.
+ */
+function ambientePara(nome) {
+  if (nome !== 'web') return process.env
+  const { PORT, ...resto } = process.env
+  return resto
+}
+
 function iniciar(nome, cwd, args) {
   // No Windows, `npm` é um .cmd e precisa de shell. Passar argumentos separados
   // COM shell ativo é o que o Node avisa como arriscado (DEP0190): eles seriam
@@ -40,8 +56,8 @@ function iniciar(nome, cwd, args) {
   // deste script, então montar a linha é seguro — e o aviso some junto com a
   // ambiguidade que o motivou.
   const filho = noWindows
-    ? spawn(`${npm} ${args.join(' ')}`, { cwd, shell: true, env: process.env })
-    : spawn(npm, args, { cwd, env: process.env })
+    ? spawn(`${npm} ${args.join(' ')}`, { cwd, shell: true, env: ambientePara(nome) })
+    : spawn(npm, args, { cwd, env: ambientePara(nome) })
 
   encaminhar(nome, filho.stdout)
   encaminhar(nome, filho.stderr)

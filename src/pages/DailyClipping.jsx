@@ -1,324 +1,552 @@
-import { useState, useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import {
-  Newspaper, RefreshCw, Loader2, Filter, X, ShieldCheck, Database,
-  ChevronDown, AlertTriangle, FlaskConical,
+  Bot,
+  Bookmark,
+  BookmarkCheck,
+  CalendarDays,
+  ChevronDown,
+  Circle,
+  Copy,
+  ExternalLink,
+  FileDown,
+  Filter,
+  Lock,
+  Newspaper,
+  Printer,
+  Rss,
+  Save,
+  ShieldCheck,
+  SlidersHorizontal,
 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import PageHeader from '../components/ui/PageHeader'
-import MetricCard from '../components/ui/MetricCard'
 import EmptyState from '../components/ui/EmptyState'
-import DataState from '../components/ui/DataState'
-import NewsCard from '../components/ui/NewsCard'
+import { ErrorState } from '../components/ui/DataState'
+import Badge from '../components/ui/Badge'
+import SearchBar from '../components/ui/SearchBar'
 import TagFilter from '../components/ui/TagFilter'
-import InfoTooltip from '../components/ui/InfoTooltip'
-import { useResource } from '../hooks/useResource'
-import { noticias, favoritos, sistema } from '../services'
-import { CATEGORIAS, URGENCIAS, META_URGENCIA, META_ALERTA, corDaCategoria } from '../data/reference'
+import AITypingIndicator from '../components/ui/AITypingIndicator'
+import Can from '../auth/Can'
+import { useClaudeAI } from '../hooks/useClaudeAI'
+import { useNews } from '../hooks/useNews'
+import { newsService } from '../services/newsService'
+import { useNewsStore } from '../store/newsStore'
+import { useSettingsStore } from '../store/settingsStore'
+import { URGENCY_LEVELS } from '../data/mockData'
+import { alertMeta, categoryColor, clipboard, urgencyMeta } from '../utils/textUtils'
+import { formatDateTimeBR, formatFullDate } from '../utils/dateUtils'
+import { exportClippingToPDF } from '../utils/exportUtils'
 
-const PERIODOS = [
-  { id: 1, rotulo: '24h' },
-  { id: 3, rotulo: '3 dias' },
-  { id: 7, rotulo: '7 dias' },
-  { id: 30, rotulo: '30 dias' },
-  { id: 90, rotulo: '90 dias' },
-]
+// Quem assina a edição publicada. O produto é demonstrativo: creditamos a mesa
+// editorial, não uma pessoa real, para não apresentar dado inventado como oficial.
+const EDITORIAL_DESK = 'Mesa de Análise · DefesaBR Intelligence'
 
-// -----------------------------------------------------------------------------
-// CLIPPING DIÁRIO
-//
-// Mostra o que a coleta REALMENTE trouxe no período. Duas honestidades que a
-// tela precisa carregar:
-//
-//  • O nível de alerta é CALCULADO da distribuição de urgências, e a própria
-//    tela explica a base. Sem ocorrências não há nível — e dizemos isso, em
-//    vez de exibir um "NORMAL" que não significaria nada.
-//
-//  • As fontes de defesa não publicam todo dia. Janela vazia é resultado
-//    legítimo; o servidor diz onde HÁ conteúdo e a tela oferece ir até lá.
-// -----------------------------------------------------------------------------
 export default function DailyClipping() {
-  const [dias, setDias] = useState(7)
+  const { news } = useNews()
+  const { loading, step, steps, source, generateClipping, apiConfigured } = useClaudeAI()
+  const addClipping = useNewsStore((s) => s.addClipping)
+  const latest = useNewsStore((s) => s.latestClipping)
+  const clippings = useNewsStore((s) => s.clippings)
+  const activeSources = useSettingsStore((s) => s.rssSources.filter((src) => src.enabled).length)
+
+  const [result, setResult] = useState(latest)
+  const [genError, setGenError] = useState(null)
+  const [sourcesOpen, setSourcesOpen] = useState(false)
+  const [loadingEdition, setLoadingEdition] = useState(true)
+
+  // EDIÇÃO REAL, do backend.
+  //
+  // Antes, esta tela abria sempre com o documento demonstrativo guardado no
+  // navegador — o que fazia o clipping parecer congelado numa data de 2026.
+  // Agora ela pede a edição ao servidor, que a monta do que foi realmente
+  // coletado no período.
+  //
+  // A edição local continua sendo o estado inicial: se a API estiver fora, a
+  // tela abre com ela em vez de vazia, e o selo diz de onde veio o dado.
+  useEffect(() => {
+    let vivo = true
+    newsService.latestClipping()
+      .then(({ data, meta }) => {
+        // Só substitui se veio da API E tem conteúdo. Uma edição real vazia
+        // (nenhuma notícia relevante no período) ainda é a resposta certa e
+        // deve aparecer — mas não deve apagar a demonstração por acidente.
+        if (!vivo || meta?.source !== 'live' || !data) return
+        setResult({ ...data, source: 'live' })
+      })
+      .catch(() => { /* mantém a edição local */ })
+      .finally(() => { if (vivo) setLoadingEdition(false) })
+    return () => { vivo = false }
+  }, [])
+
+  // Filtros da edição em tela
+  const [query, setQuery] = useState('')
   const [cats, setCats] = useState([])
-  const [urgencia, setUrgencia] = useState('')
-  const [coletando, setColetando] = useState(false)
+  const [urgency, setUrgency] = useState('')
 
-  const clipping = useResource(() => noticias.clipping({ days: dias, limit: 60 }), [dias], { keepPreviousData: true })
-  const salvos = useResource(() => favoritos.listar(), [])
+  const allNews = result?.news || []
+  const hasFilters = Boolean(query.trim() || cats.length || urgency)
 
-  const d = clipping.data
-  const lista = d?.news || []
-  const alerta = d?.alert
-  const sugestao = d?.suggestedWindow
-
-  const idsSalvos = useMemo(
-    () => new Set((salvos.data?.items || []).map((f) => f.id)),
-    [salvos.data]
+  // As categorias disponíveis vêm da própria edição: nada de chip que não filtra nada.
+  const availableCats = useMemo(
+    () => [...new Set(allNews.map((n) => n.category).filter(Boolean))],
+    [allNews]
   )
 
-  const filtradas = useMemo(() => lista.filter((n) => {
-    if (cats.length && !cats.includes(n.category)) return false
-    if (urgencia && n.urgency !== urgencia) return false
-    return true
-  }), [lista, cats, urgencia])
+  const filteredNews = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return allNews.filter((n) => {
+      if (cats.length && !cats.includes(n.category)) return false
+      if (urgency && n.urgency !== urgency) return false
+      if (!q) return true
+      return `${n.title} ${n.summary} ${n.source} ${n.impact_br || ''}`.toLowerCase().includes(q)
+    })
+  }, [allNews, query, cats, urgency])
 
-  const temFiltro = cats.length > 0 || !!urgencia
-  const limpar = () => { setCats([]); setUrgencia('') }
+  const clearFilters = () => {
+    setQuery('')
+    setCats([])
+    setUrgency('')
+  }
 
-  const coletar = async () => {
-    setColetando(true)
-    const aviso = toast.loading('Coletando das fontes públicas…')
+  const handleGenerate = async () => {
+    setGenError(null)
     try {
-      const { data: r } = await sistema.coletar()
-      toast.success(
-        r.noticias?.novos
-          ? `${r.noticias.novos} notícia(s) nova(s), ${r.noticias.relevantes} relevante(s)`
-          : 'Coleta concluída — nada novo nas fontes',
-        { id: aviso }
-      )
-      clipping.refetch()
+      const clip = await generateClipping(news.length ? news : undefined)
+      if (clip) setResult(clip)
     } catch (err) {
-      toast.error(err?.userMessage || 'Falha na coleta.', { id: aviso })
-    } finally {
-      setColetando(false)
+      // O hook já trata a falha da IA; aqui cobrimos qualquer erro inesperado.
+      setGenError(err)
     }
   }
 
-  const alternarSalvo = async (n) => {
+  const handleSaveToArchive = () => {
+    if (!result) return
+    addClipping(result)
+    toast.success('Clipping salvo no arquivo')
+  }
+
+  // A geração do PDF é assíncrona (a biblioteca é carregada sob demanda):
+  // o aviso de sucesso só pode vir depois que o arquivo existe de fato.
+  const handlePDF = async () => {
+    if (!result) return
     try {
-      if (idsSalvos.has(n.id)) {
-        await favoritos.remover(n.id)
-        toast.success('Removido dos favoritos')
-      } else {
-        await favoritos.salvar(n.id)
-        toast.success('Salvo nos favoritos')
-      }
-      salvos.refetch()
-    } catch (err) {
-      toast.error(err?.userMessage || 'Não foi possível salvar.')
+      await exportClippingToPDF(result)
+      toast.success('PDF do clipping gerado')
+    } catch {
+      toast.error('Não foi possível gerar o PDF deste clipping.')
     }
   }
 
-  const rotuloAlerta = alerta?.level ? (META_ALERTA[alerta.level]?.rotulo || alerta.level) : null
+  const handleDateChange = (e) => {
+    const iso = e.target.value
+    if (!iso) return
+    const found = clippings.find((c) => c.date === iso)
+    if (found) {
+      setResult(found.data)
+      clearFilters()
+      toast.success(`Edição de ${found.date} carregada`)
+    } else {
+      toast('Sem clipping arquivado nesta data', { icon: '📭' })
+    }
+  }
+
+  const alert = alertMeta[result?.alert_level] || alertMeta.NORMAL
+  const publishedAt = result?.generatedAt || result?.date
 
   return (
     <div className="space-y-6">
       <PageHeader
         icon={Newspaper}
-        title="Clipping"
-        description="As ocorrências que a coleta trouxe das fontes públicas, filtradas por relevância para defesa e segurança."
-        help="A coleta roda no servidor. Categoria e urgência são derivadas por regra de palavra-chave, e cada item mostra quais termos casaram."
-        breadcrumb={[{ label: 'Coleta' }, { label: 'Clipping' }]}
-        meta={d ? [
-          { label: 'Período', value: `${d.periodDays}d` },
-          { label: 'Ocorrências', value: String(lista.length) },
-        ] : []}
+        title="Clipping Diário"
+        description="Seleção editorial do que aconteceu em segurança e defesa, com resumo executivo, impacto para o Brasil e nível de alerta do dia."
+        help="O nível de alerta resume a intensidade dos eventos do dia: NORMAL, ATENÇÃO, ALERTA ou CRÍTICO."
+        breadcrumb={[{ label: 'Inteligência' }, { label: 'Clipping Diário' }]}
+        badges={
+          <>
+            <Badge type="alert" value={result?.alert_level} />
+            {/* O selo segue a ORIGEM da edição em tela, não a da IA. Uma edição
+                montada pelo servidor a partir de coleta real é dado ao vivo,
+                mesmo sem resumo executivo — que é análise, não coleta. */}
+            <Badge type={result?.source === 'live' || source === 'ai' ? 'live' : 'demo'} />
+          </>
+        }
+        meta={[
+          { label: 'Edição', value: result?.date || formatFullDate() },
+          { label: 'Notícias', value: String(allNews.length) },
+          { label: 'Fontes ativas', value: String(activeSources) },
+        ]}
         actions={
-          <button onClick={coletar} disabled={coletando} className="btn-primary text-sm">
-            {coletando ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
-            Coletar agora
-          </button>
+          <>
+            <label className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-white/10">
+              <CalendarDays size={16} className="text-gold-500" />
+              <span className="sr-only">Carregar clipping arquivado por data</span>
+              <input
+                type="date"
+                onChange={handleDateChange}
+                className="bg-transparent text-sm focus:outline-none"
+                aria-label="Carregar clipping arquivado por data"
+              />
+            </label>
+
+            <Can do="ai.generate" fallback={<PublishedNote at={publishedAt} />}>
+              <button onClick={handleGenerate} disabled={loading} className="btn-primary" aria-busy={loading}>
+                <Bot size={18} /> {loading ? 'Gerando…' : 'Gerar clipping com IA'}
+              </button>
+            </Can>
+          </>
         }
       >
-        <div className="flex flex-wrap gap-2">
-          {PERIODOS.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => setDias(p.id)}
-              aria-pressed={dias === p.id}
-              className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors ${
-                dias === p.id
-                  ? 'bg-gold-500 text-military-darker'
-                  : 'border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-white/10 dark:text-gray-300 dark:hover:bg-white/5'
-              }`}
-            >
-              {p.rotulo}
+        {/* Barra de ações do documento */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Can
+            do="reports.export"
+            fallback={
+              <Link to="/planos" className="btn-ghost" title="Exportar PDF faz parte do plano Profissional">
+                <Lock size={14} /> Exportar PDF
+              </Link>
+            }
+          >
+            <button onClick={handlePDF} disabled={!result} className="btn-ghost">
+              <FileDown size={16} /> Exportar PDF
             </button>
-          ))}
+          </Can>
+          <button onClick={handleSaveToArchive} disabled={!result} className="btn-ghost">
+            <Save size={16} /> Salvar no arquivo
+          </button>
+          <button onClick={() => window.print()} className="btn-ghost">
+            <Printer size={16} /> Imprimir
+          </button>
+          {/* A edição em tela e a geração por IA são coisas diferentes, e
+              confundi-las é o que fazia esta nota dizer "demonstrativa" sobre
+              uma edição montada de coleta real. */}
+          {result?.source === 'live' && (
+            <span className="text-xs muted">
+              Edição montada pelo servidor a partir de {result.total_collected ?? 0} item(ns)
+              coletados · {result.relevant_total ?? 0} aprovados pelo filtro de relevância.
+            </span>
+          )}
+          {!apiConfigured && (
+            <span className="text-xs muted">
+              Resumo executivo por IA não disponível — exige chave de modelo de linguagem.
+            </span>
+          )}
         </div>
       </PageHeader>
 
-      <DataState loading={clipping.loading && !d} error={clipping.error} onRetry={clipping.refetch} skeletonCount={4}>
-        {/* NÍVEL DE ALERTA */}
-        <section className="card p-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide muted">
-                <ShieldCheck size={15} /> Nível de alerta do período
-                <InfoTooltip text="Média ponderada das urgências das ocorrências do período: Crítico=100, Alto=70, Médio=40, Baixo=15." />
-              </h2>
-              {rotuloAlerta ? (
-                <>
-                  <p className="mt-1 text-3xl font-extrabold tracking-tight"
-                    style={{ color: META_ALERTA[alerta.level]?.cor }}>
-                    {rotuloAlerta}
-                    <span className="ml-2 font-mono text-lg muted">{alerta.score}/100</span>
-                  </p>
-                  <p className="mt-1 text-xs muted">{alerta.basis}</p>
-                </>
-              ) : (
-                <>
-                  <p className="mt-1 text-2xl font-bold tracking-tight muted">Sem ocorrências</p>
-                  <p className="mt-1 text-xs muted">
-                    {alerta?.basis || 'Nenhuma ocorrência relevante neste período.'}
-                  </p>
-                </>
-              )}
-            </div>
+      {/* Progresso da geração — anunciado a leitores de tela */}
+      {loading && (
+        <div role="status" aria-live="polite" aria-busy="true">
+          <AITypingIndicator steps={steps} current={step} />
+        </div>
+      )}
 
-            {rotuloAlerta && (
-              <div className="w-full sm:w-56">
-                <div className="h-2.5 overflow-hidden rounded-full bg-gray-200 dark:bg-white/10">
-                  <div className="h-full rounded-full"
-                    style={{ width: `${alerta.score}%`, background: META_ALERTA[alerta.level]?.cor }} />
-                </div>
-                <div className="mt-1 flex justify-between text-[10px] uppercase tracking-wide muted">
-                  <span>Normal</span><span>Crítico</span>
-                </div>
+      {genError && !loading && (
+        <ErrorState
+          title="A geração do clipping falhou"
+          error={genError}
+          onRetry={handleGenerate}
+          compact
+        />
+      )}
+
+      {!result && !loading && (
+        <EmptyState
+          icon={Newspaper}
+          title="Nenhuma edição publicada ainda"
+          hint="Assim que a mesa de análise publicar o clipping do dia, ele aparece aqui com resumo executivo e nível de alerta."
+          action={{ label: 'Ver edições arquivadas', to: '/arquivo', icon: CalendarDays }}
+        />
+      )}
+
+      {result && !loading && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="space-y-6"
+        >
+          {/* Resumo executivo */}
+          <section
+            className={`card border-l-4 p-5 sm:p-6 ${alert.classes.split(' ').find((c) => c.startsWith('border')) || ''}`}
+          >
+            <div className="mb-3 flex flex-wrap items-center gap-3">
+              <h2 className="text-lg font-bold tracking-tight">Resumo executivo</h2>
+              <Badge type="alert" value={result.alert_level} />
+            </div>
+            {result.summary_executive?.split('\n').filter(Boolean).map((p, i) => (
+              <p key={i} className="mb-2 text-sm leading-relaxed text-gray-700 dark:text-gray-300">{p}</p>
+            ))}
+            {result.editor_note && (
+              <blockquote className="editorial-quote mt-4">
+                <span className="font-semibold not-italic text-gold-600 dark:text-gold-400">Nota do analista: </span>
+                {result.editor_note}
+              </blockquote>
+            )}
+          </section>
+
+          {/* Filtros da edição */}
+          <section className="card space-y-4 p-5">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <SearchBar
+                placeholder="Buscar nesta edição (ex.: submarino, cibersegurança)…"
+                defaultValue={query}
+                onChange={setQuery}
+              />
+              <select
+                value={urgency}
+                onChange={(e) => setUrgency(e.target.value)}
+                className="input"
+                aria-label="Filtrar por urgência"
+              >
+                <option value="">Todas as urgências</option>
+                {URGENCY_LEVELS.map((lv) => (
+                  <option key={lv} value={lv}>{urgencyMeta[lv]?.label || lv}</option>
+                ))}
+              </select>
+            </div>
+            {availableCats.length > 1 && (
+              <div>
+                <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase muted">
+                  <Filter size={13} /> Categorias
+                </p>
+                <TagFilter
+                  options={availableCats}
+                  selected={cats}
+                  getColor={categoryColor}
+                  onToggle={(c) => setCats((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]))}
+                />
               </div>
             )}
-          </div>
-        </section>
-
-        {/* RESUMO EXECUTIVO — deliberadamente ausente */}
-        <section className="card border-l-4 border-brand-400 p-5">
-          <h2 className="flex items-center gap-2 text-sm font-bold tracking-tight">
-            <AlertTriangle size={15} className="text-brand-400" /> Resumo executivo
-          </h2>
-          <p className="mt-1.5 text-sm leading-relaxed muted">
-            {d?.summaryNote || 'Não gerado nesta versão.'}
-          </p>
-          <p className="mt-2 text-xs leading-relaxed muted">
-            Um resumo escrito por máquina, sem revisão, seria apresentado como análise sem sê-lo.
-            Enquanto não houver modelo de linguagem nem analista, o campo fica explicitamente vazio.
-          </p>
-        </section>
-
-        {/* DISTRIBUIÇÃO */}
-        {Object.keys(d?.byCategory || {}).length > 0 && (
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            {Object.entries(d.byCategory)
-              .sort(([, a], [, b]) => b - a)
-              .slice(0, 4)
-              .map(([cat, n]) => (
-                <MetricCard key={cat} label={cat} value={String(n)} hint="no período" accent="brand" />
-              ))}
-          </div>
-        )}
-
-        {/* FILTROS */}
-        {lista.length > 0 && (
-          <section className="card space-y-4 p-5">
-            <div>
-              <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase muted">
-                <Filter size={13} /> Categorias
-              </p>
-              <TagFilter options={CATEGORIAS} selected={cats} onToggle={(c) => setCats((a) => (a.includes(c) ? a.filter((x) => x !== c) : [...a, c]))} getColor={corDaCategoria} />
-            </div>
-            <div className="flex flex-wrap items-center gap-2 border-t border-gray-200 pt-3 dark:border-white/10">
-              <span className="text-xs font-semibold uppercase muted">Urgência</span>
-              {URGENCIAS.map((u) => (
-                <button
-                  key={u}
-                  onClick={() => setUrgencia(urgencia === u ? '' : u)}
-                  aria-pressed={urgencia === u}
-                  className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors ${
-                    urgencia === u ? META_URGENCIA[u].classes : 'muted hover:text-gray-900 dark:hover:text-gray-100'
-                  }`}
-                >
-                  {META_URGENCIA[u].rotulo}
+            <div className="flex flex-wrap items-center gap-3 border-t border-gray-200 pt-3 text-sm dark:border-white/[0.07]">
+              <span className="muted" aria-live="polite">
+                <strong className="text-gray-700 dark:text-gray-200">{filteredNews.length}</strong> de {allNews.length} notícias
+              </span>
+              {hasFilters && (
+                <button onClick={clearFilters} className="text-xs font-semibold text-gold-600 hover:underline dark:text-gold-400">
+                  Limpar filtros
                 </button>
-              ))}
-              <span className="ml-auto text-sm muted">{filtradas.length} de {lista.length}</span>
-              {temFiltro && (
-                <button onClick={limpar} className="btn-ghost px-2.5 py-1 text-xs"><X size={13} /> Limpar</button>
               )}
             </div>
           </section>
-        )}
 
-        {/* LISTA */}
-        {lista.length === 0 ? (
-          <EmptyState
-            icon={Database}
-            title={`Nenhuma ocorrência relevante ${dias === 1 ? 'nas últimas 24 horas' : `nos últimos ${dias} dias`}`}
-            hint={sugestao
-              ? `As fontes de defesa não publicam todos os dias — silêncio no período é resultado, não falha. Há ${sugestao.count} ocorrência(s) em ${sugestao.days} dias.`
-              : d?.relevantTotal > 0
-                ? `O acervo tem ${d.relevantTotal} ocorrência(s) relevante(s), nenhuma neste período.`
-                : 'Dispare uma coleta para trazer o que as fontes publicaram.'}
-            action={sugestao
-              ? { label: `Ver os últimos ${sugestao.days} dias`, onClick: () => setDias(sugestao.days), icon: Filter }
-              : { label: 'Coletar agora', onClick: coletar, icon: RefreshCw }}
-          />
-        ) : filtradas.length === 0 ? (
-          <EmptyState
-            icon={Filter}
-            tone="filter"
-            title="Nenhuma ocorrência corresponde aos filtros"
-            hint="Ajuste a categoria ou a urgência."
-            action={{ label: 'Limpar filtros', onClick: limpar, icon: X }}
-          />
-        ) : (
-          <div className="space-y-3">
-            {filtradas.map((n) => (
-              <NewsCard key={n.id} noticia={n} salvo={idsSalvos.has(n.id)} onAlternarSalvo={alternarSalvo} />
-            ))}
-          </div>
-        )}
+          {/* Notícias */}
+          {filteredNews.length === 0 ? (
+            <EmptyState
+              icon={Filter}
+              tone="filter"
+              title="Nenhuma notícia corresponde aos filtros"
+              hint="Ajuste a busca, a urgência ou as categorias para ver as demais notícias desta edição."
+              action={{ label: 'Limpar filtros', onClick: clearFilters, icon: SlidersHorizontal }}
+            />
+          ) : (
+            <section className="space-y-3">
+              <h2 className="text-lg font-bold tracking-tight">Notícias selecionadas</h2>
+              {filteredNews.map((n, i) => (
+                <ClippingNewsItem key={n.id ?? i} news={n} defaultOpen={i === 0} />
+              ))}
+            </section>
+          )}
 
-        <PainelDoMetodo metodo={d?.method} coletados={d?.totalCollected} exibidos={lista.length} />
-      </DataState>
+          {allNews.length > 0 && <ThemeCounter news={allNews} />}
+
+          {result.trends?.length > 0 && (
+            <section className="card p-5">
+              <h3 className="mb-3 text-sm font-bold uppercase tracking-wide muted">Tendências do dia</h3>
+              <div className="flex flex-wrap gap-2">
+                {result.trends.map((t) => (
+                  <span key={t} className="chip">{t}</span>
+                ))}
+              </div>
+            </section>
+          )}
+        </motion.div>
+      )}
+
+      <SourcesPanel open={sourcesOpen} onToggle={() => setSourcesOpen((o) => !o)} />
+
+      <p className="text-xs muted">
+        Dados ilustrativos. O clipping é um produto editorial de demonstração e não substitui a análise humana especializada.
+      </p>
     </div>
   )
 }
 
-// -----------------------------------------------------------------------------
-// COMO O FILTRO DECIDE
-//
-// Um clipping filtra — logo, deixa coisas de fora. Não declarar o critério
-// tornaria essa escolha indistinguível de uma decisão editorial não assumida:
-// quem lê não teria como saber se uma notícia ausente foi filtrada por regra
-// ou por conveniência.
-// -----------------------------------------------------------------------------
-function PainelDoMetodo({ metodo, coletados, exibidos }) {
-  const [aberto, setAberto] = useState(false)
-  if (!metodo) return null
+// Crédito discreto para quem só LÊ a edição (sem capacidade de gerar).
+function PublishedNote({ at }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-2 text-xs muted">
+      <ShieldCheck size={14} className="text-emerald-500 dark:text-emerald-400" />
+      Publicado por {EDITORIAL_DESK}
+      {at && <span className="font-mono">· {formatDateTimeBR(at)}</span>}
+    </span>
+  )
+}
+
+// Notícia do clipping com as três ações do leitor: fonte, link e pasta pessoal.
+function ClippingNewsItem({ news, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen)
+  const toggleFavorite = useNewsStore((s) => s.toggleFavorite)
+  const saved = useNewsStore((s) => s.favorites.some((f) => f.id === news.id))
+
+  const copyLink = () => {
+    clipboard(news.url || news.title)
+      .then(() => toast.success('Link copiado'))
+      .catch(() => toast.error('Não foi possível copiar o link'))
+  }
+
+  const save = () => {
+    const added = toggleFavorite(news)
+    toast.success(added ? 'Salvo na sua pasta' : 'Removido da pasta')
+  }
+
+  return (
+    <article className="card p-4 transition-colors hover:border-gold-500/25">
+      <div className="flex flex-wrap items-center gap-2 text-xs">
+        <Badge type="urgency" value={news.urgency} />
+        <Badge type="category" value={news.category} />
+        <span className="muted">{news.source}</span>
+        {news.region && <span className="muted">· {news.region}</span>}
+      </div>
+
+      <h3 className="mt-2 text-base font-bold leading-snug tracking-tight">{news.title}</h3>
+      <p className="mt-1.5 text-sm leading-relaxed text-gray-700 dark:text-gray-300">{news.summary}</p>
+
+      {(news.key_points?.length > 0 || news.impact_br) && (
+        <>
+          <button
+            onClick={() => setOpen((o) => !o)}
+            className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-gold-600 hover:underline dark:text-gold-400"
+            aria-expanded={open}
+          >
+            <ChevronDown size={16} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+            {open ? 'Recolher detalhes' : 'Ver pontos-chave'}
+          </button>
+          {open && (
+            <div className="mt-3 space-y-3 border-t border-gray-200 pt-3 text-sm dark:border-white/[0.07]">
+              {news.key_points?.length > 0 && (
+                <ul className="space-y-1">
+                  {news.key_points.map((p, i) => (
+                    <li key={i} className="flex gap-2">
+                      <span className="text-gold-500">•</span>
+                      <span className="text-gray-700 dark:text-gray-300">{p}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {news.impact_br && (
+                <p className="rounded-lg bg-gold-500/10 p-3 text-gray-700 dark:text-gray-300">
+                  <span className="font-semibold text-gold-600 dark:text-gold-400">Impacto para o Brasil: </span>
+                  {news.impact_br}
+                </p>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      <div className="mt-3 flex flex-wrap gap-2 border-t border-gray-200 pt-3 dark:border-white/[0.07]">
+        {news.url && (
+          <a href={news.url} target="_blank" rel="noreferrer" className="btn-ghost px-2.5 py-1.5 text-xs">
+            <ExternalLink size={13} /> Abrir fonte
+          </a>
+        )}
+        <button onClick={copyLink} className="btn-ghost px-2.5 py-1.5 text-xs">
+          <Copy size={13} /> Copiar link
+        </button>
+        <Can do="folder.save">
+          <button
+            onClick={save}
+            className={`btn-ghost px-2.5 py-1.5 text-xs ${saved ? 'border-gold-500/50 text-gold-600 dark:text-gold-400' : ''}`}
+            aria-pressed={saved}
+          >
+            {saved ? <BookmarkCheck size={13} /> : <Bookmark size={13} />}
+            {saved ? 'Na sua pasta' : 'Salvar na pasta'}
+          </button>
+        </Can>
+      </div>
+    </article>
+  )
+}
+
+// Distribuição da edição por tema — dá a leitura de onde o dia se concentrou.
+function ThemeCounter({ news }) {
+  const rows = useMemo(() => {
+    const counts = news.reduce((acc, n) => {
+      acc[n.category] = (acc[n.category] || 0) + 1
+      return acc
+    }, {})
+    return Object.entries(counts).sort((a, b) => b[1] - a[1])
+  }, [news])
+  const max = Math.max(...rows.map(([, c]) => c), 1)
 
   return (
     <section className="card p-5">
-      <button onClick={() => setAberto((v) => !v)} aria-expanded={aberto} className="flex w-full items-center gap-2 text-left">
-        <FlaskConical size={16} className="shrink-0 text-gold-500" />
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-bold tracking-tight">Como o filtro decide</span>
-          <span className="mt-0.5 block text-xs muted">
-            {coletados != null
-              ? `${coletados} item(ns) coletados · ${exibidos} passaram no filtro neste período`
-              : metodo.regra}
-          </span>
-        </span>
-        <ChevronDown size={15} className={`shrink-0 muted transition-transform ${aberto ? 'rotate-180' : ''}`} />
-      </button>
+      <h3 className="mb-3 flex flex-wrap items-center gap-2 text-sm font-bold uppercase tracking-wide muted">
+        Notícias por tema
+        <span className="chip normal-case">{news.length} no total</span>
+      </h3>
+      <div className="space-y-2.5">
+        {rows.map(([cat, count]) => (
+          <div key={cat} className="flex items-center gap-3">
+            <span className="flex w-32 shrink-0 items-center gap-2 text-sm sm:w-40">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: categoryColor(cat) }} />
+              <span className="truncate font-medium">{cat}</span>
+            </span>
+            <span className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700/30">
+              <span
+                className="block h-full rounded-full"
+                style={{ width: `${(count / max) * 100}%`, background: categoryColor(cat) }}
+              />
+            </span>
+            <span className="w-6 shrink-0 text-right font-mono text-sm font-bold">{count}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
 
-      {aberto && (
-        <div className="mt-4 space-y-3 border-t border-gray-200 pt-4 dark:border-white/10">
-          <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">{metodo.descricao}</p>
-          <ol className="space-y-2.5">
-            {(metodo.etapas || []).map((e, i) => (
-              <li key={e.titulo} className="flex gap-3">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-brand-500/15 text-[11px] font-bold text-brand-600 dark:text-brand-300">
-                  {i + 1}
-                </span>
-                <span className="min-w-0">
-                  <span className="block text-sm font-semibold">{e.titulo}</span>
-                  <span className="mt-0.5 block text-xs leading-relaxed muted">{e.texto}</span>
-                </span>
-              </li>
-            ))}
-          </ol>
-          <p className="rounded-lg bg-white/5 p-3 text-xs leading-relaxed muted">
-            O filtro erra nos dois sentidos. Cada cartão tem um "por que está aqui?" que mostra os
-            termos que casaram naquele item — a regra é verificável caso a caso, não só declarada.
-          </p>
+// Painel informativo: quais fontes alimentam a edição. A gestão das fontes
+// vive em Configurações — aqui a lista é apenas de consulta.
+function SourcesPanel({ open, onToggle }) {
+  const sources = useSettingsStore((s) => s.rssSources)
+  const online = sources.filter((s) => s.status === 'online').length
+
+  return (
+    <section className="card overflow-hidden">
+      <button onClick={onToggle} className="flex w-full items-center justify-between gap-3 p-4" aria-expanded={open}>
+        <span className="flex items-center gap-2 font-semibold">
+          <Rss size={17} className="text-gold-500" /> Fontes monitoradas ({sources.length})
+        </span>
+        <span className="flex items-center gap-3">
+          <span className="text-xs muted">{online} online</span>
+          <ChevronDown size={18} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+        </span>
+      </button>
+      {open && (
+        <div className="space-y-2 border-t border-gray-200 p-4 dark:border-white/[0.07]">
+          {sources.map((s) => (
+            <div
+              key={s.id}
+              className="flex items-center justify-between gap-3 rounded-lg bg-gray-50 px-3 py-2 text-sm dark:bg-white/5"
+            >
+              <span className="flex min-w-0 items-center gap-2">
+                <Circle
+                  size={9}
+                  className={s.status === 'online' ? 'fill-emerald-400 text-emerald-400' : 'fill-red-400 text-red-400'}
+                />
+                <span className="truncate font-medium">{s.name}</span>
+              </span>
+              <span className={`chip shrink-0 ${s.enabled ? 'text-emerald-600 dark:text-emerald-300' : ''}`}>
+                {s.enabled ? 'Coletando' : 'Pausada'}
+              </span>
+            </div>
+          ))}
+          <Link to="/configuracoes" className="btn-ghost mt-1 w-full justify-center text-xs">
+            <SlidersHorizontal size={14} /> Gerenciar fontes em Configurações
+          </Link>
         </div>
       )}
     </section>

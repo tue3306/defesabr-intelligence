@@ -1,42 +1,75 @@
 import { Link } from 'react-router-dom'
-import { Shield, Github, ExternalLink } from 'lucide-react'
-import { APP_VERSION } from '../../services/config'
+import { Shield, Github, Linkedin, Twitter, Youtube, Instagram, Compass } from 'lucide-react'
+import { useAuthStore } from '../../store/authStore'
 
-const REPO = 'https://github.com/tue3306/defesabr-intelligence'
+const SOCIALS = [
+  { icon: Linkedin, label: 'LinkedIn', href: 'https://www.linkedin.com' },
+  { icon: Twitter, label: 'X (Twitter)', href: 'https://x.com' },
+  { icon: Youtube, label: 'YouTube', href: 'https://www.youtube.com' },
+  { icon: Instagram, label: 'Instagram', href: 'https://www.instagram.com' },
+]
 
 export default function Footer() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   return (
-    <footer className="border-t border-gray-200 px-6 py-8 text-sm dark:border-white/[0.06]">
-      <div className="mx-auto flex max-w-7xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    // pb extra no mobile para o botão flutuante de status não cobrir o rodapé
+    <footer className="border-t border-white/[0.06] px-6 pb-24 pt-8 text-sm sm:pb-8">
+      <div className="mx-auto flex max-w-7xl flex-col items-center gap-4 sm:flex-row sm:justify-between">
         <div className="flex items-center gap-2 muted">
           <Shield size={16} className="text-brand-400" />
-          <span>DefesaBR Intelligence v{APP_VERSION} — {new Date().getFullYear()}</span>
+          <span>DefesaBR Intelligence — {new Date().getFullYear()}</span>
         </div>
 
-        {/* A ressalva que a plataforma precisa carregar: ela AGREGA fonte
-            pública, não produz análise. Confundir os dois é o erro que este
-            tipo de sistema mais facilmente induz. */}
-        <p className="max-w-md text-xs leading-relaxed muted">
-          Agregador de fontes públicas para fins acadêmicos. Não produz análise —
-          confira sempre a fonte original antes de usar qualquer informação.
+        <p className="order-last text-center text-xs muted sm:order-none">
+          Site demonstrativo. Análises geradas por IA não substituem análise especializada humana.
         </p>
 
-        <div className="flex items-center gap-4 text-xs">
-          <Link to="/status" className="muted transition-colors hover:text-gold-600 dark:hover:text-gold-400">
-            Status
-          </Link>
-          <Link to="/sobre" className="muted transition-colors hover:text-gold-600 dark:hover:text-gold-400">
-            Sobre
-          </Link>
+        <div className="flex items-center gap-3">
+          {SOCIALS.map(({ icon: Icon, label, href }) => (
+            <a
+              key={label}
+              href={href}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={label}
+              title={label}
+              className="muted hover:text-brand-400"
+            >
+              <Icon size={17} />
+            </a>
+          ))}
+          <span className="h-4 w-px bg-gray-600/40" />
           <a
-            href={REPO}
+            href="https://github.com/tue3306/defesabr-intelligence"
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1 muted transition-colors hover:text-gold-600 dark:hover:text-gold-400"
+            className="inline-flex items-center gap-1.5 muted hover:text-brand-400"
           >
-            <Github size={13} /> Código <ExternalLink size={10} />
+            <Github size={16} /> Repositório
           </a>
         </div>
+      </div>
+
+      {/* [ALTERADO] Links legais/institucionais */}
+      <div className="mx-auto mt-4 flex max-w-7xl flex-wrap items-center justify-center gap-x-4 gap-y-1 border-t border-white/[0.06] pt-4 text-xs muted">
+        <Link to="/sobre" className="hover:text-brand-400">Sobre</Link>
+        <span className="text-gray-600">·</span>
+        <Link to="/sobre" className="hover:text-brand-400">Termos de Uso</Link>
+        <span className="text-gray-600">·</span>
+        <Link to="/sobre" className="hover:text-brand-400">Política de Privacidade</Link>
+        <span className="text-gray-600">·</span>
+        <Link to="/planos" className="hover:text-brand-400">Planos</Link>
+        {isAuthenticated && (
+          <>
+            <span className="text-gray-600">·</span>
+            <button
+              onClick={() => window.dispatchEvent(new Event('defesabr:open-tour'))}
+              className="inline-flex items-center gap-1 hover:text-brand-400"
+            >
+              <Compass size={12} /> Rever tour guiado
+            </button>
+          </>
+        )}
       </div>
     </footer>
   )

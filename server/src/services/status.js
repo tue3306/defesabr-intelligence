@@ -242,13 +242,17 @@ export function capacidades() {
     {
       id: 'contas',
       nome: 'Contas e permissões',
-      grupo: 'Não implementado',
-      estado: 'nao_implementado',
-      detalhe: 'A plataforma é aberta: não há login, e nenhum dado é por usuário.',
-      descricao: 'Fora do escopo desta etapa por decisão de projeto. O esquema já isola o que seria '
-        + 'por conta (favoritos usam um identificador de navegador), então acrescentar contas depois '
-        + 'não exige remodelar o banco.',
-      fonte: '—',
+      grupo: 'Parcial',
+      estado: 'degradado',
+      detalhe: 'Perfis funcionam no navegador; o servidor não autentica ninguém.',
+      descricao: 'A distinção importa e o painel não deve escondê-la. O que EXISTE: quatro perfis '
+        + '(visitante, assinante, analista, administrador), um mapa de permissões e telas que se '
+        + 'adaptam ao perfil — tudo real, e é isso que se demonstra ao trocar de conta. O que NÃO '
+        + 'existe: verificação no servidor. A API responde a qualquer requisição sem perguntar quem '
+        + 'é; trocar de perfil muda o que a interface mostra, não o que o backend entrega. Para virar '
+        + 'controle de acesso de verdade faltam sessão, senha e checagem por rota — o esquema já '
+        + 'isola o que seria por conta, então isso se acrescenta sem remodelar o banco.',
+      fonte: 'src/auth/permissions.js (navegador)',
       metricas: {},
     },
     {
@@ -256,10 +260,14 @@ export function capacidades() {
       nome: 'Dossiês e avaliações de analista',
       grupo: 'Não implementado',
       estado: 'nao_implementado',
-      detalhe: 'Exigiria contas e fluxo de redação.',
-      descricao: 'Conteúdo analítico é juízo humano e precisa de autoria registrada. Sem contas, não há '
-        + 'a quem atribuir — então a funcionalidade não existe, em vez de existir com autor fictício.',
-      fonte: '—',
+      detalhe: 'As telas existem e são navegáveis; o conteúdo é redigido, não coletado.',
+      descricao: 'Dossiês, matriz de riscos, narrativas e cenários são telas completas e demonstráveis '
+        + '— mas o que elas exibem foi escrito à mão para servir de exemplo, não sai de nenhuma coleta. '
+        + 'Ficam marcadas assim de propósito: são a parte do produto que depende de juízo humano, e '
+        + 'apresentá-las como saída automática seria a única mentira do painel. O que falta para virar '
+        + 'funcionalidade real é fluxo de redação com autoria registrada, o que por sua vez depende de '
+        + 'contas no servidor.',
+      fonte: 'src/data/ (conteúdo editorial)',
       metricas: {},
     },
   ]
