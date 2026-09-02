@@ -72,7 +72,7 @@ export default function Plans() {
         </span>
         <h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Escolha seu nível de acesso</h1>
         <p className="mx-auto mt-2 max-w-xl text-sm muted">
-          Comece grátis e evolua quando precisar. Cancele quando quiser. Valores demonstrativos.
+          Comece grátis e evolua quando precisar. Cancele quando quiser.
         </p>
 
         {/* Toggle Mensal / Anual */}
@@ -171,7 +171,7 @@ export default function Plans() {
       <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-center text-xs muted">
         <span className="inline-flex items-center gap-1.5"><ShieldCheck size={14} className="text-emerald-500 dark:text-emerald-400" /> Cancele quando quiser, sem fidelidade</span>
         <span className="inline-flex items-center gap-1.5"><Check size={14} className="text-emerald-500 dark:text-emerald-400" /> Upgrade/downgrade imediato</span>
-        <span className="inline-flex items-center gap-1.5"><Info size={14} /> Demonstração — nenhuma cobrança é realizada</span>
+        <span className="inline-flex items-center gap-1.5"><Info size={14} /> Projeto acadêmico — não há cobrança</span>
       </div>
 
       {/* PLANO x PAPEL — os dois eixos do acesso */}

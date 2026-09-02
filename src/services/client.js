@@ -1,16 +1,19 @@
-import {
-  DATA_MODE, API_BASE_URL, REQUEST_TIMEOUT, MOCK_LATENCY, APP_VERSION,
-} from './config'
-import { temPonte, viaPonte, apiOnline } from './apiBridge'
+import { API_BASE_URL, REQUEST_TIMEOUT, APP_VERSION } from './config'
+import { temPonte, viaPonte } from './apiBridge'
 
 // -----------------------------------------------------------------------------
 // CLIENTE DE DADOS — a única fronteira entre a interface e a origem dos dados.
 //
-// Todos os serviços de domínio (news, intel, admin, reports) chamam `request()`.
-// Em modo 'mock' a resolução é local; em modo 'api' é HTTP. O CONTRATO de
-// retorno é idêntico nos dois casos:
+// Todos os serviços de domínio chamam `request()`, e ele fala com UMA origem
+// só: a API. O contrato de retorno é
 //
-//   { data, meta: { source, endpoint, fetchedAt, latency } }
+//   { data, meta: { source: 'live', endpoint, fetchedAt, latency } }
+//
+// Este arquivo já teve três caminhos: ponte para a API, resolvedor local e um
+// "modo demonstração" que era o PADRÃO — bastava não configurar nada para a
+// plataforma inteira servir dados escritos à mão, sem que nada na tela deixasse
+// isso óbvio. Restou um caminho. Se a API não responde, a consulta falha e a
+// tela mostra erro; nenhum número aparece sem ter vindo de uma fonte.
 //
 // Erros sempre chegam como `ApiError` — nunca como exceções cruas de rede.
 // -----------------------------------------------------------------------------
@@ -28,6 +31,7 @@ export class ApiError extends Error {
   /** Mensagem pronta para a interface — sem jargão de rede. */
   get userMessage() {
     if (this.code === 'TIMEOUT') return 'A fonte demorou demais para responder. Tente novamente.'
+    if (this.code === 'NO_SOURCE') return 'Esta consulta não tem fonte de dados disponível.'
     if (this.status === 401 || this.status === 403) return 'Sua sessão não tem permissão para esta consulta.'
     if (this.status === 404) return 'O conteúdo solicitado não foi encontrado.'
     if (this.status >= 500) return 'O serviço de dados está instável no momento.'
@@ -35,65 +39,40 @@ export class ApiError extends Error {
   }
 }
 
-/** Registro de resolvedores locais: 'GET /news' → () => dados. */
-const mockRegistry = new Map()
-
 /**
- * Registra o resolvedor local de um endpoint.
- * @param {string} endpoint  ex.: 'GET /intel/narratives'
- * @param {Function} resolver  (params) => data | Promise<data>
- */
-export function registerMock(endpoint, resolver) {
-  mockRegistry.set(endpoint.trim(), resolver)
-}
-
-/** Endpoints locais disponíveis — útil para a tela de diagnóstico do Admin. */
-export function listMockEndpoints() {
-  return [...mockRegistry.keys()].sort()
-}
-
-const wait = (ms) => new Promise((r) => setTimeout(r, ms))
-
-function simulatedLatency() {
-  const { min, max } = MOCK_LATENCY
-  if (max <= 0) return 0
-  return Math.round(min + Math.random() * (max - min))
-}
-
-function buildQuery(params) {
-  if (!params || !Object.keys(params).length) return ''
-  const usp = new URLSearchParams()
-  Object.entries(params).forEach(([k, v]) => {
-    if (v === undefined || v === null || v === '') return
-    if (Array.isArray(v)) v.forEach((item) => usp.append(k, item))
-    else usp.append(k, v)
-  })
-  const q = usp.toString()
-  return q ? `?${q}` : ''
-}
-
-/**
- * Executa uma consulta de dados.
+ * Endpoints atendidos pela ponte.
  *
- * @param {string} endpoint  'GET /news' · 'POST /reports'
- * @param {object} options
- * @param {object} [options.params]  query string (api) ou argumento (mock)
- * @param {object} [options.body]    corpo da requisição
- * @param {AbortSignal} [options.signal]
- * @returns {Promise<{data: any, meta: object}>}
+ * Substitui `listMockEndpoints()`, que listava os resolvedores locais. A tela
+ * de diagnóstico mostra isto como "endpoints registrados".
  */
-export async function request(endpoint, { params, body, signal, timeout = REQUEST_TIMEOUT } = {}) {
+export function listEndpoints() {
+  return [...temPonte.chaves()].sort()
+}
+
+/** Query string, ignorando vazios e expandindo arrays. */
+function buildQuery(params = {}) {
+  const q = new URLSearchParams()
+  for (const [k, v] of Object.entries(params)) {
+    if (v === undefined || v === null || v === '') continue
+    if (Array.isArray(v)) v.forEach((i) => q.append(k, i))
+    else q.set(k, String(v))
+  }
+  const s = q.toString()
+  return s ? `?${s}` : ''
+}
+
+/**
+ * Consulta de dados.
+ *
+ * @param {string} endpoint  'GET /news', 'POST /bookmarks/12'…
+ * @param {object} opcoes    { params, body, signal, timeout }
+ */
+export async function request(endpoint, { params = {}, body, signal, timeout = REQUEST_TIMEOUT } = {}) {
   const started = Date.now()
   const [method = 'GET', path = '/'] = endpoint.trim().split(/\s+/)
 
-  // ── PONTE PARA O BACKEND REAL ──
-  //
-  // Antes de qualquer coisa: se existe backend para este endpoint E a API
-  // responde, o dado vem de la. E o unico ponto do sistema que decide isso.
-  //
-  // A sonda de saude tem cache de 15s (ver apiBridge.js), entao uma tela com
-  // quatro consultas nao dispara quatro sondas.
-  if (temPonte(endpoint) && await apiOnline()) {
+  // ── Caminho preferido: a ponte, que conhece a forma de cada resposta ──
+  if (temPonte(endpoint)) {
     try {
       const data = await viaPonte(endpoint, params)
       return {
@@ -106,76 +85,32 @@ export async function request(endpoint, { params, body, signal, timeout = REQUES
         },
       }
     } catch (err) {
-      // A API respondeu a sonda mas falhou nesta consulta. Cair no resolvedor
-      // local mantem a tela util; `source: 'fallback'` conta o que houve, e a
-      // interface ja distingue os tres selos.
-      const resolvedorLocal = mockRegistry.get(endpoint.trim())
-      if (!resolvedorLocal) {
-        throw new ApiError(err?.message || 'Falha ao consultar a API.', {
-          endpoint, cause: err, code: 'BRIDGE_FAILED',
-        })
-      }
-      const data = await resolvedorLocal({ ...params }, { body })
-      return {
-        data,
-        meta: {
-          source: 'fallback',
-          endpoint,
-          fetchedAt: new Date().toISOString(),
-          latency: Date.now() - started,
-          erro: err?.message,
-        },
-      }
-    }
-  }
-
-  // ── Modo demonstração: resolve do repositório local ──
-  if (DATA_MODE === 'mock' || !API_BASE_URL) {
-    const resolver = mockRegistry.get(endpoint.trim())
-    if (!resolver) {
-      throw new ApiError(`Endpoint não registrado no modo demonstração: ${endpoint}`, {
-        endpoint,
-        code: 'NOT_REGISTERED',
-        status: 501,
-      })
-    }
-    const delay = simulatedLatency()
-    if (delay) await wait(delay)
-    if (signal?.aborted) throw new ApiError('Consulta cancelada.', { endpoint, code: 'ABORTED' })
-    try {
-      const data = await resolver({ ...params }, { body })
-      return {
-        data,
-        meta: { source: 'demo', endpoint, fetchedAt: new Date().toISOString(), latency: Date.now() - started },
-      }
-    } catch (err) {
-      throw new ApiError(err?.message || 'Falha ao resolver os dados locais.', {
-        endpoint, cause: err, code: 'MOCK_RESOLVER_FAILED',
+      throw new ApiError(err?.message || 'Falha ao consultar a API.', {
+        endpoint, cause: err, code: 'BRIDGE_FAILED',
       })
     }
   }
 
-  // ── Modo API: HTTP real ──
+  // ── HTTP direto: endpoints que a ponte ainda não mapeia ──
   const controller = new AbortController()
   const onAbort = () => controller.abort()
   signal?.addEventListener('abort', onAbort)
   const timer = setTimeout(() => controller.abort('timeout'), timeout)
 
   try {
-    const res = await fetch(`${API_BASE_URL}${path}${buildQuery(params)}`, {
+    const res = await fetch(`${API_BASE_URL}/api${path}${buildQuery(params)}`, {
       method,
       headers: {
         'Content-Type': 'application/json',
         'X-Client-Version': APP_VERSION,
       },
-      credentials: 'include',
       body: body ? JSON.stringify(body) : undefined,
       signal: controller.signal,
     })
 
     if (!res.ok) {
       let detail = ''
-      try { detail = (await res.json())?.message } catch { /* corpo não-JSON */ }
+      try { detail = (await res.json())?.error || (await res.json())?.message } catch { /* corpo não-JSON */ }
       throw new ApiError(detail || `Falha na consulta (HTTP ${res.status}).`, {
         status: res.status, endpoint,
       })
@@ -198,8 +133,8 @@ export async function request(endpoint, { params, body, signal, timeout = REQUES
     if (err instanceof ApiError) throw err
     const aborted = err?.name === 'AbortError'
     throw new ApiError(
-      aborted ? 'A consulta excedeu o tempo limite.' : 'Não foi possível falar com o serviço de dados.',
-      { endpoint, cause: err, code: aborted ? 'TIMEOUT' : 'NETWORK' }
+      aborted ? 'A consulta foi interrompida.' : (err?.message || 'Falha de rede.'),
+      { endpoint, cause: err, code: aborted ? 'TIMEOUT' : 'NETWORK' },
     )
   } finally {
     clearTimeout(timer)
@@ -207,24 +142,4 @@ export async function request(endpoint, { params, body, signal, timeout = REQUES
   }
 }
 
-/**
- * Consulta com degradação graciosa: se a origem falhar, devolve o fallback
- * marcado como tal em vez de quebrar a tela. Usado onde a continuidade da
- * demonstração importa mais que a atualidade do dado.
- */
-export async function requestWithFallback(endpoint, options = {}, fallback) {
-  try {
-    return await request(endpoint, options)
-  } catch (err) {
-    return {
-      data: typeof fallback === 'function' ? fallback() : fallback,
-      meta: {
-        source: 'fallback',
-        endpoint,
-        fetchedAt: new Date().toISOString(),
-        degraded: true,
-        reason: err instanceof ApiError ? err.userMessage : String(err?.message || err),
-      },
-    }
-  }
-}
+export default { request, ApiError, listEndpoints }

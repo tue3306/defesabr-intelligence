@@ -66,13 +66,13 @@ export default function PublicLayout() {
               {isDark ? <Sun size={18} /> : <Moon size={18} />}
             </button>
 
-            {/* Atalho de demonstração: entra na experiência completa em um clique */}
+            {/* Atalho: entra na experiência completa em um clique */}
             <button
               onClick={enterDemo}
               className="hidden items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100 dark:border-white/15 dark:text-gray-200 dark:hover:bg-white/10 lg:inline-flex"
-              title={`Entrar como ${DEMO_PERSONAS.analista.roleLabel} (demonstração)`}
+              title={`Entrar como ${DEMO_PERSONAS.analista.roleLabel}`}
             >
-              Ver demonstração <ArrowRight size={14} />
+              Entrar <ArrowRight size={14} />
             </button>
 
             <button onClick={() => setLoginOpen(true)} className="btn-primary px-3 py-1.5 text-sm">
@@ -109,7 +109,7 @@ export default function PublicLayout() {
               onClick={enterDemo}
               className="flex w-full items-center gap-1.5 rounded-lg px-3 py-2 text-left text-sm font-semibold text-gold-600 hover:bg-gray-100 dark:text-gold-400 dark:hover:bg-white/5"
             >
-              Ver demonstração <ArrowRight size={14} />
+              Entrar <ArrowRight size={14} />
             </button>
           </nav>
         )}

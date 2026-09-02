@@ -16,7 +16,6 @@ import ExchangeWidget from '../components/ui/ExchangeWidget'
 import NewsVolumeChart from '../components/charts/NewsVolumeChart'
 import MilitarySpendingChart from '../components/charts/MilitarySpendingChart'
 import GlobalHeatmap from '../components/charts/GlobalHeatmap'
-import { TensionBoard } from '../components/tension/TensionPanel'
 import Can from '../auth/Can'
 import { useCan, useProfileMeta } from '../auth/useCan'
 import { PLAN_LABELS } from '../auth/permissions'
@@ -25,7 +24,6 @@ import { useNewsStore } from '../store/newsStore'
 import { useAuthStore } from '../store/authStore'
 import { useSubscriptionStore } from '../store/subscriptionStore'
 import { useSettingsStore } from '../store/settingsStore'
-import { useTensionStore, tensionBand } from '../store/tensionStore'
 import {
 } from '../data/mockData'
 import { brazilIndicators } from '../data/economyData'
@@ -89,7 +87,6 @@ export default function UserDashboard() {
   const unread = useNewsStore((s) => s.unreadCount())
   const favorites = useNewsStore((s) => s.favorites)
   const interestAreas = useSettingsStore((s) => s.interestAreas)
-  const regions = useTensionStore((s) => s.regions)
 
   // Única leitura de capacidade fora do JSX: define a densidade do painel.
   const full = can('analysis.full')
@@ -98,10 +95,6 @@ export default function UserDashboard() {
 
   const alert = alertMeta[latest?.alert_level] || alertMeta.ATENCAO
   const posture = alert?.value ?? 42
-  const avgTension = regions.length
-    ? Math.round(regions.reduce((acc, r) => acc + (r.level || 0), 0) / regions.length)
-    : 0
-  const criticalRegions = regions.filter((r) => (r.level || 0) >= 50)
 
   const firstName = user?.name?.split(' ')[0] || 'Analista'
   const execLine = full
@@ -201,13 +194,7 @@ export default function UserDashboard() {
             hint={`${posture}/100 · postura do dia`}
             accent={ALERT_ACCENT[latest?.alert_level] || 'amber'}
           />
-          <MetricCard
-            icon={Activity}
-            label="Tensão média regional"
-            value={`${avgTension}/100`}
-            hint={`${criticalRegions.length} região(ões) ≥ 50`}
-            accent={bandAccent(avgTension)}
-          />
+
           <MetricCard
             icon={Newspaper}
             label="Notícias monitoradas"

@@ -4,7 +4,6 @@ import { TrendingUp, AlertTriangle, Activity, ShieldAlert, Target } from 'lucide
 import { fetchLastExchange } from '../../api/awesomeapi'
 import { alertMeta } from '../../utils/textUtils'
 import { useNewsStore } from '../../store/newsStore'
-import { useTensionStore, tensionBand } from '../../store/tensionStore'
 
 // -----------------------------------------------------------------------------
 // FAIXA DE INDICADORES — leitura rápida do estado do produto.
@@ -17,7 +16,6 @@ export default function Ticker() {
   const [rates, setRates] = useState({ usd: null, eur: null })
   const latest = useNewsStore((s) => s.notifications?.[0]?.title)
   const latestClipping = useNewsStore((s) => s.latestClipping)
-  const regions = useTensionStore((s) => s.regions)
 
   useEffect(() => {
     let active = true
@@ -43,16 +41,11 @@ export default function Ticker() {
 
   const items = useMemo(() => {
     const alert = alertMeta[latestClipping?.alert_level] || alertMeta.ATENCAO
-    const avgTension = regions.length
-      ? Math.round(regions.reduce((acc, r) => acc + (r.level || 0), 0) / regions.length)
-      : 0
-    const band = tensionBand(avgTension)
 
     return [
       { icon: TrendingUp, label: 'USD/BRL', value: rates.usd ? `R$ ${rates.usd}` : '—' },
       { icon: TrendingUp, label: 'EUR/BRL', value: rates.eur ? `R$ ${rates.eur}` : '—' },
       { icon: Activity, label: 'Nível de alerta', value: `${alert.label} · ${alert.value}/100`, to: '/painel' },
-      { icon: AlertTriangle, label: 'Tensão média regional', value: `${band.label} · ${avgTension}/100`, to: '/painel' },
       { icon: Activity, label: 'Última ocorrência', value: latest || 'Monitoramento em curso' },
     ]
   }, [rates, latest, latestClipping, regions])

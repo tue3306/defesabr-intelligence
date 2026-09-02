@@ -18,23 +18,25 @@ import {
   useGastoMilitar, useComparacaoSulAmericana, useGastoGlobal,
   useRadarCategorias, useIndiceDeAlerta,
 } from '../hooks/useDadosReais'
-import { useTensionStore, tensionBand } from '../store/tensionStore'
 import { alertMeta } from '../utils/textUtils'
 import { formatTime, formatFullDate } from '../utils/dateUtils'
 
 // Slides de CONTEXTO — poucos elementos, grandes, legíveis a distância. Vêm
 // antes dos gráficos porque uma apresentação começa pela situação, não pelo dado.
 function PostureSlide() {
-  const alert = alertMeta.ATENCAO
+  // Era `alertMeta.ATENCAO` — uma constante. O primeiro slide da apresentação
+  // dizia "ATENÇÃO · 42/100" em qualquer cenário, todos os dias.
+  const a = useIndiceDeAlerta(7)
+  const alert = alertMeta[a.level] || alertMeta.NORMAL
   return (
     <div className="flex flex-col items-center py-6 text-center sm:py-10">
       <span className="text-xs font-bold uppercase tracking-[0.3em] text-gold-400">Postura nacional</span>
       <p className="mt-4 text-5xl font-extrabold tracking-tight sm:text-7xl" style={{ color: '#caa733' }}>
-        {alert.label}
+        {a.value != null ? alert.label : '—'}
       </p>
-      <p className="mt-2 font-mono text-xl muted sm:text-2xl">{alert.value}/100</p>
+      <p className="mt-2 font-mono text-xl muted sm:text-2xl">{a.value ?? '—'}/100</p>
       <div className="mt-6 h-3 w-full max-w-xl overflow-hidden rounded-full bg-white/10">
-        <div className="h-full rounded-full bg-gold-500" style={{ width: `${alert.value}%` }} />
+        <div className="h-full rounded-full bg-gold-500" style={{ width: `${a.value ?? 0}%` }} />
       </div>
       <div className="mt-2 flex w-full max-w-xl justify-between text-xs uppercase tracking-wide muted">
         <span>Normal</span><span>Crítico</span>
@@ -43,29 +45,6 @@ function PostureSlide() {
   )
 }
 
-function TensionSlide() {
-  const regions = useTensionStore((s) => s.regions)
-  return (
-    <ul className="space-y-3 py-2 sm:space-y-4 sm:py-4">
-      {regions.map((r) => {
-        const band = tensionBand(r.level)
-        return (
-          <li key={r.region}>
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="truncate text-base font-bold tracking-tight sm:text-xl">{r.region}</span>
-              <span className="shrink-0 font-mono text-lg font-extrabold tabular-nums sm:text-2xl" style={{ color: band.color }}>
-                {r.level}
-              </span>
-            </div>
-            <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-white/10 sm:h-3">
-              <div className="h-full rounded-full" style={{ width: `${r.level}%`, background: band.color }} />
-            </div>
-          </li>
-        )
-      })}
-    </ul>
-  )
-}
 
 
 
@@ -167,7 +146,6 @@ function AlertaSlide({ height }) {
 
 const SLIDES = [
   { title: 'Postura nacional do período', icon: Activity, render: () => <PostureSlide /> },
-  { title: 'Nível de tensão por região', icon: Activity, render: () => <TensionSlide /> },
   { title: 'Gastos militares — Brasil', render: (h) => <GastoSlide height={h} /> },
   { title: 'Gastos militares globais (US$ bi)', render: (h) => <GlobalSlide height={h} /> },
   { title: 'América do Sul — % do PIB em defesa', render: (h) => <ComparacaoSlide height={h} /> },
@@ -359,7 +337,7 @@ export default function Presentation() {
       </div>
 
       <p className="mt-3 text-center text-[11px] muted">
-        ← → navegar · espaço pausa · Esc sai · dados demonstrativos
+        ← → navegar · espaço pausa · Esc sai
       </p>
     </div>
   )

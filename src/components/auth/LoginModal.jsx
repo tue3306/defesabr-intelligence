@@ -175,7 +175,7 @@ export default function LoginModal({ open, onClose }) {
 
           <div className="my-4 flex items-center gap-3 text-xs muted">
             <span className="h-px flex-1 bg-gray-300 dark:bg-gray-600/40" />
-            entrar como (demonstração)
+            entrar como
             <span className="h-px flex-1 bg-gray-300 dark:bg-gray-600/40" />
           </div>
 
@@ -207,7 +207,7 @@ export default function LoginModal({ open, onClose }) {
           </button>
 
           <p className="mt-4 rounded-lg bg-brand-500/10 p-3 text-center text-xs text-gray-600 dark:text-gray-300">
-            Ambiente de demonstração — os dados são ilustrativos e nenhuma informação real é enviada.
+            Os perfis abaixo trocam o que a interface mostra. Os dados são reais, coletados pelo servidor; a verificação de acesso é do navegador, e nenhuma informação é enviada a terceiros.
           </p>
         </>
       )}
@@ -275,7 +275,7 @@ export default function LoginModal({ open, onClose }) {
             <p className="text-sm">
               Se houver uma conta para <strong>{form.email}</strong>, enviamos um link de redefinição.
             </p>
-            <p className="mt-1 text-xs muted">(Demonstração — nenhum e-mail é realmente enviado.)</p>
+            <p className="mt-1 text-xs muted">Recuperação de senha exige servidor de identidade, que esta versão não tem.</p>
             <button onClick={() => { setView('login'); setSent(false) }} className="btn-primary mt-5 w-full justify-center">
               <ArrowLeft size={15} /> Voltar para Entrar
             </button>

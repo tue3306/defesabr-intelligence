@@ -8,6 +8,8 @@ import {
 import MetricCard from '../components/ui/MetricCard'
 import Badge from '../components/ui/Badge'
 import { apiOnline } from '../services/apiBridge'
+import { useResource } from '../hooks/useResource'
+import { adminService } from '../services'
 import { useAuthStore } from '../store/authStore'
 import {
   systemHealth, HEALTH_STATUS, integrations, ingestion,
@@ -42,13 +44,22 @@ export default function AdminDashboard() {
     return () => { vivo = false }
   }, [])
 
+  // Saude e fontes vem do servidor — os mesmos endpoints do console de
+  // governanca, para os dois nao divergirem.
+  const saude = useResource(() => adminService.health(), [])
+  const fontes = useResource(() => adminService.sources(), [])
+  const auditoria = useResource(() => adminService.audit({ limit: 12 }), [])
+
+  const servicos = saude.data?.services || []
+  const operacionais = servicos.filter((x) => x.status === 'operational').length
+  const listaFontes = fontes.data?.items || []
+  const fontesOk = listaFontes.filter((f) => f.last_status === 'ok').length
+
   const user = useAuthStore((s) => s.user)
   const firstName = user?.name?.split(' ')[0] || 'Administrador'
 
-  const operational = systemHealth.filter((s) => s.status === 'operational').length
   const sourceSummary = sourceStatusSummary()
   const groups = sourcesByCategory()
-  const totalUsers = Object.values(platformMetrics.contasPorPlano).reduce((a, b) => a + b, 0)
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -70,8 +81,8 @@ export default function AdminDashboard() {
                 {greetingByHour()}, {firstName}.
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-gray-300 sm:text-base">
-                Saúde dos serviços, status das fontes, integrações e trilha de auditoria.
-                Estrutura preparada para operação real — hoje com dados demonstrativos.
+                Saúde dos serviços, status das fontes e trilha de auditoria — tudo derivado do
+                estado do servidor, não de valores escritos à mão.
               </p>
               <div className="mt-5 flex flex-wrap gap-3">
                 <Link to="/configuracoes" className="btn-primary">
@@ -90,11 +101,12 @@ export default function AdminDashboard() {
                 <HeartPulse size={15} className="text-emerald-700 dark:text-emerald-400" />
               </div>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-3xl font-extrabold tracking-tight text-emerald-700 dark:text-emerald-400">{operational}/{systemHealth.length}</span>
+                <span className="text-3xl font-extrabold tracking-tight text-emerald-700 dark:text-emerald-400">{operacionais}/{servicos.length || '—'}</span>
                 <span className="font-mono text-sm text-gray-400">operacionais</span>
               </div>
               <p className="mt-2 text-xs text-gray-400">
-                Serviços dependentes de backend aparecem como <strong>planejados</strong>.
+                Capacidades ainda não implementadas aparecem como <strong>planejadas</strong>, e o
+                cálculo não as conta como falha.
               </p>
             </div>
           </div>
@@ -104,10 +116,37 @@ export default function AdminDashboard() {
       {/* KPIs de governança */}
       <Section>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <MetricCard icon={Users} label="Contas na plataforma" value={String(totalUsers)} hint={`${platformMetrics.usuariosAtivos7d} ativas (7d)`} accent="brand" />
-          <MetricCard icon={Database} label="Fontes configuradas" value={String(platformMetrics.fontesConfiguradas)} hint={`${ingestion.fontesAtivas} coletando ao vivo`} accent="amber" />
-          <MetricCard icon={PlugZap} label="Integrações" value={String(integrations.length)} hint={`${integrations.filter((i) => i.status === 'operational').length} operacionais`} accent="green" />
-          <MetricCard icon={ScrollText} label="Relatórios (30d)" value={String(platformMetrics.relatoriosGerados30d)} hint="Exportações demonstrativas" accent="brand" />
+          {/* Os quatro indicadores vinham de `platformMetrics`: "128 contas no
+              plano Explorar", "82 relatórios emitidos" — de um recurso que já
+              nem existe. Agora contam o que o servidor sabe. */}
+          <MetricCard
+            icon={Database}
+            label="Fontes cadastradas"
+            value={String(listaFontes.length || '—')}
+            hint={`${fontesOk} responderam na última execução`}
+            accent="amber"
+          />
+          <MetricCard
+            icon={Server}
+            label="Capacidades operacionais"
+            value={`${operacionais}/${servicos.length || '—'}`}
+            hint="derivado do estado do banco"
+            accent="green"
+          />
+          <MetricCard
+            icon={Users}
+            label="Perfis de acesso"
+            value="4"
+            hint="visitante, usuário, analista, admin"
+            accent="brand"
+          />
+          <MetricCard
+            icon={ScrollText}
+            label="Artigos no acervo"
+            value={String(saude.data?.archive?.artigos ?? saude.data?.acervo?.artigos ?? '—')}
+            hint="coletados e guardados"
+            accent="brand"
+          />
         </div>
       </Section>
 
@@ -120,8 +159,8 @@ export default function AdminDashboard() {
               <Server size={18} className="text-brand-400 dark:text-brand-300" /> Saúde dos serviços
             </h2>
             <div className="space-y-2">
-              {systemHealth.map((s) => {
-                const st = HEALTH_STATUS[s.status]
+              {servicos.map((s) => {
+                const st = HEALTH_STATUS[s.status] || HEALTH_STATUS.planned
                 return (
                   <div key={s.id} className="flex items-center justify-between gap-3 rounded-lg bg-white/5 px-3 py-2.5">
                     <div className="min-w-0">
@@ -129,7 +168,7 @@ export default function AdminDashboard() {
                       <p className="truncate text-xs muted">{s.note}</p>
                     </div>
                     <div className="flex shrink-0 items-center gap-3 text-right">
-                      <span className="hidden font-mono text-xs muted sm:inline">{s.uptime} · {s.latency}</span>
+                      <span className="hidden font-mono text-xs muted sm:inline">{s.uptime || '—'} · {s.latency || '—'}</span>
                       <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${st.classes}`}>
                         <span className={`h-1.5 w-1.5 rounded-full ${st.dot}`} /> {st.label}
                       </span>
@@ -170,7 +209,11 @@ export default function AdminDashboard() {
                 </div>
               ))}
             </div>
-            <p className="mt-3 text-xs muted">{ingestion.observacao}</p>
+            <p className="mt-3 text-xs muted">
+              {listaFontes.length
+                ? `${listaFontes.length} fonte(s) cadastrada(s) · ${fontesOk} responderam na última coleta.`
+                : 'Sem resposta do servidor de coleta.'}
+            </p>
           </Section>
 
           {/* Trilha de auditoria */}
@@ -189,7 +232,7 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {auditLog.map((ev) => {
+                  {(auditoria.data?.items || []).slice(0, 12).map((ev) => {
                     const lvl = AUDIT_LEVEL[ev.level] || AUDIT_LEVEL.info
                     return (
                       <tr key={ev.id} className="border-b border-gray-100 dark:border-white/[0.06]">
@@ -208,7 +251,7 @@ export default function AdminDashboard() {
                 </tbody>
               </table>
             </div>
-            <p className="mt-2 text-xs muted">Eventos demonstrativos — em produção, alimentados por um serviço de auditoria.</p>
+            <p className="mt-2 text-xs muted">Trilha real de execuções dos coletores — início, duração, itens e erro.</p>
           </Section>
         </div>
 

@@ -506,6 +506,10 @@ function paraFonte(s) {
 
 export const temPonte = (endpoint) => PONTES.has(endpoint.trim())
 
+// A tela de diagnóstico lista os endpoints atendidos. Antes ela listava os
+// resolvedores locais, que não existem mais.
+temPonte.chaves = () => [...PONTES.keys()]
+
 /**
  * Executa a ponte. Lança se a API falhar — quem chama decide se cai no local.
  */

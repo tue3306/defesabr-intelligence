@@ -372,7 +372,8 @@ export default function DailyClipping() {
       <SourcesPanel open={sourcesOpen} onToggle={() => setSourcesOpen((o) => !o)} />
 
       <p className="text-xs muted">
-        Dados ilustrativos. O clipping é um produto editorial de demonstração e não substitui a análise humana especializada.
+        Seleção automática por relevância sobre o que foi coletado das fontes. Não há curadoria humana
+        nem resumo executivo: a edição é o resultado do filtro, não uma análise.
       </p>
     </div>
   )

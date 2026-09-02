@@ -21,7 +21,7 @@ export default function Footer() {
         </div>
 
         <p className="order-last text-center text-xs muted sm:order-none">
-          Site demonstrativo. Análises geradas por IA não substituem análise especializada humana.
+          Projeto acadêmico. Agrega fontes públicas e cita a origem de cada dado — confira sempre o original.
         </p>
 
         <div className="flex items-center gap-3">

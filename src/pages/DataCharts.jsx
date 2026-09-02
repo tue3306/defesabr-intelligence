@@ -12,7 +12,6 @@ import InfoTooltip from '../components/ui/InfoTooltip'
 import DataState from '../components/ui/DataState'
 import { SkeletonChart } from '../components/ui/Skeleton'
 import ErrorBoundary from '../components/system/ErrorBoundary'
-import { TensionBoard } from '../components/tension/TensionPanel'
 import Sparkline from '../components/charts/Sparkline'
 import NewsVolumeChart from '../components/charts/NewsVolumeChart'
 import SentimentChart from '../components/charts/SentimentChart'
@@ -308,37 +307,7 @@ export default function DataCharts() {
       {/* ── VOLUME & CATEGORIAS ── */}
       {tab === 'volume' && (
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-          <ChartPanel
-            className="xl:col-span-2"
-            badge={volume.aoVivo ? 'live' : 'demo'}
-            title="Volume de notícias por categoria"
-            subtitle="Quantas matérias monitoradas entraram por dia, empilhadas por tema."
-            method="Contagem diária de itens capturados pelos coletores e classificados por categoria. Os 14 dias mais recentes são a série demonstrativa base; janelas de 30 e 90 dias são projetadas a partir dela por repetição do ciclo observado."
-            rows={volumeSeries}
-            filename={`volume-noticias-${periodCfg.id}.csv`}
-            controls={
-              <div className="flex flex-wrap items-center gap-3">
-                <ToggleGroup
-                  label="Período"
-                  options={VOLUME_PERIODS.map((p) => ({ id: p.id, label: p.id }))}
-                  value={volumePeriod}
-                  onChange={setVolumePeriod}
-                />
-                {periodCfg.projected && (
-                  <span className="chip border-gold-500/40 text-gold-600 dark:text-gold-400">
-                    Projeção demonstrativa
-                  </span>
-                )}
-              </div>
-            }
-            footnote={
-              periodCfg.projected
-                ? `Os ${periodCfg.days} dias exibidos estendem a série base de 14 dias por repetição do ciclo — servem para demonstrar a leitura da tendência, não para medir o passado.`
-                : 'Série base da demonstração: 14 dias corridos, seis categorias de monitoramento.'
-            }
-          >
-            <NewsVolumeChart data={volumeSeries} keys={volume.keys} height={340} />
-          </ChartPanel>
+
 
           <ChartPanel
             badge={radar.aoVivo ? 'live' : 'demo'}
@@ -572,7 +541,8 @@ export default function DataCharts() {
       )}
 
       <p className="text-center text-xs muted">
-        Dados ilustrativos, exceto onde marcado como “Ao vivo”. Use como demonstração de leitura analítica, não como fonte oficial.
+        Fontes: acervo coletado (notícias e proposições), World Bank Open Data, Banco Central (SGS) e
+        Comex Stat (MDIC). Cada painel declara a origem da sua série.
       </p>
     </div>
   )

@@ -280,7 +280,7 @@ function CountryNewsPanel({ active, aoVivo }) {
       ) : (
         <p className="text-sm muted">
           {!aoVivo
-            ? 'Sem fichas de notícias para este país na demonstração.'
+            ? 'Sem dados de cobertura — o servidor de coleta não respondeu.'
             : name === 'Brazil'
               // O Brasil não é contado de propósito, e a tela precisa dizer por
               // quê: todo o acervo é sobre ele. Incluí-lo somaria ~150 menções

@@ -205,7 +205,8 @@ export default function Legislative() {
       </DataState>
 
       <p className="text-center text-xs muted">
-        Conteúdo demonstrativo — proposições ilustrativas, sem valor oficial.
+        Proposições da API de Dados Abertos da Câmara dos Deputados. O estágio de tramitação é derivado
+        do texto oficial de situação; confira sempre no portal da Câmara antes de citar.
       </p>
 
       <Modal open={!!open} onClose={() => setOpen(null)} title={open?.code} maxWidth="max-w-2xl">

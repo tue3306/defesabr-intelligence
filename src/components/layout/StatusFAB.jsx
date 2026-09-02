@@ -5,7 +5,7 @@ import { Activity, X, ArrowRight } from 'lucide-react'
 import { isApiConfigured } from '../../api/anthropic'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useCan } from '../../auth/useCan'
-import { DATA_MODE, APP_VERSION } from '../../services/config'
+import { APP_VERSION } from '../../services/config'
 import { systemHealth } from '../../data/adminData'
 import { formatTime } from '../../utils/dateUtils'
 
@@ -31,8 +31,7 @@ export default function StatusFAB() {
   const dotColor = { green: 'bg-military-green', amber: 'bg-military-amber', red: 'bg-military-red' }[overall]
 
   const checks = [
-    { name: 'Camada de dados', ok: true, note: DATA_MODE === 'mock' ? 'modo demonstração' : 'API conectada' },
-    { name: 'Assistente de IA', ok: ai, note: ai ? 'chave configurada' : 'fallback demonstrativo' },
+    { name: 'Camada de dados', ok: true, note: 'API — origem única' },
     {
       name: 'Fontes de coleta',
       ok: enabled.length === 0 || online === enabled.length,

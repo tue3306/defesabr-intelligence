@@ -78,7 +78,7 @@ export default function Account() {
       {tab === 'permissoes' && <PermissionsTab />}
       {tab === 'preferencias' && <PreferencesTab />}
 
-      <p className="text-center text-xs muted">Área demonstrativa — alterações ficam salvas apenas neste navegador.</p>
+      <p className="text-center text-xs muted">Sem servidor de identidade: as alterações ficam neste navegador.</p>
     </div>
   )
 }
@@ -158,7 +158,7 @@ function SecurityTab() {
   const backupCodes = ['8F2K-9QX1', '4D7M-2WZ8', 'A1C5-7YH3', 'KP90-3RT6'] // DEMO
 
   // DEMO: nenhuma senha e realmente trocada — o fluxo existe para demonstrar a tela.
-  const changePassword = (e) => { e.preventDefault(); toast.success('Senha alterada (demonstração)') }
+  const changePassword = (e) => { e.preventDefault(); toast('Troca de senha exige servidor de identidade, que esta versão não tem.', { icon: 'ℹ️' }) }
   const revoke = (id) => { setSessions((s) => s.filter((x) => x.id !== id)); toast.success('Sessão encerrada') }
   const revokeAll = () => { setSessions((s) => s.filter((x) => x.current)); toast.success('Outras sessões encerradas') }
 
@@ -177,7 +177,7 @@ function SecurityTab() {
         <div className="flex items-center justify-between">
           <span className="text-sm">{twoFA ? 'Ativada' : 'Desativada'}</span>
           <button
-            onClick={() => { setTwoFA((v) => !v); toast(twoFA ? '2FA desativada' : '2FA ativada (demonstração)') }}
+            onClick={() => { setTwoFA((v) => !v); toast('Autenticação em dois fatores exige servidor de identidade.', { icon: 'ℹ️' }) }}
             role="switch" aria-checked={twoFA} aria-label="Verificação em duas etapas (2FA)"
             className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${twoFA ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'}`}
           >
@@ -190,7 +190,7 @@ function SecurityTab() {
               <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-lg bg-gray-100 text-gray-400 dark:bg-white/5">
                 <QrCode size={64} />
               </div>
-              <p className="mt-2 text-xs muted">Leia no app autenticador (demonstração).</p>
+              <p className="mt-2 text-xs muted">Exemplo de fluxo — não há servidor que valide o código.</p>
             </div>
             <div className="rounded-lg border border-gray-200 p-4 dark:border-white/10">
               <p className="text-xs font-semibold uppercase muted">Códigos de backup</p>

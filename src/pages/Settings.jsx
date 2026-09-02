@@ -14,10 +14,9 @@ import { useTheme } from '../hooks/useTheme'
 import { FOCUS_AREAS, CATEGORIES } from '../data/mockData'
 import { PLANS, PLAN_LABEL } from '../data/plansData'
 import { isApiConfigured } from '../api/anthropic'
-import { DATA_MODE, API_BASE_URL, APP_VERSION, isDemoMode } from '../services/config'
-import { listMockEndpoints } from '../services'
+import { API_BASE_URL, APP_VERSION } from '../services/config'
+import { listEndpoints } from '../services'
 import { categoryColor } from '../utils/textUtils'
-import { TensionEditor } from '../components/tension/TensionPanel'
 
 function Section({ icon: Icon, title, badge, children }) {
   return (
@@ -113,9 +112,7 @@ export default function Settings() {
             </div>
           </Section>
 
-          <Section icon={Gauge} title="Avaliação de nível de tensão" badge="Produção">
-            <TensionEditor />
-          </Section>
+
 
           <Section icon={Rss} title="Fontes monitoradas" badge="Produção">
             <SourcesEditor s={s} />
@@ -336,7 +333,7 @@ function ApiKeyEditor({ s }) {
         Opcional. Sobrescreve a variável de ambiente apenas neste navegador.{' '}
         {isApiConfigured()
           ? <span className="font-semibold text-emerald-800 dark:text-emerald-400">● IA configurada</span>
-          : <span className="font-semibold text-yellow-600 dark:text-yellow-400">● modo demonstração</span>}
+          : <span className="font-semibold text-yellow-600 dark:text-yellow-400">● sem chave — nenhuma análise por IA é gerada</span>}
       </p>
       <div className="flex gap-2">
         <div className="relative flex-1">
@@ -412,17 +409,16 @@ function Diagnostics() {
 // src/services. Esta seção existe para tornar isso auditável pela governança.
 // -----------------------------------------------------------------------------
 function DataLayerSection() {
-  const endpoints = listMockEndpoints()
-  const demo = isDemoMode()
+  const endpoints = listEndpoints()
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="rounded-lg bg-white/5 p-3">
-          <p className="text-[10px] font-bold uppercase tracking-wider muted">Modo</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider muted">Origem</p>
           <p className="mt-0.5 flex items-center gap-1.5 text-sm font-bold tracking-tight">
-            <span className={`h-2 w-2 rounded-full ${demo ? 'bg-amber-400' : 'bg-emerald-400'}`} />
-            {DATA_MODE === 'api' ? 'API conectada' : 'Demonstração (local)'}
+            <span className="h-2 w-2 rounded-full bg-emerald-400" />
+            API — origem única
           </p>
         </div>
         <div className="rounded-lg bg-white/5 p-3">
@@ -437,12 +433,14 @@ function DataLayerSection() {
 
       <div className="rounded-lg border border-gray-200 p-3 dark:border-white/10">
         <p className="flex items-center gap-1.5 text-sm font-semibold">
-          <PlugZap size={15} className="text-brand-400 dark:text-brand-300" /> Como ligar um backend
+          <PlugZap size={15} className="text-brand-400 dark:text-brand-300" /> Como a interface obtém dados
         </p>
         <p className="mt-1 text-xs leading-relaxed muted">
-          Defina <code className="font-mono text-gold-600 dark:text-gold-400">VITE_DATA_MODE=api</code> e{' '}
-          <code className="font-mono text-gold-600 dark:text-gold-400">VITE_API_BASE_URL</code> no ambiente.
-          Os contratos são os mesmos nos dois modos — nenhuma tela precisa ser alterada.
+          Toda tela lê por <code className="font-mono text-gold-600 dark:text-gold-400">src/services</code>,
+          que fala com uma origem só: a API. Não há resolvedor local nem modo alternativo — se o
+          servidor não responde, a tela mostra erro em vez de um número plausível.
+          O endereço vem de <code className="font-mono text-gold-600 dark:text-gold-400">VITE_API_BASE_URL</code>;
+          vazio significa mesma origem do site.
         </p>
       </div>
 

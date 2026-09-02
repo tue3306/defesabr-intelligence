@@ -42,10 +42,13 @@ export default function Badge({ type = 'plain', value, children, className = '' 
       </Pill>
     )
   }
+  // A variante 'demo' foi removida junto com o modo que ela anunciava. Chamadas
+  // remanescentes caem no selo neutro em vez de escrever "Modo demonstração"
+  // sobre dado que veio de uma API.
   if (type === 'demo') {
     return (
-      <Pill className={`border-yellow-500/40 bg-yellow-500/15 text-yellow-800 dark:text-yellow-300 ${className}`}>
-        Modo demonstração
+      <Pill className={`border-gray-400/50 bg-gray-500/10 text-gray-700 dark:text-gray-300 ${className}`}>
+        Sem dado
       </Pill>
     )
   }

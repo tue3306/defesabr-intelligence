@@ -24,7 +24,8 @@
 const env = import.meta.env || {}
 
 /** 'mock' | 'api' */
-export const DATA_MODE = (env.VITE_DATA_MODE || 'mock').toLowerCase() === 'api' ? 'api' : 'mock'
+// Havia dois modos, e o padrão era servir dados escritos à mão. Agora há um.
+export const DATA_MODE = 'api'
 
 /** Base da API quando DATA_MODE === 'api' (ex.: https://api.defesabr.gov.br/v1). */
 export const API_BASE_URL = (env.VITE_API_BASE_URL || '').replace(/\/$/, '')
@@ -51,7 +52,8 @@ export const MOCK_LATENCY = (() => {
 export const SETTINGS_STORAGE_KEY = 'defesabr-settings-v3'
 
 /** true quando a plataforma roda em modo demonstração (sem backend). */
-export const isDemoMode = () => DATA_MODE === 'mock' || !API_BASE_URL
+/** Mantido por compatibilidade: nunca há modo demonstração. */
+export const isDemoMode = () => false
 
 /**
  * DATA DE REFERÊNCIA DO CONJUNTO DEMONSTRATIVO.

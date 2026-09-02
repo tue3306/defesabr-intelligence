@@ -65,7 +65,7 @@ export default function ProtectedRoute({ children, permission, capability }) {
         icon={Lock}
         chip={{ icon: ShieldCheck, text: 'Área restrita · requer login', tone: 'amber' }}
         title="Entre para acessar esta seção"
-        description="Escolha um perfil de demonstração — acesso instantâneo, sem cadastro."
+        description="Escolha um perfil de acesso — instantâneo, sem cadastro."
         list={BENEFITS.map((b) => ({ icon: b.icon, text: b.text }))}
       >
         <p className="mt-6 text-xs font-semibold uppercase tracking-wide muted">Entrar como</p>
@@ -83,7 +83,7 @@ export default function ProtectedRoute({ children, permission, capability }) {
             )
           })}
         </div>
-        <p className="mt-3 text-xs muted">Acesso instantâneo • sem cadastro • dados de demonstração</p>
+        <p className="mt-3 text-xs muted">Acesso instantâneo • sem cadastro • dados coletados ao vivo</p>
       </Wall>
     )
   }
@@ -119,7 +119,7 @@ export default function ProtectedRoute({ children, permission, capability }) {
               Ver como Analista (demo)
             </button>
           </div>
-          <p className="mt-3 text-xs muted">No modo demonstração você alterna entre os perfis livremente.</p>
+          <p className="mt-3 text-xs muted">A troca de perfil é livre: a verificação acontece no navegador.</p>
         </Wall>
       )
     }
@@ -142,7 +142,7 @@ export default function ProtectedRoute({ children, permission, capability }) {
           <Link to="/painel" className="btn-ghost">Voltar ao painel</Link>
         </div>
         <p className="mt-3 text-xs muted">
-          Perfil exigido: <strong>{target?.label || wall.persona}</strong> · no modo demonstração a troca é livre.
+          Perfil exigido: <strong>{target?.label || wall.persona}</strong> · a troca é livre.
         </p>
       </Wall>
     )

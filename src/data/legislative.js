@@ -1,6 +1,7 @@
 // -----------------------------------------------------------------------------
 // RADAR LEGISLATIVO — proposições e votações de Defesa (DEMONSTRATIVO)
-// Dados ilustrativos. Em produção, integrar APIs abertas da Câmara/Senado.
+// Reserva local, usada só quando o servidor não responde. As proposições reais
+// vêm da API de Dados Abertos da Câmara (server/src/collectors/camara.js).
 // stage: 'comissao' | 'plenario' | 'sancao' | 'aprovado' | 'arquivado'
 // -----------------------------------------------------------------------------
 

@@ -15,7 +15,7 @@ export { searchService } from './searchService'
 export { intelligenceService } from './intelligenceService'
 export { adminService } from './adminService'
 
-export { request, requestWithFallback, registerMock, listMockEndpoints, ApiError } from './client'
+export { request, ApiError, listEndpoints } from './client'
 export {
   DATA_MODE, API_BASE_URL, APP_NAME, APP_VERSION, isDemoMode, SETTINGS_STORAGE_KEY,
   REFERENCE_DATE, referenceDate,

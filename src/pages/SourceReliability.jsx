@@ -287,7 +287,8 @@ export default function SourceReliability() {
       </section>
 
       <p className="text-center text-xs muted">
-        Avaliações demonstrativas — em produção, calibradas por metodologia documentada e revisão de pares.
+        A pontuação é disponibilidade MEDIDA: a proporção de vezes em que a fonte respondeu quando o
+        coletor a procurou. Não julga a qualidade do jornalismo.
       </p>
 
       {/* REAVALIAÇÃO (Analista) */}

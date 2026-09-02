@@ -41,7 +41,10 @@ export const PROFILES = {
     short: 'Visitante',
     tagline: 'Conteúdo público — sem login',
     description:
-      'Conhece a plataforma, lê o conteúdo aberto e as prévias das análises. Para acompanhar o dia a dia é preciso entrar.',
+      'Conhece a plataforma e lê o conteúdo aberto. Para acompanhar o dia a dia é preciso entrar.',
+    email: null,
+    role: 'visitor',
+    plan: 'explorar',
     color: '#64748b',
   },
   user: {
@@ -50,7 +53,10 @@ export const PROFILES = {
     short: 'Usuário',
     tagline: 'Consulta e acompanhamento',
     description:
-      'Acompanha o painel de situação, o clipping diário, os dossiês e os módulos do Brasil Estratégico. Salva conteúdos na sua pasta.',
+      'Acompanha o painel de situação, o clipping diário e os módulos de dados. Salva conteúdos na sua pasta.',
+    email: 'marina.duarte@defesabr.com',
+    role: 'user',
+    plan: 'profissional',
     color: '#2e7d46',
   },
   analyst: {
@@ -59,7 +65,10 @@ export const PROFILES = {
     short: 'Analista',
     tagline: 'Produção de inteligência',
     description:
-      'Produz o conteúdo da plataforma: gera clipping e análises com IA, avalia o nível de tensão, classifica fontes, acompanha narrativas e publica briefings.',
+      'Acompanha o produto por completo: clipping, radar legislativo, confiabilidade das fontes e exportação das séries.',
+    email: 'ana.lima@defesabr.com',
+    role: 'analyst',
+    plan: 'institucional',
     color: '#caa733',
   },
   admin: {
@@ -68,7 +77,10 @@ export const PROFILES = {
     short: 'Admin',
     tagline: 'Governança da plataforma',
     description:
-      'Governa a plataforma: contas e papéis, fontes de coleta, integrações, trilha de auditoria, saúde dos serviços e configuração.',
+      'Governa a plataforma: fontes de coleta, trilha de auditoria, saúde dos serviços e configuração.',
+    email: 'governanca@defesabr.com',
+    role: 'admin',
+    plan: 'institucional',
     color: '#c0392b',
   },
 }

@@ -262,10 +262,10 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
                   <MenuLink to="/configuracoes" icon={SettingsIcon} label="Configurações" onClick={() => setUserOpen(false)} />
                 </div>
 
-                {/* Seletor dos 4 perfis — o coração da demonstração */}
+                {/* Seletor dos 4 perfis de acesso */}
                 <div className="mt-1 border-t border-gray-200 pt-2 dark:border-gray-700/40">
                   <p className="flex items-center gap-1.5 px-2 pb-1 text-[10px] font-bold uppercase tracking-wide muted">
-                    <Repeat size={11} /> Ver como (demonstração)
+                    <Repeat size={11} /> Ver como
                   </p>
                   <div className="space-y-1">
                     {PERSONA_ORDER.map((key) => {

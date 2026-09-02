@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Shield, Cpu, Database, AlertTriangle, Github, Send, Star, GitFork, ExternalLink, Code2, Compass, Radar, Cog, Brain, Share2, Layers, PlugZap } from 'lucide-react'
-import { DATA_MODE, APP_VERSION } from '../services/config'
+import { APP_VERSION } from '../services/config'
 import toast from 'react-hot-toast'
 
 const REPO_URL = 'https://github.com/tue3306/defesabr-intelligence'
@@ -33,7 +33,7 @@ const INTEL_CYCLE = [
 const ARCHITECTURE_NOTES = [
   {
     title: 'Uma fronteira única de dados',
-    text: 'Todo módulo lê por src/services. Em modo demonstração os dados vêm de repositórios locais com latência simulada; em modo API, do backend — com contratos idênticos.',
+    text: 'Todo módulo lê por src/services, que fala com a API e mais nada. Uma origem só, para não haver dúvida sobre de onde veio o número em tela.',
   },
   {
     title: 'Autorização centralizada',
@@ -67,27 +67,30 @@ export default function About() {
           </div>
         </div>
         <p className="text-sm leading-relaxed text-gray-300">
-          O DefesaBR Intelligence é uma plataforma demonstrativa de inteligência estratégica focada no
-          cenário brasileiro de Segurança e Defesa. Agrega notícias de fontes públicas, organiza o
-          clipping diário e gera análises de cenários com apoio de IA (Claude, da Anthropic), oferecendo
-          dados ao vivo de gastos militares, câmbio e indicadores setoriais.
+          O DefesaBR Intelligence coleta, filtra e organiza informação pública sobre Segurança e
+          Defesa do Brasil. Um servidor busca 15 fontes RSS e quatro APIs de governo a cada 30
+          minutos, aplica um filtro de relevância auditável e guarda o resultado com a procedência de
+          cada item. Tudo o que aparece nas telas veio de uma dessas fontes — não há dado de exemplo.
         </p>
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <Card icon={Cpu} title="Metodologia">
           <p className="text-sm leading-relaxed text-gray-300">
-            As notícias são coletadas de feeds RSS e APIs públicas, filtradas por relevância para Segurança
-            &amp; Defesa e processadas por um modelo de linguagem que estrutura resumos, pontos-chave, impacto
-            para o Brasil e nível de urgência. As análises semanais aplicam cenários (base, otimista e
-            adverso) sob diferentes perspectivas.
+            As notícias vêm de feeds RSS e APIs públicas. O filtro de relevância decide o que é
+            defesa por termos com fronteira de palavra, separando os inequívocos dos ambíguos e
+            exigindo que os primeiros apareçam na abertura do texto — a regra está no código, é
+            exibida na tela do clipping e pode ser testada em qualquer texto pela API. Cada item
+            guarda a pontuação e os termos que o aprovaram.
           </p>
         </Card>
-        <Card icon={Cpu} title="Modelo de IA">
+        <Card icon={Cpu} title="O que NÃO é gerado por IA">
           <p className="text-sm leading-relaxed text-gray-300">
-            Utilizamos o <strong>Claude Sonnet</strong> (Anthropic) via API. Quando a chave não está
-            configurada ou indisponível, o site opera em <strong>modo demonstração</strong> com dados
-            realistas pré-carregados, sempre sinalizado por um selo amarelo.
+            Nenhum texto desta plataforma foi escrito por máquina. Não há resumo executivo
+            automático, nem análise de cenário, nem classificação semântica — o clipping mostra o
+            campo do resumo executivo <strong>vazio</strong>, com a nota explicando por quê. A
+            integração com um modelo de linguagem é a próxima etapa, e até lá a ausência fica
+            declarada em vez de preenchida.
           </p>
         </Card>
       </div>
@@ -124,7 +127,7 @@ export default function About() {
           <AlertTriangle size={18} /> Disclaimer
         </h3>
         <p className="mt-2 text-sm leading-relaxed text-gray-300">
-          Este site é demonstrativo. As análises são geradas por IA e <strong>não substituem análise
+          Projeto acadêmico. Os dados vêm de fontes públicas e <strong>não substituem análise
           especializada humana</strong>. Os dados podem conter aproximações e devem ser conferidos nas
           fontes originais antes de qualquer decisão.
         </p>
@@ -253,17 +256,16 @@ function Card({ icon: Icon, title, children }) {
           <Layers size={18} className="text-brand-400 dark:text-brand-300" /> Arquitetura e limites
         </h2>
         <p className="mt-1 max-w-2xl text-sm leading-relaxed muted">
-          A plataforma é hoje <strong>100% front-end</strong>. Isso é uma escolha de demonstração, não
-          uma limitação de projeto: toda leitura de dado passa por uma camada de serviços única, e
-          trocar os repositórios locais por uma API é mudar duas variáveis de ambiente.
+          Um processo Node serve a API e a interface. O servidor coleta, filtra e guarda em SQLite;
+          a interface lê por uma camada de serviços única, que fala com uma origem só. Não há
+          resolvedor local nem modo alternativo: se o servidor não responde, a tela mostra erro em
+          vez de um número plausível.
         </p>
 
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div className="rounded-lg bg-white/5 p-3">
-            <p className="text-[10px] font-bold uppercase tracking-wider muted">Modo de dados</p>
-            <p className="mt-0.5 text-sm font-bold tracking-tight">
-              {DATA_MODE === 'api' ? 'API conectada' : 'Demonstração (local)'}
-            </p>
+            <p className="text-[10px] font-bold uppercase tracking-wider muted">Origem dos dados</p>
+            <p className="mt-0.5 text-sm font-bold tracking-tight">API — origem única</p>
           </div>
           <div className="rounded-lg bg-white/5 p-3">
             <p className="text-[10px] font-bold uppercase tracking-wider muted">Versão</p>

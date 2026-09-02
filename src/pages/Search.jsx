@@ -129,7 +129,7 @@ export default function Search() {
         description="Procure em todos os módulos ao mesmo tempo — notícias, dossiês, riscos, programas, narrativas, fontes, agenda, legislativo e glossário."
         help="A busca entende termos relacionados do domínio: procurar por “submarino” também encontra PROSUB e conteúdo naval."
         breadcrumb={[{ label: 'Busca' }]}
-        meta={[{ label: 'Índice', value: `${data?.indexed ?? searchService.indexSize()} registros` }]}
+        meta={[{ label: 'Índice', value: data?.total != null ? `${data.total} resultado(s)` : 'banco de notícias e proposições' }]}
       >
         <form onSubmit={submit} className="flex flex-col gap-2 sm:flex-row">
           <div className="relative flex-1">

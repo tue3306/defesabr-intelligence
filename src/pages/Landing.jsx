@@ -223,7 +223,7 @@ export default function Landing() {
       <Section>
         <h2 className="text-center text-2xl font-bold tracking-tight">Uma plataforma, quatro experiências</h2>
         <p className="mx-auto mt-2 max-w-2xl text-center text-sm muted">
-          O que você vê depende de quem você é. Entre em qualquer perfil de demonstração e
+          O que você vê depende de quem você é. Entre em qualquer perfil e
           percorra a plataforma exatamente como aquela pessoa a usaria.
         </p>
 
@@ -267,7 +267,7 @@ export default function Landing() {
         </div>
 
         <p className="mt-3 text-center text-xs muted">
-          A troca de perfil é livre no modo demonstração — também pelo menu do usuário, a qualquer momento.
+          A troca de perfil é livre — também pelo menu do usuário, a qualquer momento.
         </p>
       </Section>
 
@@ -484,7 +484,7 @@ export default function Landing() {
           <Route size={13} /> Roadmap
         </p>
         <h2 className="mt-1 text-center text-2xl font-bold tracking-tight">Uma plataforma em evolução</h2>
-        <p className="mx-auto mt-2 max-w-2xl text-center text-sm muted">Direção do produto — itens planejados são demonstrativos.</p>
+        <p className="mx-auto mt-2 max-w-2xl text-center text-sm muted">Direção do produto — o que já existe está marcado como disponível.</p>
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {ROADMAP.map((r) => (
             <div key={r.title} className={`card p-5 ${r.done ? 'border-gold-500/30' : ''}`}>
