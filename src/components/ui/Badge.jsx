@@ -12,10 +12,19 @@ export default function Badge({ type = 'plain', value, children, className = '' 
   }
   if (type === 'category') {
     const color = categoryColor(value)
+    // A cor da categoria identifica a área (verde Exército, âmbar Fronteiras,
+    // azul Cibernético). Usada como COR DO TEXTO ela media entre 2,1:1 e 4,3:1
+    // sobre cartão claro — abaixo do mínimo legível.
+    //
+    // Escurecer a paleta resolveria no claro e estragaria no escuro, porque é
+    // a mesma paleta dos gráficos. A saída é não pedir à cor que faça dois
+    // trabalhos: ela vai para o FUNDO e a BORDA, onde identificar é tudo o que
+    // precisa fazer, e o texto herda o primeiro plano do tema — que já tem
+    // contraste garantido nos dois modos.
     return (
       <Pill
-        className={`border-transparent ${className}`}
-        style={{ backgroundColor: `${color}22`, color }}
+        className={`text-gray-900 dark:text-gray-100 ${className}`}
+        style={{ backgroundColor: `${color}26`, borderColor: `${color}80` }}
       >
         {value}
       </Pill>
@@ -23,7 +32,11 @@ export default function Badge({ type = 'plain', value, children, className = '' 
   }
   if (type === 'live') {
     return (
-      <Pill className={`border-emerald-500/40 bg-emerald-500/15 text-emerald-300 ${className}`}>
+      // `emerald-300` foi escolhido para fundo escuro e mede 1.32:1 sobre
+      // fundo claro — ilegível. O selo passou a aparecer em telas claras
+      // quando começou a seguir a origem real do dado, então precisa dos dois
+      // tons. O escuro fica como estava.
+      <Pill className={`border-emerald-600/40 bg-emerald-500/15 text-emerald-800 dark:border-emerald-500/40 dark:text-emerald-300 ${className}`}>
         <span className="mr-1 inline-block h-1.5 w-1.5 animate-pulse-dot rounded-full bg-emerald-400" />
         Ao vivo
       </Pill>
@@ -31,7 +44,7 @@ export default function Badge({ type = 'plain', value, children, className = '' 
   }
   if (type === 'demo') {
     return (
-      <Pill className={`border-yellow-500/40 bg-yellow-500/15 text-yellow-300 ${className}`}>
+      <Pill className={`border-yellow-500/40 bg-yellow-500/15 text-yellow-800 dark:text-yellow-300 ${className}`}>
         Modo demonstração
       </Pill>
     )

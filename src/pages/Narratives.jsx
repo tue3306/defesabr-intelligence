@@ -21,8 +21,8 @@ import { SENTIMENT_CLR } from '../data/narratives'
 const TREND_ICON = { up: TrendingUp, down: TrendingDown, flat: Minus }
 const TREND_LABEL = { up: 'Alcance em alta', down: 'Alcance em queda', flat: 'Alcance estável' }
 const TREND_CLR = {
-  up: 'text-red-600 dark:text-red-400',
-  down: 'text-emerald-600 dark:text-emerald-400',
+  up: 'text-red-800 dark:text-red-400',
+  down: 'text-emerald-800 dark:text-emerald-400',
   flat: 'text-gray-500 dark:text-gray-400',
 }
 
@@ -226,7 +226,7 @@ export default function Narratives() {
                       <strong className="font-semibold text-gray-700 dark:text-gray-300">{n.classification}</strong>
                     </span>
                     {n.classifiedBy && (
-                      <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                      <span className="inline-flex items-center gap-1 text-emerald-800 dark:text-emerald-400">
                         <Check size={12} /> reclassificada nesta sessão
                       </span>
                     )}
@@ -252,7 +252,7 @@ export default function Narratives() {
       {/* COMO LEMOS UM SINAL */}
       <section className="card p-5">
         <h2 className="mb-1 flex items-center gap-2 text-base font-bold tracking-tight">
-          <ScanSearch size={17} className="text-brand-400" /> Como lemos um sinal
+          <ScanSearch size={17} className="text-brand-400 dark:text-brand-300" /> Como lemos um sinal
         </h2>
         <p className="mb-4 text-sm muted">
           Um rótulo sem método é acusação. Estas são as quatro etapas antes de classificar qualquer tema.
@@ -280,7 +280,7 @@ export default function Narratives() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {signals.map((s) => (
             <div key={s.signal} className="rounded-lg border border-gray-200 p-3 dark:border-white/10">
-              <h3 className="text-sm font-bold text-amber-700 dark:text-amber-200">{s.signal}</h3>
+              <h3 className="text-sm font-bold text-amber-800 dark:text-amber-200">{s.signal}</h3>
               <p className="mt-0.5 text-sm muted">{s.desc}</p>
             </div>
           ))}
@@ -346,7 +346,7 @@ function NarrativeDetail({ narrative: n }) {
       {/* Amplificação nos últimos 7 dias */}
       <section>
         <h3 className="flex items-center gap-2 text-sm font-bold tracking-tight">
-          <Megaphone size={15} className="text-brand-400" /> Amplificação — últimos 7 dias
+          <Megaphone size={15} className="text-brand-400 dark:text-brand-300" /> Amplificação — últimos 7 dias
         </h3>
         <p className="mt-0.5 text-xs muted">Intensidade relativa de circulação do tema (escala 0–100, demonstrativa).</p>
         <div className="mt-3 flex h-28 items-end gap-1.5" role="img" aria-label="Gráfico de amplificação dos últimos 7 dias">
@@ -452,7 +452,7 @@ function ClassifyModal({ narrative, onClose, onApply }) {
               className="input resize-y"
             />
             {invalid && (
-              <p role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">
+              <p role="alert" className="mt-1 text-xs text-red-800 dark:text-red-400">
                 Descreva a evidência com ao menos 12 caracteres — a classificação fica registrada com seu nome.
               </p>
             )}

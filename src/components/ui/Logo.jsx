@@ -21,7 +21,7 @@ export default function Logo({ size = 'md', showText = true }) {
       {showText && (
         <span className="leading-tight">
           <span className={`block ${s.title} font-bold tracking-tight`}>DefesaBR</span>
-          <span className={`block ${s.sub} font-semibold uppercase tracking-widest text-brand-400`}>
+          <span className={`block ${s.sub} font-semibold uppercase tracking-widest text-brand-400 dark:text-brand-300`}>
             Intelligence
           </span>
         </span>

@@ -23,7 +23,7 @@ export const PRODUCTION_STAGES = {
     id: 'revisao',
     label: 'Em revisão',
     order: 2,
-    classes: 'bg-military-amber/20 text-amber-700 dark:text-amber-300 border-military-amber/40',
+    classes: 'bg-military-amber/20 text-amber-800 dark:text-amber-300 border-military-amber/40',
     dot: 'bg-amber-400',
     description: 'Aguardando revisão de par ou do editor responsável.',
   },
@@ -39,17 +39,17 @@ export const PRODUCTION_STAGES = {
     id: 'publicado',
     label: 'Publicado',
     order: 4,
-    classes: 'bg-military-green/20 text-emerald-700 dark:text-emerald-300 border-military-green/40',
+    classes: 'bg-military-green/20 text-emerald-800 dark:text-emerald-300 border-military-green/40',
     dot: 'bg-emerald-400',
     description: 'Disponível para os perfis de leitura da plataforma.',
   },
 }
 
 export const PRIORITY = {
-  urgente: { label: 'Urgente', classes: 'bg-military-red/20 text-red-600 dark:text-red-300', order: 1 },
-  alta: { label: 'Alta', classes: 'bg-military-amber/20 text-amber-700 dark:text-amber-300', order: 2 },
-  media: { label: 'Média', classes: 'bg-yellow-500/15 text-yellow-700 dark:text-yellow-300', order: 3 },
-  baixa: { label: 'Baixa', classes: 'bg-military-green/20 text-emerald-700 dark:text-emerald-300', order: 4 },
+  urgente: { label: 'Urgente', classes: 'bg-military-red/20 text-red-800 dark:text-red-300', order: 1 },
+  alta: { label: 'Alta', classes: 'bg-military-amber/20 text-amber-800 dark:text-amber-300', order: 2 },
+  media: { label: 'Média', classes: 'bg-yellow-500/15 text-yellow-800 dark:text-yellow-300', order: 3 },
+  baixa: { label: 'Baixa', classes: 'bg-military-green/20 text-emerald-800 dark:text-emerald-300', order: 4 },
 }
 
 // -----------------------------------------------------------------------------
@@ -225,10 +225,10 @@ export const informationRequests = [
 ]
 
 export const RFI_STATUS = {
-  em_analise: { label: 'Em análise', classes: 'bg-military-amber/20 text-amber-700 dark:text-amber-300' },
-  respondido: { label: 'Respondido', classes: 'bg-military-green/20 text-emerald-700 dark:text-emerald-300' },
+  em_analise: { label: 'Em análise', classes: 'bg-military-amber/20 text-amber-800 dark:text-amber-300' },
+  respondido: { label: 'Respondido', classes: 'bg-military-green/20 text-emerald-800 dark:text-emerald-300' },
   aguardando_fonte: { label: 'Aguardando fonte', classes: 'bg-white/10 text-gray-600 dark:text-gray-300' },
-  cancelado: { label: 'Cancelado', classes: 'bg-military-red/15 text-red-600 dark:text-red-300' },
+  cancelado: { label: 'Cancelado', classes: 'bg-military-red/15 text-red-800 dark:text-red-300' },
 }
 
 // -----------------------------------------------------------------------------

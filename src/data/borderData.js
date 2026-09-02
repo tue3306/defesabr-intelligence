@@ -20,9 +20,9 @@ export const borderSegments = [
 ]
 
 export const PRESSURE_LEVELS = {
-  Alto: 'bg-red-500/15 text-red-300 border-red-500/40',
-  Médio: 'bg-amber-500/15 text-amber-300 border-amber-500/40',
-  Baixo: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40',
+  Alto: 'bg-red-500/15 text-red-800 dark:text-red-300 border-red-500/40',
+  Médio: 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/40',
+  Baixo: 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/40',
 }
 
 // Ameaças com tendência (para painel de "questão de segurança").

@@ -59,7 +59,7 @@ export default function About() {
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="card p-8">
         <div className="mb-4 flex items-center gap-3">
-          <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-500/15 text-brand-400">
+          <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-500/15 text-brand-400 dark:text-brand-300">
             <Shield size={26} />
           </span>
           <div>
@@ -215,7 +215,7 @@ function Card({ icon: Icon, title, children }) {
       {/* CICLO DE INTELIGÊNCIA — a metodologia por trás dos módulos */}
       <section className="card p-6">
         <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-          <Compass size={18} className="text-brand-400" /> O ciclo de inteligência
+          <Compass size={18} className="text-brand-400 dark:text-brand-300" /> O ciclo de inteligência
         </h2>
         <p className="mt-1 max-w-2xl text-sm leading-relaxed muted">
           Os módulos da plataforma não são telas soltas: cada um corresponde a uma etapa do ciclo
@@ -251,7 +251,7 @@ function Card({ icon: Icon, title, children }) {
       {/* ARQUITETURA — honestidade sobre o que é real e o que é simulado */}
       <section className="card p-6">
         <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-          <Layers size={18} className="text-brand-400" /> Arquitetura e limites
+          <Layers size={18} className="text-brand-400 dark:text-brand-300" /> Arquitetura e limites
         </h2>
         <p className="mt-1 max-w-2xl text-sm leading-relaxed muted">
           A plataforma é hoje <strong>100% front-end</strong>. Isso é uma escolha de demonstração, não
@@ -279,7 +279,7 @@ function Card({ icon: Icon, title, children }) {
         <div className="mt-4 space-y-2">
           {ARCHITECTURE_NOTES.map((note) => (
             <div key={note.title} className="flex items-start gap-2.5 rounded-lg border border-gray-200 p-3 dark:border-white/10">
-              <PlugZap size={15} className="mt-0.5 shrink-0 text-brand-400" />
+              <PlugZap size={15} className="mt-0.5 shrink-0 text-brand-400 dark:text-brand-300" />
               <div className="min-w-0">
                 <p className="text-sm font-semibold">{note.title}</p>
                 <p className="mt-0.5 text-xs leading-relaxed muted">{note.text}</p>
@@ -290,7 +290,7 @@ function Card({ icon: Icon, title, children }) {
       </section>
 
       <h2 className="mb-3 flex items-center gap-2 text-lg font-bold tracking-tight">
-        <Icon size={18} className="text-brand-400" /> {title}
+        <Icon size={18} className="text-brand-400 dark:text-brand-300" /> {title}
       </h2>
       {children}
     </div>

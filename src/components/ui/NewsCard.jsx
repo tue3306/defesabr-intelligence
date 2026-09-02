@@ -56,7 +56,7 @@ export default function NewsCard({ news, variant = 'compact', defaultOpen = fals
         <>
           <button
             onClick={() => setOpen((o) => !o)}
-            className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-brand-400 hover:text-brand-300"
+            className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300"
             aria-expanded={open}
           >
             <ChevronDown size={16} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
@@ -79,7 +79,7 @@ export default function NewsCard({ news, variant = 'compact', defaultOpen = fals
                       <ul className="ml-1 space-y-1">
                         {news.key_points.map((p, i) => (
                           <li key={i} className="flex gap-2">
-                            <span className="text-brand-400">•</span>
+                            <span className="text-brand-400 dark:text-brand-300">•</span>
                             <span className="text-gray-300">{p}</span>
                           </li>
                         ))}
@@ -123,7 +123,7 @@ export default function NewsCard({ news, variant = 'compact', defaultOpen = fals
           href={news.url}
           target="_blank"
           rel="noreferrer"
-          className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-brand-400 hover:text-brand-300"
+          className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300"
         >
           Ler mais <ExternalLink size={13} />
         </a>

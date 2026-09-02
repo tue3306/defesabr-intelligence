@@ -189,7 +189,7 @@ function ExchangeImpactSection() {
   return (
     <section className="card p-5">
       <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-        <ArrowRightLeft size={18} className="text-brand-400" /> Como o câmbio afeta os programas
+        <ArrowRightLeft size={18} className="text-brand-400 dark:text-brand-300" /> Como o câmbio afeta os programas
       </h2>
       <p className="mt-1 max-w-2xl text-sm muted">
         Programas estratégicos compram tecnologia em moeda estrangeira. Uma desvalorização não muda

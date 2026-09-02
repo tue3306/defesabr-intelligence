@@ -14,9 +14,9 @@ export const PROGRAM_FORCES = {
 }
 
 export const PROGRAM_STATUS = {
-  execucao: { label: 'Em execução', classes: 'bg-emerald-500/15 text-emerald-300' },
-  planejamento: { label: 'Planejamento', classes: 'bg-yellow-500/15 text-yellow-300' },
-  atrasado: { label: 'Atenção/atraso', classes: 'bg-red-500/15 text-red-300' },
+  execucao: { label: 'Em execução', classes: 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300' },
+  planejamento: { label: 'Planejamento', classes: 'bg-yellow-500/15 text-yellow-800 dark:text-yellow-300' },
+  atrasado: { label: 'Atenção/atraso', classes: 'bg-red-500/15 text-red-800 dark:text-red-300' },
   concluido: { label: 'Concluído', classes: 'bg-brand-500/15 text-brand-300' },
 }
 

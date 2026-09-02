@@ -31,7 +31,7 @@ export default function PageHeader({
   accent = 'brand',
 }) {
   const accentClass = {
-    brand: 'bg-brand-500/15 text-brand-400',
+    brand: 'bg-brand-500/15 text-brand-400 dark:text-brand-300',
     gold: 'bg-gold-500/15 text-gold-600 dark:text-gold-400',
     green: 'bg-military-green/15 text-emerald-500 dark:text-emerald-400',
     red: 'bg-military-red/15 text-red-500 dark:text-red-400',
@@ -46,7 +46,7 @@ export default function PageHeader({
               <li key={`${crumb.label}-${i}`} className="flex items-center gap-1">
                 {i > 0 && <ChevronRight size={12} className="opacity-60" />}
                 {crumb.to ? (
-                  <Link to={crumb.to} className="font-medium hover:text-brand-400">{crumb.label}</Link>
+                  <Link to={crumb.to} className="font-medium hover:text-brand-400 dark:text-brand-300">{crumb.label}</Link>
                 ) : (
                   <span className={i === breadcrumb.length - 1 ? 'font-semibold text-gray-700 dark:text-gray-300' : ''}>
                     {crumb.label}

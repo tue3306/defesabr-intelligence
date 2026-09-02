@@ -75,7 +75,7 @@ export default function Quiz() {
     return (
       <div className="card p-6">
         <p className="flex items-center gap-2 text-sm font-semibold">
-          <Layers size={16} className="text-brand-400" /> Escolha uma trilha
+          <Layers size={16} className="text-brand-400 dark:text-brand-300" /> Escolha uma trilha
         </p>
         <p className="mt-1 text-sm muted">Responda por tema ou enfrente todas as {quizQuestions.length} questões.</p>
         <div className="mt-4 flex flex-wrap gap-2">
@@ -111,7 +111,7 @@ export default function Quiz() {
         <p className="mt-1 text-sm muted">{msg}{filter && <> · trilha <strong>{filter}</strong></>}</p>
         <div className="mx-auto mt-5 grid max-w-xs grid-cols-2 gap-3">
           <div className="rounded-xl bg-white/5 p-4">
-            <p className="text-3xl font-bold text-brand-400">{score}/{total}</p>
+            <p className="text-3xl font-bold text-brand-400 dark:text-brand-300">{score}/{total}</p>
             <p className="text-xs muted">Sua pontuação</p>
           </div>
           <div className="rounded-xl bg-white/5 p-4">
@@ -145,7 +145,7 @@ export default function Quiz() {
               <Flame size={15} /> {streak} seguidas
             </span>
           )}
-          <span className="font-bold text-brand-400">{score} pts</span>
+          <span className="font-bold text-brand-400 dark:text-brand-300">{score} pts</span>
         </span>
       </div>
       <div className="mb-5 h-1.5 overflow-hidden rounded-full bg-gray-700/50">

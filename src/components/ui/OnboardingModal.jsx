@@ -69,7 +69,7 @@ export default function OnboardingModal() {
   return (
     <Modal open={open} onClose={finish} maxWidth="max-w-md">
       <div className="text-center">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-500/15 text-brand-400">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-500/15 text-brand-400 dark:text-brand-300">
           <Icon size={28} />
         </div>
         <h2 className="text-xl font-bold tracking-tight">{s.title}</h2>

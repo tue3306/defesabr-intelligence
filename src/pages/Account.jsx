@@ -64,7 +64,7 @@ export default function Account() {
             aria-selected={tab === t.id}
             onClick={() => setTab(t.id)}
             className={`-mb-px flex shrink-0 items-center gap-2 border-b-2 px-3 py-2.5 text-sm font-semibold transition-colors ${
-              tab === t.id ? 'border-gold-500 text-gray-900 dark:text-white' : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
+              tab === t.id ? 'border-gold-500 text-gray-900 dark:text-white' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
             }`}
           >
             <t.icon size={16} /> {t.label}
@@ -210,10 +210,10 @@ function SecurityTab() {
           {sessions.map((s) => (
             <li key={s.id} className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 p-3 dark:border-white/10">
               <span className="flex min-w-0 items-center gap-3">
-                <s.icon size={18} className="shrink-0 text-brand-400" />
+                <s.icon size={18} className="shrink-0 text-brand-400 dark:text-brand-300" />
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-medium">
-                    {s.device} {s.current && <span className="ml-1 rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-300">este dispositivo</span>}
+                    {s.device} {s.current && <span className="ml-1 rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800 dark:text-emerald-300">este dispositivo</span>}
                   </span>
                   <span className="text-xs muted">{s.where} · {s.when}</span>
                 </span>
@@ -299,7 +299,7 @@ function SubscriptionTab() {
       <Card title="Forma de pagamento">
         <div className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 p-3 dark:border-white/10">
           <span className="flex items-center gap-3 text-sm">
-            <CreditCard size={18} className="text-brand-400" />
+            <CreditCard size={18} className="text-brand-400 dark:text-brand-300" />
             <span className="font-mono">•••• •••• •••• 4242</span>
             <span className="muted">exp. 08/29</span>
           </span>
@@ -325,7 +325,7 @@ function SubscriptionTab() {
                     <td className="py-2.5 pr-4 font-mono">{inv.id}</td>
                     <td className="py-2.5 pr-4">{inv.date}</td>
                     <td className="py-2.5 pr-4 font-semibold">{inv.amount}</td>
-                    <td className="py-2.5 pr-4"><span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-600 dark:text-emerald-300">{inv.status}</span></td>
+                    <td className="py-2.5 pr-4"><span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-800 dark:text-emerald-300">{inv.status}</span></td>
                     <td className="py-2.5 text-right">
                       <button onClick={() => downloadInvoice(inv)} className="btn-ghost px-2.5 py-1 text-xs"><FileDown size={13} /> PDF</button>
                     </td>
@@ -417,10 +417,10 @@ function PermissionsTab() {
                   {group.tier}
                   <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums ${
                     group.granted === group.items.length
-                      ? 'bg-military-green/20 text-emerald-700 dark:text-emerald-300'
+                      ? 'bg-military-green/20 text-emerald-800 dark:text-emerald-300'
                       : group.granted === 0
                         ? 'bg-white/10 text-gray-500 dark:text-gray-400'
-                        : 'bg-military-amber/20 text-amber-700 dark:text-amber-300'
+                        : 'bg-military-amber/20 text-amber-800 dark:text-amber-300'
                   }`}>
                     {group.granted}/{group.items.length}
                   </span>
@@ -536,7 +536,7 @@ function PreferencesTab() {
 
       <Card title="Notificações" desc="Como você quer ser avisado.">
         <label className="flex cursor-pointer items-center justify-between">
-          <span className="flex items-center gap-2 text-sm"><Bell size={16} className="text-brand-400" /> Alertas de notícias críticas (no app)</span>
+          <span className="flex items-center gap-2 text-sm"><Bell size={16} className="text-brand-400 dark:text-brand-300" /> Alertas de notícias críticas (no app)</span>
           <button
             onClick={toggleNotifications} role="switch" aria-checked={notificationsEnabled} aria-label="Alertas de notícias críticas no app"
             className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${notificationsEnabled ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'}`}

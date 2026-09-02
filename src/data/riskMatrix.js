@@ -21,10 +21,10 @@ export const riskCategories = [
 ]
 
 export const RISK_SEVERITY = {
-  critico: { label: 'Crítico', min: 20, classes: 'bg-military-red/20 text-red-600 dark:text-red-300 border-military-red/40', color: '#c0392b' },
-  alto: { label: 'Alto', min: 12, classes: 'bg-military-amber/20 text-amber-700 dark:text-amber-300 border-military-amber/40', color: '#d4841a' },
-  moderado: { label: 'Moderado', min: 6, classes: 'bg-yellow-500/15 text-yellow-700 dark:text-yellow-300 border-yellow-500/40', color: '#caa733' },
-  baixo: { label: 'Baixo', min: 0, classes: 'bg-military-green/20 text-emerald-700 dark:text-emerald-300 border-military-green/40', color: '#2e7d46' },
+  critico: { label: 'Crítico', min: 20, classes: 'bg-military-red/20 text-red-800 dark:text-red-300 border-military-red/40', color: '#c0392b' },
+  alto: { label: 'Alto', min: 12, classes: 'bg-military-amber/20 text-amber-800 dark:text-amber-300 border-military-amber/40', color: '#d4841a' },
+  moderado: { label: 'Moderado', min: 6, classes: 'bg-yellow-500/15 text-yellow-800 dark:text-yellow-300 border-yellow-500/40', color: '#caa733' },
+  baixo: { label: 'Baixo', min: 0, classes: 'bg-military-green/20 text-emerald-800 dark:text-emerald-300 border-military-green/40', color: '#2e7d46' },
 }
 
 /** Faixa de severidade a partir do produto probabilidade × impacto. */

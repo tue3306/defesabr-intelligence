@@ -164,7 +164,7 @@ export default function Search() {
         <div className="space-y-6">
           <section className="card p-5">
             <h2 className="flex items-center gap-2 text-base font-bold tracking-tight">
-              <Sparkles size={17} className="text-brand-400" /> Comece por aqui
+              <Sparkles size={17} className="text-brand-400 dark:text-brand-300" /> Comece por aqui
             </h2>
             <p className="mt-0.5 text-sm muted">Consultas que atravessam vários módulos de uma vez.</p>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -182,7 +182,7 @@ export default function Search() {
 
           <section className="card p-5">
             <h2 className="flex items-center gap-2 text-base font-bold tracking-tight">
-              <Database size={17} className="text-brand-400" /> O que é indexado
+              <Database size={17} className="text-brand-400 dark:text-brand-300" /> O que é indexado
             </h2>
             <p className="mt-0.5 text-sm muted">
               Cada domínio da plataforma entra no mesmo índice, com pesos por campo.

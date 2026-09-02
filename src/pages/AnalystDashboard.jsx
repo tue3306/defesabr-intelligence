@@ -157,7 +157,7 @@ export default function AnalystDashboard() {
               <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
                 <div className="h-full rounded-full" style={{ width: `${posture}%`, background: alertColor(latest?.alert_level) }} />
               </div>
-              <div className="mt-1 flex justify-between text-[10px] uppercase tracking-wide text-gray-500">
+              <div className="mt-1 flex justify-between text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
                 <span>Normal</span><span>Crítico</span>
               </div>
             </div>
@@ -208,7 +208,7 @@ export default function AnalystDashboard() {
       {/* ───────────── AÇÕES DE PRODUÇÃO ───────────── */}
       <Section className="card p-5">
         <h2 className="mb-1 flex items-center gap-2 text-base font-bold tracking-tight">
-          <PenTool size={17} className="text-brand-400" /> Ações de produção
+          <PenTool size={17} className="text-brand-400 dark:text-brand-300" /> Ações de produção
         </h2>
         <p className="mb-4 text-sm muted">Os fluxos que só o perfil Analista executa.</p>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -218,7 +218,7 @@ export default function AnalystDashboard() {
               to={to}
               className="card-interactive card flex items-start gap-3 p-3 transition-colors hover:border-gold-500/40"
             >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-500/15 text-brand-400">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-500/15 text-brand-400 dark:text-brand-300">
                 <Icon size={17} />
               </span>
               <span className="min-w-0">
@@ -237,7 +237,7 @@ export default function AnalystDashboard() {
           <Section className="card p-5">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
               <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-                <ClipboardList size={18} className="text-brand-400" /> Minha fila de hoje
+                <ClipboardList size={18} className="text-brand-400 dark:text-brand-300" /> Minha fila de hoje
                 <InfoTooltip text="Itens sob sua responsabilidade que ainda não foram publicados, ordenados pelo prazo mais apertado." />
               </h2>
               <Link to="/mesa" className="inline-flex items-center gap-1 text-sm font-semibold text-brand-500 hover:text-brand-400 dark:text-brand-400">
@@ -280,7 +280,7 @@ export default function AnalystDashboard() {
                           <span className="text-[11px] muted">{item.type}</span>
                           <span
                             className={`ml-auto text-[11px] font-semibold ${
-                              late ? 'text-red-600 dark:text-red-400' : 'muted'
+                              late ? 'text-red-800 dark:text-red-400' : 'muted'
                             }`}
                           >
                             {late ? 'Prazo vencido · ' : 'Prazo '}{formatDateBR(item.due)}
@@ -315,7 +315,7 @@ export default function AnalystDashboard() {
           <Section className="card p-5">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
               <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-                <Target size={18} className="text-brand-400" /> Lacunas de coleta
+                <Target size={18} className="text-brand-400 dark:text-brand-300" /> Lacunas de coleta
                 <InfoTooltip text="PIR = requisito prioritário de inteligência. A cobertura mede quanto das perguntas essenciais (EEI) as fontes atuais já respondem." />
               </h2>
               <Link to="/mesa" className="inline-flex items-center gap-1 text-sm font-semibold text-brand-500 hover:text-brand-400 dark:text-brand-400">
@@ -338,7 +338,7 @@ export default function AnalystDashboard() {
                       <p className="min-w-0 text-sm font-medium leading-snug">{pir.pir}</p>
                       <span
                         className={`shrink-0 font-mono text-sm font-bold tabular-nums ${
-                          pir.coverage >= 75 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
+                          pir.coverage >= 75 ? 'text-emerald-800 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
                         }`}
                       >
                         {pir.coverage}%
@@ -358,7 +358,7 @@ export default function AnalystDashboard() {
                       {pir.gaps.map((gap) => (
                         <span
                           key={gap}
-                          className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 font-medium text-amber-700 dark:text-amber-300"
+                          className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 font-medium text-amber-800 dark:text-amber-300"
                         >
                           <AlertTriangle size={10} /> {gap}
                         </span>
@@ -380,7 +380,7 @@ export default function AnalystDashboard() {
           <Section className="card p-5">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-base font-bold tracking-tight">
-                <Inbox size={17} className="text-brand-400" /> Requisitos pendentes
+                <Inbox size={17} className="text-brand-400 dark:text-brand-300" /> Requisitos pendentes
               </h2>
               <Link to="/mesa" className="text-xs font-semibold text-brand-500 hover:text-brand-400 dark:text-brand-400">RFIs</Link>
             </div>
@@ -426,7 +426,7 @@ export default function AnalystDashboard() {
           <Section className="card p-5">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-base font-bold tracking-tight">
-                <ShieldAlert size={17} className="text-brand-400" /> Riscos em elevação
+                <ShieldAlert size={17} className="text-brand-400 dark:text-brand-300" /> Riscos em elevação
               </h2>
               <Link to="/riscos" className="text-xs font-semibold text-brand-500 hover:text-brand-400 dark:text-brand-400">Matriz</Link>
             </div>
@@ -461,10 +461,10 @@ export default function AnalystDashboard() {
           <Section className="card p-5">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-base font-bold tracking-tight">
-                <Bell size={17} className="text-brand-400" /> Alertas recentes
+                <Bell size={17} className="text-brand-400 dark:text-brand-300" /> Alertas recentes
               </h2>
               {unread > 0 && (
-                <span className="rounded-full bg-military-red/15 px-2 py-0.5 text-[10px] font-bold text-red-600 dark:text-red-300">
+                <span className="rounded-full bg-military-red/15 px-2 py-0.5 text-[10px] font-bold text-red-800 dark:text-red-300">
                   {unread} {unread > 1 ? 'novos' : 'novo'}
                 </span>
               )}
@@ -492,7 +492,7 @@ export default function AnalystDashboard() {
           {/* Atalhos de contexto */}
           <Section className="card p-5">
             <h2 className="flex items-center gap-2 text-base font-bold tracking-tight">
-              <Activity size={17} className="text-brand-400" /> Insumos de contexto
+              <Activity size={17} className="text-brand-400 dark:text-brand-300" /> Insumos de contexto
             </h2>
             <p className="mt-1 text-sm muted">Módulos que alimentam a produção do dia.</p>
             <div className="mt-3 flex flex-wrap gap-2">

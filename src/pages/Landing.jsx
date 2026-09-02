@@ -115,7 +115,7 @@ export default function Landing() {
               // não pode ser a única falsa. O que a plataforma REALMENTE faz é
               // coletar de fontes oficiais e filtrar por relevância — e isso é
               // mais concreto do que a promessa que substituiu.
-              <>O cenário de defesa do Brasil, <span className="text-brand-400">coletado na fonte</span>.</>
+              <>O cenário de defesa do Brasil, <span className="text-brand-400 dark:text-brand-300">coletado na fonte</span>.</>
             )}
           </h1>
           <p className="mt-4 max-w-xl text-base text-gray-300 sm:text-lg">
@@ -183,7 +183,7 @@ export default function Landing() {
 
       {/* POR QUE USAR */}
       <Section>
-        <p className="text-center text-xs font-bold uppercase tracking-widest text-brand-400">Conceitos-chave</p>
+        <p className="text-center text-xs font-bold uppercase tracking-widest text-brand-400 dark:text-brand-300">Conceitos-chave</p>
         <h2 className="mt-1 text-center text-2xl font-bold tracking-tight">Por que usar esta plataforma?</h2>
         <p className="mx-auto mt-2 max-w-2xl text-center text-sm muted">
           Tudo o que você precisa para acompanhar Segurança e Defesa em um só lugar.
@@ -193,7 +193,7 @@ export default function Landing() {
             const Icon = FEATURE_ICONS[f.icon] || ShieldCheck
             return (
               <div key={f.title} className="card p-5">
-                <span className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-brand-500/15 text-brand-400">
+                <span className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-brand-500/15 text-brand-400 dark:text-brand-300">
                   <Icon size={22} />
                 </span>
                 <h3 className="font-bold tracking-tight">{f.title}</h3>
@@ -206,7 +206,7 @@ export default function Landing() {
 
       {/* PARA QUEM É / CASOS DE USO */}
       <Section>
-        <p className="text-center text-xs font-bold uppercase tracking-widest text-brand-400">Casos de uso</p>
+        <p className="text-center text-xs font-bold uppercase tracking-widest text-brand-400 dark:text-brand-300">Casos de uso</p>
         <h2 className="mt-1 text-center text-2xl font-bold tracking-tight">Feito para quem decide sob pressão</h2>
         <p className="mx-auto mt-2 max-w-2xl text-center text-sm muted">
           Uma camada de inteligência que organiza o caos informacional em contexto, risco e prioridade.
@@ -218,7 +218,7 @@ export default function Landing() {
             const Icon = USE_CASE_ICONS[u.icon] || Radar
             return (
               <div key={u.title} className="flex items-start gap-3">
-                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-500/10 text-brand-400">
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-500/10 text-brand-400 dark:text-brand-300">
                   <Icon size={16} />
                 </span>
                 <div className="min-w-0">
@@ -253,13 +253,16 @@ export default function Landing() {
                   <Icon size={21} />
                 </span>
                 <h3 className="mt-3 text-base font-bold tracking-tight">{profile.label}</h3>
-                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: profile.color }}>
+                {/* A cor do perfil já identifica o cartão pelo ícone acima. Repeti-la
+                    no texto media entre 2,3:1 e 3,0:1 conforme o tema — a mesma
+                    cor não serve para marcar e para ler. */}
+                <p className="text-xs font-semibold uppercase tracking-wide muted">
                   {profile.tagline}
                 </p>
                 <ul className="mt-3 flex-1 space-y-1.5">
                   {entry.does.map((item) => (
                     <li key={item} className="flex gap-2 text-xs leading-relaxed muted">
-                      <Check size={13} className="mt-0.5 shrink-0 text-emerald-500 dark:text-emerald-400" />
+                      <Check size={13} className="mt-0.5 shrink-0 text-emerald-800 dark:text-emerald-400 dark:text-emerald-400" />
                       <span>{item}</span>
                     </li>
                   ))}
@@ -365,14 +368,14 @@ export default function Landing() {
       <Section>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-bold tracking-tight">Notícias recentes</h2>
-          <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-semibold text-emerald-300">Acesso livre</span>
+          <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 dark:text-emerald-300">Acesso livre</span>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {loading
             ? Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)
             : feed.map((n) => <NewsCard key={n.id} news={n} variant="compact" />)}
         </div>
-        <Link to="/painel" className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand-400 hover:text-brand-300">
+        <Link to="/painel" className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300">
           Ver mais notícias <ArrowRight size={15} />
         </Link>
       </Section>
@@ -381,7 +384,7 @@ export default function Landing() {
       <Section>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-bold tracking-tight">Análises & briefings estratégicos</h2>
-          {!isPaid && <span className="rounded-full bg-forca-defesa/15 px-2.5 py-0.5 text-xs font-semibold text-forca-defesa">Premium</span>}
+          {!isPaid && <span className="rounded-full border border-forca-defesa/60 bg-forca-defesa/15 px-2.5 py-0.5 text-xs font-semibold text-gray-900 dark:text-gray-100">Premium</span>}
         </div>
         <Paywall
           active={!isPaid}
@@ -399,7 +402,7 @@ export default function Landing() {
               {analysis.scenarios.map((sc) => (
                 <div key={sc.type} className="rounded-lg border border-gray-700/40 bg-white/5 p-3">
                   <p className="text-xs font-bold uppercase muted">{sc.type}</p>
-                  <p className="mt-1 text-2xl font-bold text-brand-400">{sc.probability}%</p>
+                  <p className="mt-1 text-2xl font-bold text-brand-400 dark:text-brand-300">{sc.probability}%</p>
                   <p className="mt-1 text-xs text-gray-300">{sc.title}</p>
                 </div>
               ))}
@@ -414,7 +417,7 @@ export default function Landing() {
           {/* Mini glossário */}
           <div className="lg:col-span-2">
             <h2 className="mb-3 flex items-center gap-2 text-lg font-bold tracking-tight">
-              <BookOpen size={20} className="text-brand-400" /> Glossário essencial
+              <BookOpen size={20} className="text-brand-400 dark:text-brand-300" /> Glossário essencial
             </h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {glossary.slice(0, 4).map((g) => (
@@ -428,15 +431,15 @@ export default function Landing() {
               ))}
             </div>
             <p className="mt-3 text-sm muted">
-              Glossário completo no <Link to="/planos" className="font-semibold text-brand-400 hover:text-brand-300">plano Profissional</Link>{' '}
-              · ou explore o <Link to="/aprender" className="font-semibold text-brand-400 hover:text-brand-300">Centro Educacional</Link>.
+              Glossário completo no <Link to="/planos" className="font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300">plano Profissional</Link>{' '}
+              · ou explore o <Link to="/aprender" className="font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300">Centro Educacional</Link>.
             </p>
           </div>
 
           {/* Conceito do dia (mini-interação) */}
           <div>
             <h2 className="mb-3 flex items-center gap-2 text-lg font-bold tracking-tight">
-              <Brain size={20} className="text-brand-400" /> Conceito do dia
+              <Brain size={20} className="text-brand-400 dark:text-brand-300" /> Conceito do dia
             </h2>
             <ConceptOfDay />
           </div>
@@ -461,7 +464,7 @@ export default function Landing() {
               <ul className="mt-4 flex-1 space-y-1.5 text-sm">
                 {p.features.slice(0, 4).map((f) => (
                   <li key={f} className="flex items-start gap-2">
-                    <Check size={15} className="mt-0.5 shrink-0 text-emerald-500 dark:text-emerald-400" />
+                    <Check size={15} className="mt-0.5 shrink-0 text-emerald-800 dark:text-emerald-400 dark:text-emerald-400" />
                     <span className="text-gray-300">{f}</span>
                   </li>
                 ))}
@@ -476,7 +479,7 @@ export default function Landing() {
 
       {/* ROADMAP */}
       <Section>
-        <p className="flex items-center justify-center gap-1.5 text-center text-xs font-bold uppercase tracking-widest text-brand-400">
+        <p className="flex items-center justify-center gap-1.5 text-center text-xs font-bold uppercase tracking-widest text-brand-400 dark:text-brand-300">
           <Route size={13} /> Roadmap
         </p>
         <h2 className="mt-1 text-center text-2xl font-bold tracking-tight">Uma plataforma em evolução</h2>
@@ -486,9 +489,9 @@ export default function Landing() {
             <div key={r.title} className={`card p-5 ${r.done ? 'border-gold-500/30' : ''}`}>
               <div className="flex items-center gap-2">
                 {r.done
-                  ? <Check size={15} className="shrink-0 text-emerald-500" />
+                  ? <Check size={15} className="shrink-0 text-emerald-800 dark:text-emerald-400" />
                   : <CircleDot size={15} className="shrink-0 text-gray-400" />}
-                <span className={`text-[11px] font-bold uppercase tracking-wider ${r.done ? 'text-emerald-500' : 'muted'}`}>{r.phase}</span>
+                <span className={`text-[11px] font-bold uppercase tracking-wider ${r.done ? 'text-emerald-800 dark:text-emerald-400' : 'muted'}`}>{r.phase}</span>
               </div>
               <h3 className="mt-2 font-bold tracking-tight">{r.title}</h3>
               <p className="mt-1 text-sm leading-relaxed text-gray-300">{r.text}</p>
@@ -499,7 +502,7 @@ export default function Landing() {
 
       {/* FAQ */}
       <Section>
-        <p className="flex items-center justify-center gap-1.5 text-center text-xs font-bold uppercase tracking-widest text-brand-400">
+        <p className="flex items-center justify-center gap-1.5 text-center text-xs font-bold uppercase tracking-widest text-brand-400 dark:text-brand-300">
           <HelpCircle size={13} /> Perguntas frequentes
         </p>
         <h2 className="mt-1 text-center text-2xl font-bold tracking-tight">Tudo o que você precisa saber</h2>

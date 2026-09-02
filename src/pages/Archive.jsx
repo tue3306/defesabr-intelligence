@@ -158,8 +158,8 @@ export default function Archive() {
       {tab === 'clippings' && (
         <>
           <div className="card flex flex-wrap items-center gap-x-6 gap-y-2 p-4 text-xs muted">
-            <span className="flex items-center gap-1.5"><Eye size={13} className="text-brand-400" /> <strong className="text-gray-700 dark:text-gray-300">Abrir</strong> lê o clipping completo</span>
-            <span className="flex items-center gap-1.5"><FileDown size={13} className="text-brand-400" /> <strong className="text-gray-700 dark:text-gray-300">PDF</strong> baixa o relatório</span>
+            <span className="flex items-center gap-1.5"><Eye size={13} className="text-brand-400 dark:text-brand-300" /> <strong className="text-gray-700 dark:text-gray-300">Abrir</strong> lê o clipping completo</span>
+            <span className="flex items-center gap-1.5"><FileDown size={13} className="text-brand-400 dark:text-brand-300" /> <strong className="text-gray-700 dark:text-gray-300">PDF</strong> baixa o relatório</span>
             <span className="flex items-center gap-1.5"><Trash2 size={13} className="text-red-500" /> <strong className="text-gray-700 dark:text-gray-300">Lixeira</strong> remove do arquivo</span>
           </div>
 
@@ -251,7 +251,7 @@ export default function Archive() {
                 </Can>
                 <button
                   onClick={() => setConfirm({ bulk: true })}
-                  className="btn-ghost px-2.5 py-1 text-xs text-red-600 dark:text-red-400"
+                  className="btn-ghost px-2.5 py-1 text-xs text-red-800 dark:text-red-400"
                 >
                   <Trash2 size={13} /> Excluir selecionados
                 </button>
@@ -320,7 +320,7 @@ export default function Archive() {
                       </Can>
                       <button
                         onClick={() => setConfirm(c)}
-                        className="btn-ghost px-2.5 py-1.5 text-xs text-red-600 dark:text-red-400"
+                        className="btn-ghost px-2.5 py-1.5 text-xs text-red-800 dark:text-red-400"
                         aria-label={`Remover ${c.title}`}
                       >
                         <Trash2 size={14} />
@@ -341,7 +341,7 @@ export default function Archive() {
         <div className="space-y-4">
           <div className="card flex flex-wrap items-center justify-between gap-3 p-4">
             <p className="flex items-center gap-2 text-sm">
-              <FolderOpen size={16} className="text-brand-400" />
+              <FolderOpen size={16} className="text-brand-400 dark:text-brand-300" />
               <span className="font-semibold">{favorites.length}</span> notícia(s) na sua pasta
               <InfoTooltip text="Sua pasta reúne as notícias marcadas com “Salvar”. Fica guardada neste navegador." />
             </p>
@@ -393,7 +393,7 @@ export default function Archive() {
           <div className="space-y-4">
             <div className="card flex flex-wrap items-center justify-between gap-3 p-4">
               <p className="flex items-center gap-2 text-sm">
-                <FileText size={16} className="text-brand-400" />
+                <FileText size={16} className="text-brand-400 dark:text-brand-300" />
                 <span className="font-semibold">{reportHistory.length}</span> relatório(s) emitido(s) pela equipe
               </p>
               <Link to="/relatorios" className="btn-primary px-3 py-1.5 text-xs">
@@ -474,7 +474,7 @@ function TabBtn({ active, onClick, icon: Icon, label, count }) {
       className={`-mb-px flex shrink-0 items-center gap-2 border-b-2 px-3 py-2.5 text-sm font-semibold transition-colors ${
         active
           ? 'border-gold-500 text-gray-900 dark:text-white'
-          : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
+          : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
       }`}
     >
       <Icon size={16} /> {label}

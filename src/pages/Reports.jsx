@@ -25,8 +25,8 @@ const TEMPLATE_ICONS = { FileText, ShieldAlert, Target, Shield, Radio, Waves }
 
 const ACCENT_RING = {
   gold: 'bg-gold-500/15 text-gold-600 dark:text-gold-400',
-  red: 'bg-military-red/15 text-red-600 dark:text-red-400',
-  green: 'bg-military-green/15 text-emerald-600 dark:text-emerald-400',
+  red: 'bg-military-red/15 text-red-800 dark:text-red-400',
+  green: 'bg-military-green/15 text-emerald-800 dark:text-emerald-400',
   brand: 'bg-brand-500/15 text-brand-500 dark:text-brand-300',
 }
 
@@ -406,7 +406,7 @@ export default function Reports() {
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-              <History size={18} className="text-brand-400" /> Histórico de emissões
+              <History size={18} className="text-brand-400 dark:text-brand-300" /> Histórico de emissões
             </h2>
             <p className="mt-0.5 text-sm muted">Relatórios gerados pela equipe no ambiente de demonstração.</p>
           </div>
@@ -481,7 +481,7 @@ export default function Reports() {
       <section className="card p-5">
         <div className="mb-4">
           <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-            <CalendarClock size={18} className="text-brand-400" /> Entregas programadas
+            <CalendarClock size={18} className="text-brand-400 dark:text-brand-300" /> Entregas programadas
           </h2>
           <p className="mt-0.5 text-sm muted">
             Assinaturas recorrentes de relatório. O envio automático depende de backend — aqui a configuração fica registrada.
@@ -521,7 +521,7 @@ export default function Reports() {
                     aria-pressed={active}
                     className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
                       active
-                        ? 'bg-military-green/15 text-emerald-700 dark:text-emerald-300'
+                        ? 'bg-military-green/15 text-emerald-800 dark:text-emerald-300'
                         : 'border border-gray-300 text-gray-500 dark:border-white/10 dark:text-gray-400'
                     }`}
                   >

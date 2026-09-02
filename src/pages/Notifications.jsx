@@ -212,7 +212,7 @@ export default function Notifications() {
           ))}
 
           {hasFilters && (
-            <button onClick={clearFilters} className="ml-auto inline-flex items-center gap-1 text-xs font-semibold muted hover:text-brand-400">
+            <button onClick={clearFilters} className="ml-auto inline-flex items-center gap-1 text-xs font-semibold muted hover:text-brand-400 dark:text-brand-300">
               <X size={12} /> Limpar
             </button>
           )}
@@ -291,7 +291,7 @@ export default function Notifications() {
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-              <BellRing size={18} className="text-brand-400" /> Regras de alerta
+              <BellRing size={18} className="text-brand-400 dark:text-brand-300" /> Regras de alerta
             </h2>
             <p className="mt-0.5 text-sm muted">
               Defina o que merece interromper o seu dia — o resto fica no histórico.
@@ -335,7 +335,7 @@ export default function Notifications() {
                   aria-pressed={rule.active}
                   className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
                     rule.active
-                      ? 'bg-military-green/15 text-emerald-700 dark:text-emerald-300'
+                      ? 'bg-military-green/15 text-emerald-800 dark:text-emerald-300'
                       : 'border border-gray-300 text-gray-500 dark:border-white/10 dark:text-gray-400'
                   }`}
                 >
@@ -439,7 +439,7 @@ function RuleModal({ open, onClose, onCreate }) {
           </select>
         </div>
 
-        {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+        {error && <p role="alert" className="text-sm text-red-800 dark:text-red-400">{error}</p>}
 
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <button type="button" onClick={onClose} className="btn-ghost justify-center">Cancelar</button>

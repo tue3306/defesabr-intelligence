@@ -115,8 +115,9 @@ export default function AdminConsole() {
       {active === 'saude' && <SaudeSection />}
 
       <p className="text-center text-xs muted">
-        Dados ilustrativos. As alterações valem para esta sessão do navegador — não há servidor
-        de identidade nem persistência compartilhada nesta demonstração.
+        Fontes, coleta, saúde e diagnóstico vêm da API e são o estado real do servidor.
+        Contas, papéis e planos são ilustrativos, e as alterações valem só para esta sessão
+        do navegador — não há servidor de identidade nem persistência compartilhada.
       </p>
     </div>
   )
@@ -440,7 +441,7 @@ function AccountRow({ account, isSelf, onRole, onPlan, onToggleStatus, onRemove 
               disabled={isSelf}
               title={isSelf ? selfNote : undefined}
               aria-label={suspenso ? `Reativar ${account.name}` : `Suspender ${account.name}`}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 text-gray-500 transition-colors enabled:hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10 dark:enabled:hover:text-white"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 text-gray-500 dark:text-gray-400 transition-colors enabled:hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10 dark:enabled:hover:text-white"
             >
               {suspenso ? <RotateCcw size={15} /> : <Ban size={15} />}
             </button>
@@ -770,14 +771,14 @@ function SourceRow({ source, check, testing, busy, onToggle, onTest, onRemove })
             <span className={`h-1.5 w-1.5 rounded-full ${st.dot}`} /> {st.label}
           </span>
           {source.collecting && (
-            <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-300">
+            <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-800 dark:text-emerald-300">
               coleta ativa
             </span>
           )}
         </p>
         <p className="truncate font-mono text-xs muted">{source.domain} · {source.type} · confiab. {source.reliability}</p>
         {check && (
-          <p className={`mt-1 text-xs font-medium ${check.ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
+          <p className={`mt-1 text-xs font-medium ${check.ok ? 'text-emerald-800 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
             {check.ok ? `Última verificação: alcançável (~${check.latency} ms).` : 'Última verificação: sem resposta pelo proxy.'}
           </p>
         )}
@@ -852,7 +853,7 @@ function IntegracoesSection() {
     <div className="space-y-4">
       <Section className="card p-5">
         <h2 className="mb-1 flex items-center gap-2 text-base font-bold tracking-tight">
-          <Link2 size={17} className="text-brand-400" /> Integrações externas
+          <Link2 size={17} className="text-brand-400 dark:text-brand-300" /> Integrações externas
         </h2>
         <p className="mb-4 text-sm muted">
           Cada integração é um contrato com um provedor: tipo, estado e a observação que explica
@@ -874,7 +875,7 @@ function IntegracoesSection() {
                   </p>
                   <p className="text-xs muted">{i.note}</p>
                   {i.lastCheck && (
-                    <p className={`mt-1 text-xs font-medium ${i.lastCheck.ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                    <p className={`mt-1 text-xs font-medium ${i.lastCheck.ok ? 'text-emerald-800 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
                       {formatDateTimeBR(i.lastCheck.at)} · {i.lastCheck.message}
                     </p>
                   )}
@@ -898,7 +899,7 @@ function IntegracoesSection() {
 
       <Section className="card p-5">
         <h2 className="mb-2 flex items-center gap-2 text-base font-bold tracking-tight">
-          <ShieldCheck size={17} className="text-brand-400" /> Onde ficam as chaves
+          <ShieldCheck size={17} className="text-brand-400 dark:text-brand-300" /> Onde ficam as chaves
         </h2>
         <p className="text-sm leading-relaxed muted">
           Nenhuma credencial de provedor deve viver no front-end: tudo que o navegador carrega é
@@ -1077,7 +1078,7 @@ function SaudeSection() {
       <Section className="card p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="flex items-center gap-2 text-base font-bold tracking-tight">
-            <Server size={17} className="text-brand-400" /> Saúde dos serviços
+            <Server size={17} className="text-brand-400 dark:text-brand-300" /> Saúde dos serviços
           </h2>
           {health.data && (
             <span className="text-sm muted">
@@ -1119,7 +1120,7 @@ function SaudeSection() {
 
       <Section className="card p-5">
         <h2 className="mb-4 flex items-center gap-2 text-base font-bold tracking-tight">
-          <TerminalSquare size={17} className="text-brand-400" /> Diagnóstico da instalação
+          <TerminalSquare size={17} className="text-brand-400 dark:text-brand-300" /> Diagnóstico da instalação
         </h2>
 
         <DataState

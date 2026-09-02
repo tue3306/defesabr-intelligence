@@ -147,7 +147,7 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
                   <span className="flex items-center gap-2 text-sm font-semibold">
                     Notificações
                     {unread > 0 && (
-                      <span className="rounded-full bg-military-red/20 px-1.5 py-0.5 text-[10px] font-bold text-red-600 dark:text-red-300">
+                      <span className="rounded-full bg-military-red/20 px-1.5 py-0.5 text-[10px] font-bold text-red-800 dark:text-red-300">
                         {unread} nova{unread > 1 ? 's' : ''}
                       </span>
                     )}
@@ -160,7 +160,7 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
                 </div>
                 {notifications.length === 0 ? (
                   <div className="px-3 py-10 text-center">
-                    <Bell size={28} className="mx-auto mb-2 text-gray-500" />
+                    <Bell size={28} className="mx-auto mb-2 text-gray-500 dark:text-gray-400" />
                     <p className="text-sm muted">Nenhuma notificação por enquanto</p>
                   </div>
                 ) : (

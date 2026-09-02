@@ -104,6 +104,18 @@ html:not(.dark) .recharts-legend-item-text { color: #374151 !important; }
 .text-brand-200,
 .text-brand-300,
 .text-brand-400 { color: #d9b441; }
+
+/* As variantes `dark:` precisam constar aqui explicitamente. O Tailwind as
+   emite como `.dark\:text-brand-400:is(.dark *)` — duas classes de
+   especificidade, o mesmo que `.dark .dark\:text-brand-400`. Empate resolve
+   por ordem no arquivo, e a ordem depende de onde o Tailwind despeja a camada
+   de utilitários: apostar nisso é frágil.
+   O `html` à frente leva a regra a (0,2,1) e encerra a disputa. Sem isso, o
+   grafite cru da paleta (#7d828b) escapava em links como "Ver tramitação e
+   impacto", a 3,75:1 sobre fundo escuro. */
+html.dark .dark\:text-brand-200,
+html.dark .dark\:text-brand-300,
+html.dark .dark\:text-brand-400 { color: #d9b441; }
 html:not(.dark) .text-brand-200,
 html:not(.dark) .text-brand-300,
 html:not(.dark) .text-brand-400 { color: #6b5410; } /* ouro escuro — 7.1:1 no branco */

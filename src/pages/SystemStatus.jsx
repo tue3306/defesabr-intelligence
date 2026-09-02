@@ -31,14 +31,14 @@ const ESTADO = {
     rotulo: 'Operacional',
     icone: CheckCircle2,
     ponto: 'bg-emerald-500',
-    chip: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
+    chip: 'bg-emerald-500/15 text-emerald-900 dark:text-emerald-300',
     borda: 'border-l-emerald-500',
   },
   degradado: {
     rotulo: 'Degradado',
     icone: AlertTriangle,
     ponto: 'bg-amber-500',
-    chip: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
+    chip: 'bg-amber-500/15 text-amber-900 dark:text-amber-300',
     borda: 'border-l-amber-500',
   },
   nao_implementado: {
@@ -166,7 +166,7 @@ export default function SystemStatus() {
             {/* FONTES */}
             <section className="card p-5">
               <h2 className="mb-1 flex items-center gap-2 text-base font-bold tracking-tight">
-                <Rss size={17} className="text-brand-400" /> Fontes de coleta
+                <Rss size={17} className="text-brand-400 dark:text-brand-300" /> Fontes de coleta
               </h2>
               <p className="mb-4 text-sm muted">
                 O que cada fonte respondeu na última tentativa. Uma fonte quebrada não avisa
@@ -203,7 +203,7 @@ export default function SystemStatus() {
             {/* HISTÓRICO */}
             <section className="card p-5">
               <h2 className="mb-1 flex items-center gap-2 text-base font-bold tracking-tight">
-                <Clock size={17} className="text-brand-400" /> Histórico de execuções
+                <Clock size={17} className="text-brand-400 dark:text-brand-300" /> Histórico de execuções
               </h2>
               <p className="mb-4 text-sm muted">
                 Cada coleta é registrada com duração e resultado. É o que separa "funciona" de
@@ -414,7 +414,7 @@ function Fonte({ f, onColetado }) {
       </div>
 
       {f.lastError && (
-        <p className="mt-1.5 font-mono text-[11px] text-red-600 dark:text-red-400">{f.lastError}</p>
+        <p className="mt-1.5 font-mono text-[11px] text-red-800 dark:text-red-400">{f.lastError}</p>
       )}
     </div>
   )
@@ -501,9 +501,9 @@ function TestadorDoFiltro() {
 
           <dl className="mt-3 space-y-1.5 text-xs">
             {[
-              ['Termos inequívocos', r.termosFortes, 'text-emerald-600 dark:text-emerald-400'],
+              ['Termos inequívocos', r.termosFortes, 'text-emerald-800 dark:text-emerald-400'],
               ['Termos ambíguos', r.termosFracos, 'muted'],
-              ['Contextos que desqualificam', r.exclusoes, 'text-red-600 dark:text-red-400'],
+              ['Contextos que desqualificam', r.exclusoes, 'text-red-800 dark:text-red-400'],
             ].filter(([, v]) => v?.length).map(([k, v, cor]) => (
               <div key={k} className="flex flex-wrap gap-1.5">
                 <dt className="muted">{k}:</dt>

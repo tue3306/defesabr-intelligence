@@ -90,14 +90,14 @@ export default function Plans() {
             aria-pressed={annual}
           >
             Anual
-            <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-300">−17%</span>
+            <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800 dark:text-emerald-300">−17%</span>
           </button>
         </div>
       </div>
 
       {/* PAPEL × PLANO (explícito) */}
       <div className="card flex items-start gap-3 p-4">
-        <Info size={18} className="mt-0.5 shrink-0 text-brand-400" />
+        <Info size={18} className="mt-0.5 shrink-0 text-brand-400 dark:text-brand-300" />
         <p className="text-sm muted">
           <strong className="text-gray-900 dark:text-gray-100">Papel</strong> é o que você pode <em>fazer</em> (Usuário ou Administrador).{' '}
           <strong className="text-gray-900 dark:text-gray-100">Plano</strong> é o quanto você pode <em>ver e produzir</em>. Esta página define o seu plano.
@@ -126,7 +126,7 @@ export default function Plans() {
                   RECOMENDADO
                 </span>
               )}
-              <span className={`mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl ${p.recommended ? 'bg-gold-500/15 text-gold-600 dark:text-gold-400' : 'bg-brand-500/10 text-brand-400'}`}>
+              <span className={`mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl ${p.recommended ? 'bg-gold-500/15 text-gold-600 dark:text-gold-400' : 'bg-brand-500/10 text-brand-400 dark:text-brand-300'}`}>
                 <Icon size={20} />
               </span>
               <h2 className="text-lg font-bold tracking-tight">{p.name}</h2>
@@ -151,7 +151,7 @@ export default function Plans() {
               </ul>
 
               {active ? (
-                <div className="mt-6 flex items-center justify-center gap-2 rounded-lg bg-emerald-500/15 py-2.5 text-sm font-semibold text-emerald-600 dark:text-emerald-300">
+                <div className="mt-6 flex items-center justify-center gap-2 rounded-lg bg-emerald-500/15 py-2.5 text-sm font-semibold text-emerald-800 dark:text-emerald-300">
                   <BadgeCheck size={16} /> Plano atual
                 </div>
               ) : (
@@ -177,7 +177,7 @@ export default function Plans() {
       {/* PLANO x PAPEL — os dois eixos do acesso */}
       <section className="card p-5 sm:p-6">
         <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-          <Info size={18} className="text-brand-400" /> Plano e papel são coisas diferentes
+          <Info size={18} className="text-brand-400 dark:text-brand-300" /> Plano e papel são coisas diferentes
         </h2>
         <p className="mt-1 max-w-2xl text-sm muted">
           O acesso de cada pessoa nasce do cruzamento de dois eixos independentes. Assinar um plano
@@ -260,7 +260,7 @@ export default function Plans() {
       {/* FAQ */}
       <section>
         <h2 className="mb-4 flex items-center justify-center gap-2 text-center text-lg font-bold tracking-tight">
-          <HelpCircle size={18} className="text-brand-400" /> Perguntas frequentes
+          <HelpCircle size={18} className="text-brand-400 dark:text-brand-300" /> Perguntas frequentes
         </h2>
         <div className="mx-auto max-w-3xl space-y-3">
           {PLAN_FAQ.map((item) => (

@@ -9,8 +9,8 @@
 
 // Estados de serviço reutilizáveis (badges).
 export const HEALTH_STATUS = {
-  operational: { label: 'Operacional', classes: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300', dot: 'bg-emerald-400' },
-  degraded: { label: 'Degradado', classes: 'bg-amber-500/15 text-amber-700 dark:text-amber-300', dot: 'bg-amber-400' },
+  operational: { label: 'Operacional', classes: 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300', dot: 'bg-emerald-400' },
+  degraded: { label: 'Degradado', classes: 'bg-amber-500/15 text-amber-800 dark:text-amber-300', dot: 'bg-amber-400' },
   down: { label: 'Indisponível', classes: 'bg-red-500/15 text-red-700 dark:text-red-300', dot: 'bg-red-400' },
   planned: { label: 'Planejado', classes: 'bg-brand-500/15 text-brand-600 dark:text-brand-300', dot: 'bg-brand-400' },
 }
@@ -96,7 +96,7 @@ export const platformUsers = [
 ]
 
 export const USER_STATUS = {
-  ativo: { label: 'Ativo', classes: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300', dot: 'bg-emerald-400' },
+  ativo: { label: 'Ativo', classes: 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300', dot: 'bg-emerald-400' },
   inativo: { label: 'Inativo', classes: 'bg-white/10 text-gray-600 dark:text-gray-300', dot: 'bg-gray-400' },
   suspenso: { label: 'Suspenso', classes: 'bg-red-500/15 text-red-700 dark:text-red-300', dot: 'bg-red-400' },
 }
@@ -121,7 +121,7 @@ export const contentCategories = [
 
 export const AUDIT_LEVEL = {
   info: { label: 'info', classes: 'bg-brand-500/15 text-brand-600 dark:text-brand-300' },
-  warn: { label: 'alerta', classes: 'bg-amber-500/15 text-amber-700 dark:text-amber-300' },
+  warn: { label: 'alerta', classes: 'bg-amber-500/15 text-amber-800 dark:text-amber-300' },
   error: { label: 'erro', classes: 'bg-red-500/15 text-red-700 dark:text-red-300' },
 }
 

@@ -17,10 +17,10 @@
 
 // Estados possíveis de uma fonte (usados para badges e para os textos de frescor).
 export const SOURCE_STATUS = {
-  ativa: { label: 'Coletando', classes: 'bg-emerald-500/15 text-emerald-300', dot: 'bg-emerald-400', desc: 'Conector ativo (requer backend).' },
+  ativa: { label: 'Coletando', classes: 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300', dot: 'bg-emerald-400', desc: 'Conector ativo (requer backend).' },
   configurada: { label: 'Configurada', classes: 'bg-brand-500/15 text-brand-300', dot: 'bg-brand-400', desc: 'Cadastrada e pronta para integração via conector.' },
-  pendente: { label: 'Integração pendente', classes: 'bg-amber-500/15 text-amber-300', dot: 'bg-amber-400', desc: 'Conector previsto; aguardando backend/proxy.' },
-  indisponivel: { label: 'Indisponível', classes: 'bg-red-500/15 text-red-300', dot: 'bg-red-400', desc: 'Fonte temporariamente inacessível.' },
+  pendente: { label: 'Integração pendente', classes: 'bg-amber-500/15 text-amber-800 dark:text-amber-300', dot: 'bg-amber-400', desc: 'Conector previsto; aguardando backend/proxy.' },
+  indisponivel: { label: 'Indisponível', classes: 'bg-red-500/15 text-red-800 dark:text-red-300', dot: 'bg-red-400', desc: 'Fonte temporariamente inacessível.' },
 }
 
 // Agrupamento por categoria (mantém a leitura organizada e densa, não "cheia").

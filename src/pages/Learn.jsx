@@ -102,7 +102,7 @@ export default function Learn() {
       {/* TRILHAS DE ESTUDO */}
       <section>
         <h2 className="mb-1 flex items-center gap-2 text-lg font-bold tracking-tight">
-          <Compass size={20} className="text-brand-400" /> Trilhas de estudo
+          <Compass size={20} className="text-brand-400 dark:text-brand-300" /> Trilhas de estudo
         </h2>
         <p className="mb-4 text-sm muted">
           Caminhos guiados por nível — marque os passos concluídos. O progresso fica salvo neste navegador.
@@ -171,7 +171,7 @@ export default function Learn() {
                   {(progress.done[p.title] || []).length > 0 && (
                     <button
                       onClick={() => progress.reset(p.title)}
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold muted hover:text-brand-400"
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold muted hover:text-brand-400 dark:text-brand-300"
                       aria-label={`Reiniciar progresso da trilha ${p.title}`}
                     >
                       <RotateCcw size={11} /> Reiniciar
@@ -187,7 +187,7 @@ export default function Learn() {
       {/* CONCEITOS */}
       <section>
         <h2 className="mb-4 flex items-center gap-2 text-lg font-bold tracking-tight">
-          <BookOpen size={20} className="text-brand-400" /> Conceitos-chave
+          <BookOpen size={20} className="text-brand-400 dark:text-brand-300" /> Conceitos-chave
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {learnConcepts.map((c, i) => {
@@ -201,7 +201,7 @@ export default function Learn() {
                 transition={{ duration: 0.3, delay: i * 0.05 }}
                 className="card p-5"
               >
-                <span className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15 text-brand-400">
+                <span className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15 text-brand-400 dark:text-brand-300">
                   <Icon size={20} />
                 </span>
                 <h3 className="font-bold tracking-tight">{c.title}</h3>
@@ -215,7 +215,7 @@ export default function Learn() {
       {/* VÍDEO-AULAS */}
       <section>
         <h2 className="mb-1 flex items-center gap-2 text-lg font-bold tracking-tight">
-          <PlayCircle size={20} className="text-brand-400" /> Vídeo-aulas
+          <PlayCircle size={20} className="text-brand-400 dark:text-brand-300" /> Vídeo-aulas
         </h2>
         <p className="mb-4 text-sm muted">Materiais em vídeo de canais oficiais e educacionais (abre em nova aba).</p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -236,7 +236,7 @@ export default function Learn() {
               </div>
               <h3 className="mt-2 font-bold leading-snug tracking-tight">{v.title}</h3>
               <p className="mt-1 flex-1 text-sm muted">{v.desc}</p>
-              <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-400">
+              <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-400 dark:text-brand-300">
                 {v.source} <ExternalLink size={12} />
               </span>
             </a>
@@ -247,7 +247,7 @@ export default function Learn() {
       {/* GLOSSÁRIO */}
       <section>
         <h2 className="mb-4 flex items-center gap-2 text-lg font-bold tracking-tight">
-          <Search size={20} className="text-brand-400" /> Glossário de termos e siglas ({terms.length})
+          <Search size={20} className="text-brand-400 dark:text-brand-300" /> Glossário de termos e siglas ({terms.length})
         </h2>
         <div className="card mb-4 space-y-3 p-4">
           <div className="relative">
@@ -283,7 +283,7 @@ export default function Learn() {
 
         {terms.length === 0 ? (
           <div className="card flex flex-col items-center gap-2 p-8 text-center">
-            <Search size={28} className="text-gray-500" />
+            <Search size={28} className="text-gray-500 dark:text-gray-400" />
             <p className="font-semibold">Nenhum termo encontrado</p>
             <p className="text-sm muted">Tente outra palavra ou remova o filtro de categoria.</p>
           </div>
@@ -305,7 +305,7 @@ export default function Learn() {
       {/* BIBLIOTECA DE DOCUMENTOS ESTRUTURANTES */}
       <section>
         <h2 className="mb-1 flex items-center gap-2 text-lg font-bold tracking-tight">
-          <Library size={20} className="text-brand-400" /> Biblioteca — documentos estruturantes
+          <Library size={20} className="text-brand-400 dark:text-brand-300" /> Biblioteca — documentos estruturantes
         </h2>
         <p className="mb-4 text-sm muted">Os pilares oficiais que orientam a Defesa Nacional. Clique para abrir a fonte.</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -321,7 +321,7 @@ export default function Learn() {
                 </div>
                 <p className="text-sm font-medium text-gray-200">{d.title}</p>
                 <p className="mt-1 text-sm muted">{d.desc}</p>
-                <span className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-brand-400">Abrir documento <ExternalLink size={12} /></span>
+                <span className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-brand-400 dark:text-brand-300">Abrir documento <ExternalLink size={12} /></span>
               </div>
             </a>
           ))}
@@ -331,7 +331,7 @@ export default function Learn() {
       {/* QUIZ */}
       <section>
         <h2 className="mb-1 flex items-center gap-2 text-lg font-bold tracking-tight">
-          <Brain size={20} className="text-brand-400" /> Teste seus conhecimentos
+          <Brain size={20} className="text-brand-400 dark:text-brand-300" /> Teste seus conhecimentos
         </h2>
         <p className="mb-4 text-sm muted">Escolha uma trilha, responda e bata seu recorde.</p>
         <Quiz />

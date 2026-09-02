@@ -45,10 +45,10 @@ const scenarioStyle = {
 }
 
 const statusColor = {
-  NORMAL: 'text-emerald-400',
-  ATENCAO: 'text-yellow-400',
-  ALERTA: 'text-amber-400',
-  CRITICO: 'text-red-400',
+  NORMAL: 'text-emerald-700 dark:text-emerald-400',
+  ATENCAO: 'text-yellow-800 dark:text-yellow-400',
+  ALERTA: 'text-amber-800 dark:text-amber-400',
+  CRITICO: 'text-red-700 dark:text-red-400',
 }
 
 // Rótulos acentuados para exibição (as chaves acima permanecem como enums).
@@ -104,7 +104,7 @@ export default function WeeklyAnalysis() {
       <div className="card p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-brand-400">Análise Semanal</p>
+            <p className="text-sm font-semibold uppercase tracking-wide text-brand-400 dark:text-brand-300">Análise Semanal</p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight">Perspectivas e Cenários</h1>
             <p className="mt-1 text-sm muted">{week}</p>
           </div>
@@ -174,7 +174,7 @@ export default function WeeklyAnalysis() {
               <div className="flex flex-wrap gap-2">
                 {result.context?.active_regions?.map((r) => (
                   <span key={r} className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2.5 py-1 text-xs">
-                    <MapPin size={12} className="text-brand-400" /> {r}
+                    <MapPin size={12} className="text-brand-400 dark:text-brand-300" /> {r}
                   </span>
                 ))}
               </div>
@@ -219,7 +219,7 @@ export default function WeeklyAnalysis() {
                       <span className="text-sm font-bold uppercase tracking-wide">
                         {st.emoji} {st.label}
                       </span>
-                      <span className="text-2xl font-bold text-brand-400">{sc.probability}%</span>
+                      <span className="text-2xl font-bold text-brand-400 dark:text-brand-300">{sc.probability}%</span>
                     </div>
                     <h3 className="mt-2 font-semibold">{sc.title}</h3>
                     <p className="mt-2 text-sm leading-relaxed text-gray-300">{sc.description}</p>
@@ -227,7 +227,7 @@ export default function WeeklyAnalysis() {
                       <p className="text-xs font-semibold uppercase muted">Fatores</p>
                       <ul className="mt-1 space-y-1 text-sm">
                         {sc.factors?.map((f, i) => (
-                          <li key={i} className="flex gap-2"><span className="text-brand-400">•</span>{f}</li>
+                          <li key={i} className="flex gap-2"><span className="text-brand-400 dark:text-brand-300">•</span>{f}</li>
                         ))}
                       </ul>
                     </div>
@@ -296,7 +296,7 @@ export default function WeeklyAnalysis() {
                 <li key={i} className="mb-5 ml-5">
                   <span className="absolute -left-[7px] mt-1 h-3 w-3 rounded-full bg-brand-500" />
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-xs text-brand-400">{ev.date}</span>
+                    <span className="font-mono text-xs text-brand-400 dark:text-brand-300">{ev.date}</span>
                     <Badge type="urgency" value={ev.impact} />
                     <Badge type="category" value={ev.category} />
                   </div>
@@ -344,7 +344,7 @@ function TopicsRanked({ topics }) {
 }
 
 function ListCard({ title, items = [], accent }) {
-  const ring = accent === 'green' ? 'text-emerald-400' : 'text-red-400'
+  const ring = accent === 'green' ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'
   return (
     <div className="card p-5">
       <h3 className={`mb-3 text-sm font-bold uppercase tracking-wide ${ring}`}>{title}</h3>

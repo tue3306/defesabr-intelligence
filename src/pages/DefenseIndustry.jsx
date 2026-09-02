@@ -52,7 +52,7 @@ export default function DefenseIndustry() {
       {/* EMPRESAS */}
       <section>
         <h2 className="mb-1 flex items-center gap-2 text-lg font-bold tracking-tight">
-          <Building2 size={20} className="text-brand-400" /> Principais empresas
+          <Building2 size={20} className="text-brand-400 dark:text-brand-300" /> Principais empresas
         </h2>
         <p className="mb-4 text-sm muted">Empresas estratégicas que compõem o núcleo da BID brasileira.</p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -72,7 +72,7 @@ export default function DefenseIndustry() {
       {/* DESTINOS DE EXPORTAÇÃO */}
       <section className="card p-5">
         <h2 className="mb-1 flex items-center gap-2 text-base font-bold tracking-tight">
-          <Globe2 size={18} className="text-brand-400" /> Destinos das exportações
+          <Globe2 size={18} className="text-brand-400 dark:text-brand-300" /> Destinos das exportações
           <InfoTooltip text="Distribuição percentual ilustrativa da pauta de exportação de defesa por região." />
         </h2>
         <p className="mb-4 text-sm muted">Para onde vai a defesa brasileira (participação na pauta).</p>
@@ -94,7 +94,7 @@ export default function DefenseIndustry() {
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-              <Package size={20} className="text-brand-400" /> Produtos e clientes
+              <Package size={20} className="text-brand-400 dark:text-brand-300" /> Produtos e clientes
             </h2>
             <p className="mt-0.5 text-sm muted">Principais plataformas exportadas e seus mercados.</p>
           </div>

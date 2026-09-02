@@ -75,10 +75,10 @@ export default function AdminDashboard() {
             <div className="w-full shrink-0 rounded-xl border border-white/10 bg-white/5 p-4 lg:w-64">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Saúde global</span>
-                <HeartPulse size={15} className="text-emerald-400" />
+                <HeartPulse size={15} className="text-emerald-700 dark:text-emerald-400" />
               </div>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-3xl font-extrabold tracking-tight text-emerald-400">{operational}/{systemHealth.length}</span>
+                <span className="text-3xl font-extrabold tracking-tight text-emerald-700 dark:text-emerald-400">{operational}/{systemHealth.length}</span>
                 <span className="font-mono text-sm text-gray-400">operacionais</span>
               </div>
               <p className="mt-2 text-xs text-gray-400">
@@ -105,7 +105,7 @@ export default function AdminDashboard() {
           {/* Saúde dos serviços */}
           <Section className="card p-5">
             <h2 className="mb-4 flex items-center gap-2 text-lg font-bold tracking-tight">
-              <Server size={18} className="text-brand-400" /> Saúde dos serviços
+              <Server size={18} className="text-brand-400 dark:text-brand-300" /> Saúde dos serviços
             </h2>
             <div className="space-y-2">
               {systemHealth.map((s) => {
@@ -132,9 +132,9 @@ export default function AdminDashboard() {
           <Section className="card p-5">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-                <Database size={18} className="text-brand-400" /> Status das fontes
+                <Database size={18} className="text-brand-400 dark:text-brand-300" /> Status das fontes
               </h2>
-              <Link to="/fontes" className="inline-flex items-center gap-1 text-sm font-semibold text-brand-400 hover:text-brand-300">
+              <Link to="/fontes" className="inline-flex items-center gap-1 text-sm font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300">
                 Detalhes <ChevronRight size={15} />
               </Link>
             </div>
@@ -152,7 +152,7 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               {groups.map((cat) => (
                 <div key={cat.id} className="rounded-lg bg-white/5 p-3">
-                  <p className="text-xs font-bold uppercase tracking-wider text-gray-500">{cat.label}</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{cat.label}</p>
                   <p className="mt-1 font-mono text-2xl font-extrabold">{cat.items.length}</p>
                   <p className="text-[11px] muted">fontes cadastradas</p>
                 </div>
@@ -164,7 +164,7 @@ export default function AdminDashboard() {
           {/* Trilha de auditoria */}
           <Section className="card p-5">
             <h2 className="mb-4 flex items-center gap-2 text-lg font-bold tracking-tight">
-              <ScrollText size={18} className="text-brand-400" /> Trilha de auditoria
+              <ScrollText size={18} className="text-brand-400 dark:text-brand-300" /> Trilha de auditoria
             </h2>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -205,7 +205,7 @@ export default function AdminDashboard() {
           {/* Contas por plano */}
           <Section className="card p-5">
             <h2 className="mb-3 flex items-center gap-2 text-base font-bold tracking-tight">
-              <Users size={17} className="text-brand-400" /> Contas por plano
+              <Users size={17} className="text-brand-400 dark:text-brand-300" /> Contas por plano
             </h2>
             <ul className="space-y-2.5">
               {Object.entries(platformMetrics.contasPorPlano).map(([plan, count]) => (
@@ -215,7 +215,7 @@ export default function AdminDashboard() {
                 </li>
               ))}
             </ul>
-            <Link to="/configuracoes" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-400 hover:text-brand-300">
+            <Link to="/configuracoes" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300">
               Gerir usuários <ChevronRight size={14} />
             </Link>
           </Section>
@@ -223,7 +223,7 @@ export default function AdminDashboard() {
           {/* Integrações */}
           <Section className="card p-5">
             <h2 className="mb-3 flex items-center gap-2 text-base font-bold tracking-tight">
-              <PlugZap size={17} className="text-brand-400" /> Integrações
+              <PlugZap size={17} className="text-brand-400 dark:text-brand-300" /> Integrações
             </h2>
             <ul className="space-y-2.5">
               {integrations.map((i) => {
@@ -244,7 +244,7 @@ export default function AdminDashboard() {
           {/* Ingestão */}
           <Section className="card p-5">
             <h2 className="mb-3 flex items-center gap-2 text-base font-bold tracking-tight">
-              <Activity size={17} className="text-brand-400" /> Ingestão (24h)
+              <Activity size={17} className="text-brand-400 dark:text-brand-300" /> Ingestão (24h)
             </h2>
             <div className="grid grid-cols-2 gap-3">
               <Stat label="Coletas" value={ingestion.coletasUltimas24h} />
@@ -252,7 +252,7 @@ export default function AdminDashboard() {
               <Stat label="Na fila" value={ingestion.fila} />
               <Stat label="Fontes ativas" value={ingestion.fontesAtivas} />
             </div>
-            <Link to="/configuracoes" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-400 hover:text-brand-300">
+            <Link to="/configuracoes" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300">
               Configurar coleta <ArrowRight size={14} />
             </Link>
           </Section>

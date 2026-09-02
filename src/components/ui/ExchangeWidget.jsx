@@ -53,13 +53,13 @@ function Rate({ icon: Icon, label, rate }) {
   return (
     <div className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2">
       <span className="flex items-center gap-2 text-sm">
-        <Icon size={16} className="text-brand-400" /> {label}
+        <Icon size={16} className="text-brand-400 dark:text-brand-300" /> {label}
       </span>
       <span className="text-right">
         <span className="block font-mono font-semibold">
           R$ {rate ? Number(rate.bid).toFixed(3) : '—'}
         </span>
-        <span className={`text-xs ${change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+        <span className={`text-xs ${change >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
           {change >= 0 ? '+' : ''}
           {change.toFixed(2)}%
         </span>

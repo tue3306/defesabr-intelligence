@@ -206,7 +206,7 @@ export default function CommandPalette() {
           )}
           {grouped.map(({ group, items }) => (
             <div key={group} className="mb-1">
-              <p className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-gray-500">{group}</p>
+              <p className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{group}</p>
               <ul>
                 {items.map((cmd) => {
                   cursor += 1

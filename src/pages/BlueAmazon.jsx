@@ -148,7 +148,7 @@ export default function BlueAmazon() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {WHY_IT_MATTERS.map((item) => (
             <div key={item.title} className="flex gap-3 rounded-lg border border-white/10 p-4">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-military-green/15 text-emerald-600 dark:text-emerald-400">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-military-green/15 text-emerald-800 dark:text-emerald-400">
                 <item.icon size={18} />
               </span>
               <div>
@@ -263,7 +263,7 @@ export default function BlueAmazon() {
             <span className="chip">{latestBulletin.region}</span>
             <span className="chip">{latestBulletin.theme}</span>
             <span className={`ml-auto rounded-full px-2 py-0.5 font-bold ${
-              latestBulletin.relevance === 'Alta' ? 'bg-military-red/15 text-red-600 dark:text-red-300' : 'bg-military-amber/15 text-amber-700 dark:text-amber-300'
+              latestBulletin.relevance === 'Alta' ? 'bg-military-red/15 text-red-800 dark:text-red-300' : 'bg-military-amber/15 text-amber-800 dark:text-amber-300'
             }`}>
               Relevância {latestBulletin.relevance}
             </span>

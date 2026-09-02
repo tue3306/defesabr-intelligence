@@ -3,7 +3,7 @@ import { ComposableMap, Geographies, Geography } from 'react-simple-maps'
 import { Newspaper, MapPin, Flag } from 'lucide-react'
 import { countryActivity } from '../../data/mockData'
 import { countryIntel, AMERICAS } from '../../data/countryNews'
-import { categoryColor } from '../../utils/textUtils'
+import { categoryColor , textoSobre } from '../../utils/textUtils'
 
 const geoUrl = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json'
 
@@ -131,13 +131,25 @@ function CountryNewsPanel({ active }) {
     <div className="mt-4 border-t border-gray-700/40 pt-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h3 className="flex items-center gap-2 text-sm font-bold tracking-tight">
-          <MapPin size={16} className="text-brand-400" /> {namePt}
+          <MapPin size={16} className="text-brand-400 dark:text-brand-300" /> {namePt}
         </h3>
         <div className="flex items-center gap-2">
-          <span className="rounded-full border border-gray-600/50 px-2 py-0.5 text-xs font-semibold" style={{ color: relColor }}>
+          {/* A cor de relevância vai para a BORDA e o fundo; o texto herda o
+              tema. Como cor de texto ela caía a 2,7:1 no escuro. */}
+          <span
+            className="rounded-full border px-2 py-0.5 text-xs font-semibold text-gray-900 dark:text-gray-100"
+            style={{ borderColor: relColor, background: `${relColor}26` }}
+          >
             Relevância p/ Brasil: {relevance}
           </span>
-          <span className="rounded-full px-2 py-0.5 text-xs font-bold text-white" style={{ background: colorFor(risk) }}>
+          {/* O selo de risco muda de fundo conforme o valor — verde no baixo,
+              vermelho no alto. Texto branco fixo dava 2,3:1 sobre os tons
+              claros da faixa média. Agora a cor do texto segue a luminância do
+              próprio fundo, que é a única forma de acertar nos dois extremos. */}
+          <span
+            className="rounded-full px-2 py-0.5 text-xs font-bold"
+            style={{ background: colorFor(risk), color: textoSobre(colorFor(risk)) }}
+          >
             risco {risk ?? '—'}/100
           </span>
         </div>

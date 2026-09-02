@@ -40,7 +40,7 @@ export function useLiveNotifications() {
       indexRef.current += 1
       addNotification(item)
       toast(item.title, {
-        icon: createElement(Bell, { size: 16, className: 'text-brand-400' }),
+        icon: createElement(Bell, { size: 16, className: 'text-brand-400 dark:text-brand-300' }),
         duration: 3500,
       })
     }, INTERVAL_MS)

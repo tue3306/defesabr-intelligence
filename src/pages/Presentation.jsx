@@ -194,7 +194,7 @@ export default function Presentation() {
       {/* HEADER */}
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500/15 text-brand-400 sm:h-11 sm:w-11">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500/15 text-brand-400 dark:text-brand-300 sm:h-11 sm:w-11">
             <Shield size={22} />
           </span>
           <div className="min-w-0">
@@ -205,7 +205,7 @@ export default function Presentation() {
           </div>
         </div>
         <div className="flex items-center justify-between gap-3 sm:justify-end">
-          <span className="font-mono text-2xl font-bold text-brand-400 sm:text-3xl">{now}</span>
+          <span className="font-mono text-2xl font-bold text-brand-400 dark:text-brand-300 sm:text-3xl">{now}</span>
           <Link
             to="/painel"
             className="inline-flex items-center gap-1.5 rounded-lg border border-gray-600/50 px-3 py-2 text-xs font-semibold text-gray-300 hover:text-white"

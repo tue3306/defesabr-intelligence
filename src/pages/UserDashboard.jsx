@@ -195,7 +195,7 @@ export default function UserDashboard() {
               <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
                 <div className="h-full rounded-full" style={{ width: `${posture}%`, background: alertColor(latest?.alert_level) }} />
               </div>
-              <div className="mt-1 flex justify-between text-[10px] uppercase tracking-wide text-gray-500">
+              <div className="mt-1 flex justify-between text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
                 <span>Normal</span><span>Crítico</span>
               </div>
             </div>
@@ -272,7 +272,7 @@ export default function UserDashboard() {
                 ))}
               </div>
             ) : (
-              <Link to="/conta" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-400 hover:text-brand-300">
+              <Link to="/conta" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300">
                 <Star size={13} /> Escolher áreas de interesse
               </Link>
             )}
@@ -292,7 +292,7 @@ export default function UserDashboard() {
           <Section className="card p-5">
             <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
               <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-                <Globe2 size={18} className="text-brand-400" /> Mapa de risco — foco Américas
+                <Globe2 size={18} className="text-brand-400 dark:text-brand-300" /> Mapa de risco — foco Américas
               </h2>
               <Badge type="demo" />
             </div>
@@ -307,9 +307,9 @@ export default function UserDashboard() {
             <Section className="card p-5">
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-                  <Target size={18} className="text-brand-400" /> Programas estratégicos em foco
+                  <Target size={18} className="text-brand-400 dark:text-brand-300" /> Programas estratégicos em foco
                 </h2>
-                <Link to="/programas" className="inline-flex items-center gap-1 text-sm font-semibold text-brand-400 hover:text-brand-300">
+                <Link to="/programas" className="inline-flex items-center gap-1 text-sm font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300">
                   Todos <ChevronRight size={15} />
                 </Link>
               </div>
@@ -351,9 +351,9 @@ export default function UserDashboard() {
             <Section className="card p-5">
               <div className="mb-1 flex items-center justify-between">
                 <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-                  <Compass size={18} className="text-brand-400" /> Explore a plataforma
+                  <Compass size={18} className="text-brand-400 dark:text-brand-300" /> Explore a plataforma
                 </h2>
-                <Link to="/aprender" className="text-xs font-semibold text-brand-400 hover:text-brand-300">
+                <Link to="/aprender" className="text-xs font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300">
                   Centro educacional
                 </Link>
               </div>
@@ -413,9 +413,9 @@ export default function UserDashboard() {
           <Section className="card p-5">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-base font-bold tracking-tight">
-                <CalendarDays size={17} className="text-brand-400" /> Próximos eventos
+                <CalendarDays size={17} className="text-brand-400 dark:text-brand-300" /> Próximos eventos
               </h2>
-              <Link to="/calendario" className="text-xs font-semibold text-brand-400 hover:text-brand-300">Agenda</Link>
+              <Link to="/calendario" className="text-xs font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300">Agenda</Link>
             </div>
             <ul className="space-y-3">
               {upcoming.map((e) => {
@@ -441,7 +441,7 @@ export default function UserDashboard() {
           <Can do="analysis.full">
             <Section className="card p-5">
               <h2 className="mb-3 flex items-center gap-2 text-base font-bold tracking-tight">
-                <Landmark size={17} className="text-brand-400" /> Indicadores
+                <Landmark size={17} className="text-brand-400 dark:text-brand-300" /> Indicadores
                 <InfoTooltip text="Indicadores macro relevantes à defesa (orçamento, câmbio, risco-país). Valores demonstrativos." />
               </h2>
               <ul className="space-y-2.5">
@@ -450,14 +450,14 @@ export default function UserDashboard() {
                     <span className="text-sm muted">{i.label}</span>
                     <span className="flex items-center gap-2">
                       <span className="font-mono text-sm font-bold">{i.value}</span>
-                      <span className={`inline-flex items-center gap-0.5 text-xs font-semibold ${i.positive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                      <span className={`inline-flex items-center gap-0.5 text-xs font-semibold ${i.positive ? 'text-emerald-800 dark:text-emerald-400' : 'text-red-800 dark:text-red-400'}`}>
                         {i.positive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}{i.delta}
                       </span>
                     </span>
                   </li>
                 ))}
               </ul>
-              <Link to="/economia" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-400 hover:text-brand-300">
+              <Link to="/economia" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300">
                 Economia &amp; Defesa <ChevronRight size={14} />
               </Link>
             </Section>
@@ -467,7 +467,7 @@ export default function UserDashboard() {
           <Section className="card p-5">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-base font-bold tracking-tight">
-                <Bell size={17} className="text-brand-400" /> Alertas recentes
+                <Bell size={17} className="text-brand-400 dark:text-brand-300" /> Alertas recentes
               </h2>
               {unread > 0 && (
                 <span className="rounded-full bg-military-red/15 px-2 py-0.5 text-[10px] font-bold text-red-500 dark:text-red-300">
@@ -486,7 +486,7 @@ export default function UserDashboard() {
                 </li>
               ))}
             </ul>
-            <Link to="/notificacoes" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-400 hover:text-brand-300">
+            <Link to="/notificacoes" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300">
               Ver todas <ChevronRight size={14} />
             </Link>
           </Section>
@@ -495,9 +495,9 @@ export default function UserDashboard() {
           <Section className="card p-5">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-base font-bold tracking-tight">
-                <Bookmark size={17} className="text-brand-400" /> Minha Pasta
+                <Bookmark size={17} className="text-brand-400 dark:text-brand-300" /> Minha Pasta
               </h2>
-              <Link to="/arquivo" className="text-xs font-semibold text-brand-400 hover:text-brand-300">Abrir</Link>
+              <Link to="/arquivo" className="text-xs font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300">Abrir</Link>
             </div>
             {favorites.length > 0 ? (
               <ul className="space-y-2.5">
@@ -524,9 +524,9 @@ export default function UserDashboard() {
             <Section className="card p-5">
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="flex items-center gap-2 text-base font-bold tracking-tight">
-                  <BookOpen size={17} className="text-brand-400" /> Comece por aqui
+                  <BookOpen size={17} className="text-brand-400 dark:text-brand-300" /> Comece por aqui
                 </h2>
-                <Link to="/aprender" className="text-xs font-semibold text-brand-400 hover:text-brand-300">Centro</Link>
+                <Link to="/aprender" className="text-xs font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300">Centro</Link>
               </div>
               <ul className="space-y-2.5">
                 {terms.map((t) => (
@@ -545,7 +545,7 @@ export default function UserDashboard() {
       <Section>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-            <Newspaper size={18} className="text-brand-400" /> Notícias recentes
+            <Newspaper size={18} className="text-brand-400 dark:text-brand-300" /> Notícias recentes
           </h2>
           <Badge type={source === 'live' ? 'live' : 'demo'} />
         </div>
@@ -554,7 +554,7 @@ export default function UserDashboard() {
             ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
             : feed.map((n) => <NewsCard key={n.id} news={n} variant="compact" />)}
         </div>
-        <Link to="/clipping" className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand-400 hover:text-brand-300">
+        <Link to="/clipping" className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300">
           Ver todo o clipping <ArrowRight size={15} />
         </Link>
       </Section>
@@ -566,7 +566,7 @@ export default function UserDashboard() {
             <div className="card flex flex-col p-6">
               <div className="flex items-center justify-between">
                 <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-                  <BarChart3 size={18} className="text-brand-400" /> Análise semanal
+                  <BarChart3 size={18} className="text-brand-400 dark:text-brand-300" /> Análise semanal
                 </h2>
                 <Badge type="plain" value={weekly?.week} />
               </div>
@@ -580,7 +580,7 @@ export default function UserDashboard() {
                 <ul className="space-y-1.5 text-sm">
                   {(latest?.trends || weekly?.opportunities?.map((o) => o.title) || []).slice(0, 3).map((t) => (
                     <li key={t} className="flex gap-2">
-                      <span className="text-brand-400">•</span>
+                      <span className="text-brand-400 dark:text-brand-300">•</span>
                       <span className="text-gray-300">{t}</span>
                     </li>
                   ))}
@@ -595,14 +595,14 @@ export default function UserDashboard() {
               <div className="card flex flex-col p-6">
                 <div className="flex items-center justify-between">
                   <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-                    <Waves size={18} className="text-brand-400" /> Boletim Geocorrente
+                    <Waves size={18} className="text-brand-400 dark:text-brand-300" /> Boletim Geocorrente
                   </h2>
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${geo.relevance === 'Alta' ? 'bg-red-500/15 text-red-600 dark:text-red-300' : 'bg-amber-500/15 text-amber-600 dark:text-amber-300'}`}>
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${geo.relevance === 'Alta' ? 'bg-red-500/15 text-red-800 dark:text-red-300' : 'bg-amber-500/15 text-amber-600 dark:text-amber-300'}`}>
                     Relevância {geo.relevance}
                   </span>
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-xs muted">
-                  <span className="font-mono text-brand-400">{geo.edition}</span>
+                  <span className="font-mono text-brand-400 dark:text-brand-300">{geo.edition}</span>
                   <span>· {geo.region}</span>
                   <span>· {geo.theme}</span>
                 </div>

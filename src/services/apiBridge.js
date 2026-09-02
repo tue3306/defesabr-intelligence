@@ -165,6 +165,7 @@ export const PONTES = new Map([
       period_days: d.periodDays,
       total_collected: d.totalCollected,
       relevant_total: d.relevantTotal,
+      active_sources: d.activeSources,
       suggested_window: d.suggestedWindow,
       method: d.method,
     }),

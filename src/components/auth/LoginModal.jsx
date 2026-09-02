@@ -202,7 +202,7 @@ export default function LoginModal({ open, onClose }) {
             })}
           </div>
 
-          <button onClick={close} className="mt-3 w-full text-center text-xs muted hover:text-brand-400">
+          <button onClick={close} className="mt-3 w-full text-center text-xs muted hover:text-brand-400 dark:text-brand-300">
             Continuar como <strong className="font-semibold">Visitante</strong> (sem login)
           </button>
 
@@ -323,7 +323,7 @@ function Field({ label, type = 'text', value, onChange, placeholder, autoComplet
 function ErrorLine({ message }) {
   if (!message) return null
   return (
-    <p role="alert" className="flex items-start gap-1.5 text-sm text-red-600 dark:text-red-400">
+    <p role="alert" className="flex items-start gap-1.5 text-sm text-red-800 dark:text-red-400">
       <AlertCircle size={15} className="mt-0.5 shrink-0" /> {message}
     </p>
   )
@@ -334,7 +334,7 @@ function BackToLogin({ onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center justify-center gap-1 text-xs font-semibold muted hover:text-brand-400"
+      className="flex w-full items-center justify-center gap-1 text-xs font-semibold muted hover:text-brand-400 dark:text-brand-300"
     >
       <ArrowLeft size={13} /> Voltar para Entrar
     </button>

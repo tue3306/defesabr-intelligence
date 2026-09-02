@@ -69,9 +69,9 @@ export const blueAmazonThreats = [
 ]
 
 export const THREAT_LEVELS = {
-  Alto: 'bg-red-500/15 text-red-300 border-red-500/40',
-  Médio: 'bg-amber-500/15 text-amber-300 border-amber-500/40',
-  Baixo: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40',
+  Alto: 'bg-red-500/15 text-red-800 dark:text-red-300 border-red-500/40',
+  Médio: 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/40',
+  Baixo: 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/40',
 }
 
 // Meios navais (ilustrativo) para um pequeno "ordem de batalha naval".

@@ -61,9 +61,9 @@ export const narratives = [
 ]
 
 export const SENTIMENT_CLR = {
-  Positivo: 'bg-emerald-500/15 text-emerald-300',
-  Misto: 'bg-amber-500/15 text-amber-300',
-  Negativo: 'bg-red-500/15 text-red-300',
+  Positivo: 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300',
+  Misto: 'bg-amber-500/15 text-amber-800 dark:text-amber-300',
+  Negativo: 'bg-red-500/15 text-red-800 dark:text-red-300',
 }
 
 // Indicadores/sinais usados para suspeitar de coordenação (FIMI).

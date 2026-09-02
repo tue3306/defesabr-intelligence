@@ -175,7 +175,12 @@ export default function DailyClipping() {
         meta={[
           { label: 'Edição', value: result?.date || formatFullDate() },
           { label: 'Notícias', value: String(allNews.length) },
-          { label: 'Fontes ativas', value: String(activeSources) },
+          // Duas coleções de fontes convivem aqui, e o contador precisa mostrar
+          // a que produziu ESTA edição. Quando o clipping veio do servidor, o
+          // número é o de fontes que responderam na última execução; quando é
+          // acervo local, é o das fontes que o navegador tentaria ler — todas
+          // desabilitadas por padrão, porque falham por CORS.
+          { label: 'Fontes ativas', value: String(result?.active_sources ?? activeSources) },
         ]}
         actions={
           <>
@@ -535,11 +540,11 @@ function SourcesPanel({ open, onToggle }) {
               <span className="flex min-w-0 items-center gap-2">
                 <Circle
                   size={9}
-                  className={s.status === 'online' ? 'fill-emerald-400 text-emerald-400' : 'fill-red-400 text-red-400'}
+                  className={s.status === 'online' ? 'fill-emerald-400 text-emerald-700 dark:text-emerald-400' : 'fill-red-400 text-red-700 dark:text-red-400'}
                 />
                 <span className="truncate font-medium">{s.name}</span>
               </span>
-              <span className={`chip shrink-0 ${s.enabled ? 'text-emerald-600 dark:text-emerald-300' : ''}`}>
+              <span className={`chip shrink-0 ${s.enabled ? 'text-emerald-800 dark:text-emerald-300' : ''}`}>
                 {s.enabled ? 'Coletando' : 'Pausada'}
               </span>
             </div>

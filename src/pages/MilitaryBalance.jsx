@@ -175,7 +175,7 @@ export default function MilitaryBalance() {
           <section className="card p-5">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-                <GitCompareArrows size={18} className="text-brand-400" /> Brasil comparado a…
+                <GitCompareArrows size={18} className="text-brand-400 dark:text-brand-300" /> Brasil comparado a…
               </h2>
               <select
                 value={compareWith}
@@ -197,8 +197,8 @@ export default function MilitaryBalance() {
                 const diffPct = other > 0 ? Math.round(((br - other) / other) * 100) : null
                 const Icon = diffPct > 0 ? TrendingUp : diffPct < 0 ? TrendingDown : Minus
                 const color = diffPct > 0
-                  ? 'text-emerald-600 dark:text-emerald-400'
-                  : diffPct < 0 ? 'text-red-600 dark:text-red-400' : 'muted'
+                  ? 'text-emerald-800 dark:text-emerald-400'
+                  : diffPct < 0 ? 'text-red-800 dark:text-red-400' : 'muted'
                 return (
                   <div key={m.key} className="rounded-lg bg-white/5 p-3">
                     <p className="text-[10px] font-bold uppercase tracking-wider muted">{m.label}</p>
@@ -321,7 +321,7 @@ export default function MilitaryBalance() {
                       <td className="whitespace-nowrap py-2.5 pr-4">
                         <span className="mr-1.5">{c.flag}</span>{c.country}
                         {isBR && (
-                          <span className="ml-2 rounded-full bg-military-green/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-emerald-700 dark:text-emerald-300">
+                          <span className="ml-2 rounded-full bg-military-green/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-emerald-800 dark:text-emerald-300">
                             referência
                           </span>
                         )}

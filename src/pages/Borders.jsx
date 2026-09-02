@@ -9,8 +9,8 @@ import {
 
 const TREND_ICON = { up: TrendingUp, down: TrendingDown, flat: Minus }
 const TREND_CLR = {
-  up: 'text-red-600 dark:text-red-400',
-  down: 'text-emerald-600 dark:text-emerald-400',
+  up: 'text-red-800 dark:text-red-400',
+  down: 'text-emerald-800 dark:text-emerald-400',
   flat: 'text-gray-500 dark:text-gray-400',
 }
 const TREND_LABEL = { up: 'Em piora', down: 'Em melhora', flat: 'Estável' }
@@ -62,7 +62,7 @@ export default function Borders() {
       {/* ARCOS / SEGMENTOS — "mini-mapa" esquemático do Brasil */}
       <section>
         <h2 className="mb-1 flex items-center gap-2 text-lg font-bold tracking-tight">
-          <MapPin size={20} className="text-brand-400" /> Arcos de fronteira
+          <MapPin size={20} className="text-brand-400 dark:text-brand-300" /> Arcos de fronteira
           <InfoTooltip text="A faixa de fronteira é organizada em arcos (Norte, Central e Sul). O nível de pressão indica a intensidade de ilícitos e tensões em cada trecho." />
         </h2>
         <p className="mb-4 text-sm muted">Pressão por trecho — do Arco Norte amazônico à Tríplice Fronteira.</p>
@@ -102,7 +102,7 @@ export default function Borders() {
               </button>
             ))}
             {pressure && (
-              <button onClick={() => setPressure('')} className="ml-auto inline-flex items-center gap-1 text-xs font-semibold muted hover:text-brand-400">
+              <button onClick={() => setPressure('')} className="ml-auto inline-flex items-center gap-1 text-xs font-semibold muted hover:text-brand-400 dark:text-brand-300">
                 <X size={12} /> Limpar
               </button>
             )}
@@ -169,7 +169,7 @@ export default function Borders() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section className="card p-5">
           <h2 className="mb-1 flex items-center gap-2 text-base font-bold tracking-tight">
-            <Crosshair size={18} className="text-brand-400" /> Operações em curso
+            <Crosshair size={18} className="text-brand-400 dark:text-brand-300" /> Operações em curso
           </h2>
           <p className="mb-4 text-sm muted">Ações interagências de presença e interdição.</p>
           <div className="space-y-3">
@@ -188,7 +188,7 @@ export default function Borders() {
 
         <section>
           <h2 className="mb-1 flex items-center gap-2 text-base font-bold tracking-tight">
-            <Radar size={18} className="text-brand-400" /> Resultados consolidados
+            <Radar size={18} className="text-brand-400 dark:text-brand-300" /> Resultados consolidados
           </h2>
           <p className="mb-4 text-sm muted">Números agregados das operações (ilustrativo).</p>
           <div className="grid grid-cols-2 gap-4">
@@ -209,7 +209,7 @@ export default function Borders() {
       {/* SISFRON — o que sustenta o monitoramento */}
       <section className="card p-5">
         <h2 className="mb-1 flex items-center gap-2 text-base font-bold tracking-tight">
-          <Satellite size={18} className="text-brand-400" /> O que é o SISFRON
+          <Satellite size={18} className="text-brand-400 dark:text-brand-300" /> O que é o SISFRON
           <InfoTooltip text="Sistema Integrado de Monitoramento de Fronteiras — programa do Exército Brasileiro para dar consciência situacional à faixa de fronteira." />
         </h2>
         <p className="mb-4 text-sm muted">

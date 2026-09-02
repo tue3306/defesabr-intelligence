@@ -23,7 +23,7 @@ function Section({ icon: Icon, title, badge, children }) {
   return (
     <div className="card p-6">
       <h2 className="mb-4 flex items-center gap-2 text-lg font-bold tracking-tight">
-        <Icon size={18} className="text-brand-400" /> {title}
+        <Icon size={18} className="text-brand-400 dark:text-brand-300" /> {title}
         {badge && (
           <span className="rounded-full bg-brand-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-brand-300">{badge}</span>
         )}
@@ -51,7 +51,7 @@ export default function Settings() {
           <h1 className="text-2xl font-bold tracking-tight">Configurações</h1>
           <p className="text-sm muted">
             Operação e sistema. Suas opções pessoais ficam em{' '}
-            <Link to="/conta" className="font-semibold text-brand-400 hover:text-brand-300">Minha conta</Link>.
+            <Link to="/conta" className="font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300">Minha conta</Link>.
           </p>
         </div>
         {isAuthenticated && (
@@ -98,7 +98,7 @@ export default function Settings() {
             <div className="space-y-5">
               <div>
                 <label className="mb-1 flex items-center justify-between text-sm font-medium">
-                  Notícias por clipping <span className="font-mono text-brand-400">{s.newsPerClipping}</span>
+                  Notícias por clipping <span className="font-mono text-brand-400 dark:text-brand-300">{s.newsPerClipping}</span>
                 </label>
                 <input type="range" min={3} max={10} value={s.newsPerClipping}
                   onChange={(e) => s.setNewsPerClipping(e.target.value)} className="w-full accent-brand-500"
@@ -133,7 +133,7 @@ export default function Settings() {
           <Section icon={Users} title="Usuários e governança" badge="Admin">
             <p className="text-sm muted">
               A gestão de usuários, perfis, fontes, integrações e auditoria fica no{' '}
-              <Link to="/admin" className="font-semibold text-brand-400 hover:text-brand-300">
+              <Link to="/admin" className="font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300">
                 Console de governança
               </Link>{' '}
               — fonte única, para não duplicar informação.
@@ -160,7 +160,7 @@ export default function Settings() {
           <p className="text-sm muted">
             As ferramentas de produção (análise, tensão, fontes) fazem parte do plano{' '}
             <strong>Profissional</strong>. Suas opções pessoais ficam em{' '}
-            <Link to="/conta" className="font-semibold text-brand-400 hover:text-brand-300">Minha conta</Link>.
+            <Link to="/conta" className="font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300">Minha conta</Link>.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Link to="/planos" className="btn-primary">Ver planos</Link>
@@ -229,7 +229,7 @@ function Analytics() {
         <div key={a.label} className="rounded-lg bg-white/5 p-3">
           <p className="text-xs muted">{a.label}</p>
           <p className="mt-1 text-2xl font-bold">{a.value}</p>
-          <p className="text-xs font-semibold text-emerald-400">{a.delta}</p>
+          <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">{a.delta}</p>
         </div>
       ))}
     </div>
@@ -302,7 +302,7 @@ function SourcesEditor({ s }) {
         {s.rssSources.map((src) => (
           <div key={src.id} className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2 text-sm">
             <span className="flex items-center gap-2">
-              <Circle size={9} className={src.status === 'online' ? 'fill-emerald-400 text-emerald-400' : 'fill-red-400 text-red-400'} />
+              <Circle size={9} className={src.status === 'online' ? 'fill-emerald-400 text-emerald-700 dark:text-emerald-400' : 'fill-red-400 text-red-700 dark:text-red-400'} />
               <span className="font-medium">{src.name}</span>
             </span>
             <div className="flex items-center gap-2">
@@ -310,7 +310,7 @@ function SourcesEditor({ s }) {
                 className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${src.enabled ? 'bg-brand-500/20 text-brand-300' : 'bg-gray-600/30 text-gray-400'}`}>
                 {src.enabled ? 'Ativa' : 'Inativa'}
               </button>
-              <button onClick={() => s.removeSource(src.id)} className="text-red-400 hover:text-red-300" aria-label="Remover fonte">
+              <button onClick={() => s.removeSource(src.id)} className="text-red-700 dark:text-red-400 hover:text-red-300" aria-label="Remover fonte">
                 <Trash2 size={15} />
               </button>
             </div>
@@ -335,7 +335,7 @@ function ApiKeyEditor({ s }) {
       <p className="mb-3 text-sm muted">
         Opcional. Sobrescreve a variável de ambiente apenas neste navegador.{' '}
         {isApiConfigured()
-          ? <span className="font-semibold text-emerald-600 dark:text-emerald-400">● IA configurada</span>
+          ? <span className="font-semibold text-emerald-800 dark:text-emerald-400">● IA configurada</span>
           : <span className="font-semibold text-yellow-600 dark:text-yellow-400">● modo demonstração</span>}
       </p>
       <div className="flex gap-2">
@@ -437,7 +437,7 @@ function DataLayerSection() {
 
       <div className="rounded-lg border border-gray-200 p-3 dark:border-white/10">
         <p className="flex items-center gap-1.5 text-sm font-semibold">
-          <PlugZap size={15} className="text-brand-400" /> Como ligar um backend
+          <PlugZap size={15} className="text-brand-400 dark:text-brand-300" /> Como ligar um backend
         </p>
         <p className="mt-1 text-xs leading-relaxed muted">
           Defina <code className="font-mono text-gold-600 dark:text-gold-400">VITE_DATA_MODE=api</code> e{' '}
@@ -448,7 +448,7 @@ function DataLayerSection() {
 
       <details className="rounded-lg border border-gray-200 p-3 dark:border-white/10">
         <summary className="flex cursor-pointer items-center gap-1.5 text-sm font-semibold">
-          <Database size={15} className="text-brand-400" />
+          <Database size={15} className="text-brand-400 dark:text-brand-300" />
           Endpoints registrados
           <span className="chip ml-1">{endpoints.length}</span>
         </summary>

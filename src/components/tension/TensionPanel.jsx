@@ -1,3 +1,4 @@
+import { textoSobre } from '../../utils/textUtils'
 import { useState } from 'react'
 import { Info, Gauge, Save, Bot, User, Sparkles } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -25,11 +26,11 @@ export function TensionBoard() {
     <div className="card p-5">
       <div className="mb-1 flex items-center justify-between gap-2">
         <h2 className="flex items-center gap-2 text-base font-bold tracking-tight">
-          <Gauge size={18} className="text-brand-400" /> Nível de tensão por região
+          <Gauge size={18} className="text-brand-400 dark:text-brand-300" /> Nível de tensão por região
         </h2>
         <button
           onClick={() => setOpenMethod((o) => !o)}
-          className="inline-flex items-center gap-1 text-xs font-semibold text-brand-400 hover:text-brand-300"
+          className="inline-flex items-center gap-1 text-xs font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300"
         >
           <Info size={13} /> Como calculamos
         </button>
@@ -41,7 +42,7 @@ export function TensionBoard() {
           <p className="mb-1 font-semibold">A base da avaliação combina:</p>
           <ul className="space-y-1 text-gray-300">
             {TENSION_METHOD.map((m) => (
-              <li key={m} className="flex gap-2"><span className="text-brand-400">•</span>{m}</li>
+              <li key={m} className="flex gap-2"><span className="text-brand-400 dark:text-brand-300">•</span>{m}</li>
             ))}
           </ul>
         </div>
@@ -54,7 +55,7 @@ export function TensionBoard() {
             <div key={r.region} className="rounded-lg border border-gray-700/40 p-3">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-semibold">{r.region}</span>
-                <span className="rounded-full px-2 py-0.5 text-xs font-bold text-white" style={{ background: band.color }}>
+                <span className="rounded-full px-2 py-0.5 text-xs font-bold" style={{ background: band.color, color: textoSobre(band.color) }}>
                   {band.label} · {r.level}
                 </span>
               </div>
@@ -116,7 +117,7 @@ function RegionEditor({ region, onSave }) {
     <div className="rounded-lg border border-gray-700/40 p-4">
       <div className="mb-2 flex items-center justify-between">
         <span className="font-semibold">{region.region}</span>
-        <span className="rounded-full px-2 py-0.5 text-xs font-bold text-white" style={{ background: band.color }}>
+        <span className="rounded-full px-2 py-0.5 text-xs font-bold" style={{ background: band.color, color: textoSobre(band.color) }}>
           {band.label} · {level}
         </span>
       </div>

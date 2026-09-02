@@ -2,10 +2,10 @@ import { TrendingUp, TrendingDown } from 'lucide-react'
 
 export default function MetricCard({ icon: Icon, label, value, delta, deltaPositive, hint, accent = 'brand' }) {
   const accentClass = {
-    brand: 'text-brand-400 bg-brand-500/10',
-    green: 'text-emerald-400 bg-military-green/15',
-    amber: 'text-amber-400 bg-military-amber/15',
-    red: 'text-red-400 bg-military-red/15',
+    brand: 'text-brand-400 dark:text-brand-300 bg-brand-500/10',
+    green: 'text-emerald-700 dark:text-emerald-400 bg-military-green/15',
+    amber: 'text-amber-800 dark:text-amber-400 bg-military-amber/15',
+    red: 'text-red-700 dark:text-red-400 bg-military-red/15',
   }[accent]
 
   return (
@@ -27,7 +27,7 @@ export default function MetricCard({ icon: Icon, label, value, delta, deltaPosit
           {delta && (
             <span
               className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 font-semibold ${
-                deltaPositive ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
+                deltaPositive ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : 'bg-red-500/10 text-red-700 dark:text-red-400'
               }`}
             >
               {deltaPositive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}

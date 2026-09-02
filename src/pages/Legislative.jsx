@@ -22,8 +22,8 @@ const HOUSES = ['Todas', 'Câmara', 'Senado']
 
 const RELEVANCE_CLR = {
   Alta: 'bg-military-red/20 text-red-700 dark:text-red-300',
-  Média: 'bg-military-amber/20 text-amber-700 dark:text-amber-300',
-  Baixa: 'bg-military-green/20 text-emerald-700 dark:text-emerald-300',
+  Média: 'bg-military-amber/20 text-amber-800 dark:text-amber-300',
+  Baixa: 'bg-military-green/20 text-emerald-800 dark:text-emerald-300',
 }
 
 // A tramitação real tem muitas etapas; aqui usamos as quatro que importam para
@@ -117,7 +117,7 @@ export default function Legislative() {
         icon={Landmark}
         title="Radar Legislativo"
         description="Proposições em tramitação no Congresso Nacional que alteram capacidade, orçamento ou regras de emprego das Forças Armadas."
-        help="Conteúdo demonstrativo. Em produção, alimentado pelas APIs abertas da Câmara dos Deputados e do Senado Federal."
+        help="As proposições vêm da API de Dados Abertos da Câmara dos Deputados, buscadas por 13 palavras-chave de defesa. O estágio de tramitação é derivado do texto oficial de situação. A RELEVÂNCIA para a defesa não é preenchida: classificá-la exige ler a proposição e decidir o que ela significa, e o servidor não faz esse juízo."
         breadcrumb={[{ label: 'Brasil Estratégico' }, { label: 'Radar Legislativo' }]}
         badges={<Badge type={meta?.source === 'live' ? 'live' : 'demo'} />}
         actions={
@@ -312,7 +312,7 @@ function ProposalDetail({ item }) {
                   <div className="flex flex-col items-center">
                     <span
                       className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-                        done ? 'bg-military-green/20 text-emerald-600 dark:text-emerald-400'
+                        done ? 'bg-military-green/20 text-emerald-800 dark:text-emerald-400'
                           : current ? 'bg-gold-500 text-military-darker'
                             : 'bg-white/10 text-gray-400'
                       }`}

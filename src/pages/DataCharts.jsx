@@ -1,3 +1,4 @@
+import { textoSobre } from '../utils/textUtils'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
@@ -265,7 +266,7 @@ export default function DataCharts() {
               className={`-mb-px flex shrink-0 items-center gap-2 border-b-2 px-3 py-2.5 text-sm font-semibold transition-colors ${
                 tab === t.id
                   ? 'border-gold-500 text-gray-900 dark:text-white'
-                  : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
               }`}
             >
               <t.icon size={16} /> {t.label}
@@ -330,7 +331,7 @@ export default function DataCharts() {
                 const TrendIcon = r.trend === 'up' ? TrendingUp : r.trend === 'down' ? TrendingDown : Minus
                 const trendColor =
                   r.trend === 'up' ? 'text-red-500 dark:text-red-400'
-                    : r.trend === 'down' ? 'text-emerald-600 dark:text-emerald-400'
+                    : r.trend === 'down' ? 'text-emerald-800 dark:text-emerald-400'
                       : 'muted'
                 return (
                   <div key={r.region} className="flex items-center gap-3">
@@ -418,7 +419,7 @@ export default function DataCharts() {
                   <div key={s.ticker} className="rounded-lg border border-gray-200 p-3 dark:border-white/10">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold">{s.ticker}</span>
-                      <span className={`text-xs font-semibold ${s.change >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
+                      <span className={`text-xs font-semibold ${s.change >= 0 ? 'text-emerald-800 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
                         {s.change >= 0 ? '+' : ''}{s.change}%
                       </span>
                     </div>
@@ -545,7 +546,7 @@ export default function DataCharts() {
                       <span className="font-mono font-semibold text-gold-600 dark:text-gold-400">{b.edition}</span>
                       <span className="muted">· {b.date}</span>
                       <span className="chip">{b.region}</span>
-                      <span className="ml-auto rounded-full px-2 py-0.5 font-bold text-white" style={{ background: relColor }}>
+                      <span className="ml-auto rounded-full px-2 py-0.5 font-bold" style={{ background: relColor, color: textoSobre(relColor) }}>
                         {b.relevance}
                       </span>
                     </div>

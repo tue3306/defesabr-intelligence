@@ -229,7 +229,7 @@ export default function SourceReliability() {
                   <div className="mt-1.5 flex items-center justify-between">
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${t.classes}`}>{t.label}</span>
                     {s.reassessed && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-800 dark:text-emerald-400">
                         <Check size={11} /> reavaliada nesta sessão
                       </span>
                     )}
@@ -252,7 +252,7 @@ export default function SourceReliability() {
       {/* METODOLOGIA */}
       <section className="card p-5">
         <h2 className="mb-1 flex items-center gap-2 text-base font-bold tracking-tight">
-          <BookOpen size={17} className="text-brand-400" /> Como calculamos
+          <BookOpen size={17} className="text-brand-400 dark:text-brand-300" /> Como calculamos
           <InfoTooltip text="A escala é qualitativa e revisável. Inspira-se na prática de OSINT de avaliar separadamente a fonte e o conteúdo, mas usa critérios próprios, declarados abaixo." />
         </h2>
         <p className="mb-4 text-sm muted">

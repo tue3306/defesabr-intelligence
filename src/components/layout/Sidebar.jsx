@@ -139,7 +139,7 @@ export default function Sidebar({ open, onClose, collapsed }) {
           {sections.map((section) => (
             <div key={section.title}>
               {!collapsed && (
-                <p className="px-3 pb-1 pt-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                <p className="px-3 pb-1 pt-1 text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                   {section.title}
                 </p>
               )}
@@ -163,7 +163,7 @@ export default function Sidebar({ open, onClose, collapsed }) {
         {/* Selo do perfil ativo — deixa claro "de onde" a pessoa está vendo o produto */}
         {isAuthenticated && !collapsed && (
           <div className="mx-3 mb-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-white/[0.06] dark:bg-white/[0.03]">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Perfil ativo</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Perfil ativo</p>
             <p className="mt-0.5 flex items-center gap-1.5 text-sm font-bold tracking-tight">
               <span className="h-2 w-2 rounded-full" style={{ background: profileMeta.color }} />
               {profileMeta.label}

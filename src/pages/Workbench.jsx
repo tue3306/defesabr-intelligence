@@ -459,7 +459,7 @@ function QueueCard({ item, onAdvance }) {
       <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-gray-200 pt-3 dark:border-white/10">
         <Link
           to={item.module}
-          className="inline-flex items-center gap-1 text-[11px] font-semibold text-brand-400 hover:underline"
+          className="inline-flex items-center gap-1 text-[11px] font-semibold text-brand-400 dark:text-brand-300 hover:underline"
         >
           {MODULE_LABEL[item.module] || item.module} <ArrowRight size={12} />
         </Link>
@@ -569,7 +569,7 @@ function RfiTab({ items, collection, loading, error, onRetry, onAnswer }) {
                 const answered = rfi.status === 'respondido'
                 return (
                   <tr key={rfi.id} className="border-b border-gray-100 align-top dark:border-white/[0.06]">
-                    <td className="px-4 py-3 font-mono text-xs text-brand-400">{rfi.id}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-brand-400 dark:text-brand-300">{rfi.id}</td>
                     <td className="max-w-md px-4 py-3">
                       <p className="font-medium leading-snug">{rfi.question}</p>
                       {pirLabel[rfi.pir] && (
@@ -594,7 +594,7 @@ function RfiTab({ items, collection, loading, error, onRetry, onAnswer }) {
                     <td className="px-4 py-3 text-right font-semibold tabular-nums">{rfi.answers}</td>
                     <td className="px-4 py-3">
                       {answered ? (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-800 dark:text-emerald-400">
                           <CheckCircle2 size={14} /> Respondido
                         </span>
                       ) : (
@@ -650,7 +650,7 @@ function AnswerModal({ rfi, onClose, onSubmit }) {
       {rfi && (
         <form onSubmit={submit} className="space-y-4">
           <div className="rounded-lg bg-white/5 p-3">
-            <p className="font-mono text-xs text-brand-400">{rfi.id} · {rfi.requester}</p>
+            <p className="font-mono text-xs text-brand-400 dark:text-brand-300">{rfi.id} · {rfi.requester}</p>
             <p className="mt-1 text-sm leading-relaxed">{rfi.question}</p>
             <p className="mt-2 text-xs muted">Prazo: {formatIsoDate(rfi.due)}</p>
           </div>
@@ -754,7 +754,7 @@ function CollectionTab({ items, loading, error, onRetry }) {
 
           <div className="card p-5">
             <h2 className="flex items-center gap-2 text-base font-bold tracking-tight">
-              <Compass size={18} className="text-brand-400" /> Como ler este plano
+              <Compass size={18} className="text-brand-400 dark:text-brand-300" /> Como ler este plano
             </h2>
             <dl className="mt-3 space-y-2.5 text-sm">
               <div>
@@ -771,7 +771,7 @@ function CollectionTab({ items, loading, error, onRetry }) {
               </div>
             </dl>
             <p className="mt-4 rounded-lg bg-brand-500/10 p-3 text-sm leading-relaxed text-gray-700 dark:text-gray-300">
-              <span className="font-semibold text-brand-400">Ciclo de inteligência: </span>
+              <span className="font-semibold text-brand-400 dark:text-brand-300">Ciclo de inteligência: </span>
               direção (PIR) → coleta (EEI) → processamento → análise → difusão → avaliação.
               A cobertura abaixo mede quanto dos EEI de cada PIR está efetivamente atendido por fontes ativas.
             </p>
@@ -792,7 +792,7 @@ function PirCard({ pir }) {
           <h3 className="text-base font-bold leading-snug tracking-tight">{pir.pir}</h3>
           <Link
             to={pir.module}
-            className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-brand-400 hover:underline"
+            className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-brand-400 dark:text-brand-300 hover:underline"
           >
             {MODULE_LABEL[pir.module] || pir.module} <ArrowRight size={12} />
           </Link>
@@ -837,7 +837,7 @@ function PirCard({ pir }) {
             {pir.gaps.map((gap) => (
               <li
                 key={gap}
-                className="rounded-lg border border-military-amber/40 bg-military-amber/10 px-3 py-1.5 text-sm text-amber-700 dark:text-amber-200"
+                className="rounded-lg border border-military-amber/40 bg-military-amber/10 px-3 py-1.5 text-sm text-amber-800 dark:text-amber-200"
               >
                 {gap}
               </li>

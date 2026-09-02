@@ -57,7 +57,7 @@ export default function ApiStatusBanner() {
         </button>
         <button
           onClick={() => setDispensado(true)}
-          className="shrink-0 rounded p-1 text-gray-500 hover:text-gray-900 dark:hover:text-white"
+          className="shrink-0 rounded p-1 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
           aria-label="Dispensar aviso"
         >
           <X size={15} />

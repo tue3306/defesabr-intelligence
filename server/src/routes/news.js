@@ -134,6 +134,13 @@ router.get('/news/clipping', (req, res) => {
       : null,
     totalCollected: get('SELECT COUNT(*) AS n FROM articles')?.n ?? 0,
     relevantTotal: get('SELECT COUNT(*) AS n FROM articles WHERE relevant = 1')?.n ?? 0,
+    // Fontes que RESPONDERAM na última execução — não as que estão cadastradas.
+    // A tela do clipping mostra este número como "fontes ativas", e ativa aqui
+    // significa "entregou conteúdo quando foi procurada", não "alguém a marcou
+    // como habilitada".
+    activeSources: get(
+      "SELECT COUNT(*) AS n FROM sources WHERE enabled = 1 AND last_status = 'ok'",
+    )?.n ?? 0,
     // O resumo executivo exigiria um analista ou um modelo de linguagem. Sem
     // nenhum dos dois, devolvemos null em vez de inventar um parágrafo.
     summaryExecutive: null,

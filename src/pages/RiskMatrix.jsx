@@ -25,8 +25,8 @@ import { exportCSV } from '../utils/exportUtils'
 const TREND_ICON = { up: TrendingUp, down: TrendingDown, flat: Minus }
 const TREND_LABEL = { up: 'Em elevação', down: 'Em redução', flat: 'Estável' }
 const TREND_CLR = {
-  up: 'text-red-600 dark:text-red-400',
-  down: 'text-emerald-600 dark:text-emerald-400',
+  up: 'text-red-800 dark:text-red-400',
+  down: 'text-emerald-800 dark:text-emerald-400',
   flat: 'text-gray-500 dark:text-gray-400',
 }
 
@@ -171,7 +171,7 @@ export default function RiskMatrix() {
               <div className="flex gap-2">
                 {/* Rótulo do eixo vertical */}
                 <div className="flex w-6 items-center justify-center">
-                  <span className="whitespace-nowrap text-[10px] font-bold uppercase tracking-wider text-gray-500 [writing-mode:vertical-rl] [transform:rotate(180deg)]">
+                  <span className="whitespace-nowrap text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 [writing-mode:vertical-rl] [transform:rotate(180deg)]">
                     Impacto →
                   </span>
                 </div>
@@ -180,7 +180,7 @@ export default function RiskMatrix() {
                   {/* Linhas: impacto de 5 (topo) a 1 (base) */}
                   {[...AXIS].reverse().map((impact) => (
                     <div key={impact} className="mb-1 flex items-center gap-1">
-                      <span className="w-5 shrink-0 text-right font-mono text-xs font-bold text-gray-500">{impact}</span>
+                      <span className="w-5 shrink-0 text-right font-mono text-xs font-bold text-gray-500 dark:text-gray-400">{impact}</span>
                       {AXIS.map((probability) => {
                         const key = `${probability}-${impact}`
                         const items = byCell.get(key) || []
@@ -223,10 +223,10 @@ export default function RiskMatrix() {
                   <div className="mt-1 flex items-center gap-1">
                     <span className="w-5 shrink-0" />
                     {AXIS.map((p) => (
-                      <span key={p} className="flex-1 text-center font-mono text-xs font-bold text-gray-500">{p}</span>
+                      <span key={p} className="flex-1 text-center font-mono text-xs font-bold text-gray-500 dark:text-gray-400">{p}</span>
                     ))}
                   </div>
-                  <p className="mt-1 text-center text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                  <p className="mt-1 text-center text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                     Probabilidade →
                   </p>
                 </div>
@@ -339,7 +339,7 @@ export default function RiskMatrix() {
       {/* METODOLOGIA */}
       <section className="card p-5">
         <h2 className="mb-1 flex items-center gap-2 text-base font-bold tracking-tight">
-          <BookOpen size={17} className="text-brand-400" /> Como esta matriz é construída
+          <BookOpen size={17} className="text-brand-400 dark:text-brand-300" /> Como esta matriz é construída
         </h2>
         <p className="mb-4 text-sm muted">
           Transparência metodológica: a avaliação é qualitativa e revisável, não um cálculo automático.
@@ -381,8 +381,10 @@ function RiskCard({ risk, onOpen }) {
     >
       <div className="flex flex-wrap items-center gap-2">
         <span
-          className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
-          style={{ background: `${cat.color}22`, color: cat.color }}
+          // A cor identifica a categoria; ela pinta o fundo e a borda, e o texto
+          // herda o primeiro plano do tema. Como cor de texto media 3,6:1 no claro.
+          className="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-gray-900 dark:text-gray-100"
+          style={{ background: `${cat.color}26`, borderColor: `${cat.color}80` }}
         >
           <span className="h-1.5 w-1.5 rounded-full" style={{ background: cat.color }} />
           {cat.label}
@@ -453,7 +455,10 @@ function RiskDetail({ risk }) {
       <div className="flex flex-wrap items-center gap-2">
         <span
           className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide"
-          style={{ background: `${cat.color}22`, color: cat.color }}
+          // A cor identifica a categoria; ela pinta o fundo e a borda, e o texto
+          // herda o primeiro plano do tema. Como cor de texto media 3,6:1 no claro.
+          className="text-gray-900 dark:text-gray-100"
+          style={{ background: `${cat.color}26`, borderColor: `${cat.color}80` }}
         >
           {cat.label}
         </span>

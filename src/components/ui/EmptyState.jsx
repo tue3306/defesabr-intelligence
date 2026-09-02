@@ -22,8 +22,8 @@ export default function EmptyState({
   children,
 }) {
   const toneRing = {
-    neutral: 'bg-white/5 text-gray-500',
-    filter: 'bg-brand-500/10 text-brand-400',
+    neutral: 'bg-white/5 text-gray-500 dark:text-gray-400',
+    filter: 'bg-brand-500/10 text-brand-400 dark:text-brand-300',
     locked: 'bg-gold-500/10 text-gold-600 dark:text-gold-400',
   }[tone]
 

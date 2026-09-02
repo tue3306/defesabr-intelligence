@@ -244,7 +244,7 @@ function ViewButton({ active, onClick, icon: Icon, label }) {
       onClick={onClick}
       aria-pressed={active}
       className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
-        active ? 'bg-gold-500 text-military-darker' : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
+        active ? 'bg-gold-500 text-military-darker' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
       }`}
     >
       <Icon size={14} /> {label}
@@ -344,7 +344,7 @@ function MonthGrid({ cursor, events, onShift, onOpen }) {
           {/* Cabeçalho dos dias da semana */}
           <div className="grid grid-cols-7 gap-1">
             {WEEKDAYS.map((d) => (
-              <div key={d} className="pb-1 text-center text-[10px] font-bold uppercase tracking-wider text-gray-500">
+              <div key={d} className="pb-1 text-center text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                 {d}
               </div>
             ))}
