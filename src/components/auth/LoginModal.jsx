@@ -16,7 +16,7 @@ import { useAuthStore, DEMO_PERSONAS, LOGIN_PERSONAS } from '../../store/authSto
 // -----------------------------------------------------------------------------
 
 // Para onde cada perfil é levado após entrar — a "casa" daquele perfil.
-const PERSONA_HOME = { usuario: '/painel', analista: '/mesa', admin: '/admin' }
+const PERSONA_HOME = { usuario: '/painel', analista: '/painel', admin: '/admin' }
 
 /** Força da senha (0–3) — orienta sem bloquear. */
 function passwordStrength(pwd = '') {

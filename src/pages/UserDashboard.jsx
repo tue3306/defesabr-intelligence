@@ -4,7 +4,7 @@ import {
   ShieldCheck, Clock, ArrowRight, ChevronRight, Activity, Target, Newspaper,
   Globe2, CalendarDays, TrendingUp, TrendingDown, Bell, Waves, Lightbulb,
   BarChart3, Landmark, Bookmark, Star, Sparkles, Compass, GraduationCap,
-  BookOpen, Map, Scale, Factory, Bot, FileText, Radar, Tv,
+  BookOpen, Map, Scale, Factory, Bot, FileText, Radar, Tv, DollarSign, Database,
 } from 'lucide-react'
 import MetricCard from '../components/ui/MetricCard'
 import NewsCard from '../components/ui/NewsCard'
@@ -27,10 +27,8 @@ import { useSubscriptionStore } from '../store/subscriptionStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { useTensionStore, tensionBand } from '../store/tensionStore'
 import {
-  newsVolume14d, newsCategoriesKeys, militarySpendingBR, mockWeeklyAnalysis,
 } from '../data/mockData'
 import { brazilIndicators } from '../data/economyData'
-import { geocorrenteBulletins } from '../data/geocorrenteData'
 import { glossary } from '../data/learnData'
 import { alertMeta, categoryColor } from '../utils/textUtils'
 import { formatTime, timeAgo, formatDateBR } from '../utils/dateUtils'
@@ -58,12 +56,12 @@ const bandAccent = (level) => {
 
 // Trilho de descoberta do plano Explorar — módulos abertos a todo assinante.
 const DISCOVERY_MODULES = [
-  { to: '/programas', icon: Target, label: 'Programas estratégicos', hint: 'PROSUB, F-X2, Tamandaré e outros' },
-  { to: '/amazonia-azul', icon: Waves, label: 'Amazônia Azul', hint: 'ZEE, pré-sal e patrulha naval' },
-  { to: '/fronteiras', icon: Map, label: 'Fronteiras & Amazônia', hint: 'Faixa de fronteira e vigilância' },
-  { to: '/balanca-militar', icon: Scale, label: 'Balança militar', hint: 'Comparativo de capacidades' },
-  { to: '/industria', icon: Factory, label: 'Base Industrial de Defesa', hint: 'Empresas, cadeia e nacionalização' },
-  { to: '/calendario', icon: CalendarDays, label: 'Calendário estratégico', hint: 'Exercícios, cúpulas e prazos' },
+  { to: '/clipping', icon: Newspaper, label: 'Clipping diário', hint: 'O que foi coletado e aprovado pelo filtro' },
+  { to: '/legislativo', icon: Landmark, label: 'Radar legislativo', hint: 'Proposições da Câmara sobre defesa' },
+  { to: '/industria', icon: Factory, label: 'Indústria & Exportações', hint: 'Comex Stat: o que o Brasil exportou' },
+  { to: '/economia', icon: DollarSign, label: 'Economia & Defesa', hint: 'Banco Central e World Bank' },
+  { to: '/dados', icon: BarChart3, label: 'Dados & Gráficos', hint: 'Séries do acervo e comparativos' },
+  { to: '/fontes', icon: Database, label: 'Confiabilidade das fontes', hint: 'Disponibilidade medida de cada fonte' },
 ]
 
 // O que o plano Profissional acrescenta — upsell honesto, sem exagero.
@@ -97,7 +95,6 @@ export default function UserDashboard() {
   const full = can('analysis.full')
 
   const feed = news.slice(0, 6)
-  const weekly = mockWeeklyAnalysis.empresarial
 
   const alert = alertMeta[latest?.alert_level] || alertMeta.ATENCAO
   const posture = alert?.value ?? 42
@@ -109,13 +106,11 @@ export default function UserDashboard() {
   const firstName = user?.name?.split(' ')[0] || 'Analista'
   const execLine = full
     ? latest?.summary_executive?.split('\n').filter(Boolean)[0]
-      || weekly?.scenarios?.[0]?.description
       || 'Sem eventos de ruptura no período. Monitoramento em curso.'
     : 'Acompanhe as ocorrências de Segurança & Defesa do Brasil, explore o mapa de risco e conheça os programas estratégicos. As análises completas ficam no plano Profissional.'
 
 
   const indicators = brazilIndicators.filter((i) => ['defesa', 'cambio', 'risco', 'selic'].includes(i.id))
-  const geo = geocorrenteBulletins?.[0]
   const terms = glossary.slice(0, 3)
 
   return (
@@ -481,63 +476,7 @@ export default function UserDashboard() {
         </Link>
       </Section>
 
-      {/* ───────────── SÍNTESE: análise semanal + boletim geocorrente ───────────── */}
-      <Can do="analysis.full">
-        <Section>
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <div className="card flex flex-col p-6">
-              <div className="flex items-center justify-between">
-                <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-                  <BarChart3 size={18} className="text-brand-400 dark:text-brand-300" /> Análise semanal
-                </h2>
-                <Badge type="plain" value={weekly?.week} />
-              </div>
-              <p className="mt-3 text-sm leading-relaxed text-gray-300">
-                {latest?.summary_executive?.split('\n').filter(Boolean)[0] || weekly?.scenarios?.[0]?.description}
-              </p>
-              <div className="mt-4">
-                <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-brand-300">
-                  <Lightbulb size={15} /> Principais sinais
-                </p>
-                <ul className="space-y-1.5 text-sm">
-                  {(latest?.trends || weekly?.opportunities?.map((o) => o.title) || []).slice(0, 3).map((t) => (
-                    <li key={t} className="flex gap-2">
-                      <span className="text-brand-400 dark:text-brand-300">•</span>
-                      <span className="text-gray-300">{t}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <Link to="/analise" className="btn-ghost mt-5 self-start">
-                Ver análise completa <ArrowRight size={15} />
-              </Link>
-            </div>
 
-            {geo && (
-              <div className="card flex flex-col p-6">
-                <div className="flex items-center justify-between">
-                  <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-                    <Waves size={18} className="text-brand-400 dark:text-brand-300" /> Boletim Geocorrente
-                  </h2>
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${geo.relevance === 'Alta' ? 'bg-red-500/15 text-red-800 dark:text-red-300' : 'bg-amber-500/15 text-amber-600 dark:text-amber-300'}`}>
-                    Relevância {geo.relevance}
-                  </span>
-                </div>
-                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs muted">
-                  <span className="font-mono text-brand-400 dark:text-brand-300">{geo.edition}</span>
-                  <span>· {geo.region}</span>
-                  <span>· {geo.theme}</span>
-                </div>
-                <h3 className="mt-3 font-bold tracking-tight">{geo.title}</h3>
-                <p className="mt-1.5 flex-1 text-sm leading-relaxed text-gray-300">{geo.summary}</p>
-                <Link to="/amazonia-azul" className="btn-ghost mt-5 self-start">
-                  Amazônia Azul <ArrowRight size={15} />
-                </Link>
-              </div>
-            )}
-          </div>
-        </Section>
-      </Can>
 
       {/* ───────────── DADOS: volume de notícias + gastos militares ───────────── */}
       <Can do="analysis.full">

@@ -35,7 +35,6 @@ import {
   militarySpendingBR, globalSpendingTreemap, southAmericaSpending,
   militaryPctGdpComparison, defenseStocks, alertIndex, countryActivity,
 } from '../data/mockData'
-import { geocorrenteBulletins } from '../data/geocorrenteData'
 import { exportCSV } from '../utils/exportUtils'
 
 // -----------------------------------------------------------------------------
@@ -568,41 +567,7 @@ export default function DataCharts() {
             <TensionBoard />
           </ErrorBoundary>
 
-          <ChartPanel
-            className="xl:col-span-2"
-            title="Boletim Geocorrente (EGN)"
-            subtitle="Leitura geopolítica do ambiente marítimo, no formato dos boletins da Escola de Guerra Naval."
-            method="Sínteses regionais com relevância atribuída por analista. Reproduz o formato editorial do boletim Geocorrente da EGN; os textos aqui são demonstrativos."
-          >
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              {geocorrenteBulletins.map((b) => {
-                const relColor = b.relevance === 'Alta' ? '#c0392b' : b.relevance === 'Média' ? '#caa733' : '#2e7d46'
-                return (
-                  <article key={b.id} className="rounded-lg border border-gray-200 p-4 dark:border-white/10">
-                    <div className="mb-1.5 flex flex-wrap items-center gap-2 text-[11px]">
-                      <span className="font-mono font-semibold text-gold-600 dark:text-gold-400">{b.edition}</span>
-                      <span className="muted">· {b.date}</span>
-                      <span className="chip">{b.region}</span>
-                      <span className="ml-auto rounded-full px-2 py-0.5 font-bold" style={{ background: relColor, color: textoSobre(relColor) }}>
-                        {b.relevance}
-                      </span>
-                    </div>
-                    <h3 className="text-sm font-bold tracking-tight">{b.title}</h3>
-                    <p className="mt-1 text-xs muted">{b.theme}</p>
-                    <p className="mt-2 text-sm leading-relaxed text-gray-700 dark:text-gray-300">{b.summary}</p>
-                  </article>
-                )
-              })}
-            </div>
-            <a
-              href="https://www.marinha.mil.br/egn/"
-              target="_blank"
-              rel="noreferrer"
-              className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-gold-600 hover:underline dark:text-gold-400"
-            >
-              <Anchor size={13} /> Fonte de referência: Escola de Guerra Naval (EGN) <ExternalLink size={13} />
-            </a>
-          </ChartPanel>
+
         </div>
       )}
 

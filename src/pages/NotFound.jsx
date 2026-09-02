@@ -17,10 +17,10 @@ const SHORTCUTS = {
   user: [
     { to: '/painel', icon: LayoutDashboard, label: 'Painel', hint: 'Situação do dia' },
     { to: '/clipping', icon: Newspaper, label: 'Clipping Diário', hint: 'Últimas 24 horas' },
-    { to: '/dossies', icon: Layers, label: 'Dossiês', hint: 'Análises aprofundadas' },
+    { to: '/legislativo', icon: Layers, label: 'Radar legislativo', hint: 'Proposições sobre defesa' },
   ],
   analyst: [
-    { to: '/mesa', icon: ClipboardList, label: 'Mesa de trabalho', hint: 'Fila, RFIs e coleta' },
+    { to: '/dados', icon: ClipboardList, label: 'Dados & Gráficos', hint: 'Séries e comparativos' },
     { to: '/painel', icon: LayoutDashboard, label: 'Painel', hint: 'Mesa de situação' },
     { to: '/clipping', icon: Newspaper, label: 'Clipping Diário', hint: 'Produzir a edição do dia' },
   ],

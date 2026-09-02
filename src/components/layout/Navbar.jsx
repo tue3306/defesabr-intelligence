@@ -23,7 +23,7 @@ const PERSONA_ORDER = ['visitante', 'usuario', 'analista', 'admin']
 const PERSONA_HOME = {
   visitante: '/',
   usuario: '/painel',
-  analista: '/mesa',
+  analista: '/painel',
   admin: '/admin',
 }
 

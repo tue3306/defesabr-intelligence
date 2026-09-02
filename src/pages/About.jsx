@@ -18,17 +18,16 @@ const APIS = [
 
 
 // Etapas do ciclo de inteligência mapeadas aos módulos que as materializam.
+// O ciclo clássico tem cinco etapas. Esta plataforma cobre as três primeiras —
+// e a honestidade sobre isso vale mais que a simetria do desenho: DIREÇÃO e
+// ANÁLISE dependem de julgamento humano, que nenhuma coleta produz.
 const INTEL_CYCLE = [
-  { title: 'Direção', icon: Compass, module: 'Mesa do Analista', to: '/mesa',
-    text: 'Definir o que precisa ser respondido: requisitos prioritários (PIR) e pedidos formais (RFI).' },
   { title: 'Coleta', icon: Radar, module: 'Confiabilidade das Fontes', to: '/fontes',
-    text: 'Reunir material de fontes públicas, com a confiabilidade de cada uma declarada.' },
+    text: 'Reunir material de 15 fontes públicas, com a disponibilidade medida de cada uma.' },
   { title: 'Processamento', icon: Cog, module: 'Clipping Diário', to: '/clipping',
-    text: 'Filtrar por relevância, classificar por urgência e organizar o volume bruto em um produto legível.' },
-  { title: 'Análise', icon: Brain, module: 'Matriz de Riscos', to: '/riscos',
-    text: 'Interpretar: cenários, probabilidade × impacto, narrativas e o que isso significa para o Brasil.' },
-  { title: 'Difusão', icon: Share2, module: 'Central de Relatórios', to: '/relatorios',
-    text: 'Entregar a quem decide, no formato e no prazo em que a decisão será tomada.' },
+    text: 'Filtrar por relevância, classificar por urgência e organizar o volume bruto em produto legível.' },
+  { title: 'Difusão', icon: Share2, module: 'Dados & Gráficos', to: '/dados',
+    text: 'Entregar em série, mapa e comparativo — com a origem de cada número declarada.' },
 ]
 
 const ARCHITECTURE_NOTES = [

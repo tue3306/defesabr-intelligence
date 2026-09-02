@@ -52,11 +52,11 @@ const PROFILE_ENTRY = {
     ],
   },
   analyst: {
-    persona: 'analista', icon: PenTool, to: '/mesa', cta: 'Ver como Analista',
+    persona: 'analista', icon: PenTool, to: '/painel', cta: 'Ver como Analista',
     does: [
-      'Gera clipping e análises com apoio de IA',
-      'Avalia nível de tensão, fontes e narrativas (FIMI)',
-      'Conduz fila de produção, RFIs e plano de coleta',
+      'Acompanha o clipping e o radar legislativo por completo',
+      'Consulta a confiabilidade medida de cada fonte',
+      'Exporta séries e comparativos em CSV',
     ],
   },
   admin: {
