@@ -49,6 +49,10 @@ export const config = {
   // Pasta do front compilado. Se existir, é servida na raiz.
   staticDir: process.env.STATIC_DIR || join(projeto, 'dist'),
 
+  // Raiz do repositório. Serve para exibir caminhos relativos na interface em
+  // vez do absoluto da máquina de quem roda.
+  raizProjeto: projeto,
+
   coleta: {
     // Intervalo do agendador. 0 desliga — útil em teste automatizado.
     intervaloMinutos: num(process.env.COLLECT_INTERVAL_MINUTES, 30),

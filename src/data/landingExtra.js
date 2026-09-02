@@ -14,12 +14,21 @@ export const USE_CASES = [
   { icon: 'GraduationCap', title: 'Pesquisa & academia', text: 'Glossário, trilhas e dados estruturados para estudo de geopolítica e segurança.' },
 ]
 
-// Métricas de vitrine — explicitamente demonstrativas.
+// Métricas de vitrine.
+//
+// A última linha dizia "100% Front-end · sem backend". Era verdade quando foi
+// escrita e deixou de ser: existe um servidor que coleta de fontes oficiais,
+// filtra por relevância e guarda em banco. Uma vitrine que se descreve errado
+// é pior que uma sem número nenhum — quem lê confere e para de confiar no
+// resto da página.
+//
+// As três primeiras continuam sendo contagens do produto. A quarta agora
+// descreve a coleta, e é a única que o painel de administração pode conferir.
 export const DEMO_STATS = [
   { value: '8', label: 'Módulos estratégicos' },
   { value: '12', label: 'Países no mapa de risco' },
   { value: '5', label: 'Perspectivas de análise' },
-  { value: '100%', label: 'Front-end · sem backend' },
+  { value: '7', label: 'Fontes oficiais coletadas' },
 ]
 
 // Referências conceituais (NÃO afirmam conformidade).

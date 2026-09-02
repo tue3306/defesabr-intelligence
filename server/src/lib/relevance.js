@@ -36,6 +36,27 @@ const FORTES = [
   // Instituições e conceitos exclusivos do domínio
   'forcas armadas', 'forca aerea brasileira', 'ministerio da defesa',
   'exercito brasileiro', 'marinha do brasil', 'defesa nacional',
+
+  // ── Formas CURTAS das três Forças ──
+  //
+  // Descobertas medindo o filtro contra o acervo: só existiam os nomes por
+  // extenso, e a imprensa não escreve assim. "Academia da Força Aérea realiza
+  // cerimônia" e "Acidente com aeronave militar da Força Aérea Ucraniana"
+  // eram rejeitadas porque nenhuma diz "Força Aérea Brasileira".
+  //
+  // 'forca aerea' e 'exercito' entram sem ressalva: força aérea estrangeira e
+  // exército estrangeiro continuam sendo notícia de defesa.
+  'forca aerea', 'exercito',
+
+  // 'marinha' sozinha NÃO entra: em português é adjetivo comum — fauna
+  // marinha, vida marinha, erosão marinha. O que desambigua é a preposição,
+  // porque o sentido biológico põe "marinha" DEPOIS do substantivo
+  // ("fauna marinha") e o institucional ANTES ("da Marinha").
+  'da marinha', 'a marinha', 'na marinha', 'pela marinha', 'marinha brasileira',
+
+  // Composto inequívoco: "Tropas militares vão reforçar locais de votação"
+  // é emprego de tropa, e era rejeitado por somar só dois termos fracos.
+  'tropas militares', 'tropa militar',
   'industria de defesa', 'base industrial de defesa', 'poder naval',
   'dissuasao', 'adido militar', 'comando militar', 'estado-maior',
   // Programas e sistemas nomeados

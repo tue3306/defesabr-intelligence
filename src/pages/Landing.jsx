@@ -110,7 +110,12 @@ export default function Landing() {
             {isAuthenticated ? (
               <>Bem-vindo de volta, {user?.name?.split(' ')[0]}.</>
             ) : (
-              <>O cenário de defesa do Brasil, <span className="text-brand-400">decifrado por IA</span>.</>
+              // Antes prometia "decifrado por IA". Nenhum texto desta plataforma
+              // foi escrito por máquina, e a primeira frase que o visitante lê
+              // não pode ser a única falsa. O que a plataforma REALMENTE faz é
+              // coletar de fontes oficiais e filtrar por relevância — e isso é
+              // mais concreto do que a promessa que substituiu.
+              <>O cenário de defesa do Brasil, <span className="text-brand-400">coletado na fonte</span>.</>
             )}
           </h1>
           <p className="mt-4 max-w-xl text-base text-gray-300 sm:text-lg">

@@ -45,8 +45,12 @@ export const ingestion = {
   coletasUltimas24h: 0,
   itensNormalizados: 0,
   fila: 0,
-  ultimaExecucao: null, // sem coleta ao vivo no demo
-  observacao: 'Coleta ao vivo desativada neste ambiente (sem backend). Ative fontes em Configurações.',
+  ultimaExecucao: null,
+  // Estes valores só aparecem quando a API está FORA do ar — com ela no ar, a
+  // ponte substitui este objeto por números medidos. Por isso o texto fala de
+  // servidor indisponível, e não de ausência de backend: o backend existe.
+  observacao: 'Sem resposta da API — os números abaixo são do acervo local. '
+    + 'Inicie o servidor com `npm run dev` para ver a coleta real.',
 }
 
 // Métricas da plataforma (demonstrativas).

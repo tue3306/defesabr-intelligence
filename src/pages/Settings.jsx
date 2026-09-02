@@ -292,9 +292,11 @@ function SourcesEditor({ s }) {
   return (
     <>
       <p className="mb-3 text-xs muted">
-        Neste demo (sem backend) as fontes vêm <strong>desativadas</strong> — o painel usa conteúdo
-        demonstrativo coerente. Ative uma fonte para tentar a coleta ao vivo (pode falhar por CORS/limite;
-        há fallback). Em produção, a coleta real deve rodar atrás de um backend/proxy.
+        Estas são fontes que o <strong>navegador</strong> tenta ler direto, e por isso costumam falhar:
+        o site de origem precisa autorizar leitura de outro domínio (CORS), e a maioria não autoriza.
+        Elas seguem aqui como reserva para quando a API estiver fora do ar.
+        {' '}A coleta que realmente funciona é a do <strong>servidor</strong>, que não tem essa
+        limitação — as fontes dela ficam em <em>Administração → Fontes e coleta</em>.
       </p>
       <div className="space-y-2">
         {s.rssSources.map((src) => (

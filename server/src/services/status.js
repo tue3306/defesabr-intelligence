@@ -1,7 +1,24 @@
+import { relative } from 'node:path'
 import { all, get } from '../db/index.js'
 import config from '../config.js'
 import { estadoDoAgendador } from '../collectors/index.js'
 import { METODO_RELEVANCIA } from '../lib/relevance.js'
+
+/**
+ * Caminho enxuto para exibir na tela: relativo à raiz do projeto, com barras
+ * normais em qualquer sistema.
+ *
+ * O caminho absoluto não ajuda ninguém e atrapalha duas vezes: revela a árvore
+ * de diretórios de quem roda o servidor, e num contêiner aponta para um lugar
+ * que não existe fora dele.
+ */
+function caminhoRelativo(absoluto) {
+  const rel = relative(config.raizProjeto, absoluto).replace(/\\/g, '/')
+  // Se o banco estiver fora da árvore do projeto (`DB_PATH` apontando para um
+  // volume, por exemplo), `relative` devolve uma escada de "../". Nesse caso o
+  // absoluto é a informação honesta.
+  return rel && !rel.startsWith('..') ? rel : absoluto
+}
 
 // -----------------------------------------------------------------------------
 // STATUS DA PLATAFORMA
@@ -178,7 +195,11 @@ export function capacidades() {
       nome: 'Persistência (SQLite)',
       grupo: 'Processamento',
       estado: 'operacional',
-      detalhe: `${all("SELECT name FROM sqlite_master WHERE type='table'").length} tabelas · ${config.dbPath}`,
+      // Caminho RELATIVO à raiz do projeto. O absoluto expunha a árvore de
+      // diretórios da máquina de quem roda ("C:\Users\fulano\Desktop\...") numa
+      // tela que qualquer administrador abre — e num deploy o caminho do
+      // contêiner não diz nada a ninguém.
+      detalhe: `${all("SELECT name FROM sqlite_master WHERE type='table'").length} tabelas · ${caminhoRelativo(config.dbPath)}`,
       descricao: 'Módulo nativo node:sqlite — sem compilação de binário nativo, o que faz `npm install` '
         + 'funcionar na primeira tentativa em qualquer máquina.',
       fonte: 'node:sqlite',
@@ -308,7 +329,7 @@ export function panorama() {
       ambiente: config.ambiente,
       versao: config.versao,
       uptimeSegundos: Math.round(process.uptime()),
-      banco: config.dbPath,
+      banco: caminhoRelativo(config.dbPath),
     },
   }
 }

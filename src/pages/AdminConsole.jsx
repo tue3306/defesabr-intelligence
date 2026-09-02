@@ -8,6 +8,7 @@ import {
 import toast from 'react-hot-toast'
 import PageHeader from '../components/ui/PageHeader'
 import Badge from '../components/ui/Badge'
+import { apiOnline } from '../services/apiBridge'
 import DataState from '../components/ui/DataState'
 import EmptyState from '../components/ui/EmptyState'
 import Pagination from '../components/ui/Pagination'
@@ -50,6 +51,16 @@ export default function AdminConsole() {
   const can = useCan()
   const [tab, setTab] = useState('contas')
 
+  // A API está no ar? Sonda uma vez ao montar. O resultado só muda um selo, e
+  // por isso o padrão é `false`: enquanto não se sabe, o console se apresenta
+  // como demonstração — errar para o lado modesto é o certo aqui.
+  const [apiViva, setApiViva] = useState(false)
+  useEffect(() => {
+    let vivo = true
+    apiOnline().then((ok) => { if (vivo) setApiViva(ok) }).catch(() => {})
+    return () => { vivo = false }
+  }, [])
+
   // A barra de abas reflete as capacidades reais: nada de mostrar um caminho
   // que a pessoa não pode percorrer.
   const visibleTabs = useMemo(() => TABS.filter((t) => can(t.capability)), [can])
@@ -61,9 +72,12 @@ export default function AdminConsole() {
         icon={ShieldCheck}
         title="Console de Governança"
         description="Contas e papéis, fontes de coleta, integrações, trilha de auditoria e saúde dos serviços — o painel de controle da plataforma."
-        help="As operações desta área alteram apenas a sessão atual do navegador. Quando houver backend, cada ação vira uma chamada autenticada aos mesmos endpoints já registrados."
+        help="Leitura e escrita se comportam de formas diferentes aqui, de propósito. O que o console MOSTRA (fontes, saúde, coleta, diagnóstico) vem da API e é o estado real do servidor. O que o console ALTERA (papel, plano, situação de uma conta) fica na sessão do navegador, porque o servidor ainda não autentica ninguém — a aba Saúde declara isso como capacidade parcial."
         breadcrumb={[{ label: 'Administração' }, { label: 'Governança' }]}
-        badges={<Badge type="demo" />}
+        // O selo segue o estado observado da API, e não um valor fixo. Um
+        // console de governança que se descreve errado é a última tela do
+        // produto que pode fazer isso.
+        badges={<Badge type={apiViva ? 'live' : 'demo'} />}
         accent="red"
       >
         <div className="flex flex-wrap gap-2">

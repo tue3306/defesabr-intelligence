@@ -25,6 +25,13 @@ import { avaliarRelevancia, classificar, limparRodape } from '../lib/relevance.j
  *   Marinha do Brasil ... HTTP 403
  *   FAB ................. HTTP 403
  *   Exército Brasileiro . HTTP 404 (não publica RSS)
+ *   Itamaraty (MRE) ..... 404 no caminho /RSS; a página de notas existe, mas
+ *                         só em HTML — exigiria raspagem, não sindicação
+ *   Câmara dos Deputados  200 com zero <item>; o portal mudou e o RSS ficou
+ *                         vazio. As proposições vêm da API de Dados Abertos,
+ *                         que funciona (server/src/collectors/camara.js)
+ *   Ministério da Justiça 200 com zero <item>
+ *   Secom / ABIN / MCTI . 404
  *
  * Cadastrá-las encheria o painel de governança de erro permanente que ninguém
  * pode consertar — e erro que não se pode consertar vira erro que se ignora.
@@ -76,6 +83,31 @@ export const FONTES_PADRAO = [
     slug: 'abr-geral',
     name: 'Agência Brasil — Geral',
     url: 'https://agenciabrasil.ebc.com.br/rss/geral/feed.xml',
+    site_url: 'https://agenciabrasil.ebc.com.br',
+    category: 'Agência pública',
+  },
+  {
+    // Senado: onde a pauta legislativa de defesa aparece ANTES de virar norma.
+    // Complementa o coletor da Câmara, que vê a proposição mas não o debate.
+    slug: 'senado-noticias',
+    name: 'Senado Federal — Notícias',
+    url: 'https://www12.senado.leg.br/noticias/rss',
+    site_url: 'https://www12.senado.leg.br/noticias',
+    category: 'Legislativo',
+  },
+  {
+    // Planalto: decretos, vetos, sanções e viagens presidenciais — a camada de
+    // decisão que os feeds ministeriais só refletem depois.
+    slug: 'planalto',
+    name: 'Palácio do Planalto',
+    url: 'https://www.gov.br/planalto/pt-br/acompanhe-o-planalto/noticias/RSS',
+    site_url: 'https://www.gov.br/planalto',
+    category: 'Oficial',
+  },
+  {
+    slug: 'abr-direitos-humanos',
+    name: 'Agência Brasil — Direitos Humanos',
+    url: 'https://agenciabrasil.ebc.com.br/rss/direitos-humanos/feed.xml',
     site_url: 'https://agenciabrasil.ebc.com.br',
     category: 'Agência pública',
   },
