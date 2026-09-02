@@ -454,6 +454,25 @@ function paraFonte(s) {
     // descrição abaixo evita que os dois sentidos sejam confundidos.
     reliability: s.reliability,
     availability: s.reliability,
+
+    // A tela "Confiabilidade das Fontes" ordena e filtra por `score`, e no
+    // acervo local esse número era um JUÍZO EDITORIAL sobre a qualidade do
+    // veículo — alguém escreveu 92 para um e 61 para outro.
+    //
+    // Aqui `score` passa a ser DISPONIBILIDADE medida: a proporção de vezes em
+    // que a fonte respondeu quando o coletor a procurou. É outra coisa, e a
+    // tela precisa dizer isso (ver `note`), senão troca um número inventado
+    // por um número real com o rótulo errado — que é pior, porque agora
+    // parece confiável.
+    score: s.reliability ?? 0,
+    type: s.category || s.kind,
+    note: s.lastError
+      ? `Última coleta falhou: ${s.lastError}`
+      : `${s.totalRuns ?? 0} execução(ões), ${s.totalFailures ?? 0} falha(s) · `
+        + `${s.articles ?? 0} artigo(s), ${s.relevantArticles ?? 0} aprovado(s) pelo filtro`,
+    // Viés editorial é juízo humano sobre a linha do veículo. O servidor não
+    // tem como medi-lo, então fica ausente em vez de receber um rótulo.
+    bias: null,
     brRelevance: s.lastError
       ? `Última coleta falhou: ${s.lastError}`
       : `${s.articles ?? 0} artigo(s) coletados · ${s.relevantArticles ?? 0} aprovados pelo filtro`

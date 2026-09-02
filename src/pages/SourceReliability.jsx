@@ -36,7 +36,8 @@ const SORTS = [
 // número calculado em silêncio.
 // -----------------------------------------------------------------------------
 export default function SourceReliability() {
-  const { data, loading, error, refetch } = useResource(() => intelligenceService.sources(), [])
+  const { data, loading, error, refetch, meta } = useResource(() => intelligenceService.sources(), [])
+  const aoVivo = meta?.source === 'live'
 
   const [query, setQuery] = useState('')
   const [tier, setTier] = useState('')
@@ -58,7 +59,7 @@ export default function SourceReliability() {
     let list = sources.filter((s) => {
       if (type && s.type !== type) return false
       if (tier && reliabilityTier(s.score).label !== tier) return false
-      if (needle && !`${s.name} ${s.type} ${s.note} ${s.bias}`.toLowerCase().includes(needle)) return false
+      if (needle && !`${s.name} ${s.type || ''} ${s.note || ''} ${s.bias || ''}`.toLowerCase().includes(needle)) return false
       return true
     })
     list = [...list].sort((a, b) => {
@@ -114,10 +115,12 @@ export default function SourceReliability() {
       <PageHeader
         icon={BadgeCheck}
         title="Confiabilidade das Fontes"
-        description="Quanta verificação adicional cada fonte exige antes de virar análise — por proximidade da informação original, histórico e transparência de método."
-        help="A pontuação (0–100) não julga o veículo: orienta o esforço de corroboração. Fonte de baixa pontuação não é descartada, é cruzada."
+        description={aoVivo
+          ? 'Disponibilidade medida de cada fonte: quantas vezes respondeu quando o coletor a procurou, e quanto do que entregou passou pelo filtro de relevância.'
+          : 'Quanta verificação adicional cada fonte exige antes de virar análise — por proximidade da informação original, histórico e transparência de método.'}
+        help="Com o servidor no ar, a pontuação é DISPONIBILIDADE medida: a proporção de vezes em que a fonte respondeu quando o coletor a procurou, mais o que ela entregou. Não julga a qualidade do jornalismo — uma fonte excelente que sai do ar pontua baixo, e isso é o que o número quer dizer. Sem servidor, cai para a avaliação editorial do acervo local."
         breadcrumb={[{ label: 'Inteligência' }, { label: 'Confiabilidade das Fontes' }]}
-        badges={<Badge type="demo" />}
+        badges={<Badge type={aoVivo ? 'live' : 'demo'} />}
         actions={
           <Can do="reports.export">
             <button onClick={exportSources} className="btn-ghost text-sm" disabled={!filtered.length}>
@@ -211,7 +214,10 @@ export default function SourceReliability() {
                     <h3 className="text-base font-bold tracking-tight">{s.name}</h3>
                     <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs muted">
                       <span className="chip">{s.type}</span>
-                      <span>viés percebido: {s.bias}</span>
+                      {/* Viés é juízo humano sobre a linha editorial do veículo;
+                          o servidor não tem como medi-lo. Some quando ausente,
+                          em vez de exibir "viés percebido: null". */}
+                      {s.bias && <span>viés percebido: {s.bias}</span>}
                     </p>
                   </div>
                   <div className="shrink-0 text-right">
