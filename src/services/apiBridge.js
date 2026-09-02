@@ -177,6 +177,12 @@ export const PONTES = new Map([
     transformar: (d, { days = 14 } = {}) => ({
       series: (d.porDia || []).map((x) => ({ date: x.dia, total: x.total })),
       days,
+      // Dia x categoria — o formato que a barra empilhada consome. Ficou de
+      // fora quando a rota ganhou o campo, e como esta transformação lista os
+      // campos um a um em vez de repassar o objeto, a omissão não deu erro:
+      // o gráfico simplesmente continuava caindo no acervo local, marcado
+      // como demonstração, com o dado real disponível do outro lado.
+      porDiaCategoria: d.porDiaCategoria,
       porCategoria: d.porCategoria,
       porUrgencia: d.porUrgencia,
       porFonte: d.porFonte,

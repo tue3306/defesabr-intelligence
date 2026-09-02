@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
@@ -6,6 +7,7 @@ import {
 } from 'lucide-react'
 import MetricCard from '../components/ui/MetricCard'
 import Badge from '../components/ui/Badge'
+import { apiOnline } from '../services/apiBridge'
 import { useAuthStore } from '../store/authStore'
 import {
   systemHealth, HEALTH_STATUS, integrations, ingestion,
@@ -30,6 +32,16 @@ const Section = ({ children, className = '' }) => (
 // saúde da plataforma, usuários, fontes, integrações, ingestão, métricas e logs.
 // Estrutura pronta para backend; dados demonstrativos e honestos.
 export default function AdminDashboard() {
+  // O selo seguia fixo em demonstração. Fontes, coleta e saúde deste painel
+  // vêm da API há vários commits; anunciar-se como demonstração ensina a não
+  // olhar o selo, que é o oposto do que ele serve.
+  const [apiViva, setApiViva] = useState(false)
+  useEffect(() => {
+    let vivo = true
+    apiOnline().then((ok) => { if (vivo) setApiViva(ok) }).catch(() => {})
+    return () => { vivo = false }
+  }, [])
+
   const user = useAuthStore((s) => s.user)
   const firstName = user?.name?.split(' ')[0] || 'Administrador'
 
@@ -52,7 +64,7 @@ export default function AdminDashboard() {
                 <span className="inline-flex items-center gap-1 rounded-full bg-gold-500/15 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-gold-600 dark:text-gold-400">
                   Administrador
                 </span>
-                <Badge type="demo" />
+                <Badge type={apiViva ? 'live' : 'demo'} />
               </div>
               <h1 className="mt-3 text-2xl font-extrabold tracking-tight sm:text-3xl">
                 {greetingByHour()}, {firstName}.

@@ -278,12 +278,14 @@ export default function UserDashboard() {
           <Section className="card p-5">
             <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
               <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-                <Globe2 size={18} className="text-brand-400 dark:text-brand-300" /> Mapa de risco — foco Américas
+                <Globe2 size={18} className="text-brand-400 dark:text-brand-300" /> Cobertura por país
               </h2>
-              <Badge type="demo" />
             </div>
+            {/* Chamava-se "Mapa de risco" e não mede risco: conta menções em
+                notícia coletada. O selo saiu porque o próprio mapa já declara
+                a origem — ele diz quantas notícias sustentam cada país. */}
             <p className="mb-4 text-sm muted">
-              Passe o cursor ou clique em um país para ver suas notícias de segurança e defesa.
+              Quantas notícias coletadas mencionam cada país. Clique para ver as manchetes.
             </p>
             <GlobalHeatmap height={full ? 380 : 360} />
           </Section>
