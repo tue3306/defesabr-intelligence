@@ -1,28 +1,51 @@
-import { Factory, Building2, Globe2, Package, ArrowRight, ShieldAlert, Download, ChevronRight } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Factory, Building2, Globe2, Package, Download } from 'lucide-react'
+import toast from 'react-hot-toast'
 import Can from '../auth/Can'
 import { exportCSV } from '../utils/exportUtils'
-import toast from 'react-hot-toast'
 import MetricCard from '../components/ui/MetricCard'
+import Badge from '../components/ui/Badge'
 import InfoTooltip from '../components/ui/InfoTooltip'
-import {
-  bidSummary, bidCompanies, exportProducts, exportRegions,
-} from '../data/defenseIndustry'
+import EmptyState from '../components/ui/EmptyState'
+import { bidCompanies } from '../data/defenseIndustry'
+import { useExportacoes } from '../hooks/useDadosReais'
+
+// -----------------------------------------------------------------------------
+// INDÚSTRIA & EXPORTAÇÕES
+//
+// Esta tela tinha quatro indicadores redondos escritos à mão — "+200 empresas",
+// "R$ 230 bi de faturamento", "+200 mil empregos", "US$ 2,5 bi exportados". Não
+// tinham origem, e o último era conferível e estava errado.
+//
+// Agora ela mostra o que o governo publica: o Comex Stat (MDIC) expõe a balança
+// comercial por capítulo da NCM e país de destino, e o servidor coleta os dois
+// capítulos que interessam a defesa — 88 (aeronaves) e 93 (armas e munições).
+//
+// A ressalva aparece na tela, não só no código: o capítulo 88 inclui aviação
+// CIVIL, e a maior parte do que o Brasil exporta ali são jatos comerciais da
+// Embraer. Sem dizer isso, o número vira uma afirmação falsa sobre o tamanho da
+// exportação militar brasileira.
+//
+// A lista de empresas permanece: é referência factual e pública sobre quem
+// compõe a BID, não métrica inventada.
+// -----------------------------------------------------------------------------
+
+const fmtUSD = (bi) => `US$ ${String(bi).replace('.', ',')} bi`
 
 export default function DefenseIndustry() {
-  // Catálogo de exportação em CSV — útil para quem prospecta parcerias.
-  const exportCatalog = () => {
+  const exp = useExportacoes()
+  const dados = exp.data
+
+  const baixarCSV = () => {
+    if (!dados?.porPais?.length) return
     exportCSV(
-      exportProducts.map((p) => ({
-        Produto: p.product,
-        Fabricante: p.maker,
-        Categoria: p.type,
-        Clientes: p.clients.join(', '),
-        Destaque: p.highlight,
+      dados.porPais.map((p) => ({
+        'País de destino': p.pais,
+        'Valor FOB (US$)': p.valorUSD,
+        'Ano de referência': dados.ano,
       })),
-      `bid-catalogo-exportacao-${new Date().toISOString().slice(0, 10)}.csv`
+      `exportacoes-defesa-${dados.ano}.csv`
     )
-    toast.success('Catálogo de exportação baixado em CSV')
+    toast.success('Exportações baixadas em CSV')
   }
 
   return (
@@ -33,121 +56,129 @@ export default function DefenseIndustry() {
           <span className="inline-flex items-center gap-2 rounded-full bg-brand-500/15 px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-200">
             <Factory size={14} /> Base Industrial de Defesa
           </span>
-          <h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Indústria & Exportações</h1>
+          <h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Indústria &amp; Exportações</h1>
           <p className="mt-2 max-w-2xl text-gray-300">
-            A Base Industrial de Defesa (BID) gera tecnologia, empregos e divisas. Do C-390 ao ASTROS,
-            o Brasil exporta defesa e fortalece sua autonomia estratégica.
+            O que o Brasil exportou nos capítulos de aeronaves e de armamento, segundo o
+            Comex Stat do Ministério do Desenvolvimento, Indústria e Comércio.
           </p>
         </div>
       </div>
 
-      {/* MÉTRICAS */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {bidSummary.map((s) => (
-          <MetricCard key={s.label} label={s.label} value={s.value} hint={s.hint} accent={s.accent} />
-        ))}
-      </div>
-
-      {/* EMPRESAS */}
-      <section>
-        <h2 className="mb-1 flex items-center gap-2 text-lg font-bold tracking-tight">
-          <Building2 size={20} className="text-brand-400 dark:text-brand-300" /> Principais empresas
-        </h2>
-        <p className="mb-4 text-sm muted">Empresas estratégicas que compõem o núcleo da BID brasileira.</p>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {bidCompanies.map((c) => (
-            <div key={c.name} className="card p-5">
-              <div className="flex items-center justify-between">
-                <h3 className="font-bold tracking-tight">{c.name}</h3>
-              </div>
-              <span className="mt-1 inline-block rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-semibold uppercase muted">{c.segment}</span>
-              <p className="mt-2 text-sm text-gray-300"><span className="font-semibold">Carro-chefe:</span> {c.flagship}</p>
-              <p className="mt-1 text-sm muted">{c.note}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* DESTINOS DE EXPORTAÇÃO */}
-      <section className="card p-5">
-        <h2 className="mb-1 flex items-center gap-2 text-base font-bold tracking-tight">
-          <Globe2 size={18} className="text-brand-400 dark:text-brand-300" /> Destinos das exportações
-          <InfoTooltip text="Distribuição percentual ilustrativa da pauta de exportação de defesa por região." />
-        </h2>
-        <p className="mb-4 text-sm muted">Para onde vai a defesa brasileira (participação na pauta).</p>
-        <div className="space-y-2.5">
-          {exportRegions.map((r) => (
-            <div key={r.region} className="flex items-center gap-3">
-              <span className="w-36 shrink-0 truncate text-sm font-medium">{r.region}</span>
-              <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-gray-700/30">
-                <span className="block h-full rounded-full" style={{ width: `${r.share}%`, background: r.color }} />
-              </span>
-              <span className="w-10 shrink-0 text-right font-mono text-sm font-bold">{r.share}%</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* PRODUTOS E CLIENTES */}
-      <section>
-        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+      {!dados ? (
+        <EmptyState
+          icon={Package}
+          title={exp.carregando ? 'Carregando exportações…' : 'Sem dados de exportação'}
+          hint={
+            exp.carregando
+              ? 'Consultando o acervo do Comex Stat.'
+              : 'O servidor de coleta não respondeu. Os números do Comex Stat aparecem assim que a coleta concluir.'
+          }
+        />
+      ) : (
+        <>
+          {/* TOTAIS POR CAPÍTULO — medidos */}
           <div>
-            <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-              <Package size={20} className="text-brand-400 dark:text-brand-300" /> Produtos e clientes
-            </h2>
-            <p className="mt-0.5 text-sm muted">Principais plataformas exportadas e seus mercados.</p>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
+                <Package size={18} className="text-brand-400 dark:text-brand-300" />
+                Exportações em {dados.ano}
+                <InfoTooltip text={dados.nota} />
+              </h2>
+              <Badge type={exp.aoVivo ? 'live' : 'demo'} />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <MetricCard
+                icon={Globe2}
+                label="Total exportado"
+                value={fmtUSD(Math.round((dados.totalUSD / 1e9) * 100) / 100)}
+                hint={`ano ${dados.ano}, valor FOB · incompleto até o último mês publicado`}
+                accent="brand"
+              />
+              {dados.porCapitulo.map((c) => (
+                <MetricCard
+                  key={c.codigo}
+                  icon={Package}
+                  label={c.nome}
+                  value={fmtUSD(c.valorUSDbi)}
+                  hint={c.aviso || 'capítulo da NCM'}
+                  accent={c.codigo === 'NCM-93' ? 'red' : 'green'}
+                />
+              ))}
+            </div>
+
+            {/* A ressalva não fica escondida num tooltip: ela muda a leitura do
+                número maior da tela. */}
+            <p className="mt-3 rounded-lg border border-gold-500/30 bg-gold-500/10 px-3 py-2 text-xs leading-relaxed">
+              <strong>Como ler:</strong> o capítulo de aeronaves inclui <strong>aviação civil</strong> —
+              a maior parte é jato comercial da Embraer, não material militar. Tratar o total como
+              “exportação de defesa” infla o número em uma ordem de grandeza. O capítulo de armas e
+              munições também mistura uso militar e civil.
+            </p>
           </div>
-          <Can do="reports.export">
-            <button onClick={exportCatalog} className="btn-ghost text-sm">
-              <Download size={15} /> Exportar catálogo
-            </button>
-          </Can>
-        </div>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {exportProducts.map((p) => (
-            <div key={p.product} className="card p-5">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <h3 className="text-lg font-bold tracking-tight">{p.product}</h3>
-                  <p className="text-xs muted">{p.maker} · {p.type}</p>
-                </div>
+
+          {/* DESTINOS — medidos */}
+          <section className="card p-5">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
+                <Globe2 size={18} className="text-brand-400 dark:text-brand-300" /> Principais destinos
+              </h2>
+              <Can do="reports.export">
+                <button onClick={baixarCSV} className="btn-ghost text-sm">
+                  <Download size={15} /> Exportar CSV
+                </button>
+              </Can>
+            </div>
+
+            <div className="space-y-2.5">
+              {dados.porPais.map((p) => {
+                const maximo = dados.porPais[0]?.valorUSD || 1
+                return (
+                  <div key={p.pais} className="flex items-center gap-3">
+                    <span className="w-40 shrink-0 truncate text-sm font-medium">{p.pais}</span>
+                    <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-white/10">
+                      <span
+                        className="block h-full rounded-full bg-military-green"
+                        style={{ width: `${(p.valorUSD / maximo) * 100}%` }}
+                      />
+                    </span>
+                    <span className="w-24 shrink-0 text-right font-mono text-sm font-bold tabular-nums">
+                      US$ {p.valorUSDmi} mi
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+
+            <p className="mt-4 text-xs muted">
+              Fonte: {dados.provider}. Valor FOB em dólares correntes, capítulos 88 e 93 da NCM.
+            </p>
+          </section>
+        </>
+      )}
+
+      {/* EMPRESAS — referência factual, não medição */}
+      <section className="card p-5">
+        <h2 className="mb-1 flex items-center gap-2 text-lg font-bold tracking-tight">
+          <Building2 size={18} className="text-brand-400 dark:text-brand-300" /> Quem compõe a BID
+        </h2>
+        <p className="mb-4 text-sm muted">
+          Referência pública sobre as principais empresas da Base Industrial de Defesa e seus
+          produtos de destaque. É catálogo, não medição — nenhum número desta seção é estimado.
+        </p>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          {bidCompanies.map((c) => (
+            <div key={c.name} className="rounded-lg border border-gray-200 p-3 dark:border-white/10">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <span className="text-sm font-bold">{c.name}</span>
+                <span className="chip">{c.segment}</span>
               </div>
-              <p className="mt-2 text-sm text-gray-300">{p.highlight}</p>
-              <div className="mt-3">
-                <p className="mb-1.5 text-xs font-semibold uppercase muted">Clientes</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {p.clients.map((cl) => (
-                    <span key={cl} className="rounded-full border border-brand-500/30 bg-brand-500/10 px-2 py-0.5 text-[11px] font-medium text-brand-200">{cl}</span>
-                  ))}
-                </div>
-              </div>
+              <p className="mt-1 text-xs font-medium">{c.flagship}</p>
+              <p className="mt-0.5 text-xs muted">{c.note}</p>
             </div>
           ))}
         </div>
       </section>
-
-      {/* DEPENDÊNCIAS CRÍTICAS — o que limita a autonomia da BID */}
-
-      {/* CTA */}
-      <div className="card flex flex-col items-center gap-3 p-6 text-center sm:flex-row sm:justify-between sm:text-left">
-        <div>
-          <h3 className="font-bold tracking-tight">A indústria por trás dos programas</h3>
-          <p className="text-sm muted">Veja como esses produtos se conectam aos Programas Estratégicos.</p>
-        </div>
-        <Link to="/programas" className="btn-primary shrink-0">
-          Ver programas <ArrowRight size={16} />
-        </Link>
-      </div>
-
-      <p className="text-center text-xs muted">Valores demonstrativos para fins de visualização.</p>
     </div>
   )
 }
-
-// -----------------------------------------------------------------------------
-// DEPENDÊNCIAS CRÍTICAS
-//
-// Uma base industrial não se mede só pelo que exporta, mas pelo que precisa
-// importar para produzir. Este bloco liga a BID ao risco correspondente da
-// matriz — a mesma avaliação, lida a partir do ângulo industrial.
-// -----------------------------------------------------------------------------

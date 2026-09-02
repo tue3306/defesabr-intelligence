@@ -233,3 +233,22 @@ export function useIndiceDeAlerta(dias = 7) {
     carregando,
   }
 }
+
+/**
+ * Exportações da indústria de defesa — Comex Stat (MDIC).
+ *
+ * A tela de Indústria mostrava estimativas redondas escritas à mão: "+200
+ * empresas", "R$ 230 bi de faturamento", "US$ 2,5 bi exportados". Nenhuma
+ * tinha origem, e a última era conferível e estava errada.
+ *
+ * O governo publica o número real por capítulo da NCM e país de destino. Vem
+ * daí, com a ressalva de que o capítulo de aeronaves inclui aviação civil.
+ */
+export function useExportacoes() {
+  const { dados, aoVivo, carregando } = useDaApi(async () => {
+    const d = await viaPonte('GET /economy/exports', {})
+    return d?.porCapitulo?.length ? d : null
+  })
+
+  return { data: dados, aoVivo, carregando }
+}
