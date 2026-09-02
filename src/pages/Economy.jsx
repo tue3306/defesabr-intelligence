@@ -14,13 +14,27 @@ import ErrorBoundary from '../components/system/ErrorBoundary'
 import {
   brazilIndicators, southAmericaEconomy, brazilInflation, defenseBudgetBreakdown,
 } from '../data/economyData'
+import { useComparacaoPIB, useGastoGlobal } from '../hooks/useDadosReais'
 
 const IND_ICON = { pib: DollarSign, cambio: TrendingUp, inflacao: Percent, defesa: Shield, selic: Landmark, risco: Activity }
 
 export default function Economy() {
   // Mapeia o campo para o ComparisonBarChart (espera `pctGdp`).
-  const pctGdpData = southAmericaEconomy.map((d) => ({ ...d, pctGdp: d.militaryPctGdp }))
-  const maxDef = Math.max(...southAmericaEconomy.map((d) => d.defenseUSD))
+  // Os dois comparativos vinham de `southAmericaEconomy`, escrito à mão. O
+  // servidor coleta as duas séries do World Bank — % do PIB e gasto absoluto —
+  // para treze países, e é de lá que elas passam a sair.
+  const vizinhanca = useComparacaoPIB('vizinhanca')
+  const gastoGlobal = useGastoGlobal()
+
+  const pctGdpData = vizinhanca.data
+  // O gráfico de barras de orçamento usa os mesmos países da vizinhança, com
+  // o valor absoluto. Cruzamos as duas respostas pelo nome do país.
+  const nomesVizinhos = new Set(vizinhanca.data.map((d) => d.country))
+  const orcamento = gastoGlobal.data
+    .filter((g) => nomesVizinhos.has(g.name))
+    .map((g) => ({ country: g.name, defenseUSD: g.value }))
+    .sort((a, b) => b.defenseUSD - a.defenseUSD)
+  const maxDef = Math.max(...orcamento.map((d) => d.defenseUSD), 1)
   const inflationVals = brazilInflation.map((i) => i.value)
 
   return (
@@ -31,7 +45,7 @@ export default function Economy() {
         description="Indicadores macroeconômicos que condicionam o orçamento de defesa brasileiro, o comparativo regional e o efeito do câmbio sobre os programas estratégicos."
         help="Orçamento de defesa é decisão política, mas sua execução real depende de câmbio, inflação e espaço fiscal — por isso estes indicadores aparecem aqui."
         breadcrumb={[{ label: 'Dados & Relatórios' }, { label: 'Economia & Defesa' }]}
-        badges={<Badge type="demo" />}
+        badges={<Badge type={vizinhanca.aoVivo ? 'live' : 'demo'} />}
       />
 
       {/* INDICADORES BRASIL */}
@@ -80,7 +94,7 @@ export default function Economy() {
         <div className="card p-5">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-base font-bold tracking-tight">Gasto militar (% do PIB)</h2>
-            <Badge type="demo" />
+            <Badge type={vizinhanca.aoVivo ? 'live' : 'demo'} />
           </div>
           <ErrorBoundary variant="inline" scope="Comparativo regional de gasto militar">
             <ComparisonBarChart data={pctGdpData} highlightCode="BR" height={300} />
@@ -90,16 +104,16 @@ export default function Economy() {
         <div className="card p-5">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-base font-bold tracking-tight">Orçamento de defesa (US$ bi)</h2>
-            <Badge type="demo" />
+            <Badge type={gastoGlobal.aoVivo ? 'live' : 'demo'} />
           </div>
           <div className="space-y-2.5">
-            {[...southAmericaEconomy].sort((a, b) => b.defenseUSD - a.defenseUSD).map((d) => (
-              <div key={d.code} className="flex items-center gap-3">
+            {orcamento.map((d) => (
+              <div key={d.country} className="flex items-center gap-3">
                 <span className="w-20 shrink-0 truncate text-sm font-medium">{d.country}</span>
                 <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-gray-700/30">
                   <span
                     className="block h-full rounded-full"
-                    style={{ width: `${(d.defenseUSD / maxDef) * 100}%`, background: d.code === 'BR' ? '#caa733' : '#1f8a4c' }}
+                    style={{ width: `${(d.defenseUSD / maxDef) * 100}%`, background: d.country === 'Brasil' ? '#caa733' : '#1f8a4c' }}
                   />
                 </span>
                 <span className="w-14 shrink-0 text-right font-mono text-sm font-bold">{d.defenseUSD}</span>

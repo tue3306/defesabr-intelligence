@@ -218,8 +218,11 @@ export function useRegioesEstrategicas(dias = 180) {
 export function useIndiceDeAlerta(dias = 7) {
   const { dados, aoVivo, carregando } = useDaApi(async () => {
     const d = await viaPonte('GET /clipping/latest', { days: dias })
-    const a = d?.alert || d?.alerta
-    return a?.score == null ? null : { score: a.score, level: a.level, basis: a.basis }
+    // A ponte achata `alert: {level, score, basis}` em campos com prefixo, para
+    // casar com a forma que a tela de clipping já consumia. Ler `d.alert` aqui
+    // devolvia sempre indefinido — e o indicador ficava em "—" com a API no ar.
+    if (d?.alert_score == null) return null
+    return { score: d.alert_score, level: d.alert_level, basis: d.alert_basis }
   }, [dias])
 
   return {

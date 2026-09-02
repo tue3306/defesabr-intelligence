@@ -18,13 +18,14 @@ import GaugeChart from '../components/charts/GaugeChart'
 import { useNews } from '../hooks/useNews'
 import { useNewsVolume } from '../hooks/useNewsVolume'
 import { useGastoMilitar, useIndiceDeAlerta } from '../hooks/useDadosReais'
+import { useVitrine } from '../hooks/useVitrine'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { PROFILES, PROFILE_ORDER } from '../auth/permissions'
 import { useSubscriptionStore } from '../store/subscriptionStore'
 import { LANDING_FEATURES, PLANS } from '../data/plansData'
 import { glossary } from '../data/learnData'
-import { USE_CASES, DEMO_STATS, STANDARDS, FAQ, ROADMAP } from '../data/landingExtra'
+import { USE_CASES, STANDARDS, FAQ, ROADMAP } from '../data/landingExtra'
 import { mockWeeklyAnalysis, militarySpendingBR, newsVolume14d, newsCategoriesKeys, alertIndex } from '../data/mockData'
 import { monitoredSources } from '../data/monitoredSources'
 import { alertMeta } from '../utils/textUtils'
@@ -98,6 +99,7 @@ export default function Landing() {
   const volume = useNewsVolume(14)
   const gasto = useGastoMilitar()
   const alerta = useIndiceDeAlerta(7)
+  const vitrine = useVitrine()
   const feed = news.slice(0, 3)
   const analysis = mockWeeklyAnalysis.empresarial
 
@@ -165,23 +167,6 @@ export default function Landing() {
         <p className="mt-3 text-center text-[11px] muted lg:text-right">
           Citadas apenas como inspiração conceitual — sem afirmar conformidade, homologação ou certificação.
         </p>
-      </Section>
-
-      {/* MÉTRICAS DE VITRINE (demonstrativas) */}
-      <Section>
-        <div className="mb-3 flex items-center justify-center gap-2">
-          <span className="h-px w-8 bg-gray-300 dark:bg-white/10" />
-          <Badge type="demo" />
-          <span className="h-px w-8 bg-gray-300 dark:bg-white/10" />
-        </div>
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {DEMO_STATS.map((s) => (
-            <div key={s.label} className="card p-5 text-center transition-transform hover:-translate-y-0.5 hover:shadow-card-hover">
-              <p className="text-3xl font-extrabold tracking-tight tabular-nums sm:text-4xl">{s.value}</p>
-              <p className="mt-1 text-xs muted">{s.label}</p>
-            </div>
-          ))}
-        </div>
       </Section>
 
       {/* POR QUE USAR */}
@@ -290,23 +275,38 @@ export default function Landing() {
       <Section className="card p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-bold tracking-tight">O que já está monitorado agora</h2>
-          <Badge type="demo" />
+          <Badge type={vitrine.aoVivo ? 'live' : 'demo'} />
         </div>
         <p className="mt-1 text-sm muted">
-          Números lidos diretamente dos módulos da plataforma — não são texto de vitrine.
+          Contagens lidas do acervo neste instante — o que a coleta trouxe, não texto de vitrine.
         </p>
         <div className="mt-5 grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {/* O nível de alerta só aparece quando há base para calculá-lo. A
+              constante que ficava aqui dizia sempre "ATENÇÃO", em qualquer
+              cenário — um indicador que nunca muda não é um indicador. */}
           <PreviewStat
             icon={ShieldCheck}
-            value={alertMeta.ATENCAO.label}
-            label="Nível de alerta do dia"
-            hint={`${alerta.value}/100 na escala de postura`}
+            value={alerta.level ? alertMeta[alerta.level]?.label || alerta.level : '—'}
+            label="Nível de alerta do período"
+            hint={alerta.value != null ? `${alerta.value}/100 na escala de postura` : 'sem dado no período'}
           />
           <PreviewStat
             icon={Database}
-            value={String(monitoredSources.length)}
-            label="Fontes catalogadas"
-            hint="oficiais, especializadas e internacionais"
+            value={vitrine.fontes != null ? String(vitrine.fontes) : '—'}
+            label="Fontes coletadas"
+            hint={vitrine.fontesOk != null ? `${vitrine.fontesOk} responderam na última execução` : 'oficiais e especializadas'}
+          />
+          <PreviewStat
+            icon={Newspaper}
+            value={vitrine.aprovados != null ? String(vitrine.aprovados) : '—'}
+            label="Notícias no acervo"
+            hint={vitrine.coletados != null ? `de ${vitrine.coletados} coletadas, após o filtro` : 'coleta contínua'}
+          />
+          <PreviewStat
+            icon={Landmark}
+            value={vitrine.proposicoes != null ? String(vitrine.proposicoes) : '—'}
+            label="Proposições acompanhadas"
+            hint="Câmara dos Deputados, dados abertos"
           />
         </div>
       </Section>
@@ -314,10 +314,16 @@ export default function Landing() {
       {/* MAPA GLOBAL */}
       <Section className="card p-5 sm:p-6">
         <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-bold tracking-tight">Panorama global de risco</h2>
-          <Badge type="demo" />
+          <h2 className="text-lg font-bold tracking-tight">Cobertura por país</h2>
+          <Badge type={vitrine.aoVivo ? 'live' : 'demo'} />
         </div>
-        <p className="mb-4 text-sm muted">Intensidade de eventos de segurança por país. Passe o cursor para ver os detalhes.</p>
+        {/* "Panorama global de risco" prometia uma medida de risco que ninguém
+            faz. O mapa conta menções em notícia coletada — que é útil, e é
+            outra coisa. */}
+        <p className="mb-4 text-sm muted">
+          Quantas notícias coletadas mencionam cada país. Mede volume de cobertura, não risco.
+          Passe o cursor para ver as manchetes.
+        </p>
         <GlobalHeatmap height={420} />
       </Section>
 
