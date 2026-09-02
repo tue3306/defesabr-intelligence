@@ -36,12 +36,14 @@ const servidor = app.listen(config.port, config.host, async () => {
   // abre. Normalmente significa que o build pulou as devDependencies e o Vite
   // não rodou.
   if (!existsSync(config.staticDir)) {
-    console.warn(`
-  [33m⚠ Interface não encontrada em ${config.staticDir}[0m`)
+    const aviso = '\x1b[33m'
+    const fim = '\x1b[0m'
+    console.warn("")
+    console.warn(`  ${aviso}Interface não encontrada em ${config.staticDir}${fim}`)
     console.warn('  A API responde, mas a URL abrirá em branco.')
-    console.warn('  Rode `npm run build` — e, se for um deploy, confirme que a')
-    console.warn('  instalação incluiu as devDependencies (npm install --include=dev).
-')
+    console.warn('  Rode `npm run build`. Num deploy, confirme que a instalação')
+    console.warn('  incluiu as devDependencies: npm install --include=dev')
+    console.warn("")
   }
 
   const agendador = iniciarAgendador()
