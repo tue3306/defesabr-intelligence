@@ -1,12 +1,30 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vitejs.dev/config/
-// `base` deve ser o nome do repositório no GitHub Pages.
-// Em dev usamos '/' para o servidor local funcionar normalmente.
-export default defineConfig(({ command }) => ({
-  base: command === 'build' ? '/defesabr-intelligence/' : '/',
+export default defineConfig({
+  // A aplicacao tem BACKEND: nao roda em hospedagem estatica. O mesmo processo
+  // Node serve a API e esta pasta, entao a base e sempre a raiz.
+  base: '/',
   plugins: [react()],
+  server: {
+    port: 5173,
+    // Proxy de /api para o servidor local. E o que permite ao front usar
+    // caminho relativo em desenvolvimento e em producao: mesma origem nos dois,
+    // portanto nenhum CORS para depurar e nenhuma variavel de ambiente para
+    // configurar no Railway.
+    proxy: {
+      '/api': {
+        target: process.env.VITE_API_PROXY || 'http://localhost:3001',
+        changeOrigin: true,
+      },
+    },
+  },
+  preview: {
+    port: 4173,
+    proxy: {
+      '/api': { target: process.env.VITE_API_PROXY || 'http://localhost:3001', changeOrigin: true },
+    },
+  },
   build: {
     outDir: 'dist',
     chunkSizeWarningLimit: 900,
@@ -47,4 +65,4 @@ export default defineConfig(({ command }) => ({
       },
     },
   },
-}))
+})

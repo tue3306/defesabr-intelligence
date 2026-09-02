@@ -73,17 +73,30 @@ html:not(.dark) body {
    Superfícies propositalmente escuras (heróis, mapa) recebem a classe
    `.on-dark`, que mantém o texto claro mesmo no tema claro.
 ----------------------------------------------------------------------- */
-html:not(.dark) .text-gray-100 { color: #111827; } /* [ALTERADO] texto primário (gray-900) */
-html:not(.dark) .text-gray-200 { color: #1f2937; } /* gray-800 */
-html:not(.dark) .text-gray-300 { color: #374151; } /* gray-700 */
-html:not(.dark) .text-gray-400 { color: #4b5563; } /* gray-600 */
+html:not(.dark) .text-gray-100 { color: #111827; } /* gray-900 — 17.4:1 */
+html:not(.dark) .text-gray-200 { color: #1f2937; } /* gray-800 — 14.7:1 */
+html:not(.dark) .text-gray-300 { color: #374151; } /* gray-700 — 10.3:1 */
+html:not(.dark) .text-gray-400 { color: #4b5563; } /* gray-600 —  7.6:1 */
+/* gray-500 tambem aparece direto no JSX, quase sempre em rotulos pequenos. */
+html:not(.dark) .text-gray-500 { color: #4b5563; } /* gray-600 —  7.6:1 */
 
 html:not(.dark) .on-dark,
 html:not(.dark) .on-dark .text-gray-100,
 html:not(.dark) .on-dark .text-gray-200,
 html:not(.dark) .on-dark .text-gray-300 { color: #e5e7eb; }
-html:not(.dark) .on-dark .text-gray-400 { color: #cbd5e1; }
+html:not(.dark) .on-dark .text-gray-400,
+html:not(.dark) .on-dark .text-gray-500 { color: #cbd5e1; }
 html:not(.dark) .on-dark .muted { color: #cbd5e1; }
+
+/* -----------------------------------------------------------------------
+   LEGENDA DO RECHARTS
+   A biblioteca pinta o TEXTO da legenda com a cor da série. Isso dá 2,31:1
+   para a categoria em ouro sobre card branco — ilegível.
+   O quadradinho colorido ao lado já identifica a série, então o texto pode
+   herdar a cor de primeiro plano do tema sem perder informação.
+   ----------------------------------------------------------------------- */
+.recharts-legend-item-text { color: #e5e7eb !important; }
+html:not(.dark) .recharts-legend-item-text { color: #374151 !important; }
 
 /* [ALTERADO] Acento = OURO. Textos/ícones de destaque (classes "text-brand-*")
    passam a renderizar em dourado: vivo no escuro, dourado escuro (legível) no
@@ -93,10 +106,17 @@ html:not(.dark) .on-dark .muted { color: #cbd5e1; }
 .text-brand-400 { color: #d9b441; }
 html:not(.dark) .text-brand-200,
 html:not(.dark) .text-brand-300,
-html:not(.dark) .text-brand-400 { color: #876c14; } /* ouro escuro — legível no branco */
+html:not(.dark) .text-brand-400 { color: #6b5410; } /* ouro escuro — 7.1:1 no branco */
+
+/* `text-gold-600` (#a98a23) da 3.31:1 sobre card branco: reprova ate para
+   texto grande. No tema claro ele vira o mesmo ouro escuro dos acentos. */
+html:not(.dark) .text-gold-600,
+html:not(.dark) .text-gold-500 { color: #6b5410; }
 html:not(.dark) .on-dark .text-brand-200,
 html:not(.dark) .on-dark .text-brand-300,
-html:not(.dark) .on-dark .text-brand-400 { color: #e0c25a; }
+html:not(.dark) .on-dark .text-brand-400,
+html:not(.dark) .on-dark .text-gold-600,
+html:not(.dark) .on-dark .text-gold-500 { color: #e0c25a; }
 
 /* [ALTERADO] No tema claro, painéis com bg-white/5 e bg-white/10 ficam
    invisíveis (branco sobre branco). Aqui viram cinza sutil para criar
@@ -214,14 +234,19 @@ html:not(.dark) .on-dark .btn-ghost:hover {
            hover:border-white/20 focus:border-gold-500 focus:outline-none focus:ring-2 focus:ring-gold-500/25;
   }
   html:not(.dark) .input {
-    @apply border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 hover:border-gray-400;
+    /* placeholder em gray-400 da 2.85:1 — praticamente invisivel. */
+    @apply border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 hover:border-gray-400;
   }
 
+  /* `muted` marca texto SECUNDARIO, nao texto apagado. No tema claro ele
+     estava em gray-500 (4.83:1 sobre branco): passa no AA por pouco, mas
+     `muted` aparece quase sempre em 11-12px, tamanho em que o minimo legal
+     ja e desconfortavel. gray-600 leva a 7.56:1. */
   .muted {
     @apply text-gray-400;
   }
   html:not(.dark) .muted {
-    @apply text-gray-500;
+    @apply text-gray-600;
   }
 
   /* Chip/etiqueta neutra reutilizável */
@@ -229,7 +254,7 @@ html:not(.dark) .on-dark .btn-ghost:hover {
     @apply inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-0.5 text-xs font-medium text-gray-300;
   }
   html:not(.dark) .chip {
-    @apply border-gray-200 bg-gray-50 text-gray-600;
+    @apply border-gray-300 bg-gray-100 text-gray-700;
   }
 
   /* Divisória sutil */

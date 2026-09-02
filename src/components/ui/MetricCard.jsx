@@ -34,7 +34,11 @@ export default function MetricCard({ icon: Icon, label, value, delta, deltaPosit
               {delta}
             </span>
           )}
-          {hint && <span className="muted">{hint}</span>}
+          {/* O texto de apoio às vezes é uma URL de fonte ou um rótulo longo, e o
+              cartão vive numa grade de duas colunas em telas estreitas: sem
+              `min-w-0` + `truncate` ele empurra a página inteira para a direita.
+              O `title` preserva o valor completo para quem precisar. */}
+          {hint && <span className="min-w-0 truncate muted" title={String(hint)}>{hint}</span>}
         </div>
       )}
     </div>

@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { all, get, run } from '../db/index.js'
 import { METODO_RELEVANCIA } from '../lib/relevance.js'
 import { avaliarRelevancia, classificar } from '../lib/relevance.js'
+import { UFS, REGIOES_ESTRATEGICAS, detectarLugares } from '../lib/geo.js'
 
 const router = Router()
 
@@ -175,6 +176,62 @@ router.get('/news/stats', (req, res) => {
       coletados: get(`SELECT COUNT(*) AS n FROM articles WHERE published_at >= ${corte}`)?.n ?? 0,
       aprovados: get(`SELECT COUNT(*) AS n FROM articles WHERE relevant = 1 AND published_at >= ${corte}`)?.n ?? 0,
     },
+  })
+})
+
+// GET /api/news/geo — a que lugares do Brasil o acervo se refere
+//
+// Conta MENÇÕES, e a resposta diz isso explicitamente. Um mapa de calor que
+// não declara o que mede vira um mapa de perigo na cabeca de quem olha: uma
+// notícia de orçamento citando Brasília pesaria igual a uma operação de
+// fronteira citando Roraima.
+router.get('/news/geo', (req, res) => {
+  const days = parseInt(req.query.days, 10) || 90
+  const artigos = all(
+    `SELECT id, title, summary, category, urgency, published_at, url
+     FROM articles
+     WHERE relevant = 1 AND published_at >= strftime('%Y-%m-%dT%H:%M:%SZ','now', '-${days} days')`
+  )
+
+  const porUf = Object.fromEntries(UFS.map((u) => [u.uf, { ...u, total: 0, exemplos: [] }]))
+  const porRegiao = Object.fromEntries(
+    REGIOES_ESTRATEGICAS.map((r) => [r.id, { id: r.id, nome: r.nome, ufs: r.ufs, total: 0, exemplos: [] }])
+  )
+  let semLugar = 0
+
+  for (const a of artigos) {
+    const { ufs, regioes } = detectarLugares(`${a.title} ${a.summary || ''}`)
+    if (!ufs.length && !regioes.length) { semLugar += 1; continue }
+
+    for (const uf of ufs) {
+      porUf[uf].total += 1
+      if (porUf[uf].exemplos.length < 4) {
+        porUf[uf].exemplos.push({ id: a.id, title: a.title, urgency: a.urgency, date: a.published_at, url: a.url })
+      }
+    }
+    for (const r of regioes) {
+      porRegiao[r].total += 1
+      if (porRegiao[r].exemplos.length < 4) {
+        porRegiao[r].exemplos.push({ id: a.id, title: a.title, urgency: a.urgency, date: a.published_at, url: a.url })
+      }
+    }
+  }
+
+  const ufs = Object.values(porUf)
+  const maximo = Math.max(...ufs.map((u) => u.total), 0)
+
+  res.json({
+    periodDays: days,
+    ufs,
+    regioes: Object.values(porRegiao).sort((a, b) => b.total - a.total),
+    maximo,
+    totalAnalisado: artigos.length,
+    semLugarIdentificado: semLugar,
+    // A ressalva viaja com o dado: quem consumir esta rota fora da interface
+    // recebe a mesma advertência que a tela exibe.
+    nota: 'Contagem de MENÇÕES a unidades da federação no texto das notícias. Não mede atividade, '
+      + 'risco ou tensão — mede cobertura jornalística. Nomes ambíguos ("Amazonas" é estado e rio) '
+      + 'geram ruído conhecido e não corrigido.',
   })
 })
 

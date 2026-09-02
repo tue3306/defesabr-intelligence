@@ -1,107 +1,60 @@
-import { useState } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
-import {
-  ShieldAlert, Home, Search, LayoutDashboard, Newspaper, ClipboardList,
-  ShieldCheck, Layers, GraduationCap, Sparkles, ArrowRight,
-} from 'lucide-react'
-import { useProfile, useProfileMeta } from '../auth/useCan'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Compass, ArrowLeft, Home, Newspaper, Activity } from 'lucide-react'
 
-// Atalhos por perfil — quem se perdeu deve ser devolvido à SUA casa, não a uma
-// página genérica. Cada perfil tem um conjunto próprio de destinos úteis.
-const SHORTCUTS = {
-  visitor: [
-    { to: '/', icon: Home, label: 'Início', hint: 'Conheça a plataforma' },
-    { to: '/aprender', icon: GraduationCap, label: 'Centro Educacional', hint: 'Trilhas e glossário' },
-    { to: '/planos', icon: Sparkles, label: 'Planos', hint: 'Compare os níveis de acesso' },
-  ],
-  user: [
-    { to: '/painel', icon: LayoutDashboard, label: 'Painel', hint: 'Situação do dia' },
-    { to: '/clipping', icon: Newspaper, label: 'Clipping Diário', hint: 'Últimas 24 horas' },
-    { to: '/dossies', icon: Layers, label: 'Dossiês', hint: 'Análises aprofundadas' },
-  ],
-  analyst: [
-    { to: '/mesa', icon: ClipboardList, label: 'Mesa de trabalho', hint: 'Fila, RFIs e coleta' },
-    { to: '/painel', icon: LayoutDashboard, label: 'Painel', hint: 'Mesa de situação' },
-    { to: '/clipping', icon: Newspaper, label: 'Clipping Diário', hint: 'Produzir a edição do dia' },
-  ],
-  admin: [
-    { to: '/admin', icon: ShieldCheck, label: 'Console de Governança', hint: 'Contas, fontes e auditoria' },
-    { to: '/painel', icon: LayoutDashboard, label: 'Painel', hint: 'Saúde da plataforma' },
-    { to: '/configuracoes', icon: ShieldAlert, label: 'Configurações', hint: 'Sistema e integrações' },
-  ],
+// A versão anterior tinha mais páginas. Um link antigo que caia aqui merece
+// saber o que aconteceu, não só um "404" seco — e a explicação é a mesma que a
+// plataforma dá em toda parte: o que dependia de análise humana ou de IA foi
+// removido em vez de mantido com conteúdo de exemplo.
+const REMOVIDAS = {
+  '/dossies': 'Dossiês exigiam contas e redação de analista — fora do escopo desta etapa.',
+  '/riscos': 'A matriz de riscos exigia avaliação humana; sem autoria registrada, não existe.',
+  '/narrativas': 'O monitor de narrativas exigia classificação por analista.',
+  '/analise': 'A análise semanal exigia um modelo de linguagem.',
+  '/mesa': 'A mesa de trabalho exigia contas de usuário.',
+  '/relatorios': 'A composição de relatórios dependia de conteúdo analítico que não existe mais.',
+  '/conta': 'Não há contas nesta versão: a plataforma é aberta.',
+  '/configuracoes': 'A única preferência que restou — o tema — fica na própria barra superior.',
+  '/notificacoes': 'As notificações dependiam de contas de usuário.',
+  '/amazonia-azul': 'A página era conteúdo curado apresentado como inteligência. O tema aparece agora no mapa de cobertura e no clipping, com notícia real.',
+  '/fronteiras': 'A página era conteúdo curado. O tema aparece agora no mapa de cobertura, derivado das notícias coletadas.',
+  '/industria': 'A página era conteúdo curado. Notícias de indústria de defesa aparecem no clipping, na categoria Indústria.',
+  '/programas': 'A página era conteúdo curado sobre programas estratégicos, sem fonte que o sustentasse.',
+  '/calendario': 'A agenda exigia uma fonte confiável de eventos, que não existe entre as fontes públicas usadas.',
 }
 
 export default function NotFound() {
-  const navigate = useNavigate()
   const { pathname } = useLocation()
-  const profile = useProfile()
-  const profileMeta = useProfileMeta()
-  const [query, setQuery] = useState('')
-
-  const shortcuts = SHORTCUTS[profile] || SHORTCUTS.visitor
-
-  const search = (e) => {
-    e.preventDefault()
-    const q = query.trim()
-    navigate(q ? `/busca?q=${encodeURIComponent(q)}` : '/busca')
-  }
+  const navegar = useNavigate()
+  const explicacao = REMOVIDAS[pathname]
 
   return (
-    <div className="mx-auto flex min-h-[70vh] max-w-2xl flex-col items-center justify-center py-10 text-center">
-      <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-400">
-        <ShieldAlert size={32} />
-      </span>
-      <h1 className="mt-5 text-5xl font-extrabold tracking-tight">404</h1>
-      <p className="mt-2 text-lg font-semibold">Esta rota não existe nesta zona de operações.</p>
-      <p className="mt-1 max-w-md text-sm muted">
-        O endereço <code className="font-mono text-gold-600 dark:text-gold-400">{pathname}</code> não
-        corresponde a nenhum módulo da plataforma. Talvez o link esteja desatualizado.
+    <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
+      <Compass size={44} className="text-gold-500" />
+      <h1 className="mt-4 text-2xl font-extrabold tracking-tight">
+        {explicacao ? 'Esta página não existe mais' : 'Página não encontrada'}
+      </h1>
+
+      <p className="mt-2 max-w-lg text-sm leading-relaxed muted">
+        {explicacao || 'O endereço acessado não corresponde a nenhuma tela desta versão.'}
       </p>
 
-      {/* Busca no acervo — a saída mais provável de quem procurava um conteúdo */}
-      <form onSubmit={search} className="mt-6 flex w-full max-w-md gap-2">
-        <label htmlFor="busca-404" className="sr-only">Buscar no acervo</label>
-        <div className="relative flex-1">
-          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            id="busca-404"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Procurar em todos os módulos (ex.: PROSUB, fronteira)…"
-            className="input pl-9"
-          />
-        </div>
-        <button type="submit" className="btn-primary shrink-0">Buscar</button>
-      </form>
+      <code className="mt-3 rounded bg-white/10 px-2 py-1 font-mono text-xs muted">{pathname}</code>
 
-      {/* Atalhos do perfil ativo */}
-      <div className="mt-8 w-full">
-        <p className="mb-3 text-xs font-bold uppercase tracking-wider muted">
-          Atalhos para o perfil {profileMeta.label}
+      {explicacao && (
+        <p className="mt-4 max-w-lg text-xs leading-relaxed muted">
+          O painel de status lista, com a mesma seriedade, o que existe e o que não existe nesta
+          instalação.
         </p>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          {shortcuts.map(({ to, icon: Icon, label, hint }) => (
-            <Link
-              key={to}
-              to={to}
-              className="card flex flex-col items-center gap-1.5 p-4 text-center transition-colors hover:border-gold-500/40"
-            >
-              <span
-                className="flex h-9 w-9 items-center justify-center rounded-lg"
-                style={{ background: `${profileMeta.color}22`, color: profileMeta.color }}
-              >
-                <Icon size={17} />
-              </span>
-              <span className="text-sm font-semibold">{label}</span>
-              <span className="text-[11px] muted">{hint}</span>
-            </Link>
-          ))}
-        </div>
-      </div>
+      )}
 
-      <Link to="/" className="btn-ghost mt-6">
-        <Home size={16} /> Voltar ao início <ArrowRight size={14} />
-      </Link>
+      <div className="mt-6 flex flex-wrap justify-center gap-2">
+        <button onClick={() => navegar(-1)} className="btn-ghost text-sm">
+          <ArrowLeft size={15} /> Voltar
+        </button>
+        <Link to="/" className="btn-primary text-sm"><Home size={15} /> Início</Link>
+        <Link to="/clipping" className="btn-ghost text-sm"><Newspaper size={15} /> Clipping</Link>
+        <Link to="/status" className="btn-ghost text-sm"><Activity size={15} /> Status</Link>
+      </div>
     </div>
   )
 }

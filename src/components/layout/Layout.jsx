@@ -3,79 +3,62 @@ import { Outlet } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import Navbar from './Navbar'
 import Footer from './Footer'
-import Ticker from './Ticker'
-import StatusFAB from './StatusFAB'
-import OnboardingModal from '../ui/OnboardingModal'
 import CommandPalette from '../ui/CommandPalette'
-import AnalystAssistant from '../ui/AnalystAssistant'
 import ErrorBoundary from '../system/ErrorBoundary'
-import { useLiveNotifications } from '../../hooks/useLiveNotifications'
 
-const COLLAPSE_KEY = 'defesabr-sidebar-collapsed'
+const CHAVE_RECOLHIDO = 'defesabr-sidebar-collapsed'
 
 export default function Layout() {
-  const [mobileOpen, setMobileOpen] = useState(false)
-  // A preferência de menu recolhido acompanha a pessoa entre sessões.
-  const [collapsed, setCollapsed] = useState(() => {
-    try {
-      return localStorage.getItem(COLLAPSE_KEY) === '1'
-    } catch {
-      return false
-    }
+  const [menuMovel, setMenuMovel] = useState(false)
+  const [recolhido, setRecolhido] = useState(() => {
+    try { return localStorage.getItem(CHAVE_RECOLHIDO) === '1' } catch { return false }
   })
-  useLiveNotifications()
 
-  const toggleCollapse = useCallback(() => {
-    setCollapsed((c) => {
-      const next = !c
-      try { localStorage.setItem(COLLAPSE_KEY, next ? '1' : '0') } catch { /* modo privado */ }
-      return next
+  const alternarRecolhido = useCallback(() => {
+    setRecolhido((c) => {
+      const proximo = !c
+      try { localStorage.setItem(CHAVE_RECOLHIDO, proximo ? '1' : '0') } catch { /* modo privado */ }
+      return proximo
     })
   }, [])
 
-  // Fecha o menu móvel ao passar para desktop (evita overlay preso).
+  // Fecha o menu móvel ao passar para desktop — sem isto o overlay fica preso
+  // sobre a página inteira quando alguém redimensiona a janela.
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 1024px)')
-    const onChange = (e) => e.matches && setMobileOpen(false)
-    mq.addEventListener('change', onChange)
-    return () => mq.removeEventListener('change', onChange)
+    const aoMudar = (e) => e.matches && setMenuMovel(false)
+    mq.addEventListener('change', aoMudar)
+    return () => mq.removeEventListener('change', aoMudar)
   }, [])
 
-  // Trava a rolagem do corpo enquanto o menu móvel estiver aberto.
   useEffect(() => {
-    document.body.style.overflow = mobileOpen ? 'hidden' : ''
+    document.body.style.overflow = menuMovel ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
-  }, [mobileOpen])
+  }, [menuMovel])
 
   return (
     <div className="min-h-screen">
       <a href="#conteudo" className="skip-link">Pular para o conteúdo</a>
 
       <ErrorBoundary scope="Menu lateral" variant="inline">
-        <Sidebar open={mobileOpen} onClose={() => setMobileOpen(false)} collapsed={collapsed} />
+        <Sidebar open={menuMovel} onClose={() => setMenuMovel(false)} collapsed={recolhido} />
       </ErrorBoundary>
 
-      <div className={`transition-all duration-300 ${collapsed ? 'lg:pl-[72px]' : 'lg:pl-64'}`}>
+      <div className={`transition-all duration-300 ${recolhido ? 'lg:pl-[72px]' : 'lg:pl-64'}`}>
         <ErrorBoundary scope="Barra superior" variant="inline">
           <Navbar
-            onToggleMobile={() => setMobileOpen((o) => !o)}
-            onToggleCollapse={toggleCollapse}
-            collapsed={collapsed}
+            onMenu={() => setMenuMovel((o) => !o)}
+            onToggleCollapse={alternarRecolhido}
+            collapsed={recolhido}
           />
         </ErrorBoundary>
         <div className="tricolor-bar" />
-        <ErrorBoundary scope="Faixa de indicadores" variant="inline" fallback={null}>
-          <Ticker />
-        </ErrorBoundary>
         <main id="conteudo" className="mx-auto min-h-[calc(100vh-8rem)] max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
           <Outlet />
         </main>
         <Footer />
       </div>
 
-      <StatusFAB />
-      <AnalystAssistant />
-      <OnboardingModal />
       <CommandPalette />
     </div>
   )

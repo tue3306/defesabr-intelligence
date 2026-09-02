@@ -1,0 +1,5 @@
+# O servidor usa `node:sqlite`, que só existe a partir do Node 22.5. Sem fixar
+# a versão aqui, o Nixpacks escolhe a LTS do momento e o deploy falha na
+# primeira linha do servidor com "Cannot find module 'node:sqlite'".
+[phases.setup]
+nixPkgs = ["nodejs_22"]
