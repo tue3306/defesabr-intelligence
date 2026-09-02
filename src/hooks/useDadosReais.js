@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { apiOnline, viaPonte } from '../services/apiBridge'
 import {
   militarySpendingBR, southAmericaSpending, militaryPctGdpComparison,
-  categoryRadar, alertIndex, activeRegions,
+  categoryRadar, alertIndex, activeRegions, globalSpendingTreemap,
 } from '../data/mockData'
 
 // -----------------------------------------------------------------------------
@@ -120,6 +120,35 @@ export const useComparacaoSulAmericana = () => useComparacaoPIB('vizinhanca')
 const ISO3_PARA_ISO2 = {
   BRA: 'BR', ARG: 'AR', CHL: 'CL', COL: 'CO', PER: 'PE',
   URY: 'UY', BOL: 'BO', ECU: 'EC', PRY: 'PY', VEN: 'VE',
+}
+
+/**
+ * Gasto militar ABSOLUTO por país (US$ bi) — o treemap.
+ *
+ * Mesmo endpoint da comparação, outro indicador: `MS.MIL.XPND.CD` em vez do
+ * percentual do PIB. O coletor já guardava os dois para os treze países; era
+ * só pedir.
+ *
+ * Os dois gráficos juntos contam a história que nenhum conta sozinho: o Brasil
+ * gasta pouco como fatia do PIB (0,97%) E pouco em termos absolutos (US$ 21 bi
+ * contra US$ 997 bi dos EUA). Um país pode ter percentual baixo e gasto enorme
+ * — é o caso da China.
+ */
+export function useGastoGlobal() {
+  const { dados, aoVivo, carregando } = useDaApi(async () => {
+    const d = await viaPonte('GET /economy/comparison', { code: 'MS.MIL.XPND.CD' })
+    const itens = (d?.items || [])
+      .filter((i) => i.value != null)
+      .map((i) => ({
+        name: i.country,
+        value: Math.round((i.value / 1e9) * 10) / 10,
+        period: i.period,
+      }))
+      .sort((a, b) => b.value - a.value)
+    return itens.length > 1 ? itens : null
+  })
+
+  return { data: dados || globalSpendingTreemap, aoVivo, carregando }
 }
 
 /**

@@ -23,7 +23,7 @@ import GaugeChart from '../components/charts/GaugeChart'
 import GlobalHeatmap from '../components/charts/GlobalHeatmap'
 import { useNewsVolume } from '../hooks/useNewsVolume'
 import {
-  useGastoMilitar, useComparacaoPIB, useRadarCategorias,
+  useGastoMilitar, useComparacaoPIB, useGastoGlobal, useRadarCategorias,
   useIndiceDeAlerta, useRegioesEstrategicas,
 } from '../hooks/useDadosReais'
 import { useResource } from '../hooks/useResource'
@@ -232,6 +232,7 @@ export default function DataCharts() {
   const gasto = useGastoMilitar()
   const comparacao = useComparacaoPIB('vizinhanca')
   const potencias = useComparacaoPIB('potencias')
+  const gastoGlobal = useGastoGlobal()
   const radar = useRadarCategorias(30)
   const alerta = useIndiceDeAlerta(7)
   const regioes = useRegioesEstrategicas(180)
@@ -247,10 +248,10 @@ export default function DataCharts() {
         .map((c) => ({
           pais: c.country,
           pctPib: c.pctGdp,
-          gastoUSDbi: globalSpendingTreemap.find((g) => g.name === c.country)?.value ?? 0,
+          gastoUSDbi: gastoGlobal.data.find((g) => g.name === c.country)?.value ?? 0,
         }))
         .sort((a, b) => b.gastoUSDbi - a.gastoUSDbi),
-    [potencias.data]
+    [potencias.data, gastoGlobal.data]
   )
 
   const activityRows = useMemo(

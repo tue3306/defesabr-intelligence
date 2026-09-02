@@ -195,6 +195,8 @@ export const PONTES = new Map([
   }],
   ['GET /economy/comparison', {
     caminho: '/economy/comparison',
+    // `code` escolhe o indicador: percentual do PIB (padrão) ou gasto absoluto.
+    parametros: ({ code } = {}) => (code ? { code } : {}),
     transformar: (d) => d,
   }],
 

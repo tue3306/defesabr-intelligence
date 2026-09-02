@@ -15,7 +15,8 @@ import {
 } from '../data/mockData'
 import { useNewsVolume } from '../hooks/useNewsVolume'
 import {
-  useGastoMilitar, useComparacaoSulAmericana, useRadarCategorias, useIndiceDeAlerta,
+  useGastoMilitar, useComparacaoSulAmericana, useGastoGlobal,
+  useRadarCategorias, useIndiceDeAlerta,
 } from '../hooks/useDadosReais'
 import { useTensionStore, tensionBand } from '../store/tensionStore'
 import { riskMatrix, RISK_SEVERITY } from '../data/riskMatrix'
@@ -164,6 +165,20 @@ function GastoSlide({ height }) {
   )
 }
 
+function GlobalSlide({ height }) {
+  const g = useGastoGlobal()
+  return (
+    <div className="flex h-full flex-col">
+      <BrazilDefenseBudget data={g.data} height={height} />
+      <p className="mt-2 text-center text-[11px] muted">
+        {g.aoVivo
+          ? `World Bank Open Data · ${g.data[0]?.period || ''} — gasto militar em US$ bilhões.`
+          : 'Série de demonstração — servidor indisponível.'}
+      </p>
+    </div>
+  )
+}
+
 function ComparacaoSlide({ height }) {
   const c = useComparacaoSulAmericana()
   return (
@@ -212,7 +227,7 @@ const SLIDES = [
   { title: 'Riscos estratégicos de maior severidade', icon: ShieldAlert, render: () => <RisksSlide /> },
   { title: 'Programas estratégicos — avanço', icon: Target, render: () => <ProgramsSlide /> },
   { title: 'Gastos militares — Brasil', render: (h) => <GastoSlide height={h} /> },
-  { title: 'Gastos militares globais (US$ bi)', render: (h) => <BrazilDefenseBudget data={globalSpendingTreemap} height={h} /> },
+  { title: 'Gastos militares globais (US$ bi)', render: (h) => <GlobalSlide height={h} /> },
   { title: 'América do Sul — % do PIB em defesa', render: (h) => <ComparacaoSlide height={h} /> },
   { title: 'Volume de notícias — 14 dias', render: (h) => <VolumeSlide height={h} /> },
   { title: 'Volume por categoria — 30 dias', render: (h) => <RadarSlide height={h} /> },
