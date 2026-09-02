@@ -5,8 +5,6 @@ import { fetchLastExchange } from '../../api/awesomeapi'
 import { alertMeta } from '../../utils/textUtils'
 import { useNewsStore } from '../../store/newsStore'
 import { useTensionStore, tensionBand } from '../../store/tensionStore'
-import { riskSummary } from '../../data/riskMatrix'
-import { programsSummary } from '../../data/strategicPrograms'
 
 // -----------------------------------------------------------------------------
 // FAIXA DE INDICADORES — leitura rápida do estado do produto.
@@ -49,15 +47,12 @@ export default function Ticker() {
       ? Math.round(regions.reduce((acc, r) => acc + (r.level || 0), 0) / regions.length)
       : 0
     const band = tensionBand(avgTension)
-    const criticalRisks = (riskSummary.bySeverity?.critico || 0) + (riskSummary.bySeverity?.alto || 0)
 
     return [
       { icon: TrendingUp, label: 'USD/BRL', value: rates.usd ? `R$ ${rates.usd}` : '—' },
       { icon: TrendingUp, label: 'EUR/BRL', value: rates.eur ? `R$ ${rates.eur}` : '—' },
       { icon: Activity, label: 'Nível de alerta', value: `${alert.label} · ${alert.value}/100`, to: '/painel' },
       { icon: AlertTriangle, label: 'Tensão média regional', value: `${band.label} · ${avgTension}/100`, to: '/painel' },
-      { icon: ShieldAlert, label: 'Riscos alto/crítico', value: `${criticalRisks} de ${riskSummary.total}`, to: '/riscos' },
-      { icon: Target, label: 'Programas em execução', value: `${programsSummary.emExecucao}/${programsSummary.total}`, to: '/programas' },
       { icon: Activity, label: 'Última ocorrência', value: latest || 'Monitoramento em curso' },
     ]
   }, [rates, latest, latestClipping, regions])

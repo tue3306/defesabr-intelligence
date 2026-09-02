@@ -22,7 +22,6 @@ const Landing = lazy(() => import('./pages/Landing'))
 const Home = lazy(() => import('./pages/Home'))
 const Plans = lazy(() => import('./pages/Plans'))
 const DailyClipping = lazy(() => import('./pages/DailyClipping'))
-const WeeklyAnalysis = lazy(() => import('./pages/WeeklyAnalysis'))
 const DataCharts = lazy(() => import('./pages/DataCharts'))
 const Economy = lazy(() => import('./pages/Economy'))
 const Archive = lazy(() => import('./pages/Archive'))
@@ -35,21 +34,11 @@ const Learn = lazy(() => import('./pages/Learn'))
 const Account = lazy(() => import('./pages/Account'))
 const Search = lazy(() => import('./pages/Search'))
 // Brasil Estratégico
-const StrategicPrograms = lazy(() => import('./pages/StrategicPrograms'))
-const BlueAmazon = lazy(() => import('./pages/BlueAmazon'))
-const Borders = lazy(() => import('./pages/Borders'))
-const MilitaryBalance = lazy(() => import('./pages/MilitaryBalance'))
 const DefenseIndustry = lazy(() => import('./pages/DefenseIndustry'))
 // Inteligência & Análise
-const Dossiers = lazy(() => import('./pages/Dossiers'))
 const Legislative = lazy(() => import('./pages/Legislative'))
-const Narratives = lazy(() => import('./pages/Narratives'))
-const StrategicCalendar = lazy(() => import('./pages/Calendar'))
 const SourceReliability = lazy(() => import('./pages/SourceReliability'))
-const RiskMatrix = lazy(() => import('./pages/RiskMatrix'))
-const Reports = lazy(() => import('./pages/Reports'))
 // Mesa de trabalho (perfil Analista)
-const Workbench = lazy(() => import('./pages/Workbench'))
 // Console de governança (perfil Administrador)
 const AdminConsole = lazy(() => import('./pages/AdminConsole'))
 
@@ -116,7 +105,6 @@ export default function App() {
           <Route path="/painel" element={<Guarded scope="Painel"><Home /></Guarded>} />
           <Route path="/busca" element={<Guarded scope="Busca global"><Search /></Guarded>} />
           <Route path="/clipping" element={<Guarded scope="Clipping Diário"><DailyClipping /></Guarded>} />
-          <Route path="/analise" element={<Guarded scope="Análise Semanal"><WeeklyAnalysis /></Guarded>} />
           <Route path="/dados" element={<Guarded scope="Dados & Gráficos"><DataCharts /></Guarded>} />
           <Route path="/economia" element={<Guarded scope="Economia & Defesa"><Economy /></Guarded>} />
           <Route path="/arquivo" element={<Guarded scope="Arquivo & Pasta"><Archive /></Guarded>} />
@@ -125,41 +113,19 @@ export default function App() {
           <Route path="/configuracoes" element={<Guarded scope="Configurações"><Settings /></Guarded>} />
 
           {/* ── Brasil Estratégico ── */}
-          <Route path="/programas" element={<Guarded scope="Programas Estratégicos"><StrategicPrograms /></Guarded>} />
-          <Route path="/amazonia-azul" element={<Guarded scope="Amazônia Azul"><BlueAmazon /></Guarded>} />
-          <Route path="/fronteiras" element={<Guarded scope="Fronteiras & Amazônia"><Borders /></Guarded>} />
-          <Route path="/balanca-militar" element={<Guarded scope="Balança Militar"><MilitaryBalance /></Guarded>} />
           <Route path="/industria" element={<Guarded scope="Base Industrial"><DefenseIndustry /></Guarded>} />
 
           {/* ── Inteligência & Análise ── */}
-          <Route path="/dossies" element={<Guarded scope="Dossiês"><Dossiers /></Guarded>} />
-          <Route path="/calendario" element={<Guarded scope="Calendário Estratégico"><StrategicCalendar /></Guarded>} />
           <Route
             path="/legislativo"
             element={<Guarded capability="legislative.access" scope="Radar Legislativo"><Legislative /></Guarded>}
           />
           <Route
-            path="/riscos"
-            element={<Guarded capability="risk.access" scope="Matriz de Riscos"><RiskMatrix /></Guarded>}
-          />
-          <Route
-            path="/narrativas"
-            element={<Guarded capability="narratives.access" scope="Monitor de Narrativas"><Narratives /></Guarded>}
-          />
-          <Route
             path="/fontes"
             element={<Guarded capability="sources.reliability" scope="Confiabilidade das Fontes"><SourceReliability /></Guarded>}
           />
-          <Route
-            path="/relatorios"
-            element={<Guarded capability="reports.export" scope="Central de Relatórios"><Reports /></Guarded>}
-          />
 
           {/* ── ANALISTA — produção de inteligência ── */}
-          <Route
-            path="/mesa"
-            element={<Guarded capability="workbench.access" scope="Mesa do Analista"><Workbench /></Guarded>}
-          />
 
           {/* ── ADMINISTRADOR — governança ── */}
           <Route

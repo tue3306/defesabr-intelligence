@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { apiOnline, viaPonte } from '../services/apiBridge'
-import { newsVolume14d, newsCategoriesKeys } from '../data/mockData'
 
 // -----------------------------------------------------------------------------
 // VOLUME DE NOTÍCIAS POR DIA E CATEGORIA
@@ -16,9 +15,9 @@ import { newsVolume14d, newsCategoriesKeys } from '../data/mockData'
 //
 //   [{ date: '02/09', 'Forças Armadas': 3, Fronteiras: 1 }, …]
 //
-// Se a API estiver fora, devolve a série local e diz isso em `aoVivo`, para a
-// tela poder marcar o selo corretamente em vez de apresentar demonstração como
-// dado coletado.
+// Se a API estiver fora, devolve série VAZIA e `aoVivo` falso. Um gráfico de
+// barras gerado por Math.random() era o que estava aqui antes — e ele não
+// parecia falso, parecia atividade.
 // -----------------------------------------------------------------------------
 
 /** Dia ISO (2026-09-02) → rótulo curto do eixo (02/09). */
@@ -28,9 +27,11 @@ function rotulo(iso) {
 }
 
 export function useNewsVolume(dias = 14) {
+  // Sem reserva inventada: se o servidor não responde, a série fica vazia e o
+  // gráfico mostra ausência de dado em vez de um desenho plausível.
   const [estado, setEstado] = useState({
-    data: newsVolume14d,
-    keys: newsCategoriesKeys,
+    data: [],
+    keys: [],
     aoVivo: false,
     carregando: true,
   })

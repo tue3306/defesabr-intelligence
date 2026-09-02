@@ -18,8 +18,6 @@ import InfoTooltip from '../components/ui/InfoTooltip'
 import Can from '../auth/Can'
 import { useNewsStore } from '../store/newsStore'
 import { CATEGORIES, ALERT_LEVELS } from '../data/mockData'
-import { reportHistory } from '../data/reports'
-import { reportTemplates } from '../data/reports'
 import { categoryColor, alertMeta } from '../utils/textUtils'
 import { formatDateBR, formatDateTimeBR } from '../utils/dateUtils'
 import { exportClippingToPDF } from '../utils/exportUtils'
@@ -150,7 +148,6 @@ export default function Archive() {
         <div className="flex gap-2 overflow-x-auto border-b border-gray-200 dark:border-white/10" role="tablist">
           <TabBtn active={tab === 'clippings'} onClick={() => setTab('clippings')} icon={Newspaper} label="Clippings arquivados" count={clippings.length} />
           <TabBtn active={tab === 'pasta'} onClick={() => setTab('pasta')} icon={Star} label="Minha Pasta" count={favorites.length} />
-          <TabBtn active={tab === 'relatorios'} onClick={() => setTab('relatorios')} icon={FileText} label="Meus relatórios" count={reportHistory.length} />
         </div>
       </PageHeader>
 
@@ -377,60 +374,6 @@ export default function Archive() {
       )}
 
       {/* ───────────── MEUS RELATÓRIOS ───────────── */}
-      {tab === 'relatorios' && (
-        <Can
-          do="reports.export"
-          fallback={
-            <EmptyState
-              icon={Lock}
-              tone="locked"
-              title="Relatórios no plano Profissional"
-              hint="Emita briefings executivos, avaliações de risco e boletins temáticos em PDF, CSV ou JSON — e acompanhe aqui o histórico de tudo o que foi gerado."
-              action={{ label: 'Ver planos', to: '/planos' }}
-            />
-          }
-        >
-          <div className="space-y-4">
-            <div className="card flex flex-wrap items-center justify-between gap-3 p-4">
-              <p className="flex items-center gap-2 text-sm">
-                <FileText size={16} className="text-brand-400 dark:text-brand-300" />
-                <span className="font-semibold">{reportHistory.length}</span> relatório(s) emitido(s) pela equipe
-              </p>
-              <Link to="/relatorios" className="btn-primary px-3 py-1.5 text-xs">
-                Emitir novo relatório
-              </Link>
-            </div>
-
-            <div className="card overflow-x-auto p-5">
-              <table className="w-full min-w-[620px] text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200 text-left text-xs uppercase muted dark:border-white/10">
-                    <th scope="col" className="py-2 pr-4 font-semibold">Relatório</th>
-                    <th scope="col" className="py-2 pr-4 font-semibold">Formato</th>
-                    <th scope="col" className="py-2 pr-4 font-semibold">Autor</th>
-                    <th scope="col" className="py-2 font-semibold">Emitido em</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reportHistory.map((r) => (
-                    <tr key={r.id} className="border-b border-gray-100 dark:border-white/[0.06]">
-                      <td className="py-2.5 pr-4">
-                        <span className="block font-medium">{r.name}</span>
-                        <span className="text-xs muted">
-                          {reportTemplates.find((t) => t.id === r.template)?.name || r.template}
-                        </span>
-                      </td>
-                      <td className="py-2.5 pr-4"><span className="chip uppercase">{r.format}</span></td>
-                      <td className="py-2.5 pr-4 text-xs">{r.author}</td>
-                      <td className="py-2.5 font-mono text-xs muted">{formatDateTimeBR(r.createdAt)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </Can>
-      )}
 
       {/* MODAL DETALHE */}
       <Modal open={!!openItem} onClose={() => setOpenItem(null)} title={openItem?.title} maxWidth="max-w-3xl">

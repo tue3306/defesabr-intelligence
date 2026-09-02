@@ -19,8 +19,6 @@ import {
   useRadarCategorias, useIndiceDeAlerta,
 } from '../hooks/useDadosReais'
 import { useTensionStore, tensionBand } from '../store/tensionStore'
-import { riskMatrix, RISK_SEVERITY } from '../data/riskMatrix'
-import { strategicPrograms, programsSummary, PROGRAM_FORCES } from '../data/strategicPrograms'
 import { alertMeta } from '../utils/textUtils'
 import { formatTime, formatFullDate } from '../utils/dateUtils'
 
@@ -69,61 +67,7 @@ function TensionSlide() {
   )
 }
 
-function RisksSlide() {
-  const top = [...riskMatrix].sort((a, b) => b.score - a.score).slice(0, 5)
-  return (
-    <ul className="space-y-3 py-2 sm:space-y-4 sm:py-4">
-      {top.map((r) => {
-        const sev = RISK_SEVERITY[r.severity]
-        return (
-          <li key={r.id} className="flex items-center gap-3 sm:gap-5">
-            <span
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl font-mono text-lg font-extrabold sm:h-14 sm:w-14 sm:text-2xl"
-              style={{ background: `${sev.color}25`, color: sev.color }}
-            >
-              {r.score}
-            </span>
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-bold tracking-tight sm:text-lg">{r.title}</span>
-              <span className="block text-xs muted sm:text-sm">{sev.label} · {r.horizon}</span>
-            </span>
-          </li>
-        )
-      })}
-    </ul>
-  )
-}
 
-function ProgramsSlide() {
-  const top = [...strategicPrograms].sort((a, b) => b.progress - a.progress).slice(0, 6)
-  return (
-    <div className="py-2 sm:py-4">
-      <p className="mb-4 text-center text-sm muted sm:text-base">
-        {programsSummary.emExecucao} de {programsSummary.total} em execução ·
-        {' '}{programsSummary.progressoMedio}% de avanço médio
-      </p>
-      <ul className="space-y-3">
-        {top.map((prog) => {
-          const force = PROGRAM_FORCES[prog.force] || {}
-          return (
-            <li key={prog.id}>
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="truncate text-sm font-bold tracking-tight sm:text-lg">
-                  {prog.name}
-                  <span className="ml-2 text-xs font-normal muted">{force.label}</span>
-                </span>
-                <span className="shrink-0 font-mono text-sm font-extrabold tabular-nums sm:text-lg">{prog.progress}%</span>
-              </div>
-              <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-white/10">
-                <div className="h-full rounded-full" style={{ width: `${prog.progress}%`, background: force.color }} />
-              </div>
-            </li>
-          )
-        })}
-      </ul>
-    </div>
-  )
-}
 
 // O slide de volume precisa de hook, e o array de slides é de módulo — daí o
 // componente. Mostra a série REAL de notícias coletadas por dia e categoria; se
@@ -224,8 +168,6 @@ function AlertaSlide({ height }) {
 const SLIDES = [
   { title: 'Postura nacional do período', icon: Activity, render: () => <PostureSlide /> },
   { title: 'Nível de tensão por região', icon: Activity, render: () => <TensionSlide /> },
-  { title: 'Riscos estratégicos de maior severidade', icon: ShieldAlert, render: () => <RisksSlide /> },
-  { title: 'Programas estratégicos — avanço', icon: Target, render: () => <ProgramsSlide /> },
   { title: 'Gastos militares — Brasil', render: (h) => <GastoSlide height={h} /> },
   { title: 'Gastos militares globais (US$ bi)', render: (h) => <GlobalSlide height={h} /> },
   { title: 'América do Sul — % do PIB em defesa', render: (h) => <ComparacaoSlide height={h} /> },

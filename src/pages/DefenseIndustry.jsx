@@ -1,6 +1,5 @@
 import { Factory, Building2, Globe2, Package, ArrowRight, ShieldAlert, Download, ChevronRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { riskMatrix, RISK_SEVERITY } from '../data/riskMatrix'
 import Can from '../auth/Can'
 import { exportCSV } from '../utils/exportUtils'
 import toast from 'react-hot-toast'
@@ -128,7 +127,6 @@ export default function DefenseIndustry() {
       </section>
 
       {/* DEPENDÊNCIAS CRÍTICAS — o que limita a autonomia da BID */}
-      <DependenciesSection />
 
       {/* CTA */}
       <div className="card flex flex-col items-center gap-3 p-6 text-center sm:flex-row sm:justify-between sm:text-left">
@@ -153,61 +151,3 @@ export default function DefenseIndustry() {
 // importar para produzir. Este bloco liga a BID ao risco correspondente da
 // matriz — a mesma avaliação, lida a partir do ângulo industrial.
 // -----------------------------------------------------------------------------
-function DependenciesSection() {
-  const risk = riskMatrix.find((r) => r.id === 'risk-dependencia')
-  if (!risk) return null
-  const sev = RISK_SEVERITY[risk.severity] || {}
-
-  return (
-    <section className="card border-l-4 p-5" style={{ borderLeftColor: sev.color }}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="flex items-center gap-2 text-base font-bold tracking-tight">
-            <ShieldAlert size={18} style={{ color: sev.color }} /> Dependências críticas
-          </h2>
-          <p className="mt-0.5 text-sm muted">
-            O que a base industrial ainda não produz sozinha — e por que isso importa.
-          </p>
-        </div>
-        <span className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${sev.classes || ''}`}>
-          Risco {sev.label} · {risk.score}
-        </span>
-      </div>
-
-      <p className="mt-3 text-sm leading-relaxed text-gray-700 dark:text-gray-300">{risk.description}</p>
-
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div>
-          <p className="mb-2 text-xs font-bold uppercase tracking-wide muted">O que pressiona</p>
-          <ul className="space-y-1.5">
-            {risk.drivers.map((d) => (
-              <li key={d} className="flex gap-2 text-sm">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: sev.color }} />
-                <span className="text-gray-700 dark:text-gray-300">{d}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <p className="mb-2 text-xs font-bold uppercase tracking-wide muted">Caminhos de mitigação</p>
-          <ul className="space-y-1.5">
-            {risk.mitigations.map((mit) => (
-              <li key={mit} className="flex gap-2 text-sm">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-military-green" />
-                <span className="text-gray-700 dark:text-gray-300">{mit}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-
-      <p className="mt-4 rounded-lg bg-white/5 p-3 text-sm leading-relaxed text-gray-700 dark:text-gray-300">
-        <strong className="font-semibold">Impacto: </strong>{risk.impactBR}
-      </p>
-
-      <Link to="/riscos" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-brand-500 hover:text-brand-400 dark:text-brand-400">
-        Ver na matriz de riscos <ChevronRight size={15} />
-      </Link>
-    </section>
-  )
-}

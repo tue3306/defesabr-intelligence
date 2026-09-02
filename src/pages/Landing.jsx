@@ -26,8 +26,6 @@ import { LANDING_FEATURES, PLANS } from '../data/plansData'
 import { glossary } from '../data/learnData'
 import { USE_CASES, DEMO_STATS, STANDARDS, FAQ, ROADMAP } from '../data/landingExtra'
 import { mockWeeklyAnalysis, militarySpendingBR, newsVolume14d, newsCategoriesKeys, alertIndex } from '../data/mockData'
-import { programsSummary } from '../data/strategicPrograms'
-import { riskSummary } from '../data/riskMatrix'
 import { monitoredSources } from '../data/monitoredSources'
 import { alertMeta } from '../utils/textUtils'
 
@@ -303,18 +301,6 @@ export default function Landing() {
             value={alertMeta.ATENCAO.label}
             label="Nível de alerta do dia"
             hint={`${alerta.value}/100 na escala de postura`}
-          />
-          <PreviewStat
-            icon={Target}
-            value={`${programsSummary.emExecucao}/${programsSummary.total}`}
-            label="Programas em execução"
-            hint={`${programsSummary.progressoMedio}% de avanço médio`}
-          />
-          <PreviewStat
-            icon={ShieldAlert}
-            value={String(riskSummary.total)}
-            label="Riscos estratégicos mapeados"
-            hint={`${riskSummary.rising} em elevação`}
           />
           <PreviewStat
             icon={Database}

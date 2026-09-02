@@ -29,8 +29,6 @@ import { useTensionStore, tensionBand } from '../store/tensionStore'
 import {
   newsVolume14d, newsCategoriesKeys, militarySpendingBR, mockWeeklyAnalysis,
 } from '../data/mockData'
-import { strategicPrograms, programsSummary, PROGRAM_FORCES, PROGRAM_STATUS } from '../data/strategicPrograms'
-import { calendarEvents, CAL_TYPES } from '../data/strategicCalendar'
 import { brazilIndicators } from '../data/economyData'
 import { geocorrenteBulletins } from '../data/geocorrenteData'
 import { glossary } from '../data/learnData'
@@ -57,7 +55,6 @@ const bandAccent = (level) => {
 }
 
 // Programas em destaque: curadoria fixa das plataformas mais reconhecíveis.
-const FEATURED_PROGRAM_IDS = ['prosub', 'fx2', 'tamandare', 'sgdc']
 
 // Trilho de descoberta do plano Explorar — módulos abertos a todo assinante.
 const DISCOVERY_MODULES = [
@@ -116,11 +113,7 @@ export default function UserDashboard() {
       || 'Sem eventos de ruptura no período. Monitoramento em curso.'
     : 'Acompanhe as ocorrências de Segurança & Defesa do Brasil, explore o mapa de risco e conheça os programas estratégicos. As análises completas ficam no plano Profissional.'
 
-  const featuredPrograms = FEATURED_PROGRAM_IDS
-    .map((id) => strategicPrograms.find((p) => p.id === id))
-    .filter(Boolean)
 
-  const upcoming = nextEvents(full ? 5 : 4)
   const indicators = brazilIndicators.filter((i) => ['defesa', 'cambio', 'risco', 'selic'].includes(i.id))
   const geo = geocorrenteBulletins?.[0]
   const terms = glossary.slice(0, 3)
@@ -221,13 +214,6 @@ export default function UserDashboard() {
             accent={bandAccent(avgTension)}
           />
           <MetricCard
-            icon={Target}
-            label="Programas em execução"
-            value={`${programsSummary.emExecucao}/${programsSummary.total}`}
-            hint={`${programsSummary.progressoMedio}% de avanço médio`}
-            accent="green"
-          />
-          <MetricCard
             icon={Newspaper}
             label="Notícias monitoradas"
             value={loading ? '—' : String(news.length || feed.length || '—')}
@@ -303,48 +289,6 @@ export default function UserDashboard() {
           </Section>
 
           {/* Programas em foco — profundidade analítica */}
-          <Can do="analysis.full">
-            <Section className="card p-5">
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-                  <Target size={18} className="text-brand-400 dark:text-brand-300" /> Programas estratégicos em foco
-                </h2>
-                <Link to="/programas" className="inline-flex items-center gap-1 text-sm font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300">
-                  Todos <ChevronRight size={15} />
-                </Link>
-              </div>
-              <div className="space-y-3">
-                {featuredPrograms.map((p) => {
-                  const force = PROGRAM_FORCES[p.force] || {}
-                  const status = PROGRAM_STATUS[p.status] || {}
-                  return (
-                    <Link
-                      key={p.id}
-                      to="/programas"
-                      className="block rounded-lg border border-gray-200 p-3 transition-colors hover:border-gold-500/30 hover:bg-gray-50 dark:border-white/10 dark:hover:bg-white/[0.03]"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex min-w-0 items-center gap-2">
-                          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: force.color }} />
-                          <span className="truncate text-sm font-bold">{p.name}</span>
-                          <span className="hidden truncate text-xs muted sm:inline">· {force.label}</span>
-                        </div>
-                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${status.classes || ''}`}>
-                          {status.label}
-                        </span>
-                      </div>
-                      <div className="mt-2 flex items-center gap-3">
-                        <span className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-white/10">
-                          <span className="block h-full rounded-full" style={{ width: `${p.progress}%`, background: force.color }} />
-                        </span>
-                        <span className="w-10 shrink-0 text-right font-mono text-xs font-bold">{p.progress}%</span>
-                      </div>
-                    </Link>
-                  )
-                })}
-              </div>
-            </Section>
-          </Can>
 
           {/* Trilho de descoberta — ocupa o espaço da análise no plano Explorar */}
           <Can not do="analysis.full">
@@ -408,30 +352,6 @@ export default function UserDashboard() {
               </div>
             </Section>
           </Can>
-
-          {/* Próximos eventos do calendário estratégico */}
-          <Section className="card p-5">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="flex items-center gap-2 text-base font-bold tracking-tight">
-                <CalendarDays size={17} className="text-brand-400 dark:text-brand-300" /> Próximos eventos
-              </h2>
-              <Link to="/calendario" className="text-xs font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300">Agenda</Link>
-            </div>
-            <ul className="space-y-3">
-              {upcoming.map((e) => {
-                const meta = CAL_TYPES[e.type] || {}
-                return (
-                  <li key={e.id} className="flex gap-3">
-                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: meta.color }} />
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium leading-snug">{e.title}</p>
-                      <p className="text-xs muted">{formatDateBR(e.date)} · {e.scope}</p>
-                    </div>
-                  </li>
-                )
-              })}
-            </ul>
-          </Section>
 
           {/* Câmbio e indicadores — leitura econômica do plano pago */}
           <Can do="analysis.full">
@@ -656,13 +576,6 @@ export default function UserDashboard() {
   )
 }
 
-// Próximos eventos do calendário estratégico (a partir de hoje; sem sorteio).
-function nextEvents(limit) {
-  const today = new Date().toISOString().slice(0, 10)
-  const sorted = [...calendarEvents].sort((a, b) => a.date.localeCompare(b.date))
-  const future = sorted.filter((e) => e.date >= today)
-  return (future.length ? future : sorted).slice(0, limit)
-}
 
 function greetingByHour() {
   const h = new Date().getHours()

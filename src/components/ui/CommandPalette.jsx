@@ -46,28 +46,17 @@ export default function CommandPalette() {
 
       // Inteligência
       { id: 'clipping', group: 'Inteligência', label: 'Abrir Clipping Diário', icon: Newspaper, run: go('/clipping'), auth: true },
-      { id: 'analise', group: 'Inteligência', label: 'Abrir Análise Semanal', icon: BarChart3, run: go('/analise'), auth: true },
-      { id: 'dossies', group: 'Inteligência', label: 'Abrir Dossiês "Em Foco"', icon: Layers, run: go('/dossies'), auth: true },
-      { id: 'riscos', group: 'Inteligência', label: 'Abrir Matriz de Riscos', icon: ShieldAlert, run: go('/riscos'), auth: true, cap: 'risk.access' },
-      { id: 'narrativas', group: 'Inteligência', label: 'Abrir Monitor de Narrativas', icon: Radio, run: go('/narrativas'), auth: true, cap: 'narratives.access' },
-      { id: 'calendario', group: 'Inteligência', label: 'Abrir Calendário Estratégico', icon: CalendarDays, run: go('/calendario'), auth: true },
       { id: 'fontes', group: 'Inteligência', label: 'Abrir Confiabilidade das Fontes', icon: BadgeCheck, run: go('/fontes'), auth: true, cap: 'sources.reliability' },
       { id: 'arquivo', group: 'Inteligência', label: 'Abrir Arquivo & Pasta', icon: ArchiveIcon, run: go('/arquivo'), auth: true },
       { id: 'busca', group: 'Navegação', label: 'Abrir Busca global', icon: Search, run: go('/busca'), auth: true },
 
       // Brasil Estratégico
-      { id: 'programas', group: 'Brasil Estratégico', label: 'Abrir Programas Estratégicos', icon: Target, run: go('/programas'), auth: true },
-      { id: 'amazonia', group: 'Brasil Estratégico', label: 'Abrir Amazônia Azul', icon: Waves, run: go('/amazonia-azul'), auth: true },
-      { id: 'fronteiras', group: 'Brasil Estratégico', label: 'Abrir Fronteiras & Amazônia', icon: Shield, run: go('/fronteiras'), auth: true },
-      { id: 'balanca', group: 'Brasil Estratégico', label: 'Abrir Balança Militar', icon: Scale, run: go('/balanca-militar'), auth: true },
       { id: 'industria', group: 'Brasil Estratégico', label: 'Abrir Base Industrial (BID)', icon: Factory, run: go('/industria'), auth: true },
       { id: 'legislativo', group: 'Brasil Estratégico', label: 'Abrir Radar Legislativo', icon: Landmark, run: go('/legislativo'), auth: true, cap: 'legislative.access' },
       { id: 'dados', group: 'Brasil Estratégico', label: 'Abrir Dados & Gráficos', icon: LineChart, run: go('/dados'), auth: true },
       { id: 'economia', group: 'Brasil Estratégico', label: 'Abrir Economia & Defesa', icon: DollarSign, run: go('/economia'), auth: true },
 
       // Produção
-      { id: 'mesa', group: 'Produção', label: 'Abrir Mesa de trabalho', icon: ClipboardList, run: go('/mesa'), auth: true, cap: 'workbench.access' },
-      { id: 'relatorios', group: 'Produção', label: 'Abrir Central de Relatórios', icon: FileText, run: go('/relatorios'), auth: true, cap: 'reports.export' },
       { id: 'apresentacao', group: 'Produção', label: 'Iniciar modo apresentação', icon: Tv, run: go('/apresentacao'), auth: true, cap: 'presentation.mode' },
       { id: 'admin', group: 'Produção', label: 'Abrir Console de Governança', icon: ShieldCheck, run: go('/admin'), auth: true, cap: 'admin.access', hideWithout: true },
 

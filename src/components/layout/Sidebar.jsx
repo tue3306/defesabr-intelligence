@@ -36,11 +36,6 @@ const NAV_SECTIONS = [
     title: 'Inteligência & Análise',
     items: [
       { to: '/clipping', label: 'Clipping Diário', icon: Newspaper, requiresAuth: true },
-      { to: '/analise', label: 'Análise Semanal', icon: BarChart3, requiresAuth: true },
-      { to: '/dossies', label: 'Dossiês "Em Foco"', icon: Layers, requiresAuth: true },
-      { to: '/riscos', label: 'Matriz de Riscos', icon: ShieldAlert, requiresAuth: true, capability: 'risk.access' },
-      { to: '/narrativas', label: 'Monitor de Narrativas', icon: Radio, requiresAuth: true, capability: 'narratives.access' },
-      { to: '/calendario', label: 'Calendário Estratégico', icon: CalendarDays, requiresAuth: true },
       { to: '/fontes', label: 'Confiabilidade das Fontes', icon: BadgeCheck, requiresAuth: true, capability: 'sources.reliability' },
       { to: '/arquivo', label: 'Arquivo & Pasta', icon: Archive, requiresAuth: true },
     ],
@@ -48,10 +43,6 @@ const NAV_SECTIONS = [
   {
     title: 'Brasil Estratégico',
     items: [
-      { to: '/programas', label: 'Programas Estratégicos', icon: Target, requiresAuth: true },
-      { to: '/amazonia-azul', label: 'Amazônia Azul', icon: Waves, requiresAuth: true },
-      { to: '/fronteiras', label: 'Fronteiras & Amazônia', icon: Shield, requiresAuth: true },
-      { to: '/balanca-militar', label: 'Balança Militar', icon: Scale, requiresAuth: true },
       { to: '/industria', label: 'Base Industrial (BID)', icon: Factory, requiresAuth: true },
       { to: '/legislativo', label: 'Radar Legislativo', icon: Landmark, requiresAuth: true, capability: 'legislative.access' },
     ],
@@ -61,7 +52,6 @@ const NAV_SECTIONS = [
     items: [
       { to: '/dados', label: 'Dados & Gráficos', icon: LineChart, requiresAuth: true },
       { to: '/economia', label: 'Economia & Defesa', icon: DollarSign, requiresAuth: true },
-      { to: '/relatorios', label: 'Central de Relatórios', icon: FileText, requiresAuth: true, capability: 'reports.export' },
     ],
   },
   {
@@ -69,7 +59,6 @@ const NAV_SECTIONS = [
     title: 'Produção',
     sectionCapability: 'workbench.access',
     items: [
-      { to: '/mesa', label: 'Mesa de trabalho', icon: ClipboardList, requiresAuth: true, capability: 'workbench.access', hideWithout: true, badge: 'ANALISTA' },
     ],
   },
   {

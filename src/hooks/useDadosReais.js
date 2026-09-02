@@ -1,9 +1,6 @@
 import { useEffect, useState } from 'react'
 import { apiOnline, viaPonte } from '../services/apiBridge'
-import {
-  militarySpendingBR, southAmericaSpending, militaryPctGdpComparison,
-  categoryRadar, alertIndex, activeRegions, globalSpendingTreemap,
-} from '../data/mockData'
+
 
 // -----------------------------------------------------------------------------
 // SÉRIES REAIS PARA OS GRÁFICOS
@@ -18,8 +15,11 @@ import {
 // componente de gráfico já consome, e devolve `aoVivo` dizendo qual das duas
 // origens está em tela. Nenhum gráfico precisou ser reescrito.
 //
-// Quando a API está fora, cai no acervo local — a tela nunca quebra, e o selo
-// para de dizer "ao vivo".
+// Quando a API não responde, a série fica VAZIA e `aoVivo` fica falso. Não há
+// reserva inventada: um gráfico com número plausível no lugar de um número
+// medido é indistinguível do real para quem olha, e essa é exatamente a
+// confusão que este produto não pode produzir. Melhor um painel que diz
+// "sem dado" do que um que mente com elegância.
 // -----------------------------------------------------------------------------
 
 /** Executa `fn` uma vez, só se a API responder. Padrão comum aos hooks abaixo. */
@@ -80,7 +80,7 @@ export function useGastoMilitar() {
     return linhas.length ? linhas : null
   })
 
-  return { data: dados || militarySpendingBR, aoVivo, carregando }
+  return { data: dados || [], aoVivo, carregando }
 }
 
 /**
@@ -107,11 +107,7 @@ export function useComparacaoPIB(grupo = 'vizinhanca') {
     return itens.length > 1 ? itens : null
   }, [grupo])
 
-  return {
-    data: dados || (grupo === 'potencias' ? militaryPctGdpComparison : southAmericaSpending),
-    aoVivo,
-    carregando,
-  }
+  return { data: dados || [], aoVivo, carregando }
 }
 
 /** Atalho para o recorte da vizinhança, que é o uso mais comum. */
@@ -148,7 +144,7 @@ export function useGastoGlobal() {
     return itens.length > 1 ? itens : null
   })
 
-  return { data: dados || globalSpendingTreemap, aoVivo, carregando }
+  return { data: dados || [], aoVivo, carregando }
 }
 
 /**
@@ -177,7 +173,7 @@ export function useRadarCategorias(dias = 30) {
     }))
   }, [dias])
 
-  return { data: dados || categoryRadar, aoVivo, carregando }
+  return { data: dados || [], aoVivo, carregando }
 }
 
 /**
@@ -208,7 +204,7 @@ export function useRegioesEstrategicas(dias = 180) {
     }))
   }, [dias])
 
-  return { data: dados || activeRegions, aoVivo, carregando }
+  return { data: dados || [], aoVivo, carregando }
 }
 
 /**
@@ -227,7 +223,7 @@ export function useIndiceDeAlerta(dias = 7) {
   }, [dias])
 
   return {
-    value: dados?.score ?? alertIndex,
+    value: dados?.score ?? null,
     level: dados?.level ?? null,
     basis: dados?.basis ?? null,
     aoVivo,

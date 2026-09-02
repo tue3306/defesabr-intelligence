@@ -14,8 +14,6 @@ export { newsService } from './newsService'
 export { searchService } from './searchService'
 export { intelligenceService } from './intelligenceService'
 export { adminService } from './adminService'
-export { taskingService } from './taskingService'
-export { reportsService } from './reportsService'
 
 export { request, requestWithFallback, registerMock, listMockEndpoints, ApiError } from './client'
 export {

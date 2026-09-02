@@ -7,7 +7,6 @@ import Ticker from './Ticker'
 import StatusFAB from './StatusFAB'
 import OnboardingModal from '../ui/OnboardingModal'
 import CommandPalette from '../ui/CommandPalette'
-import AnalystAssistant from '../ui/AnalystAssistant'
 import ErrorBoundary from '../system/ErrorBoundary'
 import { useLiveNotifications } from '../../hooks/useLiveNotifications'
 
@@ -74,7 +73,6 @@ export default function Layout() {
       </div>
 
       <StatusFAB />
-      <AnalystAssistant />
       <OnboardingModal />
       <CommandPalette />
     </div>
