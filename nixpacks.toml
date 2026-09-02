@@ -1,5 +1,16 @@
-# O servidor usa `node:sqlite`, que só existe a partir do Node 22.5. Sem fixar
-# a versão aqui, o Nixpacks escolhe a LTS do momento e o deploy falha na
-# primeira linha do servidor com "Cannot find module 'node:sqlite'".
+# Versão do Node no deploy.
+#
+# O servidor usa o módulo nativo `node:sqlite` — é o que dispensa compilar
+# dependência nativa e faz `npm install` funcionar na primeira tentativa.
+#
+# Por que 24 e não 22: `node:sqlite` apareceu no 22.5, mas por boa parte da
+# linha 22.x só era acessível com a flag `--experimental-sqlite`. Fixar
+# `nodejs_22` deixava a sorte decidir para qual 22.x o nixpkgs resolveria — e
+# se caísse dentro dessa janela, o servidor morria no boot com "No such
+# built-in module: node:sqlite", sem pista do motivo.
+#
+# 24 é a versão em que este projeto foi efetivamente testado (build, coleta,
+# 26 endpoints). Fazer o deploy rodar noutra versão que a testada é um risco
+# que não se paga.
 [phases.setup]
-nixPkgs = ["nodejs_22"]
+nixPkgs = ["nodejs_24"]

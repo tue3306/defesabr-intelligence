@@ -9,7 +9,7 @@ Coleta automatizada, API própria e interface — com a procedência de cada dad
 
 [![React 18](https://img.shields.io/badge/React-18-149eca?logo=react&logoColor=white)](https://react.dev/)
 [![Vite 5](https://img.shields.io/badge/Vite-5-646cff?logo=vite&logoColor=white)](https://vitejs.dev/)
-[![Node 22+](https://img.shields.io/badge/Node-22.5%2B-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![Node 24+](https://img.shields.io/badge/Node-24%2B-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![Express](https://img.shields.io/badge/Express-4-000000?logo=express&logoColor=white)](https://expressjs.com/)
 [![SQLite](https://img.shields.io/badge/SQLite-node%3Asqlite-003b57?logo=sqlite&logoColor=white)](https://nodejs.org/api/sqlite.html)
 [![License: MIT](https://img.shields.io/badge/license-MIT-5c616a)](LICENSE)
@@ -20,8 +20,11 @@ Coleta automatizada, API própria e interface — com a procedência de cada dad
 
 ## Como rodar
 
-Requer **Node 22.5 ou superior** — o servidor usa o módulo nativo `node:sqlite`,
-o que dispensa compilar dependência nativa.
+Requer **Node 24 ou superior** — o servidor usa o módulo nativo `node:sqlite`,
+o que dispensa compilar dependência nativa. O módulo apareceu no Node 22.5, mas
+por boa parte da linha 22.x exigia a flag `--experimental-sqlite`; 24 é a versão
+em que o projeto foi testado. Numa versão sem o módulo o servidor não sobe e
+explica o motivo, em vez de morrer com "No such built-in module".
 
 ```bash
 npm install
@@ -135,9 +138,10 @@ leitor de RSS — e pior: exibiria notícia eleitoral ou judicial como se fosse
 monitoramento de defesa.
 
 A regra está em [`server/src/lib/relevance.js`](server/src/lib/relevance.js),
-é **exibida na própria tela do clipping**, e pode ser **testada ao vivo** em
-`/status`. Um filtro cujo critério não se pode inspecionar é indistinguível de
-uma escolha editorial não declarada.
+é **exibida na própria tela do clipping**, e pode ser **testada ao vivo** com
+`POST /api/system/method/test`, que devolve a decisão para qualquer texto. Um
+filtro cujo critério não se pode inspecionar é indistinguível de uma escolha
+editorial não declarada.
 
 **Três armadilhas, todas encontradas testando contra o acervo real:**
 
@@ -156,8 +160,10 @@ uma escolha editorial não declarada.
    verdade, mas não é o assunto. Por isso a **posição** conta: termo forte
    sozinho precisa estar nos primeiros 420 caracteres.
 
-Resultado na coleta atual: **58 aprovados de 127**, sem falso positivo na
-amostra inspecionada.
+A proporção aprovada fica em torno de um terço do coletado — as fontes são
+generalistas, e a maior parte do que elas publicam não é defesa. O número
+exato de cada momento aparece no console, em **Saúde e diagnóstico →
+Filtro de relevância**; não o fixamos aqui porque ele muda a cada coleta.
 
 Cada notícia guarda os termos que a aprovaram, e o botão *"por que está aqui?"*
 mostra a decisão item a item.
@@ -299,7 +305,9 @@ O projeto já está preparado. Basta conectar o repositório:
 1. **Build** — `npm install && npm run build` (definido em `railway.json`)
 2. **Start** — `npm start` (serve a API e o `dist/`)
 3. **Healthcheck** — `/api/health`
-4. **Node 22** — fixado em `nixpacks.toml`, porque `node:sqlite` não existe antes
+4. **Node 24** — fixado em `nixpacks.toml`. Sem fixar, o Nixpacks escolhe a LTS
+   do momento; e fixar `nodejs_22` deixaria a sorte decidir para qual 22.x o
+   nixpkgs resolveria — parte dessa linha não tem `node:sqlite` sem flag
 
 Nenhuma variável de ambiente é obrigatória. O Railway injeta `PORT`
 automaticamente, e o servidor escuta em `0.0.0.0`.

@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Plataforma de clipping e análise inteligente de notícias sobre Segurança e Defesa (cenário brasileiro).",
   "engines": {
-    "node": ">=22.5.0"
+    "node": ">=24.0.0"
   },
   "scripts": {
     "dev": "node scripts/dev.mjs",

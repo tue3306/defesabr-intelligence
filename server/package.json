@@ -5,11 +5,11 @@
   "type": "module",
   "description": "API do DefesaBR Intelligence — coleta e serve dados públicos de defesa e segurança.",
   "engines": {
-    "node": ">=22.5.0"
+    "node": ">=24.0.0"
   },
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "node --watch src/index.js",
+    "start": "node scripts/preflight.js && node src/index.js",
+    "dev": "node scripts/preflight.js && node --watch src/index.js",
     "collect": "node scripts/collect.js",
     "reclassify": "node scripts/reclassify.js",
     "reset": "node scripts/reset.js",
