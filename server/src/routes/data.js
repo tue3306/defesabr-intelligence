@@ -91,9 +91,11 @@ router.get('/economy/indicators', (req, res) => {
 router.get('/economy/comparison', (req, res) => {
   const code = req.query.code || 'MS.MIL.XPND.GD.ZS'
   const itens = PAISES_COMPARACAO
-    .map(({ iso, nome, bandeira }) => {
+    .map(({ iso, nome, bandeira, grupo }) => {
       const v = ultimoValor(code, iso)
-      return v ? { code: iso, country: nome, flag: bandeira, ...v } : null
+      // `grupo` deixa a tela separar vizinhança de potências sem precisar
+      // manter a própria lista de quem é o quê.
+      return v ? { code: iso, country: nome, flag: bandeira, grupo, ...v } : null
     })
     .filter(Boolean)
     .sort((a, b) => (b.value ?? 0) - (a.value ?? 0))

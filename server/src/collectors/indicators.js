@@ -20,13 +20,25 @@ export const INDICADORES_WB = [
 ]
 
 /** Vizinhos usados na comparação regional — mesma série, mesmo método. */
+// Dois recortes, um pedido só à API: a vizinhança para medir o esforço
+// regional, e as grandes potências para situar o Brasil no mundo. `grupo`
+// separa os dois na resposta — a tela de comparação internacional mostrava a
+// primeira lista com dado real e a segunda com números escritos à mão.
 export const PAISES_COMPARACAO = [
-  { iso: 'BRA', nome: 'Brasil', bandeira: '🇧🇷' },
-  { iso: 'ARG', nome: 'Argentina', bandeira: '🇦🇷' },
-  { iso: 'CHL', nome: 'Chile', bandeira: '🇨🇱' },
-  { iso: 'COL', nome: 'Colômbia', bandeira: '🇨🇴' },
-  { iso: 'PER', nome: 'Peru', bandeira: '🇵🇪' },
-  { iso: 'URY', nome: 'Uruguai', bandeira: '🇺🇾' },
+  { iso: 'BRA', nome: 'Brasil', bandeira: '🇧🇷', grupo: 'ambos' },
+  { iso: 'ARG', nome: 'Argentina', bandeira: '🇦🇷', grupo: 'vizinhanca' },
+  { iso: 'CHL', nome: 'Chile', bandeira: '🇨🇱', grupo: 'vizinhanca' },
+  { iso: 'COL', nome: 'Colômbia', bandeira: '🇨🇴', grupo: 'vizinhanca' },
+  { iso: 'PER', nome: 'Peru', bandeira: '🇵🇪', grupo: 'vizinhanca' },
+  { iso: 'URY', nome: 'Uruguai', bandeira: '🇺🇾', grupo: 'vizinhanca' },
+
+  { iso: 'USA', nome: 'Estados Unidos', bandeira: '🇺🇸', grupo: 'potencias' },
+  { iso: 'CHN', nome: 'China', bandeira: '🇨🇳', grupo: 'potencias' },
+  { iso: 'RUS', nome: 'Rússia', bandeira: '🇷🇺', grupo: 'potencias' },
+  { iso: 'FRA', nome: 'França', bandeira: '🇫🇷', grupo: 'potencias' },
+  { iso: 'GBR', nome: 'Reino Unido', bandeira: '🇬🇧', grupo: 'potencias' },
+  { iso: 'DEU', nome: 'Alemanha', bandeira: '🇩🇪', grupo: 'potencias' },
+  { iso: 'IND', nome: 'Índia', bandeira: '🇮🇳', grupo: 'potencias' },
 ]
 
 const ROTULOS = Object.fromEntries(INDICADORES_WB.map((i) => [i.code, i]))

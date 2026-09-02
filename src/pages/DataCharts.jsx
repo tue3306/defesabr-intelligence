@@ -22,6 +22,10 @@ import ComparisonBarChart from '../components/charts/ComparisonBarChart'
 import GaugeChart from '../components/charts/GaugeChart'
 import GlobalHeatmap from '../components/charts/GlobalHeatmap'
 import { useNewsVolume } from '../hooks/useNewsVolume'
+import {
+  useGastoMilitar, useComparacaoPIB, useRadarCategorias,
+  useIndiceDeAlerta, useRegioesEstrategicas,
+} from '../hooks/useDadosReais'
 import { useResource } from '../hooks/useResource'
 import { useGate } from '../auth/useCan'
 import { fetchBrazilMilitarySpending } from '../api/worldbank'
@@ -197,6 +201,14 @@ export default function DataCharts() {
 
   // Gasto militar do Brasil: World Bank com fallback demonstrativo.
   const spending = useResource(
+    // A busca direta ao World Bank pelo navegador continua aqui como reserva,
+    // mas o caminho preferido é `useGastoMilitar()`: vem do nosso servidor,
+    // não depende de CORS e traz o % do PIB junto.
+    //
+    // O que essa função fazia e não deveria: buscava os DÓLARES reais e os
+    // mesclava com `brl` e `pctGdp` do mock, entregando uma série metade
+    // coletada e metade inventada, sem marca nenhuma dizendo qual coluna era
+    // qual.
     async () => {
       const r = await fetchBrazilMilitarySpending()
       return { data: r.data, meta: { source: r.source } }
@@ -217,6 +229,12 @@ export default function DataCharts() {
 
   const periodCfg = VOLUME_PERIODS.find((p) => p.id === volumePeriod) || VOLUME_PERIODS[0]
   const volume = useNewsVolume(14)
+  const gasto = useGastoMilitar()
+  const comparacao = useComparacaoPIB('vizinhanca')
+  const potencias = useComparacaoPIB('potencias')
+  const radar = useRadarCategorias(30)
+  const alerta = useIndiceDeAlerta(7)
+  const regioes = useRegioesEstrategicas(180)
   const volumeSeries = useMemo(
     () => buildVolumeSeries(periodCfg.days, volume.data, volume.keys, volume.aoVivo),
     [periodCfg.days, volume.data, volume.keys, volume.aoVivo],
@@ -225,14 +243,14 @@ export default function DataCharts() {
   // Cruza % do PIB com o gasto absoluto para a tabela internacional.
   const internationalRows = useMemo(
     () =>
-      militaryPctGdpComparison
+      potencias.data
         .map((c) => ({
           pais: c.country,
           pctPib: c.pctGdp,
           gastoUSDbi: globalSpendingTreemap.find((g) => g.name === c.country)?.value ?? 0,
         }))
         .sort((a, b) => b.gastoUSDbi - a.gastoUSDbi),
-    []
+    [potencias.data]
   )
 
   const activityRows = useMemo(
@@ -292,6 +310,7 @@ export default function DataCharts() {
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           <ChartPanel
             className="xl:col-span-2"
+            badge={volume.aoVivo ? 'live' : 'demo'}
             title="Volume de notícias por categoria"
             subtitle="Quantas matérias monitoradas entraram por dia, empilhadas por tema."
             method="Contagem diária de itens capturados pelos coletores e classificados por categoria. Os 14 dias mais recentes são a série demonstrativa base; janelas de 30 e 90 dias são projetadas a partir dela por repetição do ciclo observado."
@@ -322,24 +341,26 @@ export default function DataCharts() {
           </ChartPanel>
 
           <ChartPanel
-            title="Volume por categoria — semana"
+            badge={radar.aoVivo ? 'live' : 'demo'}
+            title="Volume por categoria — 30 dias"
             subtitle="Compara o tema desta semana com a anterior; o descolamento indica o que está esquentando."
             method="Radar com a contagem semanal por categoria. A área 'atual' cobrindo a 'anterior' indica aumento de cobertura no tema."
-            rows={categoryRadar}
+            rows={radar.data}
             filename="volume-por-categoria.csv"
           >
-            <SentimentChart data={categoryRadar} height={320} />
+            <SentimentChart data={radar.data} height={320} />
           </ChartPanel>
 
           <ChartPanel
-            title="Regiões mais ativas"
-            subtitle="Eventos de segurança registrados no período, com a direção dos últimos 30 dias."
-            method="Contagem de eventos de segurança por recorte geográfico. A seta compara com a média móvel de 30 dias: alta, estável ou queda."
-            rows={activeRegions}
+            badge={regioes.aoVivo ? 'live' : 'demo'}
+            title="Regiões estratégicas mais citadas"
+            subtitle="Quantas notícias coletadas citam cada região estratégica no período."
+            method="Contagem de MENÇÕES a cada região no texto das notícias coletadas — não de eventos. Dez matérias sobre a mesma operação são dez menções e um evento; o número mede cobertura, não ocorrência."
+            rows={regioes.data}
             filename="regioes-mais-ativas.csv"
           >
             <div className="space-y-2.5">
-              {activeRegions.map((r) => {
+              {regioes.data.map((r) => {
                 const TrendIcon = r.trend === 'up' ? TrendingUp : r.trend === 'down' ? TrendingDown : Minus
                 const trendColor =
                   r.trend === 'up' ? 'text-red-500 dark:text-red-400'
@@ -351,7 +372,7 @@ export default function DataCharts() {
                     <span className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-white/10">
                       <span
                         className="block h-full rounded-full bg-gold-500"
-                        style={{ width: `${(r.events / activeRegions[0].events) * 100}%` }}
+                        style={{ width: `${(r.events / (regioes.data[0]?.events || 1)) * 100}%` }}
                       />
                     </span>
                     <span className="w-9 shrink-0 text-right font-mono text-xs font-bold">{r.events}</span>
@@ -450,24 +471,26 @@ export default function DataCharts() {
       {tab === 'internacional' && (
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           <ChartPanel
+            badge={comparacao.aoVivo ? 'live' : 'demo'}
             title="América do Sul — % do PIB em defesa"
             subtitle="O esforço de defesa dos vizinhos na única métrica que permite comparar economias de tamanhos diferentes."
             method="Despesa militar dividida pelo PIB de cada país no ano de referência. O Brasil aparece destacado para leitura imediata da posição relativa."
-            rows={southAmericaSpending}
+            rows={comparacao.data}
             filename="america-do-sul-pct-pib.csv"
           >
-            <ComparisonBarChart data={southAmericaSpending} highlightCode="BR" height={340} />
+            <ComparisonBarChart data={comparacao.data} highlightCode="BR" height={340} />
           </ChartPanel>
 
           <ChartPanel
+            badge={potencias.aoVivo ? 'live' : 'demo'}
             title="Potências militares — % do PIB"
             subtitle="Onde o Brasil se posiciona diante das maiores forças armadas do mundo."
             method="Mesma métrica (% do PIB) aplicada às sete maiores referências acompanhadas. A meta da OTAN, de 2% do PIB, é o parâmetro internacional mais citado."
-            rows={militaryPctGdpComparison}
+            rows={potencias.data}
             filename="potencias-pct-pib.csv"
             footnote="Referência: a meta da OTAN recomenda ao menos 2% do PIB — o Brasil opera bem abaixo desse patamar."
           >
-            <ComparisonBarChart data={militaryPctGdpComparison} highlightCode="BR" height={340} />
+            <ComparisonBarChart data={potencias.data} highlightCode="BR" height={340} />
           </ChartPanel>
 
           <ChartPanel
@@ -522,7 +545,7 @@ export default function DataCharts() {
             className="xl:col-span-2"
             title="Mapa de calor de risco"
             subtitle="Intensidade da atividade de segurança monitorada por país — foco nas Américas."
-            method="Índice 0–100 por país, derivado do volume e da gravidade dos eventos capturados no período. Passe o cursor sobre um país para ver as notícias associadas."
+            method="Quantas notícias coletadas mencionam cada país, normalizado de 0 a 100 pelo país mais citado. Mede volume de cobertura, não risco. Passe o cursor sobre um país para ver as manchetes."
             rows={activityRows}
             filename="atividade-por-pais.csv"
           >
@@ -530,13 +553,14 @@ export default function DataCharts() {
           </ChartPanel>
 
           <ChartPanel
+            badge={alerta.aoVivo ? 'live' : 'demo'}
             title="Índice de alerta nacional"
             subtitle="Resumo de 0 a 100 da tensão de segurança do Brasil no momento."
             method="Combina o volume de eventos, a gravidade atribuída e a concentração geográfica das ocorrências das últimas duas semanas. É um resumo, não um veredito."
-            rows={[{ indicador: 'Índice de alerta nacional', valor: alertIndex, escala: '0–100' }]}
+            rows={[{ indicador: 'Índice de alerta nacional', valor: alerta.value, escala: '0–100' }]}
             filename="indice-de-alerta.csv"
           >
-            <GaugeChart value={alertIndex} height={300} />
+            <GaugeChart value={alerta.value} height={300} />
           </ChartPanel>
 
           <ErrorBoundary variant="inline" scope="Nível de tensão por região">

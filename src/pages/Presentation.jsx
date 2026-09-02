@@ -14,6 +14,9 @@ import {
   southAmericaSpending, globalSpendingTreemap, categoryRadar,
 } from '../data/mockData'
 import { useNewsVolume } from '../hooks/useNewsVolume'
+import {
+  useGastoMilitar, useComparacaoSulAmericana, useRadarCategorias, useIndiceDeAlerta,
+} from '../hooks/useDadosReais'
 import { useTensionStore, tensionBand } from '../store/tensionStore'
 import { riskMatrix, RISK_SEVERITY } from '../data/riskMatrix'
 import { strategicPrograms, programsSummary, PROGRAM_FORCES } from '../data/strategicPrograms'
@@ -139,17 +142,81 @@ function VolumeSlide({ height }) {
   )
 }
 
+// Os slides abaixo dependem de hooks, e o array de slides é de módulo — daí
+// cada um virar componente. Todos seguem a mesma regra: usam a série real
+// quando o servidor responde, caem no acervo local quando não, e dizem no
+// rodapé qual das duas está em tela. Numa apresentação essa distinção é a
+// única que o público não pode deduzir sozinho.
+function GastoSlide({ height }) {
+  const g = useGastoMilitar()
+  return (
+    <div className="flex h-full flex-col">
+      {/* O World Bank publica em dólares; a série em reais não existe do lado
+          dele, e converter dólar de 2010 pelo câmbio de hoje daria uma curva
+          historicamente falsa. Com dado real o gráfico mostra US$ e % do PIB. */}
+      <MilitarySpendingChart data={g.data} mode={g.aoVivo ? 'usd' : 'dual'} height={height} />
+      <p className="mt-2 text-center text-[11px] muted">
+        {g.aoVivo
+          ? 'World Bank Open Data — gasto militar em US$ e % do PIB.'
+          : 'Série de demonstração — servidor indisponível.'}
+      </p>
+    </div>
+  )
+}
+
+function ComparacaoSlide({ height }) {
+  const c = useComparacaoSulAmericana()
+  return (
+    <div className="flex h-full flex-col">
+      <ComparisonBarChart data={c.data} highlightCode="BR" height={height} />
+      <p className="mt-2 text-center text-[11px] muted">
+        {c.aoVivo
+          ? `World Bank Open Data · ${c.data[0]?.period || ''} — % do PIB em defesa.`
+          : 'Série de demonstração — servidor indisponível.'}
+      </p>
+    </div>
+  )
+}
+
+function RadarSlide({ height }) {
+  const r = useRadarCategorias(30)
+  return (
+    <div className="flex h-full flex-col">
+      <SentimentChart data={r.data} height={height} />
+      <p className="mt-2 text-center text-[11px] muted">
+        {r.aoVivo
+          ? 'Notícias coletadas, por categoria: últimos 30 dias contra os 30 anteriores.'
+          : 'Série de demonstração — servidor indisponível.'}
+      </p>
+    </div>
+  )
+}
+
+function AlertaSlide({ height }) {
+  const a = useIndiceDeAlerta(7)
+  return (
+    <div className="flex h-full flex-col">
+      <GaugeChart value={a.value} height={height} />
+      <p className="mt-2 text-center text-[11px] muted">
+        {a.aoVivo && a.basis
+          ? `Média ponderada das urgências — ${a.basis}.`
+          : 'Valor de demonstração — servidor indisponível.'}
+      </p>
+    </div>
+  )
+}
+
 const SLIDES = [
   { title: 'Postura nacional do período', icon: Activity, render: () => <PostureSlide /> },
   { title: 'Nível de tensão por região', icon: Activity, render: () => <TensionSlide /> },
   { title: 'Riscos estratégicos de maior severidade', icon: ShieldAlert, render: () => <RisksSlide /> },
   { title: 'Programas estratégicos — avanço', icon: Target, render: () => <ProgramsSlide /> },
-  { title: 'Gastos militares — Brasil', render: (h) => <MilitarySpendingChart data={militarySpendingBR} mode="dual" height={h} /> },
+  { title: 'Gastos militares — Brasil', render: (h) => <GastoSlide height={h} /> },
   { title: 'Gastos militares globais (US$ bi)', render: (h) => <BrazilDefenseBudget data={globalSpendingTreemap} height={h} /> },
-  { title: 'América do Sul — % do PIB em defesa', render: (h) => <ComparisonBarChart data={southAmericaSpending} highlightCode="BR" height={h} /> },
+  { title: 'América do Sul — % do PIB em defesa', render: (h) => <ComparacaoSlide height={h} /> },
   { title: 'Volume de notícias — 14 dias', render: (h) => <VolumeSlide height={h} /> },
-  { title: 'Volume por categoria — semana', render: (h) => <SentimentChart data={categoryRadar} height={h} /> },
-  { title: 'Índice de alerta nacional', render: (h) => <GaugeChart value={alertIndex} height={h} /> },
+  { title: 'Volume por categoria — 30 dias', render: (h) => <RadarSlide height={h} /> },
+  { title: 'Índice de alerta nacional', render: (h) => <AlertaSlide height={h} /> },
   { title: 'Mapa de calor de risco — foco Américas', render: (h) => <GlobalHeatmap height={h} withNews={false} /> },
 ]
 

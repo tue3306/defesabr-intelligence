@@ -17,6 +17,7 @@ import NewsVolumeChart from '../components/charts/NewsVolumeChart'
 import GaugeChart from '../components/charts/GaugeChart'
 import { useNews } from '../hooks/useNews'
 import { useNewsVolume } from '../hooks/useNewsVolume'
+import { useGastoMilitar, useIndiceDeAlerta } from '../hooks/useDadosReais'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { PROFILES, PROFILE_ORDER } from '../auth/permissions'
@@ -97,6 +98,8 @@ export default function Landing() {
   const isPaid = useSubscriptionStore((s) => s.isPaid)()
 
   const volume = useNewsVolume(14)
+  const gasto = useGastoMilitar()
+  const alerta = useIndiceDeAlerta(7)
   const feed = news.slice(0, 3)
   const analysis = mockWeeklyAnalysis.empresarial
 
@@ -299,7 +302,7 @@ export default function Landing() {
             icon={ShieldCheck}
             value={alertMeta.ATENCAO.label}
             label="Nível de alerta do dia"
-            hint={`${alertIndex}/100 na escala de postura`}
+            hint={`${alerta.value}/100 na escala de postura`}
           />
           <PreviewStat
             icon={Target}
@@ -342,7 +345,11 @@ export default function Landing() {
           <div className="card p-5 lg:col-span-2">
             <h3 className="mb-1 text-base font-bold tracking-tight">Gastos militares — Brasil</h3>
             <p className="mb-3 text-xs muted">Série histórica (R$ bi) e % do PIB.</p>
-            <MilitarySpendingChart data={militarySpendingBR} mode="dual" height={260} />
+            <MilitarySpendingChart
+              data={gasto.data}
+              mode={gasto.aoVivo ? 'usd' : 'dual'}
+              height={260}
+            />
           </div>
           <div className="card flex flex-col p-5">
             <h3 className="mb-1 text-base font-bold tracking-tight">Índice de alerta</h3>

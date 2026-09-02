@@ -184,6 +184,20 @@ export const PONTES = new Map([
     }),
   }],
 
+  // ── Economia (World Bank + câmbio) ──
+  //
+  // O servidor já coletava estas séries; as telas é que liam arrays escritos à
+  // mão. Passam direto, sem tradução: os hooks em `useDadosReais.js` é que dão
+  // a elas o formato de cada gráfico.
+  ['GET /economy/indicators', {
+    caminho: '/economy/indicators',
+    transformar: (d) => d,
+  }],
+  ['GET /economy/comparison', {
+    caminho: '/economy/comparison',
+    transformar: (d) => d,
+  }],
+
   // ── Auditoria ──
   //
   // A trilha era uma lista de doze eventos escritos à mão, com atores e
