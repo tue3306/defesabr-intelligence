@@ -63,10 +63,16 @@ const VOLUME_ANCHOR = new Date('2026-06-04T00:00:00')
  * modulação senoidal fixa. Sem aleatoriedade — o mesmo período gera o mesmo
  * gráfico em qualquer render.
  */
-function buildVolumeSeries(days) {
-  const volume = useNewsVolume(14)
-  const base = volume.data
+function buildVolumeSeries(days, base, keys, aoVivo) {
+  if (!base?.length) return []
   if (days <= base.length) return base.slice(-days)
+
+  // Com dado REAL, devolvemos o que existe e paramos. A extrapolação abaixo
+  // preenche dias que a coleta não cobre a partir do ciclo observado — aceitável
+  // para uma série de demonstração, e inaceitável quando a série é medida:
+  // seria apresentar dia inventado ao lado de dia coletado, no mesmo gráfico,
+  // sem distinção possível para quem olha.
+  if (aoVivo) return base
 
   const rows = []
   for (let i = days - 1; i >= 0; i--) {
@@ -80,7 +86,7 @@ function buildVolumeSeries(days) {
     const factor = 0.78 + 0.32 * Math.abs(Math.sin(i / 4.5))
     const row = { date: label }
     let total = 0
-    newsCategoriesKeys.forEach((c) => {
+    keys.forEach((c) => {
       const v = Math.max(1, Math.round(seed[c] * factor))
       row[c] = v
       total += v
@@ -210,7 +216,11 @@ export default function DataCharts() {
   )
 
   const periodCfg = VOLUME_PERIODS.find((p) => p.id === volumePeriod) || VOLUME_PERIODS[0]
-  const volumeSeries = useMemo(() => buildVolumeSeries(periodCfg.days), [periodCfg.days])
+  const volume = useNewsVolume(14)
+  const volumeSeries = useMemo(
+    () => buildVolumeSeries(periodCfg.days, volume.data, volume.keys, volume.aoVivo),
+    [periodCfg.days, volume.data, volume.keys, volume.aoVivo],
+  )
 
   // Cruza % do PIB com o gasto absoluto para a tabela internacional.
   const internationalRows = useMemo(
@@ -308,7 +318,7 @@ export default function DataCharts() {
                 : 'Série base da demonstração: 14 dias corridos, seis categorias de monitoramento.'
             }
           >
-            <NewsVolumeChart data={volumeSeries} keys={newsCategoriesKeys} height={340} />
+            <NewsVolumeChart data={volumeSeries} keys={volume.keys} height={340} />
           </ChartPanel>
 
           <ChartPanel
