@@ -96,13 +96,26 @@ autenticar.
 | [Agência Gov](https://agenciagov.ebc.com.br) | RSS | Comunicação do governo federal |
 | [Senado Federal](https://www12.senado.leg.br/noticias) | RSS 2.0 | Pauta legislativa de defesa |
 | [Palácio do Planalto](https://www.gov.br/planalto) | RSS 1.0 | Decretos, vetos e sanções |
+| [DefesaNet](https://www.defesanet.com.br) · [Poder Naval](https://www.naval.com.br) · [Tecnodefesa](https://tecnodefesa.com.br) | RSS 2.0 | Imprensa especializada — publicam todo dia |
+| [Google Notícias](https://news.google.com) (2 buscas) | RSS 2.0 | Varre a imprensa inteira; alimenta a correlação por país |
 | [Dados Abertos da Câmara](https://dadosabertos.camara.leg.br) | API | Proposições em tramitação |
 | [World Bank Open Data](https://data.worldbank.org) | API | Gasto militar, efetivo e PIB |
 | [AwesomeAPI](https://docs.awesomeapi.com.br) | API | Câmbio USD/BRL e EUR/BRL |
 
-São **10 feeds RSS** mais três APIs. Um agendador roda a coleta a cada 30
+São **15 feeds RSS** mais três APIs. Um agendador roda a coleta a cada 30
 minutos, com trava contra sobreposição; cada execução fica registrada com
-duração e resultado.
+duração e resultado — e essa é exatamente a trilha que a aba **Auditoria** do
+console exibe.
+
+As fontes oficiais publicam pouco (o Ministério da Defesa solta algumas notas
+por semana), e por isso a imprensa especializada e o agregador entraram: são
+eles que fazem o acervo virar acompanhamento corrente em vez de arquivo.
+
+**Correlação geográfica.** O servidor detecta os estados brasileiros e 36
+países citados no texto de cada notícia, e expõe isso em `/api/news/geo` e
+`/api/news/countries`. É o que dá lastro aos mapas: eles pintam **volume de
+cobertura** — quantas notícias coletadas citam cada lugar —, com as manchetes
+que sustentam cada contagem. Não é índice de risco, e a interface diz isso.
 
 Algumas fontes desejáveis **não** entraram, e o motivo está no código para que
 ninguém as recadastre achando que foram esquecidas: Marinha, FAB e Poder360
