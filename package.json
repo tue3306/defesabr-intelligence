@@ -16,6 +16,8 @@
     "start": "npm --prefix server start",
     "check": "npm --prefix server run check",
     "collect": "npm --prefix server run collect",
+    "reclassify": "npm --prefix server run reclassify",
+    "reset:db": "npm --prefix server run reset",
     "postinstall": "npm --prefix server install",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist"

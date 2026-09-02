@@ -54,7 +54,7 @@ const RELEVANCE_WEIGHT = { Alta: 3, 'Média': 2, Baixa: 1 }
 // IMPACTO declarado, e não apenas o número e a ementa.
 // -----------------------------------------------------------------------------
 export default function Legislative() {
-  const { data, loading, error, refetch } = useResource(() => intelligenceService.legislative(), [])
+  const { data, loading, error, refetch, meta } = useResource(() => intelligenceService.legislative(), [])
 
   const [query, setQuery] = useState('')
   const [house, setHouse] = useState('Todas')
@@ -119,7 +119,7 @@ export default function Legislative() {
         description="Proposições em tramitação no Congresso Nacional que alteram capacidade, orçamento ou regras de emprego das Forças Armadas."
         help="Conteúdo demonstrativo. Em produção, alimentado pelas APIs abertas da Câmara dos Deputados e do Senado Federal."
         breadcrumb={[{ label: 'Brasil Estratégico' }, { label: 'Radar Legislativo' }]}
-        badges={<Badge type="demo" />}
+        badges={<Badge type={meta?.source === 'live' ? 'live' : 'demo'} />}
         actions={
           <Can do="reports.export">
             <button onClick={exportItems} className="btn-ghost text-sm" disabled={!filtered.length}>
@@ -228,9 +228,15 @@ function ProposalCard({ item, onOpen }) {
           <Building size={11} /> {item.house}
         </span>
         <span className="chip">{item.theme}</span>
-        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${RELEVANCE_CLR[item.relevance] || ''}`}>
-          Relevância {item.relevance}
-        </span>
+        {/* A relevância vem do acervo local; a API não a produz, porque
+            classificar o impacto de uma proposição sobre defesa exige lê-la.
+            Sem valor, o rótulo some — um "Relevância" seguido de nada parece
+            defeito e ensina a desconfiar do resto do cartão. */}
+        {item.relevance && (
+          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${RELEVANCE_CLR[item.relevance] || ''}`}>
+            Relevância {item.relevance}
+          </span>
+        )}
         <span className="ml-auto inline-flex items-center gap-1 text-[11px] muted">
           <Clock size={11} /> {timeAgo(item.updated)}
         </span>
@@ -272,9 +278,11 @@ function ProposalDetail({ item }) {
     <div className="max-h-[70vh] space-y-5 overflow-y-auto pr-1">
       <div className="flex flex-wrap items-center gap-2">
         <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${stage.classes || ''}`}>{stage.label}</span>
-        <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${RELEVANCE_CLR[item.relevance] || ''}`}>
-          Relevância {item.relevance}
-        </span>
+        {item.relevance && (
+          <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${RELEVANCE_CLR[item.relevance] || ''}`}>
+            Relevância {item.relevance}
+          </span>
+        )}
         <span className="chip">{item.house}</span>
         <span className="chip">{item.theme}</span>
       </div>

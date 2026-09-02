@@ -41,8 +41,31 @@ Sobe os dois processos:
 Na primeira execução o servidor cria o banco, cadastra as fontes e dispara uma
 coleta — a plataforma abre com dado real dentro, em cerca de 5 segundos.
 
-Não há login. Não há chave de API a configurar. Não há arquivo `.env`
-obrigatório.
+Não há chave de API a configurar. Não há arquivo `.env` obrigatório.
+
+### Os quatro perfis
+
+A interface tem quatro perfis, e cada um enxerga um recorte diferente do
+produto. Para trocar, abra **Entrar** e escolha a persona — são botões no
+próprio modal, sem senha:
+
+| Perfil | Vê | Barrado em |
+|---|---|---|
+| **Visitante** | landing, planos, centro educacional | todo o resto |
+| **Usuário** (Marina) | clipping, análise, dossiês, economia, dados, arquivo, busca | riscos, legislativo e relatórios (plano) · mesa e admin (perfil) |
+| **Analista** (Ana) | tudo do Usuário + riscos, legislativo, mesa de trabalho, relatórios | admin |
+| **Administrador** (Rafael) | tudo + console de governança | — |
+
+O formulário de e-mail e senha também funciona, mas é um fluxo de
+demonstração: qualquer e-mail válido com senha de 6+ caracteres entra como
+**Usuário**. Ele existe para exercitar validação e estados de erro, não para
+autenticar.
+
+> **A verificação acontece no navegador, não no servidor.** A API responde a
+> qualquer requisição sem perguntar quem é — trocar de perfil muda o que a
+> interface mostra, não o que o backend entrega. O console de administração
+> declara isso como capacidade *parcial*, e a seção
+> [O que ela ainda não faz](#o-que-ela-ainda-não-faz) explica o que falta.
 
 ### Outros comandos
 
@@ -66,29 +89,42 @@ obrigatório.
 | Fonte | Tipo | O que traz |
 |---|---|---|
 | [Ministério da Defesa](https://www.gov.br/defesa) | RSS 1.0 | Notícias oficiais do MD |
-| [Agência Brasil](https://agenciabrasil.ebc.com.br) | RSS 2.0 | Cinco editorias públicas |
+| [Agência Brasil](https://agenciabrasil.ebc.com.br) | RSS 2.0 | Seis editorias públicas |
 | [Agência Gov](https://agenciagov.ebc.com.br) | RSS | Comunicação do governo federal |
+| [Senado Federal](https://www12.senado.leg.br/noticias) | RSS 2.0 | Pauta legislativa de defesa |
+| [Palácio do Planalto](https://www.gov.br/planalto) | RSS 1.0 | Decretos, vetos e sanções |
 | [Dados Abertos da Câmara](https://dadosabertos.camara.leg.br) | API | Proposições em tramitação |
 | [World Bank Open Data](https://data.worldbank.org) | API | Gasto militar, efetivo e PIB |
 | [AwesomeAPI](https://docs.awesomeapi.com.br) | API | Câmbio USD/BRL e EUR/BRL |
 
-Um agendador roda a coleta a cada 30 minutos, com trava contra sobreposição.
-Cada execução fica registrada com duração e resultado.
+São **10 feeds RSS** mais três APIs. Um agendador roda a coleta a cada 30
+minutos, com trava contra sobreposição; cada execução fica registrada com
+duração e resultado.
 
-### O que ela NÃO faz
+Algumas fontes desejáveis **não** entraram, e o motivo está no código para que
+ninguém as recadastre achando que foram esquecidas: Marinha, FAB e Poder360
+respondem **403** a cliente automatizado; o Exército não publica RSS (**404**);
+Itamaraty, Câmara e Ministério da Justiça devolvem **200 com zero itens**.
+
+### O que ela ainda não faz
 
 Declarado com a mesma seriedade — um sistema que não publica seus limites
 convida quem o usa a atribuir-lhe capacidades que ele não tem:
 
 - **Não gera análise por IA.** Nenhum texto aqui foi escrito por máquina. O
   resumo executivo do clipping fica explicitamente vazio.
-- **Não tem contas nem permissões.** A plataforma é aberta. Os favoritos usam um
-  identificador do navegador, que não identifica pessoa.
-- **Não produz dossiês nem avaliações.** Isso é juízo humano e exige autoria
-  registrada.
+- **Não autentica ninguém.** Os quatro perfis existem e mudam o que a interface
+  mostra, mas a checagem roda no navegador: a API atende qualquer requisição
+  sem identificar quem chama. Falta sessão, senha e verificação por rota.
+- **Não produz dossiês nem avaliações.** As telas de dossiê, matriz de risco e
+  narrativas existem e são navegáveis, mas o conteúdo delas foi **redigido à
+  mão** para servir de exemplo — não sai de coleta nenhuma. É a parte do
+  produto que depende de juízo humano.
 
-O painel em **`/status`** lista o estado real de cada capacidade, derivado do
-banco — inclusive as três acima, marcadas como não implementadas.
+O console em **`/admin` → Saúde e diagnóstico** lista o estado real de cada uma
+das 14 capacidades, derivado do banco: quantas linhas existem, quando foi a
+última execução, o que a fonte respondeu. As três acima aparecem lá marcadas
+como *parcial* ou *planejada*, com a mesma clareza das que funcionam.
 
 ---
 
@@ -188,11 +224,39 @@ Todos sob `/api`. Nenhum exige autenticação.
 │   │   └── routes/             news · data · system
 │   └── scripts/                collect · check · reclassify · reset
 └── src/                        Interface — React + Vite
-    ├── services/               clientes HTTP (única porta para a API)
-    ├── data/reference.js       taxonomia da interface (enums e cores)
+    ├── services/
+    │   ├── client.js           única porta para dados
+    │   └── apiBridge.js        ponte: API real ↔ acervo local
+    ├── auth/permissions.js     os quatro perfis e o mapa de capacidades
+    ├── data/                   acervo local + conteúdo editorial
     ├── components/
-    └── pages/                  uma por rota
+    └── pages/                  uma por rota (30 rotas)
 ```
+
+### A ponte
+
+O front nasceu antes da API, com 30 telas alimentadas por um acervo local.
+Ligá-lo ao servidor tinha dois caminhos: reescrever as telas uma a uma, ou
+interceptar num ponto só. A ponte é o segundo.
+
+`apiBridge.js` registra os endpoints que o servidor sabe responder. Antes de
+cair no acervo local, `client.js` pergunta se a API está no ar; se estiver, o
+dado vem coletado de verdade e a resposta é marcada como `live`. Se a API
+falhar no meio do caminho, a chamada cai para o acervo e é marcada como
+`fallback` — a tela nunca quebra, e o selo diz de onde veio o que está
+mostrando.
+
+| `meta.source` | O que significa |
+|---|---|
+| `live` | veio da API, coletado das fontes |
+| `fallback` | a API estava no ar mas falhou; é acervo local |
+| `demo` | não há endpoint para isto; é acervo local |
+
+Nenhuma tela precisou ser reescrita: o projeto já tinha esse ponto de entrada
+(`DATA_MODE` em `client.js`), e era exatamente onde a ponte cabia.
+
+Hoje passam pela ponte: notícias, clipping, volume, radar legislativo, fontes,
+busca, saúde e diagnóstico.
 
 ### Decisões que valem explicação
 
@@ -259,11 +323,13 @@ Deliberadamente fora desta versão, e com a arquitetura já preparada para receb
 - **Integração com OpenAI** — resumo executivo, síntese de período e
   classificação semântica. O campo `summaryExecutive` já existe na API,
   devolvendo `null` com a nota explicando por quê.
-- **Contas e permissões** — o esquema já isola o que seria por usuário: os
-  favoritos usam um identificador de navegador, então acrescentar contas não
-  exige remodelar o banco.
-- **Conteúdo analítico** — dossiês e avaliações, que dependem de contas para
-  ter autoria registrada.
+- **Autenticação no servidor** — os perfis, o mapa de permissões e as telas que
+  se adaptam a cada um já existem; falta a metade de trás. O esquema já isola o
+  que seria por usuário (os favoritos usam um identificador de navegador), então
+  acrescentar sessão e checagem por rota não exige remodelar o banco.
+- **Conteúdo analítico** — dossiês, matriz de risco e narrativas hoje são
+  redigidos à mão. Vira funcionalidade real quando houver fluxo de redação com
+  autoria registrada, o que depende do item acima.
 
 ---
 
