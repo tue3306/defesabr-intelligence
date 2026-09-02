@@ -55,8 +55,8 @@ próprio modal, sem senha:
 | Perfil | Vê | Barrado em |
 |---|---|---|
 | **Visitante** | landing, planos, centro educacional | todo o resto |
-| **Usuário** (Marina) | clipping, análise, dossiês, economia, dados, arquivo, busca | riscos, legislativo e relatórios (plano) · mesa e admin (perfil) |
-| **Analista** (Ana) | tudo do Usuário + riscos, legislativo, mesa de trabalho, relatórios | admin |
+| **Usuário** (Marina) | clipping, economia, dados, indústria, arquivo, busca | legislativo (plano) · admin (perfil) |
+| **Analista** (Ana) | tudo do Usuário + radar legislativo e confiabilidade das fontes | admin |
 | **Administrador** (Rafael) | tudo + console de governança | — |
 
 O formulário de e-mail e senha também funciona, mas é um fluxo de
@@ -99,10 +99,12 @@ autenticar.
 | [DefesaNet](https://www.defesanet.com.br) · [Poder Naval](https://www.naval.com.br) · [Tecnodefesa](https://tecnodefesa.com.br) | RSS 2.0 | Imprensa especializada — publicam todo dia |
 | [Google Notícias](https://news.google.com) (2 buscas) | RSS 2.0 | Varre a imprensa inteira; alimenta a correlação por país |
 | [Dados Abertos da Câmara](https://dadosabertos.camara.leg.br) | API | Proposições em tramitação |
-| [World Bank Open Data](https://data.worldbank.org) | API | Gasto militar, efetivo e PIB |
+| [World Bank Open Data](https://data.worldbank.org) | API | Gasto militar, efetivo e PIB — 13 países |
+| [Banco Central (SGS)](https://dadosabertos.bcb.gov.br) | API | Dólar, IPCA, Selic e IGP-M — **atualizados no dia** |
+| [Comex Stat (MDIC)](https://comexstat.mdic.gov.br) | API | Exportações de aeronaves e armamento, por país |
 | [AwesomeAPI](https://docs.awesomeapi.com.br) | API | Câmbio USD/BRL e EUR/BRL |
 
-São **15 feeds RSS** mais três APIs. Um agendador roda a coleta a cada 30
+São **15 feeds RSS** mais cinco APIs de governo. Um agendador roda a coleta a cada 30
 minutos, com trava contra sobreposição; cada execução fica registrada com
 duração e resultado — e essa é exatamente a trilha que a aba **Auditoria** do
 console exibe.
@@ -110,6 +112,11 @@ console exibe.
 As fontes oficiais publicam pouco (o Ministério da Defesa solta algumas notas
 por semana), e por isso a imprensa especializada e o agregador entraram: são
 eles que fazem o acervo virar acompanhamento corrente em vez de arquivo.
+
+**Por que World Bank E Banco Central.** O World Bank publica com um a dois anos
+de defasagem: serve para série histórica e não serve para dizer a que taxa o
+dólar fechou. O SGS do Banco Central entrega o dado do dia. Os dois cobrem
+coisas diferentes, e a tela declara qual está mostrando.
 
 **Correlação geográfica.** O servidor detecta os estados brasileiros e 36
 países citados no texto de cada notícia, e expõe isso em `/api/news/geo` e
@@ -132,10 +139,11 @@ convida quem o usa a atribuir-lhe capacidades que ele não tem:
 - **Não autentica ninguém.** Os quatro perfis existem e mudam o que a interface
   mostra, mas a checagem roda no navegador: a API atende qualquer requisição
   sem identificar quem chama. Falta sessão, senha e verificação por rota.
-- **Não produz dossiês nem avaliações.** As telas de dossiê, matriz de risco e
-  narrativas existem e são navegáveis, mas o conteúdo delas foi **redigido à
-  mão** para servir de exemplo — não sai de coleta nenhuma. É a parte do
-  produto que depende de juízo humano.
+- **Não produz dossiês, avaliação de risco nem monitor de narrativas.** Essas
+  telas existiam e foram **removidas**: o conteúdo delas era redigido à mão, e
+  não há fonte pública que o alimente. Avaliar probabilidade × impacto de um
+  risco é juízo de analista, não dado que se coleta — e deixar a tela no ar com
+  texto de exemplo era a forma mais convincente de mentir.
 
 O console em **`/admin` → Saúde e diagnóstico** lista o estado real de cada uma
 das 14 capacidades, derivado do banco: quantas linhas existem, quando foi a
@@ -262,14 +270,17 @@ interceptar num ponto só. A ponte é o segundo.
 cair no acervo local, `client.js` pergunta se a API está no ar; se estiver, o
 dado vem coletado de verdade e a resposta é marcada como `live`. Se a API
 falhar no meio do caminho, a chamada cai para o acervo e é marcada como
-`fallback` — a tela nunca quebra, e o selo diz de onde veio o que está
-mostrando.
+erro — e a tela diz isso, em vez de desenhar um gráfico plausível.
+
+Não há resolvedor local nem modo alternativo. O cliente já teve três caminhos
+— ponte, acervo local e um "modo demonstração" que era o **padrão** — e restou
+um. Se a API não responde, a consulta falha e a tela mostra erro; nenhum número
+aparece sem ter vindo de uma fonte.
 
 | `meta.source` | O que significa |
 |---|---|
-| `live` | veio da API, coletado das fontes |
-| `fallback` | a API estava no ar mas falhou; é acervo local |
-| `demo` | não há endpoint para isto; é acervo local |
+| `live` | veio da API |
+| `config` | configuração do produto (perfis de acesso, termos sugeridos) |
 
 Nenhuma tela precisou ser reescrita: o projeto já tinha esse ponto de entrada
 (`DATA_MODE` em `client.js`), e era exatamente onde a ponte cabia.
@@ -348,8 +359,8 @@ Deliberadamente fora desta versão, e com a arquitetura já preparada para receb
   se adaptam a cada um já existem; falta a metade de trás. O esquema já isola o
   que seria por usuário (os favoritos usam um identificador de navegador), então
   acrescentar sessão e checagem por rota não exige remodelar o banco.
-- **Conteúdo analítico** — dossiês, matriz de risco e narrativas hoje são
-  redigidos à mão. Vira funcionalidade real quando houver fluxo de redação com
+- **Conteúdo analítico** — dossiês, matriz de risco e narrativas foram
+  removidos por não terem fonte. Voltam quando houver fluxo de redação com
   autoria registrada, o que depende do item acima.
 
 ---

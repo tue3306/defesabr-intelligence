@@ -14,3 +14,15 @@
 # que não se paga.
 [phases.setup]
 nixPkgs = ["nodejs_24"]
+
+# Fase de instalação explícita.
+#
+# O Nixpacks roda a própria instalação ANTES do `buildCommand` do railway.json,
+# e se `NODE_ENV=production` estiver definido no ambiente do build, o npm pula
+# as devDependencies — onde mora o Vite. O resultado é um build que falha com
+# "'vite' is not recognized", não gera `dist/`, e o servidor sobe servindo só a
+# API: a URL abre em branco, sem erro visível.
+#
+# `--include=dev` torna a instalação independente do valor de NODE_ENV.
+[phases.install]
+cmds = ["npm install --include=dev"]

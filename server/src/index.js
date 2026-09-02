@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs'
 import { migrate, get } from './db/index.js'
 import config from './config.js'
 import { criarApp } from './app.js'
@@ -26,6 +27,22 @@ const servidor = app.listen(config.port, config.host, async () => {
   console.log(`  Node          ${process.version}`)
   console.log(`  Banco         ${config.dbPath}`)
   if (fontesCriadas) console.log(`  Fontes        ${fontesCriadas} cadastradas`)
+
+  // O front compilado existe?
+  //
+  // Sem `dist/` o servidor sobe, responde a API e serve a URL em BRANCO — o
+  // healthcheck passa (ele testa /api/health) e o deploy é dado como bem
+  // sucedido. É a falha mais cara possível: tudo indica sucesso e o site não
+  // abre. Normalmente significa que o build pulou as devDependencies e o Vite
+  // não rodou.
+  if (!existsSync(config.staticDir)) {
+    console.warn(`
+  [33m⚠ Interface não encontrada em ${config.staticDir}[0m`)
+    console.warn('  A API responde, mas a URL abrirá em branco.')
+    console.warn('  Rode `npm run build` — e, se for um deploy, confirme que a')
+    console.warn('  instalação incluiu as devDependencies (npm install --include=dev).
+')
+  }
 
   const agendador = iniciarAgendador()
   console.log(`  Agendador     ${agendador.ativo ? `a cada ${agendador.intervaloMinutos} min` : 'desligado'}`)
