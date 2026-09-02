@@ -199,6 +199,10 @@ export const PONTES = new Map([
     caminho: '/economy/indicators',
     transformar: (d) => d,
   }],
+  ['GET /economy/bcb', {
+    caminho: '/economy/bcb',
+    transformar: (d) => d,
+  }],
   ['GET /economy/exports', {
     caminho: '/economy/exports',
     transformar: (d) => d,

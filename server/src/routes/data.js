@@ -128,6 +128,50 @@ router.get('/economy/comparison', (req, res) => {
 //
 //   O valor é FOB em dólares correntes, e o ano corrente está INCOMPLETO — vai
 //   até o último mês que o MDIC publicou.
+// GET /api/economy/bcb — indicadores do Banco Central, atualizados no dia
+//
+// A diferenca para o World Bank e a ATUALIDADE. O World Bank publica com um a
+// dois anos de defasagem, o que serve para serie historica e nao serve para
+// dizer a que taxa o dolar fechou. O SGS entrega o dado do dia.
+router.get('/economy/bcb', (req, res) => {
+  const linhas = all(
+    `SELECT code, period, value, unit
+     FROM indicators WHERE provider = 'bcb'
+     ORDER BY period ASC`
+  )
+
+  if (!linhas.length) {
+    return res.json({ series: {}, provider: 'Banco Central do Brasil — SGS', nota: 'Sem coleta ainda.' })
+  }
+
+  const ROTULOS = {
+    usd: 'Dólar (venda)', ipca: 'IPCA — variação mensal',
+    selic: 'Selic — taxa mensal', igpm: 'IGP-M — variação mensal',
+  }
+
+  const series = {}
+  for (const l of linhas) {
+    if (!series[l.code]) {
+      series[l.code] = { id: l.code, label: ROTULOS[l.code] || l.code, unit: l.unit, pontos: [] }
+    }
+    series[l.code].pontos.push({ period: l.period, value: l.value })
+  }
+  for (const s of Object.values(series)) {
+    s.ultimo = s.pontos[s.pontos.length - 1] || null
+    // Variação contra o ponto anterior — o que a tela mostra como seta.
+    const penult = s.pontos[s.pontos.length - 2]
+    s.variacao = penult && s.ultimo
+      ? Math.round((s.ultimo.value - penult.value) * 1000) / 1000
+      : null
+  }
+
+  res.json({
+    series,
+    provider: 'Banco Central do Brasil — SGS',
+    nota: 'Séries diárias e mensais do Sistema Gerenciador de Séries Temporais do Banco Central.',
+  })
+})
+
 router.get('/economy/exports', (req, res) => {
   const linhas = all(
     `SELECT code, country, period, value

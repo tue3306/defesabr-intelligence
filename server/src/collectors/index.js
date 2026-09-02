@@ -4,6 +4,7 @@ import { coletarTodas, coletarFonte, semearFontes } from './rss.js'
 import { coletarCamara, enriquecerSituacoes } from './camara.js'
 import { coletarWorldBank, coletarCambio } from './indicators.js'
 import { coletarComex } from './comex.js'
+import { coletarBcb } from './bcb.js'
 
 // -----------------------------------------------------------------------------
 // ORQUESTRAÇÃO DA COLETA
@@ -58,6 +59,7 @@ export async function coletarTudo(gatilho = 'agendado') {
     registrar('worldbank', coletarWorldBank, gatilho),
     registrar('cambio', coletarCambio, gatilho),
     registrar('comex', coletarComex, gatilho),
+    registrar('bcb', coletarBcb, gatilho),
   ])
 
   // Depois, e só se a Câmara respondeu: enriquecer exige uma requisição por

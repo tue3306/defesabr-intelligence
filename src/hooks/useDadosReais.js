@@ -252,3 +252,44 @@ export function useExportacoes() {
 
   return { data: dados, aoVivo, carregando }
 }
+
+/**
+ * Indicadores do Banco Central — dólar, IPCA, Selic e IGP-M.
+ *
+ * A vantagem sobre o World Bank aqui é a ATUALIDADE. O World Bank publica com
+ * um a dois anos de defasagem, o que serve para série histórica e não serve
+ * para dizer a que taxa o dólar fechou hoje. O SGS entrega o dado do dia.
+ */
+export function useIndicadoresBcb() {
+  const { dados, aoVivo, carregando } = useDaApi(async () => {
+    const d = await viaPonte('GET /economy/bcb', {})
+    return Object.keys(d?.series || {}).length ? d : null
+  })
+
+  return { series: dados?.series || null, provider: dados?.provider, aoVivo, carregando }
+}
+
+/**
+ * PIB por país (US$ correntes), World Bank.
+ *
+ * Mesmo endpoint da comparação, terceiro indicador. Serve à tabela que cruza
+ * tamanho da economia com esforço de defesa — as duas colunas vêm agora da
+ * mesma fonte e do mesmo ano de referência, o que antes não era verdade.
+ */
+export function usePib() {
+  const { dados, aoVivo, carregando } = useDaApi(async () => {
+    const d = await viaPonte('GET /economy/comparison', { code: 'NY.GDP.MKTP.CD' })
+    const itens = (d?.items || [])
+      .filter((i) => i.value != null)
+      .map((i) => ({
+        country: i.country,
+        code: i.code,
+        gdpBi: Math.round(i.value / 1e9),
+        period: i.period,
+      }))
+      .sort((a, b) => b.gdpBi - a.gdpBi)
+    return itens.length > 1 ? itens : null
+  })
+
+  return { data: dados || [], aoVivo, carregando }
+}

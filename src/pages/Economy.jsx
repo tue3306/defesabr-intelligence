@@ -12,11 +12,11 @@ import InfoTooltip from '../components/ui/InfoTooltip'
 import PageHeader from '../components/ui/PageHeader'
 import ErrorBoundary from '../components/system/ErrorBoundary'
 import {
-  brazilIndicators, southAmericaEconomy, brazilInflation, defenseBudgetBreakdown,
-} from '../data/economyData'
-import { useComparacaoPIB, useGastoGlobal } from '../hooks/useDadosReais'
+  useComparacaoPIB, useGastoGlobal, useIndicadoresBcb, usePib,
+} from '../hooks/useDadosReais'
 
-const IND_ICON = { pib: DollarSign, cambio: TrendingUp, inflacao: Percent, defesa: Shield, selic: Landmark, risco: Activity }
+// Chaves pelos ids das séries do Banco Central (ver server/src/collectors/bcb.js).
+const IND_ICON = { usd: TrendingUp, ipca: Percent, selic: Landmark, igpm: Percent }
 
 export default function Economy() {
   // Mapeia o campo para o ComparisonBarChart (espera `pctGdp`).
@@ -25,6 +25,10 @@ export default function Economy() {
   // para treze países, e é de lá que elas passam a sair.
   const vizinhanca = useComparacaoPIB('vizinhanca')
   const gastoGlobal = useGastoGlobal()
+  const bcb = useIndicadoresBcb()
+  const pib = usePib()
+  const potencias = useComparacaoPIB('potencias')
+  const potenciasPct = potencias.data
 
   const pctGdpData = vizinhanca.data
   // O gráfico de barras de orçamento usa os mesmos países da vizinhança, com
@@ -35,33 +39,43 @@ export default function Economy() {
     .map((g) => ({ country: g.name, defenseUSD: g.value }))
     .sort((a, b) => b.defenseUSD - a.defenseUSD)
   const maxDef = Math.max(...orcamento.map((d) => d.defenseUSD), 1)
-  const inflationVals = brazilInflation.map((i) => i.value)
+  const inflationVals = (bcb.series?.ipca?.pontos || []).map((p) => p.value)
 
   return (
     <div className="space-y-6">
       <PageHeader
         icon={Globe2}
         title="Economia & Defesa"
-        description="Indicadores macroeconômicos que condicionam o orçamento de defesa brasileiro, o comparativo regional e o efeito do câmbio sobre os programas estratégicos."
+        description="Indicadores do Banco Central atualizados no dia e o comparativo de gasto em defesa entre países, do World Bank."
         help="Orçamento de defesa é decisão política, mas sua execução real depende de câmbio, inflação e espaço fiscal — por isso estes indicadores aparecem aqui."
         breadcrumb={[{ label: 'Dados & Relatórios' }, { label: 'Economia & Defesa' }]}
         badges={<Badge type={vizinhanca.aoVivo ? 'live' : 'demo'} />}
       />
 
-      {/* INDICADORES BRASIL */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {brazilIndicators.map((ind) => (
-          <MetricCard
-            key={ind.id}
-            icon={IND_ICON[ind.id] || Activity}
-            label={ind.label}
-            value={ind.value}
-            delta={ind.delta}
-            deltaPositive={ind.positive}
-            hint={ind.hint}
-            accent={ind.id === 'defesa' ? 'green' : ind.id === 'inflacao' ? 'amber' : 'brand'}
-          />
-        ))}
+      {/* INDICADORES BRASIL — Banco Central, atualizados no dia */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {bcb.series
+          ? Object.values(bcb.series).map((s) => (
+            <MetricCard
+              key={s.id}
+              icon={IND_ICON[s.id] || Activity}
+              label={s.label}
+              value={`${s.unit === 'R$' ? 'R$ ' : ''}${String(s.ultimo?.value ?? '—').replace('.', ',')}${s.unit === '%' ? '%' : ''}`}
+              delta={s.variacao != null ? `${s.variacao > 0 ? '+' : ''}${String(s.variacao).replace('.', ',')}` : undefined}
+              // Para inflação e juros, subir é ruim; para o dólar depende de
+              // quem olha. Só marcamos como positivo o que é inequívoco.
+              deltaPositive={s.id === 'ipca' || s.id === 'igpm' ? s.variacao < 0 : undefined}
+              hint={s.ultimo?.period ? `referência ${s.ultimo.period}` : ''}
+              accent={s.id === 'usd' ? 'brand' : s.id === 'ipca' ? 'amber' : 'green'}
+            />
+          ))
+          : (
+            <p className="col-span-full rounded-lg border border-gray-200 p-4 text-sm muted dark:border-white/10">
+              {bcb.carregando
+                ? 'Consultando o Banco Central…'
+                : 'Indicadores do Banco Central indisponíveis — o servidor de coleta não respondeu.'}
+            </p>
+          )}
       </div>
 
       {/* CÂMBIO + INFLAÇÃO */}
@@ -76,16 +90,25 @@ export default function Economy() {
             Inflação (IPCA)
             <InfoTooltip text="Índice de Preços ao Consumidor Amplo — mede a inflação oficial do Brasil, em % ao ano." />
           </h2>
-          <p className="mt-1 text-3xl font-bold">{brazilInflation.at(-1).value}%</p>
-          <p className="text-xs muted">acumulado 12 meses</p>
+          <p className="mt-1 text-3xl font-bold">
+            {bcb.series?.ipca?.ultimo?.value != null
+              ? `${String(bcb.series.ipca.ultimo.value).replace('.', ',')}%`
+              : '—'}
+          </p>
+          {/* Dizia "acumulado 12 meses" exibindo a variação MENSAL. A série do
+              SGS é mensal; o rótulo passa a corresponder ao número. */}
+          <p className="text-xs muted">
+            variação do mês
+            {bcb.series?.ipca?.ultimo?.period ? ` · ${bcb.series.ipca.ultimo.period}` : ''}
+          </p>
           <div className="mt-3">
             <ErrorBoundary variant="inline" scope="Série de inflação">
               <Sparkline values={inflationVals} color="#caa733" height={48} />
             </ErrorBoundary>
           </div>
-          <div className="mt-2 flex justify-between text-[11px] muted">
-            {brazilInflation.map((i) => <span key={i.month}>{i.month}</span>)}
-          </div>
+          <p className="mt-2 text-[11px] muted">
+            Últimos {inflationVals.length} meses · Banco Central (SGS)
+          </p>
         </div>
       </div>
 
@@ -137,38 +160,34 @@ export default function Economy() {
                 </tr>
               </thead>
               <tbody>
-                {[...southAmericaEconomy].sort((a, b) => b.gdp - a.gdp).map((d) => (
-                  <tr key={d.code} className="border-b border-gray-700/30">
-                    <td className="py-2 pr-4 font-medium">{d.country}</td>
-                    <td className="py-2 pr-4 font-mono">{d.gdp.toLocaleString('pt-BR')}</td>
-                    <td className="py-2 font-mono">{d.militaryPctGdp}%</td>
-                  </tr>
-                ))}
+                {/* As duas colunas vinham de um array escrito à mão. Agora saem
+                    do mesmo endpoint e do mesmo ano de referência — o que antes
+                    não era verdade: PIB e percentual eram de anos diferentes,
+                    somados na mesma linha. */}
+                {pib.data.map((d) => {
+                  const pct = vizinhanca.data.find((v) => v.country === d.country)
+                    || potenciasPct.find((v) => v.country === d.country)
+                  return (
+                    <tr key={d.country} className="border-b border-gray-700/30">
+                      <td className="py-2 pr-4 font-medium">{d.country}</td>
+                      <td className="py-2 pr-4 font-mono">{d.gdpBi.toLocaleString('pt-BR')}</td>
+                      <td className="py-2 font-mono">
+                        {pct ? `${String(pct.pctGdp).replace('.', ',')}%` : '—'}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
         </div>
 
-        <div className="card p-5">
-          <h2 className="mb-3 text-base font-bold tracking-tight">Composição do orçamento de defesa (Brasil)</h2>
-          <div className="space-y-3">
-            {defenseBudgetBreakdown.map((b) => (
-              <div key={b.label}>
-                <div className="mb-1 flex justify-between text-sm">
-                  <span className="font-medium">{b.label}</span>
-                  <span className="font-mono font-bold">{b.value}%</span>
-                </div>
-                <span className="block h-2 overflow-hidden rounded-full bg-gray-700/30">
-                  <span className="block h-full rounded-full" style={{ width: `${b.value}%`, background: b.color }} />
-                </span>
-              </div>
-            ))}
-          </div>
-          <p className="mt-3 text-xs muted">Pessoal representa a maior fatia — padrão histórico no Brasil.</p>
-        </div>
-      </div>
 
-      <p className="text-center text-xs muted">Valores demonstrativos para fins de visualização.</p>
+      </div>
+      <p className="text-center text-xs muted">
+        Fontes: Banco Central (SGS) para os indicadores do dia; World Bank Open Data para a
+        comparação entre países. Nenhum número desta tela é estimado.
+      </p>
       {/* COMO O CÂMBIO AFETA OS PROGRAMAS */}
 
     </div>
