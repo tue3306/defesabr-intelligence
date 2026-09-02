@@ -111,7 +111,97 @@ export const FONTES_PADRAO = [
     site_url: 'https://agenciabrasil.ebc.com.br',
     category: 'Agência pública',
   },
+
+  // ── Imprensa especializada em defesa ──
+  //
+  // As fontes oficiais publicam pouco e devagar: o Ministério da Defesa solta
+  // algumas notas por semana. Estas três cobrem defesa em tempo integral e
+  // publicam TODO DIA, o que muda a natureza do acervo — deixa de ser um
+  // arquivo de comunicados e vira acompanhamento corrente.
+  {
+    slug: 'defesanet',
+    name: 'DefesaNet',
+    url: 'https://www.defesanet.com.br/feed/',
+    site_url: 'https://www.defesanet.com.br',
+    category: 'Imprensa especializada',
+  },
+  {
+    slug: 'naval',
+    name: 'Poder Naval',
+    url: 'https://www.naval.com.br/blog/feed/',
+    site_url: 'https://www.naval.com.br',
+    category: 'Imprensa especializada',
+  },
+  {
+    slug: 'tecnodefesa',
+    name: 'Tecnodefesa',
+    url: 'https://tecnodefesa.com.br/feed/',
+    site_url: 'https://tecnodefesa.com.br',
+    category: 'Imprensa especializada',
+  },
+
+  // ── Agregador ──
+  //
+  // O Google News expõe qualquer busca como RSS. É a única fonte aqui que
+  // varre a imprensa inteira em vez de um veículo só, e por isso é a que mais
+  // alimenta a correlação por país: notícia de defesa publicada em qualquer
+  // jornal brasileiro entra por aqui.
+  //
+  // Em troca exige limpeza — ver `limparAgregador()` abaixo. O título vem com
+  // " - veículo" grudado no fim e a descrição é uma âncora HTML, não um
+  // resumo. Sem tratar, o cartão exibiria lixo e o filtro avaliaria o nome do
+  // jornal como se fosse conteúdo.
+  {
+    slug: 'google-news-defesa',
+    name: 'Google Notícias — Defesa',
+    url: 'https://news.google.com/rss/search?q=defesa+militar+%22Forcas+Armadas%22+Brasil&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+    site_url: 'https://news.google.com',
+    category: 'Agregador',
+  },
+  {
+    slug: 'google-news-forcas',
+    name: 'Google Notícias — Marinha, Exército e FAB',
+    url: 'https://news.google.com/rss/search?q=Marinha+OR+%22Exercito+Brasileiro%22+OR+%22Forca+Aerea%22+defesa&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+    site_url: 'https://news.google.com',
+    category: 'Agregador',
+  },
 ]
+
+/**
+ * Limpeza do que vem de agregador (Google Notícias).
+ *
+ * Dois defeitos, ambos com consequência real se ignorados:
+ *
+ *   TÍTULO   chega como "Marinha incorpora nova fragata - Poder Naval". O
+ *            sufixo é o veículo, não parte da manchete. Deixá-lo faria o
+ *            filtro de relevância avaliar o nome do jornal junto do assunto —
+ *            e um veículo chamado "Poder Naval" casaria com termo forte em
+ *            toda matéria que publicasse, inclusive as que não são de defesa.
+ *
+ *   RESUMO   não existe. A descrição é `<a href="...">título</a>`, marcação
+ *            pura. Guardá-la encheria o cartão de HTML e daria ao filtro uma
+ *            cópia do título como se fosse conteúdo novo.
+ *
+ * O veículo real vem no elemento `<source>`, que o parser já extrai.
+ */
+export function limparAgregador(item) {
+  let titulo = item.titulo || ''
+  const veiculo = item.fonteOriginal || ''
+
+  // Remove " - Veículo" do fim, e só do fim: manchetes legítimas usam hífen no
+  // meio ("Operação Ágata - balanço"), e cortar no primeiro hífen as mutilaria.
+  if (veiculo && titulo.endsWith(` - ${veiculo}`)) {
+    titulo = titulo.slice(0, -(veiculo.length + 3)).trim()
+  } else {
+    titulo = titulo.replace(/\s+-\s+[^-]{3,40}$/, '').trim() || titulo
+  }
+
+  // Descrição que é só marcação não vira resumo.
+  const resumo = /^\s*<a\s/i.test(item.resumo || '') ? null : item.resumo
+
+  return { ...item, titulo, resumo, veiculo: veiculo || null }
+}
+
 
 /** Cadastra as fontes padrão que ainda não existem. Não sobrescreve ajustes. */
 export function semearFontes() {
@@ -137,8 +227,14 @@ export async function coletarFonte(fonte) {
     let novos = 0
     let relevantes = 0
 
+    // Fontes de agregador precisam de limpeza antes de qualquer avaliação —
+    // ver `limparAgregador()`. As demais passam direto.
+    const ehAgregador = fonte.category === 'Agregador'
+
     transacao(() => {
-      for (const item of itens) {
+      for (const bruto of itens) {
+        const item = ehAgregador ? limparAgregador(bruto) : bruto
+
         // O rodapé de manchetes vizinhas sai ANTES de qualquer avaliação: não
         // pertence a esta matéria, então não pode nem qualificá-la como
         // relevante nem aparecer no cartão como se fosse o resumo dela.
@@ -157,7 +253,11 @@ export async function coletarFonte(fonte) {
               category, urgency, relevant, relevance_score, matched_terms)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
-            fonte.id, item.guid, item.titulo, item.url, resumo, item.autor,
+            // Num agregador, quem assina a matéria é o veículo que a publicou,
+            // não o agregador. Guardar "Google Notícias" como autor apagaria a
+            // procedência justamente na fonte em que ela mais importa.
+            fonte.id, item.guid, item.titulo, item.url, resumo,
+            item.veiculo || item.autor,
             item.publicadoEm, categoria, urgencia,
             r.relevante ? 1 : 0, r.pontos, r.termos.slice(0, 8).join(', ') || null,
           ]

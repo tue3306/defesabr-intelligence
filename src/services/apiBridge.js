@@ -184,6 +184,22 @@ export const PONTES = new Map([
     }),
   }],
 
+  // ── Correlação geográfica ──
+  //
+  // O que dá lastro aos dois mapas. Passa direto: a resposta do servidor já
+  // tem a forma que os componentes consomem, e traduzir de um lado para o
+  // outro só criaria um ponto a mais onde o significado pode se perder.
+  ['GET /news/countries', {
+    caminho: '/news/countries',
+    parametros: ({ days = 365 } = {}) => ({ days }),
+    transformar: (d) => d,
+  }],
+  ['GET /news/geo', {
+    caminho: '/news/geo',
+    parametros: ({ days = 180 } = {}) => ({ days }),
+    transformar: (d) => d,
+  }],
+
   // ── Legislativo ──
   ['GET /strategic/legislative', {
     caminho: '/legislative',

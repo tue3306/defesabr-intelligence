@@ -86,6 +86,11 @@ export function parseFeed(xml) {
         pegar('pubDate') || pegar('dc:date') || pegar('updated') || pegar('published')
       ),
       guid: pegar('guid') || pegar('id') || url || titulo,
+      // Veículo de origem, quando o feed o declara. Num feed comum é redundante
+      // (a fonte É o veículo); num AGREGADOR é a única forma de saber quem
+      // publicou de fato — o Google Notícias põe aqui "g1.globo.com" enquanto a
+      // fonte cadastrada é o próprio Google.
+      fonteOriginal: pegar('source') || null,
     })
   }
 

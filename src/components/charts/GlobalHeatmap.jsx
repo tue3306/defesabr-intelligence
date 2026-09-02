@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { ComposableMap, Geographies, Geography } from 'react-simple-maps'
 import { Newspaper, MapPin, Flag } from 'lucide-react'
 import { countryActivity } from '../../data/mockData'
 import { countryIntel, AMERICAS } from '../../data/countryNews'
+import { apiOnline, viaPonte } from '../../services/apiBridge'
 import { categoryColor , textoSobre } from '../../utils/textUtils'
 
 const geoUrl = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json'
@@ -37,13 +38,86 @@ function colorFor(v) {
   return '#c0392b'
 }
 
+// -----------------------------------------------------------------------------
+// COBERTURA REAL POR PAÍS
+//
+// Este mapa pintava países por um "risco" de 0 a 100 digitado à mão em
+// `countryNews.js` — 15 países com números que ninguém podia conferir e que
+// não vinham de lugar nenhum. Um mapa de calor é a peça mais persuasiva de um
+// painel de inteligência; enchê-lo de número inventado é o pior lugar
+// possível para se fazer isso.
+//
+// Agora ele consome `/api/news/countries`, que conta quantas notícias
+// COLETADAS mencionam cada país e devolve as manchetes que sustentam cada
+// contagem. A escala vira relativa ao máximo observado: o país mais citado do
+// período fica no topo, os demais proporcionalmente.
+//
+// A troca de significado é grande e a interface precisa dizê-la em voz alta:
+// isto é VOLUME DE COBERTURA, não risco. Um país aparece mais porque a
+// imprensa escreveu mais sobre ele — o que não é a mesma coisa que ser mais
+// perigoso, e o leitor completa essa frase sozinho se ninguém completar por
+// ele.
+// -----------------------------------------------------------------------------
+function useCoberturaPorPais() {
+  const [dados, setDados] = useState(null)
+
+  useEffect(() => {
+    let vivo = true
+    ;(async () => {
+      try {
+        if (!(await apiOnline())) return
+        const d = await viaPonte('GET /news/countries', { days: 365 })
+        if (vivo && d?.items?.length) setDados(d)
+      } catch {
+        // Sem API o mapa segue com o acervo local, e o rótulo diz isso.
+      }
+    })()
+    return () => { vivo = false }
+  }, [])
+
+  return dados
+}
+
 export default function GlobalHeatmap({ height = 380, withNews = true }) {
   const [hover, setHover] = useState(null)
   const [pinned, setPinned] = useState('Brazil')
   const [priorityAmericas, setPriorityAmericas] = useState(true)
 
+  const cobertura = useCoberturaPorPais()
+  const aoVivo = !!cobertura
+
+  // O mapa abria fixado no Brasil, que é justamente o único país sem contagem
+  // (ver a nota em `useCoberturaPorPais`). Abrir num painel zerado faz o
+  // recurso parecer quebrado logo no primeiro olhar. Com dado no ar, ele abre
+  // no país mais coberto do período — que é a informação que o mapa existe
+  // para dar.
+  useEffect(() => {
+    if (cobertura?.items?.length) setPinned(cobertura.items[0].nome)
+  }, [cobertura])
+
+  // Nome do país → o que sabemos dele. Com a API no ar, `valor` é a contagem
+  // de menções normalizada de 0 a 100 pelo país mais citado; sem ela, é o
+  // número do acervo local, e `aoVivo` diz qual dos dois está em tela.
+  const porPais = useMemo(() => {
+    if (!cobertura) return null
+    const max = cobertura.maximo || 1
+    return Object.fromEntries(cobertura.items.map((p) => [p.nome, {
+      ...p,
+      valor: Math.round((p.total / max) * 100),
+    }]))
+  }, [cobertura])
+
   const activeName = hover || pinned
-  const active = activeName ? { name: activeName, ...nameProps(activeName), intel: countryIntel[activeName] } : null
+  const active = activeName
+    ? {
+        name: activeName,
+        ...nameProps(activeName),
+        intel: countryIntel[activeName],
+        // Com a API no ar, estes dois substituem o que vinha do acervo local.
+        cobertura: porPais?.[activeName] || null,
+        aoVivo,
+      }
+    : null
 
   return (
     <div>
@@ -65,8 +139,13 @@ export default function GlobalHeatmap({ height = 380, withNews = true }) {
         {active && (
           <div className="on-dark pointer-events-none absolute left-3 top-3 z-10 rounded-lg border border-gray-700/50 bg-military-darker/90 px-3 py-1.5 text-xs">
             <span className="font-semibold">{active.namePt}</span>
-            <span className="muted"> · risco {active.risk ?? '—'}/100</span>
-            {active.intel?.news?.length ? <span className="muted"> · {active.intel.news.length} notícia(s)</span> : null}
+            {active.aoVivo ? (
+              <span className="muted">
+                {' · '}{active.cobertura?.total ?? 0} notícia(s) coletada(s)
+              </span>
+            ) : (
+              <span className="muted"> · risco {active.risk ?? '—'}/100</span>
+            )}
           </div>
         )}
         <ComposableMap projectionConfig={{ scale: 130 }} height={height} style={{ width: '100%', height: '100%' }}>
@@ -74,7 +153,7 @@ export default function GlobalHeatmap({ height = 380, withNews = true }) {
             {({ geographies }) =>
               geographies.map((geo) => {
                 const name = geo.properties.name
-                const { risk } = nameProps(name)
+                const risk = porPais ? (porPais[name]?.valor ?? null) : nameProps(name).risk
                 const dimmed = priorityAmericas && !AMERICAS.has(name)
                 const isActive = activeName === name
                 const fill = dimmed ? '#222c3a' : colorFor(risk)
@@ -114,12 +193,12 @@ export default function GlobalHeatmap({ height = 380, withNews = true }) {
       </div>
 
       {/* Painel de notícias do país ativo */}
-      {withNews && <CountryNewsPanel active={active} />}
+      {withNews && <CountryNewsPanel active={active} aoVivo={aoVivo} />}
     </div>
   )
 }
 
-function CountryNewsPanel({ active }) {
+function CountryNewsPanel({ active, aoVivo }) {
   if (!active) {
     return <p className="mt-4 border-t border-gray-700/40 pt-4 text-center text-sm muted">Selecione um país no mapa.</p>
   }
@@ -127,6 +206,7 @@ function CountryNewsPanel({ active }) {
   // [ALTERADO] Relevância do país para o Brasil
   const relevance = name === 'Brazil' ? 'País-foco' : AMERICAS.has(name) ? 'Alta' : 'Média'
   const relColor = relevance === 'Alta' ? '#2e7d46' : relevance === 'Média' ? '#caa733' : '#147a43'
+  const noticias = aoVivo ? (active.cobertura?.exemplos || []) : (intel?.news || [])
   return (
     <div className="mt-4 border-t border-gray-700/40 pt-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -142,15 +222,21 @@ function CountryNewsPanel({ active }) {
           >
             Relevância p/ Brasil: {relevance}
           </span>
-          {/* O selo de risco muda de fundo conforme o valor — verde no baixo,
-              vermelho no alto. Texto branco fixo dava 2,3:1 sobre os tons
-              claros da faixa média. Agora a cor do texto segue a luminância do
-              próprio fundo, que é a única forma de acertar nos dois extremos. */}
+          {/* O selo muda de fundo conforme o valor. Texto branco fixo dava
+              2,3:1 sobre os tons claros da faixa média; a cor do texto segue a
+              luminância do próprio fundo, que é a única forma de acertar nos
+              dois extremos.
+
+              O RÓTULO muda com a origem do dado, e isso não é detalhe: com a
+              API no ar o número é contagem de notícias coletadas, e chamá-lo
+              de "risco" seria vender uma medida que ninguém fez. */}
           <span
             className="rounded-full px-2 py-0.5 text-xs font-bold"
             style={{ background: colorFor(risk), color: textoSobre(colorFor(risk)) }}
           >
-            risco {risk ?? '—'}/100
+            {aoVivo
+              ? `${active.cobertura?.total ?? 0} notícia(s)`
+              : `risco ${risk ?? '—'}/100`}
           </span>
         </div>
       </div>
@@ -162,23 +248,55 @@ function CountryNewsPanel({ active }) {
         </p>
       )}
 
-      {intel?.news?.length ? (
+      {/* Com a API no ar, as manchetes são as que a coleta encontrou citando
+          este país — clicáveis, com data e categoria reais. Sem ela, caem as
+          fichas do acervo local. */}
+      {noticias.length ? (
         <ul className="space-y-2">
-          {intel.news.map((n, i) => (
-            <li key={i} className="flex items-start gap-2.5 rounded-lg bg-white/5 px-3 py-2">
+          {noticias.map((n, i) => (
+            <li key={n.id ?? i} className="flex items-start gap-2.5 rounded-lg bg-white/5 px-3 py-2">
               <Newspaper size={15} className="mt-0.5 shrink-0 text-gray-400" />
               <div className="min-w-0">
-                <p className="text-sm font-medium text-gray-200">{n.title}</p>
+                {n.url ? (
+                  <a
+                    href={n.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm font-medium text-gray-900 hover:underline dark:text-gray-200"
+                  >
+                    {n.title}
+                  </a>
+                ) : (
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-200">{n.title}</p>
+                )}
                 <p className="mt-0.5 flex items-center gap-1.5 text-[11px] muted">
                   <span className="h-2 w-2 rounded-full" style={{ background: categoryColor(n.category) }} />
-                  {n.category} · {n.date}
+                  {n.category || 'Sem categoria'} · {n.date ? new Date(n.date).toLocaleDateString('pt-BR') : '—'}
                 </p>
               </div>
             </li>
           ))}
         </ul>
       ) : (
-        <p className="text-sm muted">Sem fichas de notícias para este país na demonstração.</p>
+        <p className="text-sm muted">
+          {!aoVivo
+            ? 'Sem fichas de notícias para este país na demonstração.'
+            : name === 'Brazil'
+              // O Brasil não é contado de propósito, e a tela precisa dizer por
+              // quê: todo o acervo é sobre ele. Incluí-lo somaria ~150 menções
+              // contra 16 do segundo colocado, e o mapa inteiro viraria uma
+              // mancha só — a escala é relativa ao máximo.
+              ? 'O Brasil não entra na contagem: o acervo inteiro é sobre ele. '
+                + 'Este mapa mostra quais OUTROS países a cobertura brasileira de defesa cita.'
+              : 'Nenhuma notícia coletada no período menciona este país.'}
+        </p>
+      )}
+
+      {aoVivo && (
+        <p className="mt-3 text-[11px] muted">
+          A cor do mapa mede <strong>volume de cobertura</strong> — quantas notícias coletadas
+          citam cada país —, não risco, tensão ou atividade militar.
+        </p>
       )}
     </div>
   )

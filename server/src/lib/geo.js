@@ -81,6 +81,30 @@ const RX_UF = UFS.map((u) => ({
   rx: new RegExp(`(?<![\\p{L}\\p{N}])${normalizar(u.nome)}(?![\\p{L}\\p{N}])`, 'iu'),
 }))
 
+// ── DUAS UFs QUE A NORMALIZAÇÃO DESTRÓI ──
+//
+// Normalizar tira o acento, e aí dois estados viram palavras corriqueiras:
+//
+//   Pará  → "para"   a preposição mais comum do português
+//   Acre  → "acre"   adjetivo ("cheiro acre")
+//
+// O efeito não era sutil. No acervo real o Pará aparecia com 61 menções contra
+// 4 do segundo colocado — o mapa do Brasil ficava com um estado em brasa
+// porque as notícias diziam "verba PARA a defesa". Um mapa assim não erra por
+// pouco: ele inverte a leitura de quem olha.
+//
+// O que desambigua é justamente o que a normalização joga fora. "Pará" tem
+// acento e a preposição não; "Acre" é próprio e leva maiúscula, o adjetivo
+// não. Então estes dois são testados contra o texto CRU.
+const UF_AMBIGUA = {
+  // O ACENTO é o discriminador: a preposição "para" nunca o tem. A caixa não
+  // importa — "PARÁ" em manchete caixa-alta continua sendo o estado.
+  PA: /(?<![\p{L}\p{N}])par[áÁ](?![\p{L}\p{N}])/iu,
+  // Aqui é a MAIÚSCULA: o adjetivo ("cheiro acre") aparece em minúscula no meio
+  // da frase, o estado é nome próprio. Caixa-alta de manchete também vale.
+  AC: /(?<![\p{L}\p{N}])(?:Acre|ACRE)(?![\p{L}\p{N}])/u,
+}
+
 const RX_REGIAO = REGIOES_ESTRATEGICAS.map((r) => ({
   ...r,
   rxs: r.termos.map((t) => new RegExp(`(?<![\\p{L}\\p{N}])${normalizar(t)}(?![\\p{L}\\p{N}])`, 'iu')),
@@ -88,12 +112,107 @@ const RX_REGIAO = REGIOES_ESTRATEGICAS.map((r) => ({
 
 /** @returns {{ufs: string[], regioes: string[]}} */
 export function detectarLugares(texto) {
-  const palheiro = normalizar(texto || '')
+  const cru = String(texto || '')
+  const palheiro = normalizar(cru)
   if (!palheiro.trim()) return { ufs: [], regioes: [] }
   return {
-    ufs: RX_UF.filter(({ rx }) => rx.test(palheiro)).map((u) => u.uf),
+    // As UFs ambíguas são decididas no texto cru, onde acento e maiúscula
+    // ainda existem; as demais seguem pelo caminho normalizado.
+    ufs: RX_UF.filter(({ uf, rx }) => (
+      UF_AMBIGUA[uf] ? UF_AMBIGUA[uf].test(cru) : rx.test(palheiro)
+    )).map((u) => u.uf),
     regioes: RX_REGIAO.filter(({ rxs }) => rxs.some((rx) => rx.test(palheiro))).map((r) => r.id),
   }
 }
 
-export default { UFS, REGIOES_ESTRATEGICAS, detectarLugares }
+
+// -----------------------------------------------------------------------------
+// PAISES
+//
+// O mapa-mundi da interface pintava paises por um numero de "risco" escrito a
+// mao — 15 paises com valores inventados, sem relacao nenhuma com o que foi
+// coletado. Mapa de calor sem dado por tras e decoracao com aparencia de
+// analise, que e a pior combinacao: convida a tirar conclusao de nada.
+//
+// Aqui a correlacao passa a ser MEDIDA: quantas noticias do acervo mencionam
+// cada pais. Nao e indice de risco nem juizo geopolitico — e contagem de
+// mencao, e a API declara isso no proprio corpo da resposta.
+//
+// As chaves sao os nomes EM INGLES do world-atlas que o mapa usa
+// (`properties.name`); sem isso o pais detectado nao acha o poligono para
+// pintar. Os `termos` sao como a imprensa brasileira escreve, com as variantes
+// que de fato aparecem (gentilico e capital incluidos, porque "forcas
+// venezuelanas" e "acordo em Caracas" sao mencoes ao pais).
+// -----------------------------------------------------------------------------
+export const PAISES = [
+  // Vizinhanca sul-americana — prioridade do produto
+  { nome: 'Argentina', pt: 'Argentina', termos: ['argentina', 'argentino', 'argentinos', 'buenos aires'] },
+  { nome: 'Bolivia', pt: 'Bolivia', termos: ['bolivia', 'boliviano', 'bolivianos', 'la paz'] },
+  { nome: 'Chile', pt: 'Chile', termos: ['chile', 'chileno', 'chilenos'] },
+  { nome: 'Colombia', pt: 'Colombia', termos: ['colombia', 'colombiano', 'colombianos', 'bogota'] },
+  { nome: 'Ecuador', pt: 'Equador', termos: ['equador', 'equatoriano', 'equatorianos', 'quito'] },
+  { nome: 'Guyana', pt: 'Guiana', termos: ['guiana', 'essequibo', 'georgetown'] },
+  { nome: 'Paraguay', pt: 'Paraguai', termos: ['paraguai', 'paraguaio', 'paraguaios', 'assuncao'] },
+  { nome: 'Peru', pt: 'Peru', termos: ['peru', 'peruano', 'peruanos'] },
+  { nome: 'Suriname', pt: 'Suriname', termos: ['suriname', 'paramaribo'] },
+  { nome: 'Uruguay', pt: 'Uruguai', termos: ['uruguai', 'uruguaio', 'uruguaios', 'montevideu'] },
+  { nome: 'Venezuela', pt: 'Venezuela', termos: ['venezuela', 'venezuelano', 'venezuelanos', 'caracas'] },
+
+  // Resto das Americas
+  { nome: 'United States of America', pt: 'Estados Unidos', termos: ['estados unidos', 'eua', 'norte-americano', 'norte-americanos', 'washington', 'pentagono', 'casa branca'] },
+  { nome: 'Canada', pt: 'Canada', termos: ['canada', 'canadense', 'canadenses', 'ottawa'] },
+  { nome: 'Mexico', pt: 'Mexico', termos: ['mexico', 'mexicano', 'mexicanos'] },
+  { nome: 'Cuba', pt: 'Cuba', termos: ['cuba', 'cubano', 'cubanos', 'havana'] },
+  { nome: 'Haiti', pt: 'Haiti', termos: ['haiti', 'haitiano', 'haitianos'] },
+
+  // Potencias e parceiros com peso em defesa
+  { nome: 'China', pt: 'China', termos: ['china', 'chines', 'chinesa', 'chineses', 'pequim'] },
+  { nome: 'Russia', pt: 'Russia', termos: ['russia', 'russo', 'russa', 'russos', 'moscou', 'kremlin'] },
+  { nome: 'Ukraine', pt: 'Ucrania', termos: ['ucrania', 'ucraniano', 'ucranianos', 'kiev'] },
+  { nome: 'France', pt: 'Franca', termos: ['franca', 'frances', 'francesa', 'franceses', 'paris'] },
+  { nome: 'United Kingdom', pt: 'Reino Unido', termos: ['reino unido', 'inglaterra', 'britanico', 'britanica', 'britanicos', 'londres'] },
+  { nome: 'Germany', pt: 'Alemanha', termos: ['alemanha', 'alemao', 'alema', 'alemaes', 'berlim'] },
+  { nome: 'Italy', pt: 'Italia', termos: ['italia', 'italiano', 'italianos'] },
+  { nome: 'Spain', pt: 'Espanha', termos: ['espanha', 'espanhol', 'espanhola', 'espanhois', 'madri'] },
+  { nome: 'Portugal', pt: 'Portugal', termos: ['portugal', 'portugues', 'portuguesa', 'portugueses', 'lisboa'] },
+  { nome: 'Israel', pt: 'Israel', termos: ['israel', 'israelense', 'israelenses'] },
+  { nome: 'Iran', pt: 'Ira', termos: ['iraniano', 'iranianos', 'teera'] },
+  { nome: 'India', pt: 'India', termos: ['india', 'indiano', 'indianos', 'nova delhi'] },
+  { nome: 'Japan', pt: 'Japao', termos: ['japao', 'japones', 'japonesa', 'japoneses', 'toquio'] },
+  { nome: 'South Korea', pt: 'Coreia do Sul', termos: ['coreia do sul', 'sul-coreano', 'sul-coreanos', 'seul'] },
+  { nome: 'North Korea', pt: 'Coreia do Norte', termos: ['coreia do norte', 'norte-coreano', 'norte-coreanos', 'pyongyang'] },
+  { nome: 'Turkey', pt: 'Turquia', termos: ['turquia', 'turco', 'turcos', 'ancara'] },
+  { nome: 'South Africa', pt: 'Africa do Sul', termos: ['africa do sul', 'sul-africano', 'sul-africanos'] },
+  { nome: 'Angola', pt: 'Angola', termos: ['angola', 'angolano', 'angolanos', 'luanda'] },
+  { nome: 'Nigeria', pt: 'Nigeria', termos: ['nigeria', 'nigeriano', 'nigerianos'] },
+  { nome: 'Sweden', pt: 'Suecia', termos: ['suecia', 'sueco', 'sueca', 'suecos', 'estocolmo', 'saab'] },
+]
+
+// A mesma armadilha do filtro de relevancia, agora com nome de pais: sem
+// fronteira de palavra, "cuba" casa dentro de "incubadora" e "ira" (Ira) casa
+// com a forma verbal "ira" depois que a normalizacao tira o acento. Tudo passa
+// por lookaround, e o Ira entra so por gentilico e capital.
+const RX_PAIS = PAISES.map((p) => ({
+  ...p,
+  rxs: p.termos.map((t) => new RegExp(`(?<![\\p{L}\\p{N}])${normalizar(t)}(?![\\p{L}\\p{N}])`, 'iu')),
+}))
+
+/**
+ * Paises mencionados num texto.
+ *
+ * Devolve os nomes em ingles (a chave do mapa), para quem consome nao precisar
+ * saber que ha traducao no meio do caminho.
+ *
+ * @returns {string[]}
+ */
+export function detectarPaises(texto) {
+  const palheiro = normalizar(texto || '')
+  if (!palheiro.trim()) return []
+  return RX_PAIS.filter(({ rxs }) => rxs.some((rx) => rx.test(palheiro))).map((p) => p.nome)
+}
+
+/** Nome em portugues de um pais, a partir da chave em ingles. */
+export const nomePtDoPais = (nome) => PAISES.find((p) => p.nome === nome)?.pt || nome
+
+export default { UFS, REGIOES_ESTRATEGICAS, PAISES, detectarLugares, detectarPaises, nomePtDoPais }
+

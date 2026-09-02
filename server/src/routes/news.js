@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { all, get, run } from '../db/index.js'
 import { METODO_RELEVANCIA } from '../lib/relevance.js'
 import { avaliarRelevancia, classificar } from '../lib/relevance.js'
-import { UFS, REGIOES_ESTRATEGICAS, detectarLugares } from '../lib/geo.js'
+import { UFS, REGIOES_ESTRATEGICAS, PAISES, detectarLugares, detectarPaises, nomePtDoPais } from '../lib/geo.js'
 
 const router = Router()
 
@@ -183,6 +183,62 @@ router.get('/news/stats', (req, res) => {
       coletados: get(`SELECT COUNT(*) AS n FROM articles WHERE published_at >= ${corte}`)?.n ?? 0,
       aprovados: get(`SELECT COUNT(*) AS n FROM articles WHERE relevant = 1 AND published_at >= ${corte}`)?.n ?? 0,
     },
+  })
+})
+
+// GET /api/news/countries — que paises o acervo menciona
+//
+// Existe para dar lastro ao mapa-mundi. Antes ele pintava paises por um numero
+// de "risco" digitado a mao; agora pinta por quantas noticias COLETADAS citam
+// cada pais, e cada pais carrega as manchetes que o puseram ali.
+//
+// A ressalva e a mesma do mapa do Brasil e viaja junto do dado: isto e volume
+// de cobertura, nao medida de risco. Um pais aparece mais porque a imprensa
+// brasileira escreveu mais sobre ele, o que nao e a mesma coisa que ser mais
+// perigoso — e a interface precisa dizer isso, senao o leitor completa a
+// frase sozinho, errado.
+router.get('/news/countries', (req, res) => {
+  const days = parseInt(req.query.days, 10) || 180
+  const artigos = all(
+    `SELECT id, title, summary, category, urgency, published_at, url
+     FROM articles
+     WHERE relevant = 1 AND published_at >= strftime('%Y-%m-%dT%H:%M:%SZ','now', '-${days} days')
+     ORDER BY published_at DESC`
+  )
+
+  const porPais = new Map()
+  let semPais = 0
+
+  for (const a of artigos) {
+    const paises = detectarPaises(`${a.title} ${a.summary || ''}`)
+    if (!paises.length) { semPais += 1; continue }
+    for (const nome of paises) {
+      if (!porPais.has(nome)) {
+        porPais.set(nome, { nome, pt: nomePtDoPais(nome), total: 0, exemplos: [] })
+      }
+      const p = porPais.get(nome)
+      p.total += 1
+      if (p.exemplos.length < 5) {
+        p.exemplos.push({
+          id: a.id, title: a.title, category: a.category,
+          urgency: a.urgency, date: a.published_at, url: a.url,
+        })
+      }
+    }
+  }
+
+  const items = [...porPais.values()].sort((x, y) => y.total - x.total)
+
+  res.json({
+    periodDays: days,
+    items,
+    maximo: Math.max(...items.map((p) => p.total), 0),
+    totalAnalisado: artigos.length,
+    semPaisIdentificado: semPais,
+    paisesReconhecidos: PAISES.length,
+    nota: 'Contagem de MENCOES a paises no texto das noticias coletadas. Mede volume de '
+      + 'cobertura, nao risco, tensao ou atividade militar. Um pais aparece mais porque a '
+      + 'imprensa escreveu mais sobre ele no periodo.',
   })
 })
 
