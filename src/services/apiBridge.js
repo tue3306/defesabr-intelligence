@@ -184,6 +184,35 @@ export const PONTES = new Map([
     }),
   }],
 
+  // ── Auditoria ──
+  //
+  // A trilha era uma lista de doze eventos escritos à mão, com atores e
+  // horários inventados. Um log de auditoria falso é pior que nenhum: ele
+  // existe justamente para ser a prova do que aconteceu.
+  //
+  // O que aconteceu de verdade está em `collector_runs` — toda execução de
+  // coletor, com início, duração, quantos itens trouxe e o erro quando falhou.
+  // É menos variado que a ficção que substitui, e é auditável.
+  ['GET /admin/audit', {
+    caminho: '/system/runs',
+    parametros: ({ limit = 60 } = {}) => ({ limit }),
+    transformar: (d) => ({
+      items: (d.items || []).map((r) => ({
+        id: r.id,
+        time: r.started_at,
+        // Quem agiu: o agendador ou uma pessoa que clicou "coletar agora".
+        actor: r.trigger === 'manual' ? 'operador (manual)' : 'agendador',
+        action: r.ok
+          ? `Coleta concluída — ${r.items_found ?? 0} item(ns) encontrado(s), ${r.items_new ?? 0} novo(s)`
+          : `Coleta falhou — ${r.error || 'erro não registrado'}`,
+        target: `Coletor · ${r.collector}`,
+        level: r.ok ? 'info' : 'error',
+        durationMs: r.duration_ms,
+      })),
+      total: d.items?.length ?? 0,
+    }),
+  }],
+
   // ── Correlação geográfica ──
   //
   // O que dá lastro aos dois mapas. Passa direto: a resposta do servidor já

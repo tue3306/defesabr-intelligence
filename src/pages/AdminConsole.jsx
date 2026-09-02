@@ -343,11 +343,14 @@ function ContasSection() {
         <DistributionCard accounts={accounts} />
       </Section>
 
+      {/* `existingEmails` filtra nulos: o Visitante é o perfil de quem navega
+          sem entrar, e portanto não tem e-mail. Assumir que toda linha tem um
+          derrubava o console inteiro. */}
       <InviteAccountModal
         open={inviteOpen}
         onClose={() => setInviteOpen(false)}
         onCreate={criarConta}
-        existingEmails={accounts.map((a) => a.email.toLowerCase())}
+        existingEmails={accounts.map((a) => a.email?.toLowerCase()).filter(Boolean)}
       />
 
       <ConfirmDialog

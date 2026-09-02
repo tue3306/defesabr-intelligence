@@ -310,6 +310,10 @@ export async function coletarTodas() {
   const resultados = await Promise.all(fontes.map((f) => coletarFonte(f)))
   return {
     fontes: resultados.length,
+    // `encontrados` faltava no agregado, e o registro da execução caía no
+    // fallback zero. A trilha de auditoria exibia "0 encontrados, 268 novos" —
+    // impossível, e justamente numa tela cuja função é ser confiável.
+    encontrados: resultados.reduce((a, r) => a + (r.encontrados || 0), 0),
     novos: resultados.reduce((a, r) => a + (r.novos || 0), 0),
     relevantes: resultados.reduce((a, r) => a + (r.relevantes || 0), 0),
     falhas: resultados.filter((r) => !r.ok).length,

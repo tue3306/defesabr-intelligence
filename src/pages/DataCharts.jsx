@@ -21,6 +21,7 @@ import BrazilDefenseBudget from '../components/charts/BrazilDefenseBudget'
 import ComparisonBarChart from '../components/charts/ComparisonBarChart'
 import GaugeChart from '../components/charts/GaugeChart'
 import GlobalHeatmap from '../components/charts/GlobalHeatmap'
+import { useNewsVolume } from '../hooks/useNewsVolume'
 import { useResource } from '../hooks/useResource'
 import { useGate } from '../auth/useCan'
 import { fetchBrazilMilitarySpending } from '../api/worldbank'
@@ -63,7 +64,8 @@ const VOLUME_ANCHOR = new Date('2026-06-04T00:00:00')
  * gráfico em qualquer render.
  */
 function buildVolumeSeries(days) {
-  const base = newsVolume14d
+  const volume = useNewsVolume(14)
+  const base = volume.data
   if (days <= base.length) return base.slice(-days)
 
   const rows = []

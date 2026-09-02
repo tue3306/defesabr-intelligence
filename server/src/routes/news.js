@@ -166,6 +166,15 @@ router.get('/news/stats', (req, res) => {
        FROM articles WHERE relevant = 1 AND published_at >= ${corte}
        GROUP BY category ORDER BY total DESC`
     ),
+    // Dia × categoria — o formato que o gráfico de barras empilhadas consome.
+    // Sem isto, a tela tinha a contagem diária e a distribuição por categoria
+    // separadas, e não dava para empilhar uma na outra: a série empilhada
+    // vinha de um array escrito à mão em mockData.
+    porDiaCategoria: all(
+      `SELECT substr(published_at, 1, 10) AS dia, category AS categoria, COUNT(*) AS total
+       FROM articles WHERE relevant = 1 AND published_at >= ${corte}
+       GROUP BY dia, categoria ORDER BY dia ASC`
+    ),
     porUrgencia: all(
       `SELECT urgency AS nome, COUNT(*) AS total
        FROM articles WHERE relevant = 1 AND published_at >= ${corte}

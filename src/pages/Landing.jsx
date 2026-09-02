@@ -16,6 +16,7 @@ import MilitarySpendingChart from '../components/charts/MilitarySpendingChart'
 import NewsVolumeChart from '../components/charts/NewsVolumeChart'
 import GaugeChart from '../components/charts/GaugeChart'
 import { useNews } from '../hooks/useNews'
+import { useNewsVolume } from '../hooks/useNewsVolume'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { PROFILES, PROFILE_ORDER } from '../auth/permissions'
@@ -95,6 +96,7 @@ export default function Landing() {
   const user = useAuthStore((s) => s.user)
   const isPaid = useSubscriptionStore((s) => s.isPaid)()
 
+  const volume = useNewsVolume(14)
   const feed = news.slice(0, 3)
   const analysis = mockWeeklyAnalysis.empresarial
 
@@ -359,7 +361,7 @@ export default function Landing() {
           <div className="card p-5 lg:col-span-3">
             <h3 className="mb-1 text-base font-bold tracking-tight">Volume de notícias — 14 dias</h3>
             <p className="mb-3 text-xs muted">Distribuição por categoria de Segurança &amp; Defesa.</p>
-            <NewsVolumeChart data={newsVolume14d} keys={newsCategoriesKeys} height={240} />
+            <NewsVolumeChart data={volume.data} keys={volume.keys} height={240} />
           </div>
         </div>
       </Section>

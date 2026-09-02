@@ -80,19 +80,71 @@ export const auditLog = [
   { id: 12, time: '2026-08-20T08:05:00-03:00', actor: 'ana.lima@defesabr.com', action: 'Atualizou nível de tensão da Fronteira Norte', target: 'Tensão · Amazônia', level: 'info' },
 ]
 
-// Usuários da plataforma (DEMONSTRATION DATA) — base da gestão de contas.
-// `role` e `plan` seguem exatamente os eixos de src/auth/permissions.js.
+// -----------------------------------------------------------------------------
+// PERFIS DE ACESSO
+//
+// Aqui havia dez pessoas inventadas — nomes, e-mails, unidades e horários de
+// último acesso, tudo escrito à mão. Numa tela chamada "Contas da plataforma"
+// isso não se lê como exemplo: lê-se como a base de usuários do sistema. Era o
+// dado mais falso do produto, no lugar mais indevido.
+//
+// O que existe DE VERDADE são os quatro perfis de acesso: eles constam de
+// `src/auth/permissions.js`, governam o que cada tela mostra, e são os mesmos
+// que o modal de login oferece. Esta tabela passa a ser a lista deles.
+//
+// `lastAccess` fica null de propósito. Registrar último acesso exige sessão no
+// servidor, que esta versão não tem; preencher com um horário plausível
+// recriaria exatamente o problema que este bloco corrige. A tabela mostra "—".
+// -----------------------------------------------------------------------------
 export const platformUsers = [
-  { id: 'u1', name: 'Rafael Antunes', email: 'governanca@defesabr.com', role: 'admin', plan: 'institucional', status: 'ativo', unit: 'Governança e Operações', lastAccess: '2026-08-24T08:55:00-03:00', since: '2025-01-09' },
-  { id: 'u2', name: 'Ana Lima', email: 'ana.lima@defesabr.com', role: 'analyst', plan: 'institucional', status: 'ativo', unit: 'Núcleo de Análise — Amazônia e Fronteiras', lastAccess: '2026-08-24T08:42:00-03:00', since: '2025-04-18' },
-  { id: 'u3', name: 'Carlos Bittencourt', email: 'carlos.bittencourt@defesabr.com', role: 'analyst', plan: 'institucional', status: 'ativo', unit: 'Editoria de Inteligência', lastAccess: '2026-08-23T19:10:00-03:00', since: '2025-03-02' },
-  { id: 'u4', name: 'Marina Duarte', email: 'marina.duarte@defesabr.com', role: 'user', plan: 'profissional', status: 'ativo', unit: 'Assessoria de Planejamento', lastAccess: '2026-08-23T11:05:00-03:00', since: '2025-11-03' },
-  { id: 'u5', name: 'João Souza', email: 'joao.souza@exemplo.com', role: 'user', plan: 'profissional', status: 'ativo', unit: 'Consultoria externa', lastAccess: '2026-08-22T17:40:00-03:00', since: '2026-02-14' },
-  { id: 'u6', name: 'Beatriz Nunes', email: 'beatriz.nunes@defesabr.com', role: 'analyst', plan: 'institucional', status: 'ativo', unit: 'Núcleo de Análise — Cibernético', lastAccess: '2026-08-24T07:58:00-03:00', since: '2025-08-25' },
-  { id: 'u7', name: 'Helena Vasques', email: 'helena.vasques@exemplo.com', role: 'user', plan: 'explorar', status: 'ativo', unit: 'Pesquisa acadêmica', lastAccess: '2026-08-21T08:15:00-03:00', since: '2026-06-30' },
-  { id: 'u8', name: 'Carlos Andrade', email: 'carlos.andrade@exemplo.com', role: 'user', plan: 'explorar', status: 'suspenso', unit: 'Conta pessoal', lastAccess: '2026-07-11T19:02:00-03:00', since: '2026-01-22' },
-  { id: 'u9', name: 'Diego Prado', email: 'diego.prado@exemplo.com', role: 'user', plan: 'profissional', status: 'ativo', unit: 'Indústria de defesa', lastAccess: '2026-08-24T06:35:00-03:00', since: '2026-03-09' },
-  { id: 'u10', name: 'Luísa Camargo', email: 'luisa.camargo@defesabr.com', role: 'user', plan: 'institucional', status: 'inativo', unit: 'Assessoria Parlamentar', lastAccess: '2026-06-28T13:44:00-03:00', since: '2025-09-17' },
+  {
+    id: 'visitor',
+    name: 'Visitante',
+    email: null,
+    role: 'visitor',
+    plan: 'explorar',
+    status: 'ativo',
+    unit: 'Acesso público — sem login',
+    lastAccess: null,
+    since: null,
+    descricao: 'Lê o conteúdo público, as prévias e o centro educacional.',
+  },
+  {
+    id: 'user',
+    name: 'Usuário',
+    email: 'marina.duarte@defesabr.com',
+    role: 'user',
+    plan: 'profissional',
+    status: 'ativo',
+    unit: 'Assinante do produto de inteligência',
+    lastAccess: null,
+    since: null,
+    descricao: 'Clipping, análise, dossiês, economia, dados e pasta pessoal.',
+  },
+  {
+    id: 'analyst',
+    name: 'Analista',
+    email: 'ana.lima@defesabr.com',
+    role: 'analyst',
+    plan: 'institucional',
+    status: 'ativo',
+    unit: 'Produz o conteúdo analítico',
+    lastAccess: null,
+    since: null,
+    descricao: 'Tudo do Usuário, mais riscos, legislativo, mesa e relatórios.',
+  },
+  {
+    id: 'admin',
+    name: 'Administrador',
+    email: 'governanca@defesabr.com',
+    role: 'admin',
+    plan: 'institucional',
+    status: 'ativo',
+    unit: 'Governança da plataforma',
+    lastAccess: null,
+    since: null,
+    descricao: 'Tudo, mais este console: fontes, coleta, auditoria e saúde.',
+  },
 ]
 
 export const USER_STATUS = {

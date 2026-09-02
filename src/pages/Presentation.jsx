@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { Shield, X, ChevronLeft, ChevronRight, Pause, Play, ShieldAlert, Activity, Target } from 'lucide-react'
 import MilitarySpendingChart from '../components/charts/MilitarySpendingChart'
 import NewsVolumeChart from '../components/charts/NewsVolumeChart'
@@ -13,6 +13,7 @@ import {
   militarySpendingBR, newsVolume14d, newsCategoriesKeys, alertIndex,
   southAmericaSpending, globalSpendingTreemap, categoryRadar,
 } from '../data/mockData'
+import { useNewsVolume } from '../hooks/useNewsVolume'
 import { useTensionStore, tensionBand } from '../store/tensionStore'
 import { riskMatrix, RISK_SEVERITY } from '../data/riskMatrix'
 import { strategicPrograms, programsSummary, PROGRAM_FORCES } from '../data/strategicPrograms'
@@ -120,6 +121,24 @@ function ProgramsSlide() {
   )
 }
 
+// O slide de volume precisa de hook, e o array de slides é de módulo — daí o
+// componente. Mostra a série REAL de notícias coletadas por dia e categoria; se
+// a API estiver fora, cai na série de demonstração e o rodapé diz qual das duas
+// está em tela, porque numa apresentação essa distinção é a única que importa.
+function VolumeSlide({ height }) {
+  const volume = useNewsVolume(14)
+  return (
+    <div className="flex h-full flex-col">
+      <NewsVolumeChart data={volume.data} keys={volume.keys} height={height} />
+      <p className="mt-2 text-center text-[11px] muted">
+        {volume.aoVivo
+          ? 'Notícias coletadas pelo servidor, agrupadas por dia e categoria.'
+          : 'Série de demonstração — servidor de coleta indisponível.'}
+      </p>
+    </div>
+  )
+}
+
 const SLIDES = [
   { title: 'Postura nacional do período', icon: Activity, render: () => <PostureSlide /> },
   { title: 'Nível de tensão por região', icon: Activity, render: () => <TensionSlide /> },
@@ -128,7 +147,7 @@ const SLIDES = [
   { title: 'Gastos militares — Brasil', render: (h) => <MilitarySpendingChart data={militarySpendingBR} mode="dual" height={h} /> },
   { title: 'Gastos militares globais (US$ bi)', render: (h) => <BrazilDefenseBudget data={globalSpendingTreemap} height={h} /> },
   { title: 'América do Sul — % do PIB em defesa', render: (h) => <ComparisonBarChart data={southAmericaSpending} highlightCode="BR" height={h} /> },
-  { title: 'Volume de notícias — 14 dias', render: (h) => <NewsVolumeChart data={newsVolume14d} keys={newsCategoriesKeys} height={h} /> },
+  { title: 'Volume de notícias — 14 dias', render: (h) => <VolumeSlide height={h} /> },
   { title: 'Volume por categoria — semana', render: (h) => <SentimentChart data={categoryRadar} height={h} /> },
   { title: 'Índice de alerta nacional', render: (h) => <GaugeChart value={alertIndex} height={h} /> },
   { title: 'Mapa de calor de risco — foco Américas', render: (h) => <GlobalHeatmap height={h} withNews={false} /> },
@@ -220,15 +239,26 @@ export default function Presentation() {
       {/* SLIDE */}
       <div className="mt-4 flex flex-1 items-center justify-center sm:mt-6">
         <div className="relative w-full max-w-6xl">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.98 }}
-              transition={{ duration: 0.5 }}
-              className="card p-4 sm:p-6 lg:p-8"
-            >
+          {/* SEM AnimatePresence, de propósito.
+              Antes havia `<AnimatePresence mode="wait">`, que só monta o slide
+              seguinte depois que a animação de SAÍDA do anterior termina. Se
+              essa animação não completa — aba com requestAnimationFrame
+              limitado, projetor, sistema com "reduzir movimento" — o deck
+              congela: a barra de progresso continua andando e o índice
+              continua mudando, mas o conteúdo fica parado no primeiro slide.
+              Foi exatamente o que aconteceu em teste, e numa apresentação ao
+              vivo não há como se recuperar disso.
+
+              A troca por `key={index}` num motion.div simples remonta o slide a
+              cada mudança e roda só a animação de ENTRADA. Não há saída para
+              travar, e nada depende de a anterior terminar. */}
+          <motion.div
+            key={index}
+            initial={{ opacity: 0, scale: 0.99 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.35 }}
+            className="card p-4 sm:p-6 lg:p-8"
+          >
               <div className="mb-4 flex items-center justify-between gap-2">
                 <h2 className="text-base font-bold tracking-tight sm:text-xl">{slide.title}</h2>
                 <span className="shrink-0 text-xs muted" aria-live="polite">
@@ -236,8 +266,7 @@ export default function Presentation() {
                 </span>
               </div>
               {slide.render(chartH)}
-            </motion.div>
-          </AnimatePresence>
+          </motion.div>
 
           {/* Setas (escondidas em telas muito pequenas) */}
           <button
