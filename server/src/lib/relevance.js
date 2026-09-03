@@ -77,6 +77,22 @@ const FORTES = [
   'pesca ilegal', 'espionagem',
   // Diplomacia e inteligência de Estado
   'otan', 'diplomacia de defesa', 'abin', 'agencia brasileira de inteligencia',
+
+  // ── Segurança institucional e proteção civil ──
+  //
+  // Acrescentados ao cadastrar PF, MJ, GSI e Defesa Civil como fontes: os
+  // feeds entravam, o filtro recusava tudo, e o resultado seria quatro fontes
+  // verdes no painel entregando zero. Cada termo abaixo foi conferido contra
+  // as manchetes reais que esses portais publicaram nos últimos dias.
+  //
+  // A escala é o que qualifica no tráfico. "PF prende foragido por tráfico de
+  // drogas em Guaíra/PR" é ocorrência policial e continua fora; "operação
+  // contra o tráfico INTERESTADUAL" é interdição de rota, que é o assunto.
+  'trafico interestadual', 'trafico internacional', 'trafico transnacional',
+  'crime organizado transnacional', 'organizacao criminosa transnacional',
+  'gabinete de seguranca institucional', 'seguranca institucional', 'creden',
+  'defesa civil', 'protecao e defesa civil', 'defesa civil nacional',
+  'ctir gov', 'incidente cibernetico',
   // Base industrial nomeada
   'embraer', 'avibras', 'imbel', 'taurus armas',
 ]
@@ -100,8 +116,14 @@ const FRACOS = [
 
 /** Contextos que DESQUALIFICAM: mesmo com termos presentes, o assunto é outro. */
 const EXCLUSOES = [
+  // 'defesa civil' ESTAVA aqui, e a remoção não é afrouxamento: a Defesa Civil
+  // Nacional passou a ser fonte cadastrada (MIDR). Mantê-la na lista de
+  // exclusão faria o filtro recusar por definição tudo o que essa fonte
+  // publica — uma fonte cadastrada que nunca contribui é pior que uma fonte
+  // ausente, porque aparece verde no painel enquanto entrega zero. Ela subiu
+  // para FORTES: é nome de instituição, não uso figurado de "defesa".
   'defesa do consumidor', 'defesa previa', 'defesa do reu', 'legitima defesa',
-  'direito de defesa', 'ampla defesa', 'defesa civil', 'defesa da tese',
+  'direito de defesa', 'ampla defesa', 'defesa da tese',
   'soberania popular', 'linha de defesa', 'defesa do titulo',
   'sistema de defesa do torcedor', 'defesa sanitaria', 'defesa agropecuaria',
 ]

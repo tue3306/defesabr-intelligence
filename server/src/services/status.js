@@ -263,31 +263,36 @@ export function capacidades() {
     {
       id: 'contas',
       nome: 'Contas e permissões',
-      grupo: 'Parcial',
-      estado: 'degradado',
-      detalhe: 'Perfis funcionam no navegador; o servidor não autentica ninguém.',
-      descricao: 'A distinção importa e o painel não deve escondê-la. O que EXISTE: quatro perfis '
-        + '(visitante, assinante, analista, administrador), um mapa de permissões e telas que se '
-        + 'adaptam ao perfil — tudo real, e é isso que se demonstra ao trocar de conta. O que NÃO '
-        + 'existe: verificação no servidor. A API responde a qualquer requisição sem perguntar quem '
-        + 'é; trocar de perfil muda o que a interface mostra, não o que o backend entrega. Para virar '
-        + 'controle de acesso de verdade faltam sessão, senha e checagem por rota — o esquema já '
-        + 'isola o que seria por conta, então isso se acrescenta sem remodelar o banco.',
-      fonte: 'src/auth/permissions.js (navegador)',
-      metricas: {},
+      grupo: 'Funciona',
+      estado: 'ok',
+      detalhe: 'Senha por scrypt, token assinado e papel verificado por rota no servidor.',
+      descricao: 'Esta linha dizia, até pouco tempo atrás, que o servidor não autenticava ninguém — '
+        + 'os perfis existiam apenas no navegador e a API atendia qualquer requisição. Deixou de ser '
+        + 'verdade. Hoje a senha é guardada como hash scrypt com sal por conta e conferida em tempo '
+        + 'constante; o login devolve um token HMAC-SHA256 com papel e validade; e cada rota protegida '
+        + 'passa por `exigirPapel()`, que responde 401 sem sessão e 403 com papel insuficiente. '
+        + 'Trocar o papel no localStorage não abre nada: o papel vem do token assinado, não do cliente. '
+        + 'A verificação é testável — `npm run check:auth` percorre quatro identidades contra doze '
+        + 'rotas e confere o código de cada resposta.',
+      fonte: 'server/src/lib/auth.js · server/src/routes/auth.js',
+      metricas: {
+        contas: get('SELECT COUNT(*) AS n FROM users')?.n ?? 0,
+        papeis: 3,
+      },
     },
     {
       id: 'analise-produzida',
       nome: 'Dossiês e avaliações de analista',
       grupo: 'Não implementado',
       estado: 'nao_implementado',
-      detalhe: 'As telas existem e são navegáveis; o conteúdo é redigido, não coletado.',
-      descricao: 'Dossiês, matriz de riscos, narrativas e cenários são telas completas e demonstráveis '
-        + '— mas o que elas exibem foi escrito à mão para servir de exemplo, não sai de nenhuma coleta. '
-        + 'Ficam marcadas assim de propósito: são a parte do produto que depende de juízo humano, e '
-        + 'apresentá-las como saída automática seria a única mentira do painel. O que falta para virar '
-        + 'funcionalidade real é fluxo de redação com autoria registrada, o que por sua vez depende de '
-        + 'contas no servidor.',
+      detalhe: 'Produção editorial não existe; o Analista trabalha sobre a coleta, não sobre texto.',
+      descricao: 'Dossiês, matriz de riscos, narrativas e cenários eram telas completas cujo conteúdo '
+        + 'havia sido escrito à mão. Foram removidas: tela que exibe texto redigido como se fosse saída '
+        + 'de análise é a única mentira que um painel de inteligência não pode contar. O que o perfil '
+        + 'Analista faz hoje é real e verificável — monitorar a saúde da coleta, auditar a regra do '
+        + 'filtro contra qualquer texto e ler o histórico de execuções. Produção editorial com autoria '
+        + 'registrada continua fora, e agora depende só de fluxo de redação: as contas no servidor, que '
+        + 'eram o pré-requisito, já existem.',
       fonte: 'src/data/ (conteúdo editorial)',
       metricas: {},
     },

@@ -1,7 +1,6 @@
 import { useMemo, useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
-  Bot,
   Bookmark,
   BookmarkCheck,
   CalendarDays,
@@ -23,14 +22,11 @@ import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
-import { ErrorState } from '../components/ui/DataState'
+
 import Badge from '../components/ui/Badge'
 import SearchBar from '../components/ui/SearchBar'
 import TagFilter from '../components/ui/TagFilter'
-import AITypingIndicator from '../components/ui/AITypingIndicator'
 import Can from '../auth/Can'
-import { useClaudeAI } from '../hooks/useClaudeAI'
-import { useNews } from '../hooks/useNews'
 import { newsService } from '../services/newsService'
 import { useNewsStore } from '../store/newsStore'
 import { useSettingsStore } from '../store/settingsStore'
@@ -44,15 +40,12 @@ import { exportClippingToPDF } from '../utils/exportUtils'
 const EDITORIAL_DESK = 'Mesa de Análise · DefesaBR Intelligence'
 
 export default function DailyClipping() {
-  const { news } = useNews()
-  const { loading, step, steps, source, generateClipping, apiConfigured } = useClaudeAI()
   const addClipping = useNewsStore((s) => s.addClipping)
   const latest = useNewsStore((s) => s.latestClipping)
   const clippings = useNewsStore((s) => s.clippings)
   const activeSources = useSettingsStore((s) => s.rssSources.filter((src) => src.enabled).length)
 
   const [result, setResult] = useState(latest)
-  const [genError, setGenError] = useState(null)
   const [sourcesOpen, setSourcesOpen] = useState(false)
   const [loadingEdition, setLoadingEdition] = useState(true)
 
@@ -110,17 +103,6 @@ export default function DailyClipping() {
     setUrgency('')
   }
 
-  const handleGenerate = async () => {
-    setGenError(null)
-    try {
-      const clip = await generateClipping(news.length ? news : undefined)
-      if (clip) setResult(clip)
-    } catch (err) {
-      // O hook já trata a falha da IA; aqui cobrimos qualquer erro inesperado.
-      setGenError(err)
-    }
-  }
-
   const handleSaveToArchive = () => {
     if (!result) return
     addClipping(result)
@@ -166,10 +148,10 @@ export default function DailyClipping() {
         badges={
           <>
             <Badge type="alert" value={result?.alert_level} />
-            {/* O selo segue a ORIGEM da edição em tela, não a da IA. Uma edição
-                montada pelo servidor a partir de coleta real é dado ao vivo,
-                mesmo sem resumo executivo — que é análise, não coleta. */}
-            <Badge type={result?.source === 'live' || source === 'ai' ? 'live' : 'demo'} />
+            {/* O selo segue a ORIGEM da edição em tela. Uma edição montada
+                pelo servidor a partir de coleta real é dado ao vivo, mesmo sem
+                resumo executivo — que é análise, não coleta. */}
+            <Badge type={result?.source === 'live' ? 'live' : 'demo'} />
           </>
         }
         meta={[
@@ -195,11 +177,16 @@ export default function DailyClipping() {
               />
             </label>
 
-            <Can do="ai.generate" fallback={<PublishedNote at={publishedAt} />}>
-              <button onClick={handleGenerate} disabled={loading} className="btn-primary" aria-busy={loading}>
-                <Bot size={18} /> {loading ? 'Gerando…' : 'Gerar clipping com IA'}
-              </button>
-            </Can>
+            {/* Aqui havia um botão "Gerar clipping com IA". Ele não gerava
+                nada: sem chave de modelo, o clique animava quatro etapas
+                falsas por 1,4 s e devolvia um documento escrito à mão. Uma
+                interface que encena trabalho que não acontece é pior que a
+                ausência do recurso, porque quem assiste acredita.
+
+                A edição desta tela é montada pelo SERVIDOR, a partir do que os
+                coletores trouxeram e o filtro aprovou. Não há passo de IA no
+                caminho, e a nota abaixo diz exatamente isso. */}
+            <PublishedNote at={publishedAt} />
           </>
         }
       >
@@ -232,31 +219,21 @@ export default function DailyClipping() {
               coletados · {result.relevant_total ?? 0} aprovados pelo filtro de relevância.
             </span>
           )}
-          {!apiConfigured && (
-            <span className="text-xs muted">
-              Resumo executivo por IA não disponível — exige chave de modelo de linguagem.
-            </span>
-          )}
+          {/* Declaração permanente, não condicional: não existe modelo de
+              linguagem ligado a esta plataforma. O campo fica vazio em vez de
+              preenchido com texto plausível. */}
+          <span className="text-xs muted">
+            Sem síntese por IA: nenhum texto desta edição foi escrito por máquina.
+          </span>
         </div>
       </PageHeader>
 
-      {/* Progresso da geração — anunciado a leitores de tela */}
-      {loading && (
-        <div role="status" aria-live="polite" aria-busy="true">
-          <AITypingIndicator steps={steps} current={step} />
-        </div>
-      )}
+      {/* Aqui ficava o indicador de progresso da "geração por IA": quatro
+          etapas com temporizador fixo, que rodavam mesmo quando não havia
+          modelo nenhum atrás. Saiu junto com o botão. O carregamento real
+          desta tela é o da edição vinda do servidor, e é curto. */}
 
-      {genError && !loading && (
-        <ErrorState
-          title="A geração do clipping falhou"
-          error={genError}
-          onRetry={handleGenerate}
-          compact
-        />
-      )}
-
-      {!result && !loading && (
+      {!result && !loadingEdition && (
         <EmptyState
           icon={Newspaper}
           title="Nenhuma edição publicada ainda"
@@ -265,7 +242,7 @@ export default function DailyClipping() {
         />
       )}
 
-      {result && !loading && (
+      {result && (
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}

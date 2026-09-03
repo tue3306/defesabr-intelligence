@@ -1,6 +1,7 @@
 import js from '@eslint/js'
 import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'
+import react from 'eslint-plugin-react'
 
 // -----------------------------------------------------------------------------
 // LINT — a rede que faltava.
@@ -14,6 +15,15 @@ import reactHooks from 'eslint-plugin-react-hooks'
 // `no-undef` custa uma dependência de desenvolvimento e pega essa classe
 // inteira: identificador que não existe, import removido, estado renomeado.
 // Roda com `npm run lint`, e o build de produção o executa antes de compilar.
+//
+// UMA METADE FALTAVA, e custou um segundo erro em runtime.
+//
+// `no-undef` NÃO enxerga componente JSX. O parser trata `<UserPlus />` como
+// JSXIdentifier, não como referência a variável, então um componente usado sem
+// import passa pelo lint inteiro e só quebra ao montar — foi assim que
+// "UserPlus is not defined" derrubou o layout público depois de o lint ter
+// passado limpo. `react/jsx-no-undef` cobre exatamente esse ponto cego, e é por
+// isso que ele está aqui como erro, não como aviso.
 // -----------------------------------------------------------------------------
 export default [
   {
@@ -23,7 +33,7 @@ export default [
   // ── Interface (navegador) ──
   {
     files: ['src/**/*.{js,jsx}'],
-    plugins: { 'react-hooks': reactHooks },
+    plugins: { 'react-hooks': reactHooks, react },
     languageOptions: {
       ecmaVersion: 2023,
       sourceType: 'module',
@@ -37,6 +47,12 @@ export default [
 
       // O QUE IMPORTA AQUI.
       'no-undef': 'error',
+
+      // A outra metade: componente JSX sem import. `no-undef` é cego a isto.
+      'react/jsx-no-undef': 'error',
+      // Nome de componente que não existe no escopo, em posição de membro
+      // (`<Foo.Bar />`) — mesma classe de erro, outro formato.
+      'react/jsx-uses-vars': 'error',
 
       // Hooks: a ordem de chamada e as dependências. `exhaustive-deps` fica em
       // aviso porque há casos legítimos de omitir dependência (efeitos que

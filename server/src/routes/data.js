@@ -230,6 +230,25 @@ router.get('/economy/exports', (req, res) => {
   })
 })
 
+// GET /api/sources/summary — contagem pública, sem diagnóstico.
+//
+// A landing anuncia quantas fontes alimentam o acervo, e essa é uma afirmação
+// que o visitante tem o direito de conferir. Mas ela vinha de `/sources`, que
+// exige papel `analyst` e devolve `lastError` e histórico de falhas — telemetria
+// operacional que não é assunto de quem ainda não entrou.
+//
+// O resultado era um 401 no console da página inicial e a contagem em branco.
+// Dois números resolvem: quantas fontes existem e quantas responderam. Os nomes
+// dos feeds já são públicos; o que eles quebraram, não.
+router.get('/sources/summary', (req, res) => {
+  const r = get(
+    `SELECT COUNT(*) AS total,
+            SUM(CASE WHEN last_status = 'ok' THEN 1 ELSE 0 END) AS ok
+       FROM sources WHERE enabled = 1`
+  )
+  res.json({ total: r?.total ?? 0, ok: r?.ok ?? 0 })
+})
+
 router.get('/sources', exigirPapel('analyst'), (req, res) => {
   const itens = all(
     `SELECT s.*, (SELECT COUNT(*) FROM articles a WHERE a.source_id = s.id) AS artigos,

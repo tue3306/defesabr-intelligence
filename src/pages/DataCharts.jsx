@@ -532,9 +532,16 @@ export default function DataCharts() {
             <GaugeChart value={alerta.value} height={300} />
           </ChartPanel>
 
-          <ErrorBoundary variant="inline" scope="Nível de tensão por região">
-            <TensionBoard />
-          </ErrorBoundary>
+          {/* Havia aqui um <TensionBoard />, componente que deixou de existir
+              quando a loja de tensão saiu — a mesma remoção que deixou
+              "regions is not defined" no Ticker. O nome sobreviveu em dois
+              arquivos e teria quebrado esta página ao montar, exatamente como
+              o outro quebrou a produção.
+
+              Nada entra no lugar: o painel "Regiões estratégicas mais citadas",
+              logo acima, já mostra a mesma dimensão com dado que existe —
+              contagem de menções no acervo, e não um nível de tensão que
+              ninguém media. */}
 
 
         </div>

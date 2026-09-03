@@ -56,7 +56,7 @@ export const FAQ = [
 
 // Roadmap (evolução planejada).
 export const ROADMAP = [
-  { phase: 'Disponível', title: 'Coleta e clipping', text: '15 fontes RSS e quatro APIs de governo, com filtro de relevância auditável e coleta a cada 30 minutos.', done: true },
+  { phase: 'Disponível', title: 'Coleta e clipping', text: 'Fontes RSS oficiais e quatro APIs de governo, com filtro de relevância auditável e coleta a cada 30 minutos.', done: true },
   { phase: 'Disponível', title: 'Correlação geográfica', text: 'Detecção de estados e 36 países no texto das notícias, alimentando os dois mapas.', done: true },
   { phase: 'Planejado', title: 'Autenticação no servidor', text: 'Sessão, senha e verificação por rota — hoje os perfis são verificados no navegador.', done: false },
   { phase: 'Planejado', title: 'Análise por modelo de linguagem', text: 'Resumo executivo do clipping e síntese de período, hoje declarados como ausentes.', done: false },

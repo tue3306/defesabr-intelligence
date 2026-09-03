@@ -11,8 +11,8 @@ const STEPS = [
   },
   {
     icon: Newspaper,
-    title: 'Clipping Diário com IA',
-    text: 'Notícias de fontes públicas são reunidas, resumidas e classificadas por urgência. Faça login (acesso demo) para gerar e exportar relatórios — e salve as melhores na sua Pasta.',
+    title: 'Clipping Diário',
+    text: 'O servidor coleta de feeds públicos oficiais, aplica um filtro de relevância cuja regra é publicada e classifica por urgência. Nada aqui é resumido por IA — o texto é o do próprio veículo.',
   },
   {
     icon: Target,

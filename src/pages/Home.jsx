@@ -1,19 +1,25 @@
 import { useProfile } from '../auth/useCan'
 import UserDashboard from './UserDashboard'
+import AnalystDashboard from './AnalystDashboard'
 import AdminDashboard from './AdminDashboard'
 
-// Despacho do painel pelo PERFIL efetivo (nunca por papel cru — §10):
-//   • Administrador → governança e observabilidade da plataforma.
-//   • Usuário e Analista → consumo de inteligência (profundidade vem do plano).
+// Despacho do painel pelo PERFIL efetivo (nunca por papel cru — §10).
 //
-// O Analista tinha um painel próprio, de mesa de produção: fila de tarefas,
-// RFIs, plano de coleta. Nada daquilo vinha de lugar nenhum — era uma lista
-// escrita à mão de trabalho que ninguém pediu nem fez. Saiu junto com a mesa.
-// Visitante não chega aqui: a rota /painel já é protegida. Ainda assim ele cai
-// no painel de leitura, que degrada sozinho para o conteúdo básico.
+// Os três perfis abriam praticamente a mesma tela, e era esse o problema: o
+// papel mudava o rótulo no menu e mais nada. Agora cada um responde à pergunta
+// que o seu trabalho faz:
+//
+//   • Administrador → a plataforma está de pé? (governança e observabilidade)
+//   • Analista      → a coleta está saudável? (fontes, filtro, execuções)
+//   • Usuário       → o que aconteceu? (o acervo já filtrado)
+//
+// A separação não é cosmética: o painel do Analista consome `/system/runs`, que
+// exige papel `analyst` no servidor. Trocar o perfil no localStorage não abre
+// nada — o token é assinado e o papel vem dele.
 export default function Home() {
   const profile = useProfile()
 
   if (profile === 'admin') return <AdminDashboard />
+  if (profile === 'analyst') return <AnalystDashboard />
   return <UserDashboard />
 }

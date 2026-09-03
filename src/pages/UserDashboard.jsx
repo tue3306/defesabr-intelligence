@@ -204,7 +204,10 @@ export default function UserDashboard() {
             icon={Newspaper}
             label="Notícias monitoradas"
             value={loading ? '—' : String(news.length || feed.length || '—')}
-            hint={source === 'live' ? 'fontes ao vivo' : 'fontes (demo)'}
+            // A dica dizia só "fontes ao vivo", encostada num número que conta
+            // NOTÍCIAS: lia-se "40 fontes ao vivo", e são 21 fontes. O número
+            // estava certo e a legenda o desmentia.
+            hint={source === 'live' ? 'no acervo, coletadas ao vivo' : 'no acervo local'}
             accent="brand"
           />
         </div>
@@ -256,10 +259,14 @@ export default function UserDashboard() {
       {/* ───────────── GRID PRINCIPAL: conteúdo (2/3) + trilho (1/3) ───────────── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          {/* Quadro de tensão — profundidade analítica */}
-          <Can do="analysis.full">
-            <Section><TensionBoard /></Section>
-          </Can>
+          {/* Aqui ficava <TensionBoard />, sob a capacidade `analysis.full`.
+              O componente não existe mais: sumiu com a loja de tensão, cujos
+              níveis por região eram escritos à mão. O nome ficou, e teria
+              derrubado este painel para todo assinante do plano Profissional —
+              o mesmo erro que já derrubou a produção uma vez.
+
+              O que sobra abaixo é medido: cobertura por país conta menções em
+              notícia coletada, e diz isso no próprio texto. */}
 
           {/* Mapa de risco — sempre disponível */}
           <Section className="card p-5">

@@ -10,7 +10,6 @@ import {
 import NewsCard from '../components/ui/NewsCard'
 import { SkeletonCard } from '../components/ui/Skeleton'
 import Badge from '../components/ui/Badge'
-import Paywall from '../components/ui/Paywall'
 import GlobalHeatmap from '../components/charts/GlobalHeatmap'
 import MilitarySpendingChart from '../components/charts/MilitarySpendingChart'
 import NewsVolumeChart from '../components/charts/NewsVolumeChart'
@@ -22,11 +21,9 @@ import { useVitrine } from '../hooks/useVitrine'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { PROFILES, PROFILE_ORDER } from '../auth/permissions'
-import { useSubscriptionStore } from '../store/subscriptionStore'
 import { LANDING_FEATURES, PLANS } from '../data/plansData'
 import { glossary } from '../data/learnData'
 import { USE_CASES, STANDARDS, FAQ, ROADMAP } from '../data/landingExtra'
-import { mockWeeklyAnalysis, militarySpendingBR, newsVolume14d, newsCategoriesKeys, alertIndex } from '../data/mockData'
 import { monitoredSources } from '../data/monitoredSources'
 import { alertMeta } from '../utils/textUtils'
 
@@ -94,14 +91,12 @@ export default function Landing() {
   const loginAsDemo = useAuthStore((s) => s.loginAsDemo)
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const user = useAuthStore((s) => s.user)
-  const isPaid = useSubscriptionStore((s) => s.isPaid)()
 
   const volume = useNewsVolume(14)
   const gasto = useGastoMilitar()
   const alerta = useIndiceDeAlerta(7)
   const vitrine = useVitrine()
   const feed = news.slice(0, 3)
-  const analysis = mockWeeklyAnalysis.empresarial
 
   return (
     <div className="space-y-10">
@@ -346,8 +341,18 @@ export default function Landing() {
           <div className="card flex flex-col p-5">
             <h3 className="mb-1 text-base font-bold tracking-tight">Índice de alerta</h3>
             <p className="mb-2 text-xs muted">Resume a tensão de segurança do momento (0–100).</p>
+            {/* Este medidor exibia `alertIndex`, uma constante escrita à mão,
+                enquanto `useIndiceDeAlerta(7)` — que calcula o índice a partir
+                da edição real do clipping — já estava sendo chamado logo acima
+                e descartado. O número fixo era o mais visível da página. */}
             <div className="flex flex-1 items-center">
-              <GaugeChart value={alertIndex} height={200} />
+              {alerta.value != null ? (
+                <GaugeChart value={alerta.value} height={200} />
+              ) : (
+                <p className="w-full py-8 text-center text-sm muted">
+                  {alerta.carregando ? 'Calculando…' : 'Índice indisponível — a API não respondeu.'}
+                </p>
+              )}
             </div>
             {/* Legenda das faixas — ajuda a interpretar o número */}
             <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-[11px] muted">
@@ -382,35 +387,17 @@ export default function Landing() {
       </Section>
 
       {/* ANÁLISES (PAYWALL) */}
-      <Section>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-bold tracking-tight">Análises & briefings estratégicos</h2>
-          {!isPaid && <span className="rounded-full border border-forca-defesa/60 bg-forca-defesa/15 px-2.5 py-0.5 text-xs font-semibold text-gray-900 dark:text-gray-100">Premium</span>}
-        </div>
-        <Paywall
-          active={!isPaid}
-          title="Análises completas são exclusivas para assinantes"
-          desc="Cenários, probabilidades e recomendações por perfil. Assine para desbloquear."
-        >
-          <div className="card p-6">
-            <div className="flex items-center gap-2">
-              <Badge type="plain" value={analysis.week} />
-              <span className="text-xs muted">Perspectiva empresarial</span>
-            </div>
-            <h3 className="mt-3 text-lg font-bold tracking-tight">{analysis.scenarios[0].title}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-gray-300">{analysis.scenarios[0].description}</p>
-            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-              {analysis.scenarios.map((sc) => (
-                <div key={sc.type} className="rounded-lg border border-gray-700/40 bg-white/5 p-3">
-                  <p className="text-xs font-bold uppercase muted">{sc.type}</p>
-                  <p className="mt-1 text-2xl font-bold text-brand-400 dark:text-brand-300">{sc.probability}%</p>
-                  <p className="mt-1 text-xs text-gray-300">{sc.title}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Paywall>
-      </Section>
+      {/* Aqui havia uma seção "Análises & briefings estratégicos" com três
+          cenários e suas probabilidades — 62%, 25%, 13% — atrás de um paywall.
+          Os números eram escritos à mão em `mockData`. Vender por assinatura um
+          cenário probabilístico que ninguém calculou é a forma mais direta de
+          perder a credibilidade que o resto da página tenta construir: qualquer
+          avaliador que pergunte "de onde vem esse 62%?" não terá resposta.
+
+          A seção saiu inteira em vez de virar aviso. Análise de cenário depende
+          de juízo humano registrado, que é trabalho a fazer, não recurso a
+          exibir. O que a plataforma faz de verdade — coletar, filtrar e mostrar
+          a série real — já está nas seções acima e abaixo desta. */}
 
       {/* MINI GLOSSÁRIO + CONCEITO DO DIA */}
       <Section>

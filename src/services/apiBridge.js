@@ -25,6 +25,23 @@
 
 import { API_BASE_URL } from './config'
 
+/**
+ * Cabeçalho de sessão.
+ *
+ * Lê o token direto do armazenamento em vez de importar o store — importar
+ * `authStore` aqui criaria um ciclo (o store chama a API, a API lê o store).
+ * A chave é a mesma que o `persist` do zustand usa.
+ */
+export function cabecalhoDeSessao() {
+  try {
+    const bruto = localStorage.getItem('defesabr-auth-v5')
+    const token = bruto ? JSON.parse(bruto)?.state?.token : null
+    return token ? { Authorization: `Bearer ${token}` } : {}
+  } catch {
+    return {}
+  }
+}
+
 const base = () => `${API_BASE_URL}/api`
 
 /**
@@ -70,8 +87,24 @@ async function buscar(caminho, params) {
   const c = new AbortController()
   const t = setTimeout(() => c.abort(), 20_000)
   try {
-    const r = await fetch(url, { signal: c.signal, headers: { Accept: 'application/json' } })
-    if (!r.ok) throw new Error(`HTTP ${r.status}`)
+    const r = await fetch(url, {
+      signal: c.signal,
+      headers: {
+        Accept: 'application/json',
+        // Sem o token, os endpoints de analista e administrador respondem 401.
+        // A leitura é feita a cada consulta, e não capturada no módulo: o token
+        // muda quando alguém troca de conta, e um valor capturado na primeira
+        // importação continuaria sendo o da sessão anterior.
+        ...cabecalhoDeSessao(),
+      },
+    })
+    if (!r.ok) {
+      const corpo = await r.json().catch(() => null)
+      const err = new Error(corpo?.error || `HTTP ${r.status}`)
+      err.status = r.status
+      err.code = corpo?.code
+      throw err
+    }
     return await r.json()
   } finally {
     clearTimeout(t)
@@ -301,6 +334,9 @@ export const PONTES = new Map([
       recusadas: d.recusadas,
     }),
   }],
+  // Resumo público (total e quantas responderam) — não exige sessão.
+  ['GET /intel/sources/summary', { caminho: '/sources/summary' }],
+
   ['GET /intel/sources', {
     caminho: '/sources',
     transformar: (d) => ({

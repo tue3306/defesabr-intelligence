@@ -11,12 +11,40 @@ let passou = 0
 let falhou = 0
 const problemas = []
 
+// A suite passou a precisar de sessao.
+//
+// Metade dos endpoints exige papel desde que a autorizacao virou verificacao
+// de servidor. Testa-los sem token nao prova que estao quebrados — prova que a
+// protecao funciona, o que o `check-auth.js` ja verifica em detalhe.
+//
+// Aqui entramos como administrador, que alcanca tudo, para que este teste volte
+// a medir o que ele existe para medir: a FORMA das respostas.
+let TOKEN = null
+
+async function autenticar() {
+  try {
+    const r = await fetch(`${BASE}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'admin@defesabr.com', password: 'admin123' }),
+    })
+    if (r.ok) TOKEN = (await r.json()).token
+  } catch {
+    // Sem sessao os testes de rota protegida falham, e devem falhar visivelmente.
+  }
+}
+
 async function checar(nome, caminho, validar, opcoes = {}) {
   const url = BASE + caminho
   try {
     const r = await fetch(url, {
       method: opcoes.method || 'GET',
-      headers: { 'Content-Type': 'application/json', 'X-Client-Id': 'teste-de-fumaca', ...opcoes.headers },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Client-Id': 'teste-de-fumaca',
+        ...(TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {}),
+        ...opcoes.headers,
+      },
       body: opcoes.body ? JSON.stringify(opcoes.body) : undefined,
     })
     const corpo = await r.json().catch(() => null)
@@ -49,6 +77,11 @@ async function checar(nome, caminho, validar, opcoes = {}) {
 }
 
 console.log(`\nTestando ${BASE}/api\n`)
+
+await autenticar()
+console.log(TOKEN
+  ? '  [2msessão: administrador[0m'
+  : '  [33msem sessão — rotas protegidas vão falhar[0m')
 
 console.log('SISTEMA')
 await checar('GET /health', '/api/health', (b) => b?.ok && `uptime ${b.uptime}s`)

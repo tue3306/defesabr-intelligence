@@ -21,20 +21,36 @@ import { avaliarRelevancia, classificar, limparRodape } from '../lib/relevance.j
  * A lista começou maior. Ficaram de fora, e o motivo está registrado porque
  * senão alguém as recadastra achando que foi esquecimento:
  *
+ *   STF ................. o feed em noticias.stf.jus.br/rss responde 202 com
+ *                         HTML de desafio anti-robô. Respondeu XML uma vez e
+ *                         passou a desafiar em seguida — é proteção de bot,
+ *                         não indisponibilidade. Contorná-la seria evasão de
+ *                         detecção, não coleta
+ *   STJ ................. HTTP 403 em todos os caminhos testados, inclusive a
+ *                         home; o portal recusa cliente automatizado
+ *   CNJ ................. 200 com HTML de desafio, mesmo caso do STF
  *   Poder360 ............ HTTP 403 a cliente automatizado
  *   Marinha do Brasil ... HTTP 403
  *   FAB ................. HTTP 403
  *   Exército Brasileiro . HTTP 404 (não publica RSS)
- *   Itamaraty (MRE) ..... 404 no caminho /RSS; a página de notas existe, mas
- *                         só em HTML — exigiria raspagem, não sindicação
  *   Câmara dos Deputados  200 com zero <item>; o portal mudou e o RSS ficou
  *                         vazio. As proposições vêm da API de Dados Abertos,
  *                         que funciona (server/src/collectors/camara.js)
- *   Ministério da Justiça 200 com zero <item>
- *   Secom / ABIN / MCTI . 404
  *
  * Cadastrá-las encheria o painel de governança de erro permanente que ninguém
  * pode consertar — e erro que não se pode consertar vira erro que se ignora.
+ *
+ * SOBRE O CAMINHO `/RSS` DA RAIZ DO GOV.BR
+ *
+ * Polícia Federal, Ministério da Justiça, GSI, Defesa Civil, ABIN e Itamaraty
+ * desativaram o RSS da PASTA de notícias (404 ou 200 vazio), mas mantêm o feed
+ * da RAIZ do portal — `https://www.gov.br/<órgão>/RSS`, 15 itens, ao vivo.
+ *
+ * Esse feed não é de notícias: é o "modificado recentemente" do Plone, e traz
+ * anexo junto com matéria — "Resultado Final.pdf", "WhatsApp Image ....jpeg",
+ * "Nota de Empenho nº 214/2026". Guardar isso como notícia seria pior do que
+ * não coletar: o acervo passaria a exibir nomes de arquivo como manchete.
+ * Por isso `ehAnexo()` descarta esses itens antes de qualquer avaliação.
  */
 export const FONTES_PADRAO = [
   {
@@ -112,6 +128,58 @@ export const FONTES_PADRAO = [
     category: 'Agência pública',
   },
 
+  // ── Órgãos de segurança e defesa via feed da raiz do portal gov.br ──
+  //
+  // Todos verificados ao vivo: HTTP 200, 15 itens, datas de hoje. São feeds do
+  // portal inteiro, não da pasta de notícias — ver a nota sobre `/RSS` acima e
+  // `ehAnexo()`, que remove os anexos antes de qualquer avaliação.
+  {
+    slug: 'policia-federal',
+    name: 'Polícia Federal',
+    url: 'https://www.gov.br/pf/RSS',
+    site_url: 'https://www.gov.br/pf',
+    category: 'Oficial',
+  },
+  {
+    slug: 'ministerio-justica',
+    name: 'Ministério da Justiça e Segurança Pública',
+    url: 'https://www.gov.br/mj/RSS',
+    site_url: 'https://www.gov.br/mj',
+    category: 'Oficial',
+  },
+  {
+    // GSI: assessoramento direto da Presidência em segurança institucional —
+    // é onde aparecem CREDEN, alertas e pauta de inteligência de Estado.
+    slug: 'gsi-presidencia',
+    name: 'GSI — Gabinete de Segurança Institucional',
+    url: 'https://www.gov.br/gsi/RSS',
+    site_url: 'https://www.gov.br/gsi',
+    category: 'Oficial',
+  },
+  {
+    slug: 'abin',
+    name: 'ABIN — Agência Brasileira de Inteligência',
+    url: 'https://www.gov.br/abin/RSS',
+    site_url: 'https://www.gov.br/abin',
+    category: 'Oficial',
+  },
+  {
+    // Defesa Civil nacional está sob o Ministério da Integração e do
+    // Desenvolvimento Regional; o feed do MIDR é o canal que existe.
+    slug: 'defesa-civil',
+    name: 'Defesa Civil Nacional (MIDR)',
+    url: 'https://www.gov.br/mdr/RSS',
+    site_url: 'https://www.gov.br/mdr',
+    category: 'Oficial',
+  },
+  {
+    slug: 'itamaraty',
+    name: 'Itamaraty — Ministério das Relações Exteriores',
+    url: 'https://www.gov.br/mre/RSS',
+    site_url: 'https://www.gov.br/mre',
+    category: 'Oficial',
+  },
+
   // ── Imprensa especializada em defesa ──
   //
   // As fontes oficiais publicam pouco e devagar: o Ministério da Defesa solta
@@ -184,6 +252,67 @@ export const FONTES_PADRAO = [
  *
  * O veículo real vem no elemento `<source>`, que o parser já extrai.
  */
+// Extensões que denunciam anexo. A lista é fechada de propósito: um título
+// legítimo pode terminar em ponto seguido de letras ("...da Lei n. 14.133"),
+// e um teste genérico de "termina em .algo" cortaria manchete de verdade.
+const RX_ANEXO = /\.(pdf|docx?|xlsx?|pptx?|zip|rar|7z|csv|odt|ods|jpe?g|png|gif|webp|mp[34]|avi|mov)\s*$/i
+
+/**
+ * O item é um arquivo, não uma matéria?
+ *
+ * Os feeds da raiz do gov.br sindicalizam TUDO que muda no portal, e a maior
+ * parte do que muda é anexo: edital em PDF, foto de WhatsApp, planilha de
+ * resultado. Nenhum deles é notícia, e todos passariam pelo filtro de
+ * relevância se o nome do arquivo contivesse um termo do domínio — "Pregão
+ * 90014_2026.zip" publicado pela ABIN casaria com a fonte e entraria no acervo
+ * como manchete.
+ *
+ * Dois sinais, qualquer um basta: o título termina em extensão conhecida, ou a
+ * URL aponta para o download de um arquivo do Plone.
+ */
+export function ehAnexo(item) {
+  const titulo = (item?.titulo || '').trim()
+  const url = item?.url || ''
+  return RX_ANEXO.test(titulo)
+    || /\/@@download\//i.test(url)
+    || RX_ANEXO.test(url.split('?')[0])
+}
+
+// Registro de agenda de autoridade: "Agenda de Luiz Fernando Corrêa para
+// 26/08/2026". A ABIN publicou 14 num só dia, todos sem resumo e todos
+// apontando para /acesso-a-informacao/agenda-de-autoridades/.
+const RX_AGENDA = /^agenda\s+d[eo]\s+.+\s+para\s+\d{1,2}\/\d{1,2}\/\d{2,4}\s*$/i
+
+// Título que é só código de documento: "APC 03/2026", "AA 02/2026",
+// "ALERTA 78/2026". Sem resumo, não há o que ler — o cartão exibiria a sigla.
+const RX_CODIGO = /^[A-ZÇÃÕÁÉÍÓÚÂÊÔ]{2,10}(?:[\s-][A-ZÇÃÕ]{2,10})?\s*n?[º°]?\s*\d+[/-]\d{2,4}\s*$/
+
+// Seções do portal que não são jornalismo: transparência, licitação, agenda.
+const RX_SECAO_ADMINISTRATIVA =
+  /\/(acesso-a-informacao|agenda-de-autoridades|licitacoes?|contratos?|editais?|concursos?)\//i
+
+/**
+ * O item não é notícia?
+ *
+ * Reúne os três descartes, todos observados no acervo real depois de cadastrar
+ * os portais gov.br: anexo, registro de agenda e título que é só código.
+ *
+ * O critério é sempre o mesmo — o item tem conteúdo LEGÍVEL? "ALERTA 78/2026"
+ * sem resumo não informa nada a quem lê o clipping; guardá-lo seria inflar a
+ * contagem de artigos sem acrescentar uma linha de informação, que é
+ * exatamente o tipo de número vazio que este projeto evita.
+ */
+export function ehNaoNoticia(item) {
+  const titulo = (item?.titulo || '').trim()
+  const url = item?.url || ''
+  if (ehAnexo(item)) return true
+  if (RX_SECAO_ADMINISTRATIVA.test(url)) return true
+  if (RX_AGENDA.test(titulo)) return true
+  // Código só descarta quando não há resumo: com texto, ainda há o que ler.
+  if (RX_CODIGO.test(titulo) && !(item?.resumo || '').trim()) return true
+  return false
+}
+
 export function limparAgregador(item) {
   let titulo = item.titulo || ''
   const veiculo = item.fonteOriginal || ''
@@ -233,6 +362,11 @@ export async function coletarFonte(fonte) {
 
     transacao(() => {
       for (const bruto of itens) {
+        // Anexo, agenda de autoridade e código de documento não são notícia.
+        // Descartados antes de tudo — inclusive antes da deduplicação, para
+        // não ocupar guid no acervo.
+        if (ehNaoNoticia(bruto)) continue
+
         const item = ehAgregador ? limparAgregador(bruto) : bruto
 
         // O rodapé de manchetes vizinhas sai ANTES de qualquer avaliação: não

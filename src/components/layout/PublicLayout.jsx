@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Link, NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
-import { LogIn, Menu, X, Sun, Moon, ArrowRight } from 'lucide-react'
+import { LogIn, Menu, X, Sun, Moon, ArrowRight, UserPlus } from 'lucide-react'
 import Footer from './Footer'
 import Logo from '../ui/Logo'
-import LoginModal from '../auth/LoginModal'
+import AuthModal from '../auth/AuthModal'
 import ErrorBoundary from '../system/ErrorBoundary'
 import { useTheme } from '../../hooks/useTheme'
-import { useAuthStore, DEMO_PERSONAS } from '../../store/authStore'
+import { useAuthStore } from '../../store/authStore'
 
 // -----------------------------------------------------------------------------
 // LAYOUT PÚBLICO — o que o VISITANTE vê. Sem menu lateral: só um cabeçalho
@@ -21,10 +21,14 @@ const PUBLIC_NAV = [
 ]
 
 export default function PublicLayout() {
-  const [loginOpen, setLoginOpen] = useState(false)
+  // `aba` decide se o modal abre em Entrar ou em Criar conta. Antes havia
+  // DOIS botões idênticos aqui, ambos escritos 'Entrar' — um deles atalho
+  // para uma persona, o outro o modal. Agora um é Cadastro.
+  const [authAberto, setAuthAberto] = useState(false)
+  const [authAba, setAuthAba] = useState('entrar')
+  const abrirAuth = (aba) => { setAuthAba(aba); setAuthAberto(true) }
   const [menuOpen, setMenuOpen] = useState(false)
   const { isDark, toggleTheme } = useTheme()
-  const loginAsDemo = useAuthStore((s) => s.loginAsDemo)
   const navigate = useNavigate()
   const { pathname } = useLocation()
 
@@ -38,10 +42,6 @@ export default function PublicLayout() {
         : 'text-gray-500 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'
     }`
 
-  const enterDemo = () => {
-    loginAsDemo('analista')
-    navigate('/painel')
-  }
 
   return (
     <div className="min-h-screen">
@@ -66,16 +66,14 @@ export default function PublicLayout() {
               {isDark ? <Sun size={18} /> : <Moon size={18} />}
             </button>
 
-            {/* Atalho: entra na experiência completa em um clique */}
             <button
-              onClick={enterDemo}
-              className="hidden items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100 dark:border-white/15 dark:text-gray-200 dark:hover:bg-white/10 lg:inline-flex"
-              title={`Entrar como ${DEMO_PERSONAS.analista.roleLabel}`}
+              onClick={() => abrirAuth('cadastrar')}
+              className="hidden items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100 dark:border-white/15 dark:text-gray-200 dark:hover:bg-white/10 sm:inline-flex"
             >
-              Entrar <ArrowRight size={14} />
+              <UserPlus size={15} /> Cadastrar
             </button>
 
-            <button onClick={() => setLoginOpen(true)} className="btn-primary px-3 py-1.5 text-sm">
+            <button onClick={() => abrirAuth('entrar')} className="btn-primary px-3 py-1.5 text-sm">
               <LogIn size={15} /> Entrar
             </button>
 
@@ -105,11 +103,20 @@ export default function PublicLayout() {
                 {n.label}
               </NavLink>
             ))}
+            {/* No cabeçalho o botão "Cadastrar" some abaixo de sm; aqui ele
+                precisa reaparecer, senão no celular só existe o caminho de
+                quem já tem conta. */}
             <button
-              onClick={enterDemo}
+              onClick={() => abrirAuth('entrar')}
               className="flex w-full items-center gap-1.5 rounded-lg px-3 py-2 text-left text-sm font-semibold text-gold-600 hover:bg-gray-100 dark:text-gold-400 dark:hover:bg-white/5"
             >
               Entrar <ArrowRight size={14} />
+            </button>
+            <button
+              onClick={() => abrirAuth('cadastrar')}
+              className="flex w-full items-center gap-1.5 rounded-lg px-3 py-2 text-left text-sm font-semibold text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-white/5"
+            >
+              <UserPlus size={14} /> Criar conta
             </button>
           </nav>
         )}
@@ -122,7 +129,7 @@ export default function PublicLayout() {
       </main>
 
       <Footer />
-      <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
+      <AuthModal open={authAberto} onClose={() => setAuthAberto(false)} abaInicial={authAba} />
     </div>
   )
 }

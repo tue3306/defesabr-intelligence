@@ -23,7 +23,7 @@ const APIS = [
 // ANÁLISE dependem de julgamento humano, que nenhuma coleta produz.
 const INTEL_CYCLE = [
   { title: 'Coleta', icon: Radar, module: 'Confiabilidade das Fontes', to: '/fontes',
-    text: 'Reunir material de 15 fontes públicas, com a disponibilidade medida de cada uma.' },
+    text: 'Reunir material de fontes públicas oficiais, com a disponibilidade medida de cada uma.' },
   { title: 'Processamento', icon: Cog, module: 'Clipping Diário', to: '/clipping',
     text: 'Filtrar por relevância, classificar por urgência e organizar o volume bruto em produto legível.' },
   { title: 'Difusão', icon: Share2, module: 'Dados & Gráficos', to: '/dados',
@@ -68,7 +68,7 @@ export default function About() {
         </div>
         <p className="text-sm leading-relaxed text-gray-300">
           O DefesaBR Intelligence coleta, filtra e organiza informação pública sobre Segurança e
-          Defesa do Brasil. Um servidor busca 15 fontes RSS e quatro APIs de governo a cada 30
+          Defesa do Brasil. Um servidor busca fontes RSS oficiais e quatro APIs de governo a cada 30
           minutos, aplica um filtro de relevância auditável e guarda o resultado com a procedência de
           cada item. Tudo o que aparece nas telas veio de uma dessas fontes — não há dado de exemplo.
         </p>

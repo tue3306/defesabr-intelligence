@@ -115,7 +115,7 @@ export const CAPABILITIES = {
   'risk.access': { label: 'Matriz de riscos', reason: 'plan', tier: 'Profissional' },
   'dossiers.full': { label: 'Dossiês completos', reason: 'plan', tier: 'Profissional' },
   'narratives.access': { label: 'Monitor de narrativas (FIMI)', reason: 'plan', tier: 'Profissional' },
-  'sources.reliability': { label: 'Confiabilidade das fontes', reason: 'plan', tier: 'Profissional' },
+  'sources.reliability': { label: 'Confiabilidade das fontes', reason: 'role', tier: 'Analista' },
   'ai.assistant': { label: 'Assistente Analista (IA)', reason: 'plan', tier: 'Profissional' },
   'reports.export': { label: 'Exportar relatórios (PDF/CSV)', reason: 'plan', tier: 'Profissional' },
   'filters.advanced': { label: 'Filtros avançados e busca semântica', reason: 'plan', tier: 'Profissional' },
@@ -138,6 +138,7 @@ export const CAPABILITIES = {
   'workbench.access': { label: 'Mesa de trabalho do analista', reason: 'role', tier: 'Analista' },
   'tasking.manage': { label: 'Fila de produção e requisitos (RFI)', reason: 'role', tier: 'Analista' },
   'collection.plan': { label: 'Plano de coleta e lacunas', reason: 'role', tier: 'Analista' },
+  'collection.monitor': { label: 'Método do filtro e execuções da coleta', reason: 'role', tier: 'Analista' },
 
   // ── Governança (vem do PAPEL Administrador) ──
   'admin.access': { label: 'Console de administração', reason: 'role', tier: 'Administrador' },
@@ -162,14 +163,20 @@ const ROLE_USER_CAPS = [
 // O Analista PRODUZ. Ele recebe também toda a profundidade analítica: não faz
 // sentido pedir que quem escreve a análise assine um plano para lê-la.
 const ROLE_ANALYST_CAPS = [
-  'ai.generate', 'tension.edit', 'narratives.manage', 'sources.rate',
-  'dossiers.edit', 'briefing.publish', 'workbench.access', 'tasking.manage',
-  'collection.plan',
-  // Profundidade herdada (o analista lê tudo o que produz)
-  'analysis.full', 'scenarios.access', 'risk.access', 'dossiers.full',
-  'narratives.access', 'sources.reliability', 'ai.assistant', 'reports.export',
-  'filters.advanced', 'alerts.custom', 'legislative.access', 'presentation.mode',
-  'workspace.share',
+  // O que o Analista FAZ nesta versão: monitora a coleta e audita o filtro.
+  'collection.monitor', 'sources.reliability', 'sources.rate',
+
+  // `ai.generate` e `tension.edit` estavam concedidos aqui. Foram retirados:
+  // a geração por IA nunca existiu (o botão animava etapas e devolvia texto
+  // escrito à mão) e o quadro de tensão foi removido junto com a loja que o
+  // alimentava. Continuam no CATÁLOGO de capacidades, porque o catálogo
+  // documenta o modelo de permissão; conceder é outra coisa — dizer que o
+  // perfil faz algo que nenhuma tela cumpre.
+
+  // Profundidade herdada: quem responde pela coleta precisa ler tudo o que ela
+  // traz, sem depender de assinatura.
+  'analysis.full', 'scenarios.access', 'reports.export',
+  'filters.advanced', 'alerts.custom', 'presentation.mode',
 ]
 
 const ROLE_ADMIN_CAPS = [
@@ -187,10 +194,25 @@ export const ROLE_CAPABILITIES = {
 // ─────────────────────────────────────────────────────────────────────────────
 // EIXO 2 — CAPACIDADES POR PLANO
 // ─────────────────────────────────────────────────────────────────────────────
+// O PLANO governa PROFUNDIDADE DE LEITURA. O PAPEL governa FERRAMENTA DE
+// TRABALHO. Confundir os dois eixos foi a causa de o Usuário e o Analista
+// parecerem o mesmo perfil.
+//
+// `sources.reliability` saiu daqui e foi para o papel: auditar a procedência
+// do que a coleta traz é trabalho de analista, não um nível de assinatura.
+// Com isso o item precisou virar `hideWithout` no menu — oferecer com cadeado
+// algo que assinatura nenhuma destrava é upsell falso.
+//
+// `legislative.access` ficou: acompanhar proposições é leitura, e assinar o
+// plano realmente a libera.
 const PLAN_PRO_CAPS = [
-  'analysis.full', 'scenarios.access', 'risk.access', 'dossiers.full',
-  'narratives.access', 'sources.reliability', 'ai.assistant', 'reports.export',
-  'filters.advanced', 'alerts.custom', 'legislative.access', 'presentation.mode',
+  'analysis.full', 'scenarios.access', 'reports.export',
+  'filters.advanced', 'alerts.custom', 'presentation.mode',
+  // Radar legislativo é PROFUNDIDADE DE LEITURA — acompanhar proposições é
+  // consumir conteúdo, não operar ferramenta. Fica no plano, e por isso
+  // continua aparecendo com cadeado para quem não assina: é upsell honesto,
+  // porque assinar realmente libera.
+  'legislative.access',
 ]
 
 const PLAN_INSTITUTIONAL_CAPS = ['workspace.share', 'api.access', 'reports.branding']

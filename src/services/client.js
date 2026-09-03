@@ -1,5 +1,5 @@
 import { API_BASE_URL, REQUEST_TIMEOUT, APP_VERSION } from './config'
-import { temPonte, viaPonte } from './apiBridge'
+import { temPonte, viaPonte, cabecalhoDeSessao } from './apiBridge'
 
 // -----------------------------------------------------------------------------
 // CLIENTE DE DADOS — a única fronteira entre a interface e a origem dos dados.
@@ -103,6 +103,7 @@ export async function request(endpoint, { params = {}, body, signal, timeout = R
       headers: {
         'Content-Type': 'application/json',
         'X-Client-Version': APP_VERSION,
+        ...cabecalhoDeSessao(),
       },
       body: body ? JSON.stringify(body) : undefined,
       signal: controller.signal,

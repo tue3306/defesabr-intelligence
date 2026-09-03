@@ -36,17 +36,19 @@ export function useVitrine() {
         // Quatro consultas em paralelo: são independentes, e serializá-las
         // atrasaria a primeira dobra da landing sem motivo.
         const [fontes, noticias, legis, paises] = await Promise.all([
-          viaPonte('GET /intel/sources', {}).catch(() => null),
+          viaPonte('GET /intel/sources/summary', {}).catch(() => null),
           viaPonte('GET /news/volume', { days: 365 }).catch(() => null),
           viaPonte('GET /strategic/legislative', {}).catch(() => null),
           viaPonte('GET /news/countries', { days: 365 }).catch(() => null),
         ])
         if (!vivo) return
 
-        const lista = fontes?.items || []
+        // Resumo público: só total e quantas responderam. A lista completa,
+        // com erro por fonte, é do Analista — e pedi-la aqui devolvia 401 na
+        // primeira dobra da página inicial.
         setEstado({
-          fontes: lista.length || null,
-          fontesOk: lista.filter((f) => f.last_status === 'ok').length,
+          fontes: fontes?.total || null,
+          fontesOk: fontes?.ok ?? null,
           coletados: noticias?.filtro?.coletados ?? null,
           aprovados: noticias?.filtro?.aprovados ?? null,
           proposicoes: legis?.items?.length ?? null,

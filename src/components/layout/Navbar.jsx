@@ -7,8 +7,9 @@ import {
 } from 'lucide-react'
 import SearchBar from '../ui/SearchBar'
 import Badge from '../ui/Badge'
-import LoginModal from '../auth/LoginModal'
-import { useAuthStore, DEMO_PERSONAS, ROLES } from '../../store/authStore'
+import AuthModal from '../auth/AuthModal'
+import { useAuthStore } from '../../store/authStore'
+import { useContasDemo, ROTULO_PAPEL } from '../../auth/useContasDemo'
 import { useNewsStore } from '../../store/newsStore'
 import { useSubscriptionStore } from '../../store/subscriptionStore'
 import { useCan, useProfileMeta } from '../../auth/useCan'
@@ -30,7 +31,8 @@ const PERSONA_HOME = {
 export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) {
   const navigate = useNavigate()
   const { isDark, toggleTheme } = useTheme()
-  const { user, isAuthenticated, logout, loginAsDemo } = useAuthStore()
+  const { user, isAuthenticated, logout } = useAuthStore()
+  const { contas, entrarComo } = useContasDemo()
   const plan = useSubscriptionStore((s) => s.plan)
   const can = useCan()
   const profileMeta = useProfileMeta()
@@ -39,7 +41,9 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
   const markAllRead = useNewsStore((s) => s.markAllRead)
   const markRead = useNewsStore((s) => s.markRead)
 
-  const [loginOpen, setLoginOpen] = useState(false)
+  const [authAberto, setAuthAberto] = useState(false)
+  const [authAba, setAuthAba] = useState('entrar')
+  const abrirAuth = (aba) => { setAuthAba(aba); setAuthAberto(true) }
   const [notifOpen, setNotifOpen] = useState(false)
   const [userOpen, setUserOpen] = useState(false)
   const notifRef = useRef()
@@ -61,10 +65,13 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
     }
   }, [])
 
-  const switchPersona = (key) => {
-    loginAsDemo(key)
+  // Trocar de perfil passa a ser um LOGIN de verdade: a conta de exemplo do
+  // papel escolhido, autenticada no servidor. Antes isto escrevia
+  // `{ role: 'admin' }` no localStorage e nada verificava.
+  const trocarPerfil = async (papel) => {
     setUserOpen(false)
-    navigate(PERSONA_HOME[key] || '/painel')
+    const r = await entrarComo(papel)
+    if (r?.ok) navigate('/painel')
   }
 
   const initials = (user?.name || '')
@@ -242,7 +249,7 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
                       className="inline-block rounded px-1.5 py-0.5 text-[10px] font-bold uppercase text-white"
                       style={{ background: profileMeta.color }}
                     >
-                      {ROLES[user?.role]?.label || profileMeta.label}
+                      {ROTULO_PAPEL[user?.role] || profileMeta.label}
                     </span>
                     <span className="inline-block rounded bg-gold-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase text-gold-600 dark:text-gold-400">
                       {PLAN_LABELS[plan] || plan}
@@ -262,35 +269,38 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
                   <MenuLink to="/configuracoes" icon={SettingsIcon} label="Configurações" onClick={() => setUserOpen(false)} />
                 </div>
 
-                {/* Seletor dos 4 perfis de acesso */}
-                <div className="mt-1 border-t border-gray-200 pt-2 dark:border-gray-700/40">
-                  <p className="flex items-center gap-1.5 px-2 pb-1 text-[10px] font-bold uppercase tracking-wide muted">
-                    <Repeat size={11} /> Ver como
-                  </p>
-                  <div className="space-y-1">
-                    {PERSONA_ORDER.map((key) => {
-                      const p = DEMO_PERSONAS[key]
-                      const active = user?.persona === key
-                      return (
-                        <button
-                          key={key}
-                          onClick={() => switchPersona(key)}
-                          className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors ${
-                            active ? 'bg-gold-500/10' : 'hover:bg-gray-100 dark:hover:bg-white/10'
-                          }`}
-                        >
-                          <span className="min-w-0 flex-1">
-                            <span className="block text-xs font-semibold text-gray-900 dark:text-white">{p.label}</span>
-                            <span className="block truncate text-[10px] muted">{p.tagline}</span>
-                          </span>
-                          {active
-                            ? <Check size={14} className="shrink-0 text-emerald-500 dark:text-emerald-400" />
-                            : <ArrowRight size={13} className="shrink-0 text-gray-400 opacity-0 group-hover:opacity-100" />}
-                        </button>
-                      )
-                    })}
+                {/* Trocar de perfil — cada item faz um login real */}
+                {contas.length > 0 && (
+                  <div className="mt-1 border-t border-gray-200 pt-2 dark:border-gray-700/40">
+                    <p className="flex items-center gap-1.5 px-2 pb-1 text-[10px] font-bold uppercase tracking-wide muted">
+                      <Repeat size={11} /> Entrar como
+                    </p>
+                    <div className="space-y-1">
+                      {contas.map((c) => {
+                        const atual = user?.role === c.role
+                        return (
+                          <button
+                            key={c.email}
+                            onClick={() => trocarPerfil(c.role)}
+                            className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors ${
+                              atual ? 'bg-gold-500/10' : 'hover:bg-gray-100 dark:hover:bg-white/10'
+                            }`}
+                          >
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-xs font-semibold text-gray-900 dark:text-white">
+                                {ROTULO_PAPEL[c.role] || c.role}
+                              </span>
+                              <span className="block truncate text-[10px] muted">{c.name}</span>
+                            </span>
+                            {atual
+                              ? <Check size={14} className="shrink-0 text-emerald-500 dark:text-emerald-400" />
+                              : <ArrowRight size={13} className="shrink-0 text-gray-400" />}
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <button
                   onClick={() => { logout(); setUserOpen(false); navigate('/') }}
@@ -302,13 +312,13 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
             )}
           </div>
         ) : (
-          <button onClick={() => setLoginOpen(true)} className="btn-primary ml-1 px-3 py-1.5 text-sm">
+          <button onClick={() => abrirAuth('entrar')} className="btn-primary ml-1 px-3 py-1.5 text-sm">
             <LogIn size={15} /> Entrar
           </button>
         )}
       </div>
 
-      <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
+      <AuthModal open={authAberto} onClose={() => setAuthAberto(false)} abaInicial={authAba} />
     </header>
   )
 }

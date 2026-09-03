@@ -40,6 +40,7 @@ const Legislative = lazy(() => import('./pages/Legislative'))
 const SourceReliability = lazy(() => import('./pages/SourceReliability'))
 // Mesa de trabalho (perfil Analista)
 // Console de governança (perfil Administrador)
+const Collection = lazy(() => import('./pages/Collection'))
 const AdminConsole = lazy(() => import('./pages/AdminConsole'))
 
 function PageLoader() {
@@ -85,6 +86,16 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' })
   }, [pathname])
 
+  // Confere a sessão persistida contra o servidor, uma vez, na abertura.
+  //
+  // O `persist` do Zustand devolve o usuário do localStorage antes de qualquer
+  // requisição — o que é bom para não piscar a tela de login, e perigoso pelo
+  // mesmo motivo: um token expirado, revogado, ou assinado com o segredo de
+  // outro deploy continuaria produzindo uma interface de administrador que o
+  // servidor recusa a cada chamada. `revalidar()` pergunta ao /auth/me quem é
+  // o portador do token; se a resposta não vier, a sessão cai.
+  useEffect(() => { useAuthStore.getState().revalidar() }, [])
+
   return (
     <ErrorBoundary scope="Aplicação">
       <Routes>
@@ -128,6 +139,14 @@ export default function App() {
           {/* ── ANALISTA — produção de inteligência ── */}
 
           {/* ── ADMINISTRADOR — governança ── */}
+          {/* ── ANALISTA — monitoramento da coleta ── */}
+          <Route
+            path="/coleta"
+            element={
+              <Guarded capability="collection.monitor" scope="Método & Coleta"><Collection /></Guarded>
+            }
+          />
+
           <Route
             path="/admin"
             element={<Guarded capability="admin.access" scope="Console de Governança"><AdminConsole /></Guarded>}

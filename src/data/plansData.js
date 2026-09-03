@@ -1,8 +1,16 @@
 // -----------------------------------------------------------------------------
-// PLANOS DE ASSINATURA (Sprint 1) — Explorar · Profissional · Institucional.
-// Decisões de produto: removida a "trava de 1 área"; "Profissional" é o
-// recomendado; preço anual com ~17% de economia; Institucional como âncora B2B.
-// Valores demonstrativos (sem cobrança real).
+// PLANOS DE ASSINATURA — Explorar · Profissional · Institucional.
+//
+// Os PREÇOS são demonstrativos e nenhuma cobrança acontece. Os RECURSOS, não:
+// cada linha desta tabela precisa corresponder a algo que a plataforma faz.
+//
+// Ela vendia "Gerar clipping/análise com IA", "Dossiês completos e Monitor de
+// Narrativas" e "Análise semanal + cenários". Nenhum dos três existe — a IA
+// nunca foi ligada e as telas de produção editorial foram removidas por
+// exibirem texto escrito à mão. Prometer numa página de preço o que não se
+// entrega é a única coisa aqui que seria indefensável numa apresentação.
+//
+// Quem mexer nisto: antes de acrescentar uma linha, abra a tela que a cumpre.
 // -----------------------------------------------------------------------------
 
 export const PLANS = [
@@ -17,10 +25,10 @@ export const PLANS = [
     tagline: 'Conheça o cenário de defesa do Brasil.',
     cta: 'Começar grátis',
     features: [
-      'Notícias e mapa de risco',
-      'Painel de situação (essencial)',
+      'Clipping diário do acervo coletado',
+      'Painel de situação e nível de alerta',
+      'Cobertura por país e busca no acervo',
       'Centro Educacional e glossário',
-      'Prévia de dossiês e análises',
     ],
   },
   {
@@ -36,11 +44,11 @@ export const PLANS = [
     cta: 'Assinar agora',
     features: [
       'Tudo do Explorar',
-      'Todas as 5 áreas de análise',
-      'Análise semanal + cenários',
-      'Dossiês completos e Monitor de Narrativas',
-      'Gerar e exportar (PDF/CSV) com IA',
-      'Alertas personalizados e Minha Pasta',
+      'Radar legislativo (Câmara, dados abertos)',
+      'Séries econômicas e industriais completas',
+      'Exportar PDF e CSV de qualquer painel',
+      'Filtros avançados e alertas por área',
+      'Modo apresentação',
     ],
   },
   {
@@ -54,10 +62,10 @@ export const PLANS = [
     cta: 'Falar com especialistas',
     features: [
       'Tudo do Profissional',
+      'Papéis verificados no servidor (Analista, Admin)',
+      'Monitoramento da coleta e auditoria do filtro',
+      'Console de governança e diagnóstico',
       'Múltiplos usuários (assentos)',
-      'Papéis e gestão de usuários',
-      'Onboarding e suporte prioritário',
-      'Exportações com identidade própria',
       'Integrações / SSO (roadmap)',
     ],
   },
@@ -70,20 +78,24 @@ export const PLAN_COMPARISON = [
   {
     group: 'Conteúdo',
     rows: [
-      { label: 'Notícias e mapa de risco', explorar: true, profissional: true, institucional: true },
+      { label: 'Clipping diário e cobertura por país', explorar: true, profissional: true, institucional: true },
       { label: 'Centro Educacional e glossário', explorar: 'Essencial', profissional: 'Completo', institucional: 'Completo' },
-      { label: 'Todas as 5 áreas de análise', explorar: false, profissional: true, institucional: true },
-      { label: 'Análise semanal e cenários', explorar: false, profissional: true, institucional: true },
-      { label: 'Dossiês "Em Foco"', explorar: 'Prévia', profissional: true, institucional: true },
+      { label: 'Busca e arquivo do acervo', explorar: true, profissional: true, institucional: true },
+      { label: 'Radar legislativo (Câmara)', explorar: false, profissional: true, institucional: true },
+      { label: 'Séries econômicas e industriais', explorar: 'Resumo', profissional: 'Completo', institucional: 'Completo' },
     ],
   },
   {
-    group: 'Produção de inteligência',
+    group: 'Ferramentas',
     rows: [
-      { label: 'Gerar clipping/análise com IA', explorar: false, profissional: true, institucional: true },
       { label: 'Exportar PDF / CSV', explorar: false, profissional: true, institucional: true },
-      { label: 'Alertas personalizados e Minha Pasta', explorar: false, profissional: true, institucional: true },
-      { label: 'Confiabilidade de fontes e narrativas', explorar: false, profissional: true, institucional: true },
+      { label: 'Filtros avançados e alertas por área', explorar: false, profissional: true, institucional: true },
+      { label: 'Modo apresentação', explorar: false, profissional: true, institucional: true },
+      // Dependem do PAPEL, não do plano: são ferramentas de trabalho do
+      // Analista. A coluna diz isso em vez de um marcador que faria o assinante
+      // esperar acesso que a assinatura não dá.
+      { label: 'Confiabilidade das fontes', explorar: false, profissional: 'Papel Analista', institucional: 'Papel Analista' },
+      { label: 'Método do filtro e execuções da coleta', explorar: false, profissional: 'Papel Analista', institucional: 'Papel Analista' },
     ],
   },
   {
@@ -100,9 +112,9 @@ export const PLAN_COMPARISON = [
 export const PLAN_FAQ = [
   { q: 'Posso trocar de plano quando quiser?', a: 'Sim. Upgrade e downgrade são imediatos. Nesta demonstração, a troca apenas simula o acesso na interface.' },
   { q: 'Existe fidelidade ou multa?', a: 'Não. Cancele quando quiser, sem fidelidade. (Demonstração: nenhuma cobrança é realizada.)' },
-  { q: 'Qual a diferença entre papel e plano?', a: 'Papel é o que você pode FAZER (Usuário ou Administrador). Plano é o quanto você pode VER e produzir (Explorar, Profissional, Institucional).' },
+  { q: 'Qual a diferença entre papel e plano?', a: 'Papel é o que você pode FAZER: Usuário consulta, Analista monitora a coleta e audita o filtro, Administrador governa a plataforma. Plano é o quanto você pode VER (Explorar, Profissional, Institucional). Os eixos são independentes, e o papel é verificado no servidor — não é o menu escondido que protege as áreas restritas.' },
   { q: 'O plano anual compensa?', a: 'Sim: no anual o mês sai por ~R$ 74 — cerca de 17% de economia frente ao mensal.' },
-  { q: 'Os números exibidos são reais?', a: 'Não. Todos os dados, indicadores e cenários são ilustrativos/demonstrativos.' },
+  { q: 'Os números exibidos são reais?', a: 'Sim. As notícias são coletadas de feeds públicos oficiais pelo servidor; os indicadores econômicos vêm do Banco Central (SGS), do World Bank e do Comex Stat; as proposições, dos Dados Abertos da Câmara. Cada painel declara a origem da sua série e, quando a fonte não responde, mostra a ausência em vez de um valor plausível. Os PREÇOS desta página é que são demonstrativos: não há cobrança.' },
 ]
 
 // Áreas temáticas (perspectivas de análise) — todas liberadas no plano pago.
@@ -116,9 +128,9 @@ export const SUBSCRIPTION_AREAS = [
 
 // "Por que usar este site?" — diferenciais exibidos na landing.
 export const LANDING_FEATURES = [
-  { icon: 'Newspaper', title: 'Clipping diário com IA', text: 'Notícias de defesa reunidas, resumidas e classificadas por urgência automaticamente.' },
+  { icon: 'Newspaper', title: 'Clipping diário', text: 'Notícias coletadas de feeds oficiais, filtradas por relevância e classificadas por urgência — sem IA e sem redação humana no meio.' },
   { icon: 'Globe2', title: 'Panorama global de risco', text: 'Mapa de calor com a intensidade de eventos por país e a relação de cada um com o Brasil.' },
-  { icon: 'BarChart3', title: 'Cenários estratégicos', text: 'Análises semanais com cenários base, otimista e adverso — e recomendações por perfil.' },
+  { icon: 'BarChart3', title: 'Método auditável', text: 'A regra que decide o que entra no acervo é publicada e pode ser aplicada a qualquer texto, com os termos que casaram.' },
   { icon: 'LineChart', title: 'Dados militares e econômicos', text: 'Gastos de defesa, câmbio e indicadores setoriais em gráficos atualizados.' },
   { icon: 'GraduationCap', title: 'Centro educacional', text: 'Glossário e quiz para quem está começando em defesa, geopolítica e cibersegurança.' },
   { icon: 'ShieldCheck', title: 'Fontes confiáveis', text: 'Agregação de fontes públicas e institucionais de Segurança e Defesa do Brasil.' },

@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Newspaper, BarChart3, LineChart, Archive, Settings, HelpCircle,
   Shield, Tv, Lock, GraduationCap, Home, Sparkles, DollarSign, X,
   Target, Waves, Scale, Factory, Layers, Radio, Landmark, CalendarDays, BadgeCheck,
-  UserCircle, ShieldCheck, ShieldAlert, FileText, ClipboardList, Search,
+  UserCircle, ShieldCheck, ShieldAlert, FileText, ClipboardList, Search, FlaskConical,
 } from 'lucide-react'
 import Logo from '../ui/Logo'
 import { useAuthStore } from '../../store/authStore'
@@ -36,7 +36,9 @@ const NAV_SECTIONS = [
     title: 'Inteligência & Análise',
     items: [
       { to: '/clipping', label: 'Clipping Diário', icon: Newspaper, requiresAuth: true },
-      { to: '/fontes', label: 'Confiabilidade das Fontes', icon: BadgeCheck, requiresAuth: true, capability: 'sources.reliability' },
+      // `hideWithout` porque a capacidade agora vem do PAPEL: mostrar cadeado
+      // sugeriria que existe um plano que a destrava, e não existe.
+      { to: '/fontes', label: 'Confiabilidade das Fontes', icon: BadgeCheck, requiresAuth: true, capability: 'sources.reliability', hideWithout: true },
       { to: '/arquivo', label: 'Arquivo & Pasta', icon: Archive, requiresAuth: true },
     ],
   },
@@ -55,10 +57,18 @@ const NAV_SECTIONS = [
     ],
   },
   {
-    // Só existe para quem PRODUZ inteligência (perfil Analista e acima).
+    // Só existe para o Analista e acima: monitorar a coleta e auditar o filtro.
     title: 'Produção',
-    sectionCapability: 'workbench.access',
+    sectionCapability: 'collection.monitor',
     items: [
+      {
+        to: '/coleta',
+        label: 'Método & Coleta',
+        icon: FlaskConical,
+        requiresAuth: true,
+        capability: 'collection.monitor',
+        hideWithout: true,
+      },
     ],
   },
   {

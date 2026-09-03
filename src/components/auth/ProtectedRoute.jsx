@@ -4,7 +4,8 @@ import {
   UserCog, PenTool,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { useAuthStore, DEMO_PERSONAS, LOGIN_PERSONAS } from '../../store/authStore'
+import { useAuthStore } from '../../store/authStore'
+import { useContasDemo, ROTULO_PAPEL } from '../../auth/useContasDemo'
 import { useGate } from '../../auth/useCan'
 import { CAPABILITIES, PLAN_LABELS, PROFILES } from '../../auth/permissions'
 
@@ -18,25 +19,25 @@ const BENEFITS = [
 const ROLE_WALL = {
   analyst: {
     icon: PenTool,
-    persona: 'analista',
+    papel: 'analyst',
     title: 'Recurso do perfil Analista',
-    desc: 'Esta área é da produção de inteligência — quem redige, avalia e publica o conteúdo da plataforma.',
+    desc: 'Esta área é de quem monitora a coleta — inspeciona o filtro de relevância, acompanha as fontes e audita as execuções.',
     perks: [
-      'Mesa de trabalho: fila de produção, RFIs e plano de coleta',
-      'Gerar clipping e análises com IA, atribuir nível de tensão',
-      'Classificar fontes, narrativas e publicar briefings',
+      'Método do filtro de relevância, com teste ao vivo em qualquer texto',
+      'Disponibilidade medida de cada fonte cadastrada',
+      'Histórico de execuções dos coletores, com duração e erro',
     ],
     cta: 'Entrar como Analista',
   },
   admin: {
     icon: UserCog,
-    persona: 'admin',
+    papel: 'admin',
     title: 'Recurso do Administrador',
     desc: 'Esta seção é de governança da plataforma — contas, fontes, integrações e auditoria.',
     perks: [
-      'Gestão de contas, papéis e planos',
-      'Fontes de coleta, integrações e chaves de IA',
-      'Trilha de auditoria e saúde do sistema',
+      'Estado real de cada capacidade da plataforma, derivado do banco',
+      'Disparar coleta manualmente, no total ou por fonte',
+      'Trilha de auditoria e saúde dos serviços',
     ],
     cta: 'Entrar como Administrador',
   },
@@ -47,15 +48,16 @@ const ROLE_WALL = {
 // governança) — e sempre oferece o caminho de saída.
 export default function ProtectedRoute({ children, permission, capability }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  const loginAsDemo = useAuthStore((s) => s.loginAsDemo)
+  const { contas, entrarComo } = useContasDemo()
   // `capability` é o nome novo; `permission` fica por compatibilidade.
   const required = capability || permission
   const gate = useGate(required)
 
-  const enter = (key) => {
-    const p = DEMO_PERSONAS[key]
-    loginAsDemo(key)
-    toast.success(`Conectado como ${p.roleLabel}`)
+  // Login real contra a conta de exemplo do papel escolhido.
+  const entrar = async (papel) => {
+    const r = await entrarComo(papel)
+    if (r?.ok) toast.success(`Conectado como ${ROTULO_PAPEL[papel]}`)
+    else toast.error(r?.error || 'Não foi possível entrar.')
   }
 
   // 1) Não autenticado → muro de login com as 3 personas autenticáveis.
@@ -70,20 +72,20 @@ export default function ProtectedRoute({ children, permission, capability }) {
       >
         <p className="mt-6 text-xs font-semibold uppercase tracking-wide muted">Entrar como</p>
         <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
-          {LOGIN_PERSONAS.map((key, i) => {
-            const p = DEMO_PERSONAS[key]
-            return (
-              <button
-                key={key}
-                onClick={() => enter(key)}
-                className={`${i === 0 ? 'btn-primary' : 'btn-ghost'} justify-center`}
-              >
-                {p.roleLabel} {i === 0 && <ArrowRight size={15} />}
-              </button>
-            )
-          })}
+          {contas.map((c, i) => (
+            <button
+              key={c.email}
+              onClick={() => entrar(c.role)}
+              className={`${i === 0 ? 'btn-primary' : 'btn-ghost'} justify-center`}
+            >
+              {ROTULO_PAPEL[c.role] || c.role} {i === 0 && <ArrowRight size={15} />}
+            </button>
+          ))}
         </div>
-        <p className="mt-3 text-xs muted">Acesso instantâneo • sem cadastro • dados coletados ao vivo</p>
+        <p className="mt-3 text-xs muted">
+          Contas de exemplo, uma por perfil — cada uma alcança um recorte diferente da plataforma,
+          e a diferença é verificada no servidor.
+        </p>
       </Wall>
     )
   }
@@ -115,11 +117,11 @@ export default function ProtectedRoute({ children, permission, capability }) {
             <Link to="/planos" className="btn-primary">
               Ver planos <ArrowRight size={15} />
             </Link>
-            <button onClick={() => enter('analista')} className="btn-ghost">
-              Ver como Analista (demo)
+            <button onClick={() => entrar('analyst')} className="btn-ghost">
+              Entrar como Analista
             </button>
           </div>
-          <p className="mt-3 text-xs muted">A troca de perfil é livre: a verificação acontece no navegador.</p>
+          <p className="mt-3 text-xs muted">A troca é livre nas contas de exemplo; o que cada uma alcança é decidido pelo servidor.</p>
         </Wall>
       )
     }
@@ -136,13 +138,13 @@ export default function ProtectedRoute({ children, permission, capability }) {
         list={wall.perks.map((text) => ({ text }))}
       >
         <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <button onClick={() => enter(wall.persona)} className="btn-primary">
+          <button onClick={() => entrar(wall.papel)} className="btn-primary">
             {wall.cta} <ArrowRight size={15} />
           </button>
           <Link to="/painel" className="btn-ghost">Voltar ao painel</Link>
         </div>
         <p className="mt-3 text-xs muted">
-          Perfil exigido: <strong>{target?.label || wall.persona}</strong> · a troca é livre.
+          Perfil exigido: <strong>{target?.label || wall.papel}</strong> — verificado no servidor.
         </p>
       </Wall>
     )
