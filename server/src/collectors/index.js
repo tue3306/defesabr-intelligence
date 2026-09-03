@@ -43,8 +43,34 @@ async function registrar(nome, fn, gatilho = 'agendado') {
       gatilho,
     ]
   )
+  aparar(nome)
 
   return { coletor: nome, duracaoMs: duracao, ...resultado }
+}
+
+// Quantas execuções guardar POR COLETOR.
+//
+// Sem teto, `collector_runs` cresce para sempre: seis coletores a cada 30
+// minutos são 288 linhas por dia, ~105 mil por ano. Num Railway sem volume
+// isso se resolve sozinho porque o disco é efêmero — mas o README recomenda
+// montar um volume justamente para o acervo persistir, e aí a tabela cresce
+// com ele. O painel de auditoria mostra as últimas dezenas; o resto é peso.
+//
+// 300 por coletor cobrem ~6 dias de agendador a cada 30 min, que é folga
+// suficiente para investigar qualquer falha depois do fim de semana.
+const EXECUCOES_POR_COLETOR = 300
+
+/** Apara o histórico, preservando as execuções recentes de cada coletor. */
+function aparar(nome) {
+  run(
+    `DELETE FROM collector_runs
+      WHERE collector = ?
+        AND id NOT IN (
+          SELECT id FROM collector_runs WHERE collector = ?
+          ORDER BY id DESC LIMIT ?
+        )`,
+    [nome, nome, EXECUCOES_POR_COLETOR]
+  )
 }
 
 /** Ciclo completo. Devolve o que cada coletor fez. */

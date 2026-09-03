@@ -3,6 +3,19 @@ import { migrate, get } from './db/index.js'
 import config from './config.js'
 import { criarApp } from './app.js'
 import { semearFontes, iniciarAgendador, coletarAgora, pararAgendador } from './collectors/index.js'
+import { db } from './db/index.js'
+
+// Fecha o banco uma vez só, mesmo que os dois caminhos de saída disparem.
+//
+// Em modo WAL, sair sem fechar deixa o `-wal` sem checkpoint: o SQLite se
+// recupera sozinho na abertura seguinte, então não há corrupção — mas o
+// arquivo cresce e o primeiro acesso depois do deploy paga a recuperação.
+let bancoFechado = false
+function fecharBanco() {
+  if (bancoFechado) return
+  bancoFechado = true
+  try { db.close() } catch { /* já fechado */ }
+}
 import { semearContas } from './routes/auth.js'
 
 // -----------------------------------------------------------------------------
@@ -107,8 +120,10 @@ for (const sinal of ['SIGTERM', 'SIGINT']) {
   process.on(sinal, () => {
     console.log(`\n  ${sinal} — encerrando…`)
     pararAgendador()
-    servidor.close(() => process.exit(0))
-    setTimeout(() => process.exit(0), 5000).unref()
+    servidor.close(() => { fecharBanco(); process.exit(0) })
+    // Rede de segurança: se uma conexão ficar pendurada, sai mesmo assim.
+    // Fecha o banco aqui também, senão este caminho sairia sem checkpoint.
+    setTimeout(() => { fecharBanco(); process.exit(0) }, 5000).unref()
   })
 }
 
