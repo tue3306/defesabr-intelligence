@@ -23,7 +23,35 @@ export function criarApp() {
   const app = express()
 
   app.disable('x-powered-by')
+
+  // `trust proxy`: o Railway põe um balanceador na frente, e sem isto o IP de
+  // TODA requisição chega como o do proxy. O teto por IP de `lib/limite.js`
+  // passaria a contar o mundo inteiro num contador só — o primeiro visitante a
+  // errar dez senhas trancaria o login para todos.
+  app.set('trust proxy', 1)
+
   app.use(express.json({ limit: '256kb' }))
+
+  // ── Cabeçalhos de segurança ──
+  //
+  // Quatro linhas, nenhuma dependência. Não há CSP aqui de propósito: a
+  // interface carrega o atlas de países de um CDN e as fontes do Google, e uma
+  // política restritiva escrita às pressas quebraria o mapa em produção sem
+  // avisar. CSP é trabalho para quando houver tempo de testá-la.
+  app.use((req, res, next) => {
+    // Impede o navegador de "adivinhar" o tipo de um arquivo servido — é o que
+    // transforma um upload de texto em script executável.
+    res.setHeader('X-Content-Type-Options', 'nosniff')
+    // Sem isto a plataforma pode ser embutida num iframe de terceiro e ter os
+    // cliques sequestrados por uma camada invisível por cima.
+    res.setHeader('X-Frame-Options', 'DENY')
+    // Não vaza o caminho interno visitado para sites externos ao clicar num link.
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
+    // Nada aqui usa câmera, microfone ou localização; declarar isso fecha a
+    // porta para qualquer script de terceiro que tente pedi-los.
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+    next()
+  })
 
   // CORS só importa em desenvolvimento, quando o Vite roda em outra porta.
   app.use(cors({
@@ -38,10 +66,18 @@ export function criarApp() {
       }
       cb(null, false)
     },
-    // O front envia X-Client-Id para os favoritos; sem declará-lo aqui o
-    // preflight recusa e NENHUMA chamada passa — a interface fica de pé
-    // dizendo "servidor fora do ar" com o servidor perfeitamente vivo.
-    allowedHeaders: ['Content-Type', 'X-Client-Id'],
+    // Todo cabeçalho que o front envia precisa estar declarado aqui: o que
+    // faltar faz o preflight recusar e NENHUMA chamada passa — a interface
+    // fica de pé dizendo "servidor fora do ar" com o servidor vivo.
+    //
+    // `Authorization` faltava, e era a falha mais cara da lista: sem ele,
+    // qualquer instalação em que o front não seja servido por este mesmo
+    // processo perderia TODA chamada autenticada. Passava despercebido porque
+    // o proxy do Vite torna o desenvolvimento mesma-origem e a produção serve
+    // o front daqui — os dois cenários em que o preflight nem acontece. Quem
+    // apontasse VITE_API_BASE_URL para uma API remota, como o .env.example
+    // descreve, veria login funcionar e todo o resto falhar.
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Client-Id', 'X-Client-Version'],
   }))
 
   // Log de uma linha por requisição. Suficiente para ver a integração

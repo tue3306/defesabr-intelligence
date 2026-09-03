@@ -1,4 +1,5 @@
-import { randomBytes, scryptSync, timingSafeEqual, createHmac } from 'node:crypto'
+import { randomBytes, scrypt, timingSafeEqual, createHmac } from 'node:crypto'
+import { promisify } from 'node:util'
 import config from '../config.js'
 
 // -----------------------------------------------------------------------------
@@ -26,11 +27,24 @@ import config from '../config.js'
 
 const ALGORITMO_SCRYPT = { N: 16384, r: 8, p: 1, keylen: 64 }
 
+// scrypt é caro DE PROPÓSITO: 26 ms medidos por derivação, que é o que torna
+// uma tabela de senhas inviável de atacar. O problema não era o custo, era a
+// versão: `scryptSync` gasta esses 26 ms DENTRO do event loop, e o Node tem um
+// só. Cerca de 39 logins por segundo bastavam para o servidor parar de
+// responder a tudo — inclusive a `/api/health`, o que faz o Railway concluir
+// que a aplicação morreu e reiniciar o contêiner. Derrubar a plataforma não
+// exigia exploit nenhum, só um laço de shell.
+//
+// A versão assíncrona faz a mesma conta no pool de threads do libuv. O event
+// loop segue atendendo enquanto ela roda, e o teto por IP em `lib/limite.js`
+// cuida do abuso.
+const derivar = promisify(scrypt)
+
 /** Gera sal e derivação da senha. Nunca guarde a senha em texto. */
-export function hashSenha(senha, salExistente) {
+export async function hashSenha(senha, salExistente) {
   const sal = salExistente || randomBytes(16).toString('hex')
-  const hash = scryptSync(senha, sal, ALGORITMO_SCRYPT.keylen, ALGORITMO_SCRYPT).toString('hex')
-  return { sal, hash }
+  const bruto = await derivar(senha, sal, ALGORITMO_SCRYPT.keylen, ALGORITMO_SCRYPT)
+  return { sal, hash: bruto.toString('hex') }
 }
 
 /**
@@ -40,8 +54,8 @@ export function hashSenha(senha, salExistente) {
  * no primeiro byte diferente, e medir isso permite descobrir o hash byte a
  * byte. `timingSafeEqual` sempre percorre o buffer inteiro.
  */
-export function senhaConfere(senha, sal, hashEsperado) {
-  const { hash } = hashSenha(senha, sal)
+export async function senhaConfere(senha, sal, hashEsperado) {
+  const { hash } = await hashSenha(senha, sal)
   const a = Buffer.from(hash, 'hex')
   const b = Buffer.from(hashEsperado, 'hex')
   if (a.length !== b.length) return false

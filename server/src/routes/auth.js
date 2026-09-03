@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { get, run, all, agora } from '../db/index.js'
 import { hashSenha, senhaConfere, emitirToken } from '../lib/auth.js'
 import config from '../config.js'
+import { limitar } from '../lib/limite.js'
 
 const router = Router()
 
@@ -55,11 +56,11 @@ export const CONTAS_DEMO = [
   { name: 'Rafael Antunes', email: 'admin@defesabr.com', senha: 'admin123', role: 'admin', plan: 'institucional' },
 ]
 
-export function semearContas() {
+export async function semearContas() {
   let criadas = 0
   for (const c of CONTAS_DEMO) {
     if (get('SELECT id FROM users WHERE email = ?', [c.email])) continue
-    const { sal, hash } = hashSenha(c.senha)
+    const { sal, hash } = await hashSenha(c.senha)
     run(
       `INSERT INTO users (name, email, password_hash, password_salt, role, plan)
        VALUES (?, ?, ?, ?, ?, ?)`,
@@ -73,7 +74,9 @@ export function semearContas() {
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/auth/register
 // ─────────────────────────────────────────────────────────────────────────────
-router.post('/auth/register', (req, res) => {
+// Cadastro: teto mais apertado que o login. Criar conta é raro para uma
+// pessoa e barato para um robô — e cada tentativa custa um scrypt.
+router.post('/auth/register', limitar({ max: 5, janelaMs: 10 * 60_000 }), async (req, res) => {
   const { name, email, password } = req.body || {}
 
   const nome = String(name || '').trim()
@@ -97,7 +100,7 @@ router.post('/auth/register', (req, res) => {
     return res.status(409).json({ error: 'Já existe uma conta com este e-mail.', campo: 'email' })
   }
 
-  const { sal, hash } = hashSenha(password)
+  const { sal, hash } = await hashSenha(password)
   const info = run(
     `INSERT INTO users (name, email, password_hash, password_salt, role, plan)
      VALUES (?, ?, ?, ?, 'user', 'explorar')`,
@@ -111,7 +114,9 @@ router.post('/auth/register', (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/auth/login
 // ─────────────────────────────────────────────────────────────────────────────
-router.post('/auth/login', (req, res) => {
+// Login: 10 tentativas por IP a cada 5 minutos, contando só as que FALHAM.
+// Quem acerta a senha não gasta cota; quem chuta, sim.
+router.post('/auth/login', limitar({ max: 10, janelaMs: 5 * 60_000, soFalhas: true }), async (req, res) => {
   const { email, password } = req.body || {}
   const mail = String(email || '').trim().toLowerCase()
 
@@ -122,7 +127,7 @@ router.post('/auth/login', (req, res) => {
   // dar e não deveria ser dada.
   const generico = { error: 'E-mail ou senha incorretos.' }
   if (!conta) return res.status(401).json(generico)
-  if (!senhaConfere(String(password || ''), conta.password_salt, conta.password_hash)) {
+  if (!(await senhaConfere(String(password || ''), conta.password_salt, conta.password_hash))) {
     return res.status(401).json(generico)
   }
 

@@ -17,7 +17,12 @@ import { semearContas } from './routes/auth.js'
 
 migrate()
 const fontesCriadas = semearFontes()
-const contasCriadas = semearContas()
+// `await` no topo do módulo, e não por elegância: `semearContas` passou a ser
+// assíncrona (scrypt fora do event loop), e sem esperar por ela a porta abriria
+// antes de as contas existirem — um login no primeiro segundo do contêiner
+// receberia "e-mail ou senha incorretos" sobre uma conta que estava sendo
+// criada. O banner também imprimiria uma Promise no lugar do número.
+const contasCriadas = await semearContas()
 
 const app = criarApp()
 const servidor = app.listen(config.port, config.host, async () => {
