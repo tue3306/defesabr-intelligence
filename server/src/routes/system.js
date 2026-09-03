@@ -5,6 +5,7 @@ import { panorama, capacidades, historicoDeExecucoes } from '../services/status.
 import { coletarAgora, coletarFonte, estadoDoAgendador } from '../collectors/index.js'
 import { METODO_RELEVANCIA, avaliarRelevancia, classificar } from '../lib/relevance.js'
 import { exigirPapel } from '../lib/auth.js'
+import { limite } from '../lib/parametros.js'
 
 const router = Router()
 
@@ -15,8 +16,8 @@ router.get('/system/capabilities', exigirPapel('admin'), (req, res) => res.json(
 
 // GET /api/system/runs — histórico das coletas
 router.get('/system/runs', exigirPapel('analyst'), (req, res) => {
-  const limite = Math.min(parseInt(req.query.limit, 10) || 40, 200)
-  const itens = historicoDeExecucoes(limite)
+  const quantos = limite(req.query.limit, 40, 200)
+  const itens = historicoDeExecucoes(quantos)
 
   res.json({
     items: itens,

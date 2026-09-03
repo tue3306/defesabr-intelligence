@@ -5,6 +5,7 @@ import {
   INDICADORES_WB, PAISES_COMPARACAO, serie, ultimoValor, ultimoCambio, rotuloIndicador,
 } from '../collectors/indicators.js'
 import { exigirPapel } from '../lib/auth.js'
+import { limite } from '../lib/parametros.js'
 
 const router = Router()
 
@@ -20,7 +21,7 @@ router.get('/legislative', (req, res) => {
   const itens = all(
     `SELECT * FROM bills ${onde.length ? `WHERE ${onde.join(' AND ')}` : ''}
      ORDER BY presented_at DESC NULLS LAST, id DESC LIMIT ?`,
-    [...params, Math.min(parseInt(limit, 10) || 120, 300)]
+    [...params, limite(limit, 120, 300)]
   ).map((b) => ({
     id: b.id,
     externalId: b.external_id,

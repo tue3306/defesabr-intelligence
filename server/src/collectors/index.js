@@ -53,7 +53,14 @@ export async function coletarTudo(gatilho = 'agendado') {
 
   // Em paralelo porque são serviços independentes: uma API lenta não deve
   // atrasar as outras.
-  const [noticias, legislativo, indicadores, cambio] = await Promise.all([
+  //
+  // Eram SEIS promessas e QUATRO variáveis. `comex` e `bcb` rodavam, gravavam
+  // no banco e entravam no histórico de execuções — mas seus resultados caíam
+  // no chão, porque a desestruturação parava na quarta posição. O efeito: a
+  // resposta de POST /system/collect e o resumo de boot não mencionavam dois
+  // dos seis coletores, e quem lesse a resposta concluiria que eles não
+  // rodaram. A coleta funcionava; o relatório dela é que mentia por omissão.
+  const [noticias, legislativo, indicadores, cambio, comex, bcb] = await Promise.all([
     registrar('rss', coletarTodas, gatilho),
     registrar('camara', coletarCamara, gatilho),
     registrar('worldbank', coletarWorldBank, gatilho),
@@ -79,6 +86,8 @@ export async function coletarTudo(gatilho = 'agendado') {
     legislativo: { ...legislativo, situacoesAtualizadas: situacoes.atualizadas },
     indicadores,
     cambio,
+    comex,
+    bcb,
   }
 }
 

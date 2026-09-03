@@ -3,6 +3,7 @@ import { all, get, run } from '../db/index.js'
 import { METODO_RELEVANCIA } from '../lib/relevance.js'
 import { avaliarRelevancia, classificar } from '../lib/relevance.js'
 import { UFS, REGIOES_ESTRATEGICAS, PAISES, detectarLugares, detectarPaises, nomePtDoPais } from '../lib/geo.js'
+import { dias, limite } from '../lib/parametros.js'
 
 const router = Router()
 
@@ -59,14 +60,20 @@ router.get('/news', (req, res) => {
   if (source) { onde.push('s.slug = ?'); params.push(source) }
   if (q) { onde.push('(a.title LIKE ? OR a.summary LIKE ?)'); params.push(`%${q}%`, `%${q}%`) }
   if (days && days !== 'all') {
-    const d = parseInt(days, 10) || 30
-    onde.push(`a.published_at >= strftime('%Y-%m-%dT%H:%M:%SZ','now', '-${d} days')`)
+    // `dias()` prende o valor à faixa 1..3650. Antes era `parseInt || 30`, e
+    // um `?days=-5` virava o modificador '--5 days', que o SQLite não entende:
+    // a comparação dava NULL, nenhuma linha casava, e a resposta saía vazia
+    // como se a coleta não tivesse trazido nada.
+    onde.push(`a.published_at >= strftime('%Y-%m-%dT%H:%M:%SZ','now', '-${dias(days, 30)} days')`)
   }
 
   const itens = all(
     `${SELECT_BASE} ${onde.length ? `WHERE ${onde.join(' AND ')}` : ''}
      ORDER BY a.published_at DESC NULLS LAST, a.id DESC LIMIT ?`,
-    [...params, Math.min(parseInt(limit, 10) || 60, 200)]
+    // `Math.min(-1, 200)` é -1, e `LIMIT -1` no SQLite significa SEM LIMITE:
+    // `?limit=-1` devolvia o acervo inteiro, furando o teto que existe para
+    // proteger memória e tempo de resposta. `limite()` prende à faixa.
+    [...params, limite(limit, 60, 200)]
   ).map(mapear)
 
   res.json({
@@ -84,8 +91,8 @@ router.get('/news', (req, res) => {
 
 // GET /api/news/clipping — a seleção do período
 router.get('/news/clipping', (req, res) => {
-  const days = parseInt(req.query.days, 10) || 7
-  const limit = Math.min(parseInt(req.query.limit, 10) || 20, 60)
+  const days = dias(req.query.days, 7)
+  const limit = limite(req.query.limit, 20, 60)
 
   const artigos = all(
     `${SELECT_BASE}
@@ -151,7 +158,7 @@ router.get('/news/clipping', (req, res) => {
 
 // GET /api/news/stats — agregações para os gráficos
 router.get('/news/stats', (req, res) => {
-  const days = parseInt(req.query.days, 10) || 30
+  const days = dias(req.query.days, 30)
   const corte = `strftime('%Y-%m-%dT%H:%M:%SZ','now', '-${days} days')`
 
   res.json({
@@ -207,7 +214,7 @@ router.get('/news/stats', (req, res) => {
 // perigoso — e a interface precisa dizer isso, senao o leitor completa a
 // frase sozinho, errado.
 router.get('/news/countries', (req, res) => {
-  const days = parseInt(req.query.days, 10) || 180
+  const days = dias(req.query.days, 180)
   const artigos = all(
     `SELECT id, title, summary, category, urgency, published_at, url
      FROM articles
@@ -258,7 +265,7 @@ router.get('/news/countries', (req, res) => {
 // notícia de orçamento citando Brasília pesaria igual a uma operação de
 // fronteira citando Roraima.
 router.get('/news/geo', (req, res) => {
-  const days = parseInt(req.query.days, 10) || 90
+  const days = dias(req.query.days, 90)
   const artigos = all(
     `SELECT id, title, summary, category, urgency, published_at, url
      FROM articles
