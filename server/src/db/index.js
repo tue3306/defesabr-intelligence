@@ -37,6 +37,12 @@ export const db = new DatabaseSync(config.dbPath)
 const COLUNAS_ADICIONADAS = [
   ['sources', 'somente_relevantes', 'INTEGER NOT NULL DEFAULT 0'],
   ['articles', 'title_key', 'TEXT'],
+  // Texto sem acento, para a busca encontrar "orcamento" em "orçamento".
+  // O LIKE do SQLite dobra a caixa de ASCII e nada mais: nao existe unaccent,
+  // entao a alternativa a guardar a forma normalizada seria carregar o acervo
+  // inteiro para memoria a cada busca.
+  ['articles', 'search_key', 'TEXT'],
+  ['bills', 'search_key', 'TEXT'],
 ]
 
 /**

@@ -206,6 +206,25 @@ export const abertura = (texto) => limparRodape(texto).slice(0, CARACTERES_ABERT
  * sobre o mesmo fato sao duas coberturas, e escolher qual sobrevive seria uma
  * decisao editorial que este projeto nao toma sozinho.
  */
+/**
+ * Texto preparado para busca sem acento.
+ *
+ * O `LIKE` do SQLite dobra a caixa de ASCII e mais nada — nao existe unaccent,
+ * e a colacao padrao nao equipara "c" a "ç". O resultado era que TODA busca
+ * sem acento devolvia zero: "orcamento" 0 e "orçamento" 8; "exercito" 0 e
+ * "exército" 22; "operacao" 0 e "operação" 28.
+ *
+ * Isso num produto em portugues, onde digitar sem acento e o caso comum.
+ *
+ * A forma normalizada e gravada na linha e comparada com a consulta tambem
+ * normalizada. O corte em 4.000 caracteres existe porque alguns feeds trazem
+ * o artigo inteiro no resumo (o G1 chega a 20 mil), e indexar isso multiplica
+ * o banco por nada: o que interessa para busca esta no comeco.
+ */
+export function chaveDeBusca(...partes) {
+  return normalizar(partes.filter(Boolean).join(' ')).slice(0, 4000)
+}
+
 export function chaveDeTitulo(titulo) {
   return normalizar(String(titulo || ''))
     .replace(/\s+-\s+[^-]{3,40}$/, '')

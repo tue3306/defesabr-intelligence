@@ -4,6 +4,7 @@ import { situacaoDaProposicao, PALAVRAS_CHAVE } from '../collectors/camara.js'
 import {
   INDICADORES_WB, PAISES_COMPARACAO, serie, ultimoValor, ultimoCambio, rotuloIndicador,
 } from '../collectors/indicators.js'
+import { normalizar } from '../lib/relevance.js'
 import { exigirPapel } from '../lib/auth.js'
 import { limite } from '../lib/parametros.js'
 
@@ -305,17 +306,31 @@ router.patch('/sources/:id', (req, res) => {
 
 // ═══════════════════════════ BUSCA ═══════════════════════════
 
+// GET /api/search — busca no acervo, no legislativo e nas fontes
+//
+// A comparacao e feita sobre a forma SEM ACENTO do texto, guardada em
+// `search_key`. Antes era `title LIKE '%q%'` sobre o texto original, e o
+// resultado disso num produto em portugues era brutal: TODA busca sem acento
+// devolvia zero. "orcamento" 0 contra "orçamento" 8; "exercito" 0 contra
+// "exército" 22; "operacao" 0 contra "operação" 28 — e digitar sem acento e
+// o caso comum, nao a excecao.
+//
+// `search_key` cobre as linhas coletadas depois da mudanca e as retroagidas
+// pelo script de reclassificacao; o LIKE sobre o texto original permanece como
+// segunda chance, para nao perder linha ainda sem chave.
 router.get('/search', (req, res) => {
   const q = (req.query.q || '').trim()
   if (!q) return res.json({ items: [], total: 0, groups: [], query: '' })
   const like = `%${q}%`
+  const likeSemAcento = `%${normalizar(q)}%`
 
   const noticias = all(
     `SELECT a.id, a.title, a.summary, a.category, a.urgency, a.published_at, s.name AS fonte
      FROM articles a LEFT JOIN sources s ON s.id = a.source_id
-     WHERE a.relevant = 1 AND (a.title LIKE ? OR a.summary LIKE ?)
+     WHERE a.relevant = 1
+       AND (a.search_key LIKE ? OR a.title LIKE ? OR a.summary LIKE ?)
      ORDER BY a.published_at DESC LIMIT 20`,
-    [like, like]
+    [likeSemAcento, like, like]
   ).map((a) => ({
     id: `noticia-${a.id}`,
     type: 'noticia',
@@ -329,8 +344,10 @@ router.get('/search', (req, res) => {
   }))
 
   const proposicoes = all(
-    'SELECT * FROM bills WHERE code LIKE ? OR summary LIKE ? ORDER BY presented_at DESC LIMIT 20',
-    [like, like]
+    `SELECT * FROM bills
+     WHERE search_key LIKE ? OR code LIKE ? OR summary LIKE ?
+     ORDER BY presented_at DESC LIMIT 20`,
+    [likeSemAcento, like, like]
   ).map((b) => ({
     id: `bill-${b.id}`,
     type: 'proposicao',
@@ -343,7 +360,10 @@ router.get('/search', (req, res) => {
     to: '/legislativo',
   }))
 
-  const fontes = all('SELECT * FROM sources WHERE name LIKE ? LIMIT 8', [like]).map((s) => ({
+  // As fontes sao ~50 linhas: normalizar em JS custa menos que uma coluna.
+  const fontes = all('SELECT * FROM sources').filter(
+    (f) => normalizar(f.name).includes(normalizar(q))
+  ).slice(0, 8).map((s) => ({
     id: `fonte-${s.id}`,
     type: 'fonte',
     typeLabel: 'Fontes',

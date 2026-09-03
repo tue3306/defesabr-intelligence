@@ -1,7 +1,7 @@
 import { all, get, run, insert, agora, transacao } from '../db/index.js'
 import { buscarTexto } from '../lib/fetcher.js'
 import { parseFeed } from '../lib/feedParser.js'
-import { avaliarRelevancia, classificar, limparRodape, chaveDeTitulo } from '../lib/relevance.js'
+import { avaliarRelevancia, classificar, limparRodape, chaveDeTitulo, chaveDeBusca } from '../lib/relevance.js'
 
 // -----------------------------------------------------------------------------
 // COLETA DE NOTÍCIAS (RSS)
@@ -336,6 +336,9 @@ export const FONTES_PADRAO = [
 // Extensões que denunciam anexo. A lista é fechada de propósito: um título
 // legítimo pode terminar em ponto seguido de letras ("...da Lei n. 14.133"),
 // e um teste genérico de "termina em .algo" cortaria manchete de verdade.
+/** Idade máxima de uma notícia que entra no acervo. Ver o uso, na coleta. */
+export const IDADE_MAXIMA_DIAS = 365
+
 const RX_ANEXO = /\.(pdf|docx?|xlsx?|pptx?|zip|rar|7z|csv|odt|ods|jpe?g|png|gif|webp|mp[34]|avi|mov)\s*$/i
 
 /**
@@ -445,6 +448,21 @@ export async function coletarFonte(fonte) {
 
     transacao(() => {
       for (const bruto of itens) {
+        // Notícia velha demais para um produto de acompanhamento corrente.
+        //
+        // O Google Notícias devolve resultado arquivado junto do recente: o
+        // acervo tinha matéria de 2013 ("11 de junho – Data Magna da Marinha")
+        // ao lado da coleta do dia, e 14% dele era anterior a um ano. Num
+        // painel que se apresenta como monitoramento, isso não é acervo
+        // histórico — é ruído que infla a contagem e aparece na busca.
+        //
+        // Um ano é generoso de propósito: cobre a série do ano corrente e o
+        // anterior, que é o horizonte de qualquer comparação do produto.
+        if (item.publicadoEm) {
+          const idadeDias = (Date.now() - new Date(item.publicadoEm).getTime()) / 86400000
+          if (Number.isFinite(idadeDias) && idadeDias > IDADE_MAXIMA_DIAS) continue
+        }
+
         // Anexo, agenda de autoridade e código de documento não são notícia.
         // Descartados antes de tudo — inclusive antes da deduplicação, para
         // não ocupar guid no acervo.
@@ -480,14 +498,14 @@ export async function coletarFonte(fonte) {
 
         run(
           `INSERT INTO articles
-             (source_id, guid, title, title_key, url, summary, author, published_at,
+             (source_id, guid, title, title_key, search_key, url, summary, author, published_at,
               category, urgency, relevant, relevance_score, matched_terms)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             // Num agregador, quem assina a matéria é o veículo que a publicou,
             // não o agregador. Guardar "Google Notícias" como autor apagaria a
             // procedência justamente na fonte em que ela mais importa.
-            fonte.id, item.guid, item.titulo, chave, item.url, resumo,
+            fonte.id, item.guid, item.titulo, chave, chaveDeBusca(item.titulo, resumo), item.url, resumo,
             item.veiculo || item.autor,
             item.publicadoEm, categoria, urgencia,
             r.relevante ? 1 : 0, r.pontos, r.termos.slice(0, 8).join(', ') || null,
