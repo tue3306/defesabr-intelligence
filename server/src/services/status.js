@@ -137,7 +137,12 @@ export function capacidades() {
     capacidadeDeColeta({
       id: 'coleta-cambio',
       nome: 'Câmbio',
-      coletor: 'cambio',
+      // O coletor `cambio` deixou de existir: a AwesomeAPI recusava o IP do
+      // Railway e o BCB já traz dólar e euro. A capacidade continua fazendo
+      // sentido — ela descreve o dado, não o processo —, mas precisa medir o
+      // coletor que de fato o produz, senão fica em "nunca executado" para
+      // sempre por procurar execuções de um coletor removido.
+      coletor: 'bcb',
       descricao: 'Cotação USD/BRL e EUR/BRL. Muda ao longo do dia, então o que vale é a hora da coleta.',
       fonte: 'api.bcb.gov.br — SGS (séries 1 e 21619)',
       contagem: () => contar("SELECT COUNT(*) AS n FROM indicators WHERE provider = 'bcb' AND code IN ('usd','eur')"),
