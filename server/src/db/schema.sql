@@ -202,3 +202,28 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
+
+
+-- VITIMAS DE RANSOMWARE (ransomware.live)
+--
+-- Tabela propria, e nao `articles`, de proposito: um registro destes nao tem
+-- resumo, autor nem veiculo, e a data nao e de publicacao editorial mas de
+-- divulgacao num site de extorsao. Forcado em `articles`, o filtro de
+-- relevancia avaliaria um nome de empresa como se fosse texto de noticia.
+CREATE TABLE IF NOT EXISTS ransomware_victims (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  external_id   TEXT NOT NULL UNIQUE,
+  victim        TEXT NOT NULL,
+  "group"       TEXT,
+  country       TEXT,
+  sector        TEXT,
+  discovered_at TEXT,
+  attack_date   TEXT,
+  post_url      TEXT,
+  website       TEXT,
+  description   TEXT,
+  fetched_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_rw_country ON ransomware_victims(country);
+CREATE INDEX IF NOT EXISTS idx_rw_discovered ON ransomware_victims(discovered_at DESC);

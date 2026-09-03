@@ -334,6 +334,12 @@ export const PONTES = new Map([
       recusadas: d.recusadas,
     }),
   }],
+  // Ameaças cibernéticas: vítimas divulgadas por grupos de extorsão.
+  ['GET /cyber/ransomware', {
+    caminho: '/cyber/ransomware',
+    parametros: ({ days = 180, limit } = {}) => ({ days, limit }),
+  }],
+
   // Resumo público (total e quantas responderam) — não exige sessão.
   ['GET /intel/sources/summary', { caminho: '/sources/summary' }],
 

@@ -5,6 +5,7 @@ import {
   INDICADORES_WB, PAISES_COMPARACAO, serie, ultimoValor, ultimoCambio, rotuloIndicador,
 } from '../collectors/indicators.js'
 import { normalizar } from '../lib/relevance.js'
+import { panoramaRansomware } from '../collectors/ransomware.js'
 import { exigirPapel } from '../lib/auth.js'
 import { limite } from '../lib/parametros.js'
 
@@ -242,6 +243,16 @@ router.get('/economy/exports', (req, res) => {
 // O resultado era um 401 no console da página inicial e a contagem em branco.
 // Dois números resolvem: quantas fontes existem e quantas responderam. Os nomes
 // dos feeds já são públicos; o que eles quebraram, não.
+// GET /api/cyber/ransomware — vitimas divulgadas por grupos de extorsao
+//
+// Publico: sao registros que os proprios atacantes publicam. O recorte
+// brasileiro vem em primeiro plano e o global como referencia — sem ela,
+// "3 vitimas no Brasil" nao diz se e muito ou pouco.
+router.get('/cyber/ransomware', (req, res) => {
+  const dias = Math.min(Math.max(parseInt(req.query.days, 10) || 90, 1), 730)
+  res.json(panoramaRansomware({ dias, limite: limite(req.query.limit, 40, 100) }))
+})
+
 router.get('/sources/summary', (req, res) => {
   const r = get(
     `SELECT COUNT(*) AS total,

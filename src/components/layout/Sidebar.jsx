@@ -39,6 +39,12 @@ const NAV_SECTIONS = [
       // `hideWithout` porque a capacidade agora vem do PAPEL: mostrar cadeado
       // sugeriria que existe um plano que a destrava, e não existe.
       { to: '/fontes', label: 'Confiabilidade das Fontes', icon: BadgeCheck, requiresAuth: true, capability: 'sources.reliability', hideWithout: true },
+      {
+        // Cibersegurança era a categoria mais magra do acervo — dois artigos —
+        // porque incidente cibernético raramente vira manchete. Esta tela não
+        // depende da imprensa: lê o que os próprios grupos de extorsão publicam.
+        to: '/ciberameacas', label: 'Ameaças Cibernéticas', icon: ShieldAlert, requiresAuth: true,
+      },
       { to: '/arquivo', label: 'Arquivo & Pasta', icon: Archive, requiresAuth: true },
     ],
   },

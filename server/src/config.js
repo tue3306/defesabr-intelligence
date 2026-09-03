@@ -102,6 +102,14 @@ export const config = {
     newsdata: process.env.NEWSDATA_API_KEY || null,
   },
 
+  // ransomware.live — vitimas divulgadas por grupos de extorsao.
+  // OPCIONAL: sem chave o coletor nao roda e nao aparece como falha.
+  // A chave nao entra no repositorio: este e publico, e token em repositorio
+  // publico e varrido por robos em horas.
+  ransomware: {
+    chave: process.env.RANSOMWARE_API_KEY || null,
+  },
+
   auth: {
     // Segredo que assina os tokens de sessão.
     //
