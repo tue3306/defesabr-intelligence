@@ -81,6 +81,11 @@ export async function coletarComex() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(corpo),
+          // O fetcher passou a repetir falha transitória por conta própria.
+          // Aqui isso viraria repetição dupla — quatro chamadas ao Comex, que
+          // já responde 429 com facilidade. Este laço trata o caso com espera
+          // de 3s, mais adequada, e por isso fica no comando.
+          tentativas: 1,
         })
         break
       } catch (err) {
