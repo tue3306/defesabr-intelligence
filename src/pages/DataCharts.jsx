@@ -26,14 +26,8 @@ import {
   useIndiceDeAlerta, useRegioesEstrategicas,
 } from '../hooks/useDadosReais'
 import { useResource } from '../hooks/useResource'
+import { request } from '../services/client'
 import { useGate } from '../auth/useCan'
-import { fetchBrazilMilitarySpending } from '../api/worldbank'
-import { fetchDefensePortfolio } from '../api/alphavantage'
-import {
-  newsVolume14d, newsCategoriesKeys, categoryRadar, activeRegions,
-  militarySpendingBR, globalSpendingTreemap, southAmericaSpending,
-  militaryPctGdpComparison, defenseStocks, alertIndex, countryActivity,
-} from '../data/mockData'
 import { exportCSV } from '../utils/exportUtils'
 
 // -----------------------------------------------------------------------------
@@ -198,33 +192,21 @@ export default function DataCharts() {
   const [spendingMode, setSpendingMode] = useState('dual')
 
   // Gasto militar do Brasil: World Bank com fallback demonstrativo.
-  const spending = useResource(
-    // A busca direta ao World Bank pelo navegador continua aqui como reserva,
-    // mas o caminho preferido é `useGastoMilitar()`: vem do nosso servidor,
-    // não depende de CORS e traz o % do PIB junto.
-    //
-    // O que essa função fazia e não deveria: buscava os DÓLARES reais e os
-    // mesclava com `brl` e `pctGdp` do mock, entregando uma série metade
-    // coletada e metade inventada, sem marca nenhuma dizendo qual coluna era
-    // qual.
-    async () => {
-      const r = await fetchBrazilMilitarySpending()
-      return { data: r.data, meta: { source: r.source } }
-    },
-    [],
-    { initialData: militarySpendingBR }
-  )
-
-  // Portfólio de ações do setor (hoje sempre demonstrativo — limite de cota).
-  const stocks = useResource(
-    async () => {
-      const r = await fetchDefensePortfolio()
-      return { data: r.data, meta: { source: r.source } }
-    },
-    [],
-    { initialData: defenseStocks }
-  )
-
+  // Aqui viviam dois `useResource` que chamavam clientes de API do NAVEGADOR,
+  // ambos com queda para `mockData`:
+  //
+  //   `spending` buscava os dólares reais no World Bank e os MESCLAVA com o
+  //   `brl` e o `pctGdp` do mock — uma série metade coletada e metade
+  //   inventada, sem marca dizendo qual coluna era qual. Falhando a consulta,
+  //   virava mock inteiro. E o hook real `useGastoMilitar()`, que lê o mesmo
+  //   indicador pelo SERVIDOR, já era chamado três linhas abaixo e descartado.
+  //
+  //   `stocks` era pior: `fetchDefensePortfolio()` não chegava a fazer
+  //   requisição nenhuma. Retornava o portfólio escrito à mão direto, sempre,
+  //   com a justificativa de poupar cota de uma API que nunca era consultada.
+  //   Preços e variações de ações de fabricantes, inventados, numa tela de
+  //   dados. O painel saiu inteiro: não há fonte pública gratuita para isso, e
+  //   cotação inventada é a que mais parece verdadeira.
   const periodCfg = VOLUME_PERIODS.find((p) => p.id === volumePeriod) || VOLUME_PERIODS[0]
   const volume = useNewsVolume(14)
   const gasto = useGastoMilitar()
@@ -234,6 +216,9 @@ export default function DataCharts() {
   const radar = useRadarCategorias(30)
   const alerta = useIndiceDeAlerta(7)
   const regioes = useRegioesEstrategicas(180)
+  // A mesma consulta que o <GlobalHeatmap /> faz internamente, para que o CSV
+  // exportado ao lado do mapa carregue os números que o mapa pinta.
+  const paises = useResource(() => request('GET /news/countries', { params: { days: 365 } }), [])
   const volumeSeries = useMemo(
     () => buildVolumeSeries(periodCfg.days, volume.data, volume.keys, volume.aoVivo),
     [periodCfg.days, volume.data, volume.keys, volume.aoVivo],
@@ -252,18 +237,16 @@ export default function DataCharts() {
     [potencias.data, gastoGlobal.data]
   )
 
+  // Esta linha exportava `countryActivity`: catorze países com "intensidade"
+  // de 0 a 100 digitada à mão. O mapa logo abaixo conta MENÇÕES reais por
+  // país, e o CSV ao lado dele dizia outra coisa — quem baixasse os dois teria
+  // duas respostas para a mesma pergunta.
   const activityRows = useMemo(
-    () => Object.entries(countryActivity).map(([iso3, intensidade]) => ({ iso3, intensidade })),
-    []
+    () => (paises.data?.items || []).map((p) => ({ pais: p.nome, mencoes: p.total })),
+    [paises.data]
   )
 
-  const stockRows = (stocks.data || []).map(({ ticker, name, price, change }) => ({ ticker, name, price, change }))
-  const spendingBadge = spending.source === 'live' ? 'live' : 'demo'
-
-  const refreshAll = () => {
-    spending.refetch()
-    stocks.refetch()
-  }
+  const recarregar = () => { gasto.recarregar?.(); volume.recarregar?.() }
 
   return (
     <div className="space-y-6">
@@ -271,16 +254,15 @@ export default function DataCharts() {
         icon={BarChart3}
         title="Dados & Gráficos"
         description="As séries que sustentam a leitura de conjuntura: volume noticioso, esforço orçamentário e exposição a risco. Cada gráfico declara o que mostra e de onde vem."
-        help="Séries ao vivo (World Bank) quando disponíveis; caso contrário, a plataforma exibe a série demonstrativa equivalente e marca o selo de origem."
+        help="Cada painel declara a sua fonte e o que ela mede. Quando o servidor não responde, o painel mostra a ausência — nenhuma série é substituída por valores de exemplo."
         breadcrumb={[{ label: 'Painel', to: '/painel' }, { label: 'Dados & Gráficos' }]}
-        badges={<Badge type={spendingBadge} />}
+        badges={<Badge type={gasto.aoVivo ? 'live' : 'demo'} />}
         meta={[
-          { label: 'Origem', value: spending.source === 'live' ? 'World Bank' : 'Demonstrativa' },
-          { label: 'Referência', value: 'ago/2026' },
+          { label: 'Origem', value: gasto.aoVivo ? 'World Bank, via servidor' : 'indisponível' },
         ]}
         actions={
-          <button type="button" onClick={refreshAll} className="btn-ghost" aria-label="Recarregar as séries de dados">
-            <RefreshCw size={15} className={spending.loading || stocks.loading ? 'animate-spin' : ''} /> Atualizar
+          <button type="button" onClick={recarregar} className="btn-ghost" aria-label="Recarregar as séries de dados">
+            <RefreshCw size={15} className={gasto.carregando ? 'animate-spin' : ''} /> Atualizar
           </button>
         }
       >
@@ -360,16 +342,16 @@ export default function DataCharts() {
           <ChartPanel
             className="xl:col-span-2"
             title="Evolução do gasto militar — Brasil"
-            subtitle="Quanto o país destinou à defesa ao longo dos anos, em reais, dólares e proporção do PIB."
-            method="Série histórica de despesa militar. Os valores em US$ vêm do indicador MS.MIL.XPND.CD (World Bank) quando a consulta responde; R$ e % do PIB são da base demonstrativa."
-            badge={spendingBadge}
-            rows={spending.data || []}
+            subtitle="Quanto o país destinou à defesa ao longo dos anos, em dólares e proporção do PIB."
+            method="Série histórica de despesa militar do Brasil, indicadores MS.MIL.XPND.CD (US$ correntes) e MS.MIL.XPND.GD.ZS (% do PIB) do World Bank, coletados pelo servidor. Não há série em reais: o World Bank não a publica, e convertê-la pelo câmbio de hoje inventaria um número."
+            badge={gasto.aoVivo ? 'live' : 'demo'}
+            rows={gasto.data}
             filename="gasto-militar-brasil.csv"
             controls={
               <ToggleGroup
                 label="Exibir"
+                // "R$ + %PIB" saiu junto com a série em reais, que era do mock.
                 options={[
-                  { id: 'dual', label: 'R$ + %PIB' },
                   { id: 'usd', label: 'US$' },
                   { id: 'pctGdp', label: '% do PIB' },
                 ]}
@@ -380,59 +362,26 @@ export default function DataCharts() {
             footnote="Proporção do PIB é a métrica comparável entre países e ao longo do tempo — valores nominais escondem inflação e câmbio."
           >
             <DataState
-              loading={spending.loading}
-              error={spending.error}
-              onRetry={spending.refetch}
+              loading={gasto.carregando}
+              empty={!gasto.data.length}
               skeleton={<SkeletonChart className="h-80" />}
-              errorTitle="Não foi possível carregar a série de gastos"
+              emptyProps={{ title: 'Série indisponível', hint: 'O servidor não respondeu à consulta do World Bank.' }}
             >
-              <MilitarySpendingChart data={spending.data || []} mode={spendingMode} height={340} />
+              <MilitarySpendingChart data={gasto.data} mode={spendingMode} height={340} />
             </DataState>
           </ChartPanel>
 
           <ChartPanel
             title="Gasto militar global"
             subtitle="Como os maiores orçamentos do mundo se distribuem, em US$ bilhões."
-            method="Treemap dos maiores orçamentos militares no ano de referência. A área de cada bloco é proporcional ao gasto absoluto."
-            rows={globalSpendingTreemap}
+            badge={gastoGlobal.aoVivo ? 'live' : 'demo'}
+            method="Treemap dos maiores orçamentos militares no último ano publicado. Indicador MS.MIL.XPND.CD do World Bank, coletado pelo servidor; a área de cada bloco é proporcional ao gasto absoluto."
+            rows={gastoGlobal.data}
             filename="gasto-militar-global.csv"
           >
-            <BrazilDefenseBudget data={globalSpendingTreemap} height={340} />
+            <BrazilDefenseBudget data={gastoGlobal.data} height={340} />
           </ChartPanel>
 
-          <ChartPanel
-            title="Ações do setor de defesa"
-            subtitle="Termômetro de mercado das principais fabricantes acompanhadas."
-            method="Fechamento diário e variação percentual das empresas do portfólio de defesa. No modo demonstração, os preços são ilustrativos e não servem para decisão de investimento."
-            badge={stocks.source === 'live' ? 'live' : 'demo'}
-            rows={stockRows}
-            filename="acoes-defesa.csv"
-            footnote="Conteúdo informativo. Não constitui recomendação de investimento."
-          >
-            <DataState
-              loading={stocks.loading}
-              error={stocks.error}
-              onRetry={stocks.refetch}
-              skeleton={<SkeletonChart className="h-40" />}
-              errorTitle="Não foi possível carregar as cotações"
-            >
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {(stocks.data || []).map((s) => (
-                  <div key={s.ticker} className="rounded-lg border border-gray-200 p-3 dark:border-white/10">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold">{s.ticker}</span>
-                      <span className={`text-xs font-semibold ${s.change >= 0 ? 'text-emerald-800 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
-                        {s.change >= 0 ? '+' : ''}{s.change}%
-                      </span>
-                    </div>
-                    <p className="mt-0.5 truncate text-[11px] muted">{s.name}</p>
-                    <p className="mt-1 font-mono text-lg font-bold">{s.price}</p>
-                    <Sparkline values={s.spark} color={s.change >= 0 ? '#2e7d46' : '#c0392b'} height={32} />
-                  </div>
-                ))}
-              </div>
-            </DataState>
-          </ChartPanel>
         </div>
       )}
 
@@ -464,6 +413,7 @@ export default function DataCharts() {
 
           <ChartPanel
             className="xl:col-span-2"
+            badge={internationalRows.length ? 'live' : 'demo'}
             title="Esforço relativo x gasto absoluto"
             subtitle="Duas leituras do mesmo país: a fatia do PIB dedicada à defesa e o volume de recursos que isso representa."
             method="Cruzamento do indicador de % do PIB com o gasto absoluto em US$ bilhões. Um país pode ter esforço relativo alto e volume baixo — e o inverso também ocorre."
@@ -512,8 +462,9 @@ export default function DataCharts() {
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           <ChartPanel
             className="xl:col-span-2"
-            title="Mapa de calor de risco"
-            subtitle="Intensidade da atividade de segurança monitorada por país — foco nas Américas."
+            badge={paises.data?.items?.length ? 'live' : 'demo'}
+            title="Cobertura por país"
+            subtitle="Quantas notícias coletadas mencionam cada país — foco nas Américas."
             method="Quantas notícias coletadas mencionam cada país, normalizado de 0 a 100 pelo país mais citado. Mede volume de cobertura, não risco. Passe o cursor sobre um país para ver as manchetes."
             rows={activityRows}
             filename="atividade-por-pais.csv"

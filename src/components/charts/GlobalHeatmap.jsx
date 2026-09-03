@@ -1,33 +1,23 @@
 import { useState, useEffect, useMemo } from 'react'
 import { ComposableMap, Geographies, Geography } from 'react-simple-maps'
 import { Newspaper, MapPin, Flag } from 'lucide-react'
-import { countryActivity } from '../../data/mockData'
 import { countryIntel, AMERICAS } from '../../data/countryNews'
 import { apiOnline, viaPonte } from '../../services/apiBridge'
 import { categoryColor , textoSobre } from '../../utils/textUtils'
 
 const geoUrl = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json'
 
-const ACTIVITY_BY_NAME = {
-  Brazil: countryActivity.BRA,
-  'United States of America': countryActivity.USA,
-  Russia: countryActivity.RUS,
-  China: countryActivity.CHN,
-  Argentina: countryActivity.ARG,
-  Colombia: countryActivity.COL,
-  Venezuela: countryActivity.VEN,
-  France: countryActivity.FRA,
-  'United Kingdom': countryActivity.GBR,
-  Germany: countryActivity.DEU,
-  India: countryActivity.IND,
-  Ukraine: countryActivity.UKR,
-  Israel: countryActivity.ISR,
-  Iran: countryActivity.IRN,
-}
-
+// Havia aqui um `ACTIVITY_BY_NAME`: catorze países com "intensidade" de 0 a
+// 100 escrita à mão, que pintava o mapa quando a API não respondia — junto com
+// o `risk` de `countryIntel`, da mesma origem.
+//
+// Um mapa de calor é a peça mais persuasiva de um painel de inteligência, e
+// enchê-lo de número inventado é o pior lugar possível para fazê-lo: ninguém
+// olha um país vermelho e pergunta de onde veio a cor. Sem servidor, o mapa
+// fica cinza e o rodapé diz que está sem dados — a informação verdadeira.
 function nameProps(name) {
   const intel = countryIntel[name]
-  return { namePt: intel?.namePt || name, risk: intel?.risk ?? ACTIVITY_BY_NAME[name] ?? null }
+  return { namePt: intel?.namePt || name, risk: null }
 }
 
 function colorFor(v) {

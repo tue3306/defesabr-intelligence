@@ -13,7 +13,7 @@ import { useCan, useProfileMeta } from '../auth/useCan'
 import { useTheme } from '../hooks/useTheme'
 import { FOCUS_AREAS, CATEGORIES } from '../data/mockData'
 import { PLANS, PLAN_LABEL } from '../data/plansData'
-import { isApiConfigured } from '../api/anthropic'
+import { iaConfigurada } from '../services/ia'
 import { API_BASE_URL, APP_VERSION } from '../services/config'
 import { listEndpoints } from '../services'
 import { categoryColor } from '../utils/textUtils'
@@ -331,7 +331,7 @@ function ApiKeyEditor({ s }) {
     <>
       <p className="mb-3 text-sm muted">
         Opcional. Sobrescreve a variável de ambiente apenas neste navegador.{' '}
-        {isApiConfigured()
+        {iaConfigurada()
           ? <span className="font-semibold text-emerald-800 dark:text-emerald-400">● IA configurada</span>
           : <span className="font-semibold text-yellow-600 dark:text-yellow-400">● sem chave — nenhuma análise por IA é gerada</span>}
       </p>
@@ -378,7 +378,7 @@ function Diagnostics() {
   const sources = useSettingsStore((st) => st.rssSources)
   const online = sources.filter((x) => x.enabled && x.status === 'online').length
   const total = sources.filter((x) => x.enabled).length
-  const ai = isApiConfigured()
+  const ai = iaConfigurada()
   const items = [
     { name: 'Claude API', ok: ai, note: ai ? 'configurada' : 'modo demo' },
     { name: 'Fontes RSS', ok: online === total, note: `${online}/${total} online` },

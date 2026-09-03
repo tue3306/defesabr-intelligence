@@ -146,7 +146,7 @@ router.get('/economy/bcb', (req, res) => {
   }
 
   const ROTULOS = {
-    usd: 'Dólar (venda)', ipca: 'IPCA — variação mensal',
+    usd: 'Dólar (venda)', eur: 'Euro (venda)', ipca: 'IPCA — variação mensal',
     selic: 'Selic — taxa mensal', igpm: 'IGP-M — variação mensal',
   }
 

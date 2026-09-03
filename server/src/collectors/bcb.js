@@ -23,6 +23,11 @@ export const SERIES_BCB = [
   { codigo: 433, id: 'ipca', label: 'IPCA — variação mensal', unidade: '%', ultimos: 13 },
   { codigo: 4390, id: 'selic', label: 'Selic — taxa mensal', unidade: '%', ultimos: 13 },
   { codigo: 189, id: 'igpm', label: 'IGP-M — variação mensal', unidade: '%', ultimos: 13 },
+  // Euro acrescentado com o widget de câmbio: ele exibia USD e EUR vindos
+  // da AwesomeAPI pelo NAVEGADOR, com queda para cotação escrita à mão. O
+  // dólar já vinha daqui; o euro faltava, e sem ele a linha do EUR ficaria
+  // vazia para sempre. Série 21619 do SGS, conferida ao vivo.
+  { codigo: 21619, id: 'eur', label: 'Euro (venda)', unidade: 'R$', ultimos: 20 },
 ]
 
 const url = (codigo, n) =>

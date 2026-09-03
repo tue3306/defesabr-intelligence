@@ -9,10 +9,6 @@ import GlobalHeatmap from '../components/charts/GlobalHeatmap'
 import ComparisonBarChart from '../components/charts/ComparisonBarChart'
 import BrazilDefenseBudget from '../components/charts/BrazilDefenseBudget'
 import SentimentChart from '../components/charts/SentimentChart'
-import {
-  militarySpendingBR, newsVolume14d, newsCategoriesKeys, alertIndex,
-  southAmericaSpending, globalSpendingTreemap, categoryRadar,
-} from '../data/mockData'
 import { useNewsVolume } from '../hooks/useNewsVolume'
 import {
   useGastoMilitar, useComparacaoSulAmericana, useGastoGlobal,

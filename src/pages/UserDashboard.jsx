@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
@@ -23,12 +24,9 @@ import { useNews } from '../hooks/useNews'
 import { useNewsStore } from '../store/newsStore'
 import { useAuthStore } from '../store/authStore'
 import { useNewsVolume } from '../hooks/useNewsVolume'
-import { useGastoMilitar } from '../hooks/useDadosReais'
+import { useGastoMilitar, useIndicadoresBcb } from '../hooks/useDadosReais'
 import { useSubscriptionStore } from '../store/subscriptionStore'
 import { useSettingsStore } from '../store/settingsStore'
-import {
-} from '../data/mockData'
-import { brazilIndicators } from '../data/economyData'
 import { glossary } from '../data/learnData'
 import { alertMeta, categoryColor } from '../utils/textUtils'
 import { formatTime, timeAgo, formatDateBR } from '../utils/dateUtils'
@@ -85,6 +83,7 @@ const PRO_FEATURES = [
 // -----------------------------------------------------------------------------
 export default function UserDashboard() {
   const { news, source, loading } = useNews()
+  const bcb = useIndicadoresBcb()
   const can = useCan()
   const profileMeta = useProfileMeta()
   const plan = useSubscriptionStore((s) => s.plan)
@@ -113,7 +112,41 @@ export default function UserDashboard() {
     : 'Acompanhe as ocorrências de Segurança & Defesa do Brasil, explore o mapa de risco e conheça os programas estratégicos. As análises completas ficam no plano Profissional.'
 
 
-  const indicators = brazilIndicators.filter((i) => ['defesa', 'cambio', 'risco', 'selic'].includes(i.id))
+  // Este painel lia `brazilIndicators`, seis cartões escritos à mão:
+  // "Câmbio R$ 5,42", "Selic 9,75%", "IPCA 4,1%", "Risco-país 218 pts".
+  //
+  // O dólar real coletado do Banco Central no mesmo dia era R$ 5,13. Ou seja:
+  // um assinante do plano Profissional via, no painel dele, uma cotação errada
+  // por trinta centavos — apresentada com duas casas decimais e uma seta de
+  // variação, que é o que faz um número parecer apurado.
+  //
+  // Agora vem do SGS, pelo servidor. Risco-país (EMBI) e orçamento de defesa
+  // saíram: não há fonte pública gratuita coletada para eles, e cartão sem
+  // fonte é o que este painel deixou de ter.
+  const indicators = useMemo(() => {
+    const s = bcb.series
+    if (!s) return []
+    const cartao = (serie, label, formata, sufixo = '') => {
+      if (!serie?.ultimo) return null
+      const v = serie.ultimo.value
+      const d = serie.variacao
+      return {
+        id: serie.id,
+        label,
+        value: formata(v),
+        delta: d == null ? '—' : `${d >= 0 ? '+' : ''}${formata(d)}${sufixo}`,
+        // Para câmbio e inflação, subir é notícia ruim; para nenhum deles a
+        // seta verde significa "bom". Ela indica direção, e o rótulo diz o quê.
+        positive: d != null && d < 0,
+      }
+    }
+    return [
+      cartao(s.usd, 'Câmbio USD/BRL', (v) => `R$ ${Number(v).toFixed(3)}`),
+      cartao(s.eur, 'Câmbio EUR/BRL', (v) => `R$ ${Number(v).toFixed(3)}`),
+      cartao(s.selic, 'Selic (mês)', (v) => `${Number(v).toFixed(2)}%`, ' p.p.'),
+      cartao(s.ipca, 'IPCA (mês)', (v) => `${Number(v).toFixed(2)}%`, ' p.p.'),
+    ].filter(Boolean)
+  }, [bcb.series])
   const terms = glossary.slice(0, 3)
 
   return (
@@ -364,8 +397,13 @@ export default function UserDashboard() {
             <Section className="card p-5">
               <h2 className="mb-3 flex items-center gap-2 text-base font-bold tracking-tight">
                 <Landmark size={17} className="text-brand-400 dark:text-brand-300" /> Indicadores
-                <InfoTooltip text="Indicadores macro relevantes à defesa (orçamento, câmbio, risco-país). Valores demonstrativos." />
+                <InfoTooltip text="Câmbio, Selic e IPCA do Sistema Gerenciador de Séries Temporais do Banco Central, coletados pelo servidor. A variação compara com o ponto anterior da própria série." />
               </h2>
+              {!indicators.length && (
+                <p className="text-sm italic muted">
+                  {bcb.carregando ? 'Consultando o Banco Central…' : 'Sem indicadores: o servidor de coleta não respondeu.'}
+                </p>
+              )}
               <ul className="space-y-2.5">
                 {indicators.map((i) => (
                   <li key={i.id} className="flex items-center justify-between gap-3">

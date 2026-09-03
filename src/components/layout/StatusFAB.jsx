@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Activity, X, ArrowRight } from 'lucide-react'
-import { isApiConfigured } from '../../api/anthropic'
+import { iaConfigurada } from '../../services/ia'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useCan } from '../../auth/useCan'
 import { APP_VERSION } from '../../services/config'
@@ -23,7 +23,7 @@ export default function StatusFAB() {
 
   const enabled = sources.filter((s) => s.enabled)
   const online = enabled.filter((s) => s.status === 'online').length
-  const ai = isApiConfigured()
+  const ai = iaConfigurada()
   const operational = systemHealth.filter((s) => s.status === 'operational').length
   const degraded = systemHealth.filter((s) => s.status === 'degraded' || s.status === 'down').length
 
