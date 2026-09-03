@@ -479,7 +479,6 @@ function paraFonte(s) {
     // por um número real com o rótulo errado — que é pior, porque agora
     // parece confiável.
     score: s.reliability ?? 0,
-    type: s.category || s.kind,
     note: s.lastError
       ? `Última coleta falhou: ${s.lastError}`
       : `${s.totalRuns ?? 0} execução(ões), ${s.totalFailures ?? 0} falha(s) · `

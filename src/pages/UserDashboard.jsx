@@ -22,6 +22,8 @@ import { PLAN_LABELS } from '../auth/permissions'
 import { useNews } from '../hooks/useNews'
 import { useNewsStore } from '../store/newsStore'
 import { useAuthStore } from '../store/authStore'
+import { useNewsVolume } from '../hooks/useNewsVolume'
+import { useGastoMilitar } from '../hooks/useDadosReais'
 import { useSubscriptionStore } from '../store/subscriptionStore'
 import { useSettingsStore } from '../store/settingsStore'
 import {
@@ -43,12 +45,12 @@ const Section = ({ children, className = '' }) => (
   </motion.section>
 )
 
-// Acento do MetricCard a partir do nível de alerta / faixa de tensão.
+// Acento do MetricCard a partir do nível de alerta.
+//
+// Havia aqui um `bandAccent` que chamava `tensionBand`, removido junto com o
+// módulo de nível de tensão. A função ficou chamando um nome inexistente — o
+// build não reclama, e a tela quebrava ao montar.
 const ALERT_ACCENT = { NORMAL: 'green', ATENCAO: 'amber', ALERTA: 'amber', CRITICO: 'red' }
-const bandAccent = (level) => {
-  const label = tensionBand(level).label
-  return label === 'BAIXO' ? 'green' : label === 'CRÍTICO' || label === 'CRITICO' ? 'red' : 'amber'
-}
 
 // Programas em destaque: curadoria fixa das plataformas mais reconhecíveis.
 
@@ -95,6 +97,9 @@ export default function UserDashboard() {
 
   const alert = alertMeta[latest?.alert_level] || alertMeta.ATENCAO
   const posture = alert?.value ?? 42
+  const volume = useNewsVolume(14)
+  const gasto = useGastoMilitar()
+
 
   const firstName = user?.name?.split(' ')[0] || 'Analista'
   const execLine = full
@@ -471,16 +476,16 @@ export default function UserDashboard() {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div className="card p-5">
               <h2 className="mb-1 text-base font-bold tracking-tight">Volume de notícias — 14 dias</h2>
-              <p className="mb-4 text-sm muted">Distribuição por categoria de Segurança &amp; Defesa.</p>
-              <NewsVolumeChart data={newsVolume14d} keys={newsCategoriesKeys} height={240} />
+              <p className="mb-4 text-sm muted">Notícias coletadas por dia, agrupadas por categoria.</p>
+              <NewsVolumeChart data={volume.data} keys={volume.keys} height={240} />
             </div>
             <div className="card p-5">
               <h2 className="mb-1 flex items-center gap-2 text-base font-bold tracking-tight">
                 Gastos militares — Brasil
-                <InfoTooltip text="Série histórica (R$ bi) e % do PIB. Linha de referência: meta da OTAN de 2% do PIB. Valores demonstrativos." />
+                <InfoTooltip text="Série do World Bank: gasto militar em US$ correntes e como % do PIB. A linha de referência é a meta da OTAN, 2% do PIB." />
               </h2>
-              <p className="mb-4 text-sm muted">Série histórica e participação no PIB.</p>
-              <MilitarySpendingChart data={militarySpendingBR} mode="dual" height={240} />
+              <p className="mb-4 text-sm muted">World Bank Open Data — série histórica.</p>
+              <MilitarySpendingChart data={gasto.data} mode={gasto.aoVivo ? 'usd' : 'dual'} height={240} />
             </div>
           </div>
         </Section>

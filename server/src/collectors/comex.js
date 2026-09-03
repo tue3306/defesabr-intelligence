@@ -1,4 +1,4 @@
-import { run, transacao, agora } from '../db/index.js'
+import { run, get, transacao, agora } from '../db/index.js'
 import { buscarJson } from '../lib/fetcher.js'
 
 // -----------------------------------------------------------------------------
@@ -37,6 +37,30 @@ export async function coletarComex() {
   const inicio = Date.now()
   const ano = new Date().getUTCFullYear()
 
+  // O MDIC publica UMA VEZ POR MÊS. Buscar a cada 30 minutos, como as demais
+  // fontes, não traz nada novo e rende HTTP 429 — foi o que aconteceu em
+  // teste, e o efeito é a tela de Indústria ficar vazia até a próxima janela.
+  //
+  // Se já há dado recente no banco, a coleta é pulada. Educação com quem
+  // publica de graça, e menos uma forma de o painel ficar sem número.
+  const recente = get(
+    `SELECT COUNT(*) AS n FROM indicators
+     WHERE provider = 'comexstat'
+       AND fetched_at >= strftime('%Y-%m-%dT%H:%M:%SZ','now','-12 hours')`,
+  )?.n ?? 0
+
+  if (recente > 0) {
+    return {
+      coletor: 'comex',
+      ok: true,
+      encontrados: recente,
+      novos: 0,
+      pulado: true,
+      motivo: 'dado do Comex Stat tem menos de 12 horas; a fonte publica mensalmente',
+      duracaoMs: Date.now() - inicio,
+    }
+  }
+
   try {
     const corpo = {
       flow: 'export',
@@ -48,11 +72,23 @@ export async function coletarComex() {
       metrics: ['metricFOB'],
     }
 
-    const resposta = await buscarJson(URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(corpo),
-    })
+    // Uma segunda tentativa, depois de uma pausa, quando a fonte limita ou
+    // oscila. Duas tentativas resolvem o transitório sem virar insistência.
+    let resposta
+    for (let tentativa = 1; tentativa <= 2; tentativa++) {
+      try {
+        resposta = await buscarJson(URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(corpo),
+        })
+        break
+      } catch (err) {
+        const limitado = /429|50[0-9]/.test(String(err?.message || ''))
+        if (tentativa === 2 || !limitado) throw err
+        await new Promise((r) => setTimeout(r, 3000))
+      }
+    }
 
     const linhas = resposta?.data?.list || []
     if (!linhas.length) {

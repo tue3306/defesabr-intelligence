@@ -20,7 +20,9 @@
     "reset:db": "npm --prefix server run reset",
     "postinstall": "npm --prefix server install",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist",
+    "lint": "eslint src server scripts",
+    "prebuild": "eslint src server scripts --quiet"
   },
   "dependencies": {
     "framer-motion": "^11.3.24",
@@ -36,9 +38,13 @@
     "zustand": "^4.5.4"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.20",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
     "gh-pages": "^6.1.1",
+    "globals": "^17.12.0",
     "postcss": "^8.4.41",
     "tailwindcss": "^3.4.10",
     "vite": "^5.4.0"
