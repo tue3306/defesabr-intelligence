@@ -24,7 +24,6 @@ import { PROFILES, PROFILE_ORDER } from '../auth/permissions'
 import { LANDING_FEATURES, PLANS } from '../data/plansData'
 import { glossary } from '../data/learnData'
 import { USE_CASES, STANDARDS, FAQ, ROADMAP } from '../data/landingExtra'
-import { monitoredSources } from '../data/monitoredSources'
 import { alertMeta } from '../utils/textUtils'
 
 const FEATURE_ICONS = { Newspaper, Globe2, BarChart3, LineChart, GraduationCap, ShieldCheck }

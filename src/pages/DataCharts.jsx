@@ -43,55 +43,24 @@ const TABS = [
 ]
 
 // A série real cobre 14 dias; janelas maiores são PROJEÇÃO demonstrativa.
-const VOLUME_PERIODS = [
-  { id: '14d', days: 14, projected: false },
-  { id: '30d', days: 30, projected: true },
-  { id: '90d', days: 90, projected: true },
-]
+// Aqui viviam VOLUME_PERIODS, VOLUME_ANCHOR e buildVolumeSeries(): um seletor
+// de 14/30/90 dias e uma funcao que, quando o periodo pedido excedia o dado
+// disponivel, PREENCHIA os dias que faltavam repetindo o ciclo observado com
+// uma modulacao senoidal fixa.
+//
+// A funcao ja tinha um guarda — com dado ao vivo, devolvia so o que existia —,
+// e o proprio comentario dela dizia por que: "seria apresentar dia inventado
+// ao lado de dia coletado, no mesmo grafico, sem distincao possivel para quem
+// olha". Com o servidor no ar, ela nunca extrapolava.
+//
+// Estava morta de duas maneiras. O seletor de periodo nunca foi ligado
+// (`setVolumePeriod` jamais era chamado, entao o grafico ficava preso em 14
+// dias), e `volumeSeries` era calculado num useMemo e nunca renderizado.
+//
+// Saiu inteira. Codigo de fabricacao sem consumidor e pior que codigo de
+// fabricacao em uso: ninguem o ve funcionando errado, e alguem o reimporta.
+// O grafico consome `useNewsVolume(14)` direto, que e medido.
 
-const DAY_MS = 86_400_000
-// Último dia coberto pela série demonstrativa de 14 dias.
-const VOLUME_ANCHOR = new Date('2026-06-04T00:00:00')
-
-/**
- * Estende a série de volume para trás de forma DETERMINÍSTICA: os 14 dias mais
- * recentes são os reais; os anteriores repetem o ciclo observado com uma
- * modulação senoidal fixa. Sem aleatoriedade — o mesmo período gera o mesmo
- * gráfico em qualquer render.
- */
-function buildVolumeSeries(days, base, keys, aoVivo) {
-  if (!base?.length) return []
-  if (days <= base.length) return base.slice(-days)
-
-  // Com dado REAL, devolvemos o que existe e paramos. A extrapolação abaixo
-  // preenche dias que a coleta não cobre a partir do ciclo observado — aceitável
-  // para uma série de demonstração, e inaceitável quando a série é medida:
-  // seria apresentar dia inventado ao lado de dia coletado, no mesmo gráfico,
-  // sem distinção possível para quem olha.
-  if (aoVivo) return base
-
-  const rows = []
-  for (let i = days - 1; i >= 0; i--) {
-    const seed = base[base.length - 1 - (i % base.length)]
-    if (i < base.length) {
-      rows.push(seed)
-      continue
-    }
-    const d = new Date(VOLUME_ANCHOR.getTime() - i * DAY_MS)
-    const label = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`
-    const factor = 0.78 + 0.32 * Math.abs(Math.sin(i / 4.5))
-    const row = { date: label }
-    let total = 0
-    keys.forEach((c) => {
-      const v = Math.max(1, Math.round(seed[c] * factor))
-      row[c] = v
-      total += v
-    })
-    row.total = total
-    rows.push(row)
-  }
-  return rows
-}
 
 /** Exportação de uma série em CSV — capacidade `reports.export`. */
 function ExportCSVButton({ rows, filename, label }) {
@@ -188,7 +157,6 @@ function ToggleGroup({ label, options, value, onChange }) {
 
 export default function DataCharts() {
   const [tab, setTab] = useState('volume')
-  const [volumePeriod, setVolumePeriod] = useState('14d')
   const [spendingMode, setSpendingMode] = useState('dual')
 
   // Gasto militar do Brasil: World Bank com fallback demonstrativo.
@@ -207,7 +175,6 @@ export default function DataCharts() {
   //   Preços e variações de ações de fabricantes, inventados, numa tela de
   //   dados. O painel saiu inteiro: não há fonte pública gratuita para isso, e
   //   cotação inventada é a que mais parece verdadeira.
-  const periodCfg = VOLUME_PERIODS.find((p) => p.id === volumePeriod) || VOLUME_PERIODS[0]
   const volume = useNewsVolume(14)
   const gasto = useGastoMilitar()
   const comparacao = useComparacaoPIB('vizinhanca')
@@ -219,10 +186,6 @@ export default function DataCharts() {
   // A mesma consulta que o <GlobalHeatmap /> faz internamente, para que o CSV
   // exportado ao lado do mapa carregue os números que o mapa pinta.
   const paises = useResource(() => request('GET /news/countries', { params: { days: 365 } }), [])
-  const volumeSeries = useMemo(
-    () => buildVolumeSeries(periodCfg.days, volume.data, volume.keys, volume.aoVivo),
-    [periodCfg.days, volume.data, volume.keys, volume.aoVivo],
-  )
 
   // Cruza % do PIB com o gasto absoluto para a tabela internacional.
   const internationalRows = useMemo(

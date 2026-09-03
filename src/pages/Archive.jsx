@@ -115,7 +115,7 @@ export default function Archive() {
     const items = clippings.filter((c) => selected.includes(c.id))
     try {
       for (const c of items) {
-        // eslint-disable-next-line no-await-in-loop
+         
         await exportClippingToPDF(c.data)
       }
       toast.success(`${items.length} PDF(s) gerado(s)`)

@@ -40,7 +40,7 @@ export function reportError(error, info = {}) {
     at: new Date().toISOString(),
     url: typeof window !== 'undefined' ? window.location.hash : undefined,
   }
-  // eslint-disable-next-line no-console
+   
   console.error('[DefesaBR] Erro capturado:', payload)
   return payload
 }

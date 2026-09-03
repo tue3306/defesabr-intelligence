@@ -15,25 +15,14 @@ export function reliabilityTier(score) {
   return RELIABILITY_TIERS.find((t) => score >= t.min) || RELIABILITY_TIERS[RELIABILITY_TIERS.length - 1]
 }
 
-// type: 'Oficial' | 'Imprensa' | 'Especializada' | 'Internacional' | 'Redes'
-export const sourceReliability = [
-  { id: 'defesagov', name: 'Ministério da Defesa', type: 'Oficial', score: 96, bias: 'Institucional', note: 'Fonte primária oficial; alta confiabilidade factual.' },
-  { id: 'marinha', name: 'Marinha do Brasil', type: 'Oficial', score: 95, bias: 'Institucional', note: 'Comunicação oficial da Força.' },
-  { id: 'fab', name: 'Força Aérea Brasileira', type: 'Oficial', score: 95, bias: 'Institucional', note: 'Comunicação oficial da Força.' },
-  { id: 'abin', name: 'ABIN — Inteligência', type: 'Oficial', score: 90, bias: 'Institucional', note: 'Releases oficiais; escopo limitado por sigilo.' },
-  { id: 'poder360', name: 'Poder360 — Defesa', type: 'Imprensa', score: 82, bias: 'Centro', note: 'Cobertura política e de defesa com boa apuração.' },
-  { id: 'aerospacial', name: 'Revista Aerospacial', type: 'Especializada', score: 80, bias: 'Setorial', note: 'Especializada em aeroespacial e defesa.' },
-  { id: 'brasildefesa', name: 'Brasil Defesa', type: 'Especializada', score: 76, bias: 'Setorial', note: 'Nichada; útil para detalhes técnicos.' },
-  { id: 'ggn', name: 'Jornal GGN — Defesa', type: 'Imprensa', score: 64, bias: 'Centro-esquerda', note: 'Opinativo; cruzar com fontes primárias.' },
-  { id: 'intl-reuters', name: 'Agências internacionais', type: 'Internacional', score: 84, bias: 'Centro', note: 'Boa para contexto global; atenção ao enquadramento externo.' },
-  { id: 'redes', name: 'Redes sociais (OSINT)', type: 'Redes', score: 40, bias: 'Variável', note: 'Sinal valioso, porém ruidoso; risco de desinformação/FIMI.' },
-]
-
-// Critérios da metodologia (exibidos no selo "como calculamos").
-export const reliabilityCriteria = [
-  'Proximidade da fonte primária (oficial > imprensa > redes)',
-  'Histórico de acurácia e correções',
-  'Transparência de autoria e método',
-  'Separação entre fato e opinião',
-  'Corroboração por fontes independentes',
-]
+// Aqui viviam `sourceReliability` — dez veiculos com nota de 0 a 100 e vies
+// editorial atribuidos a mao, o proprio cabecalho dizia "criterios
+// ilustrativos" — e `reliabilityCriteria`, a metodologia que os justificaria.
+//
+// Nenhum dos dois era importado por ninguem: a tela de Confiabilidade das
+// Fontes ja calcula a partir das execucoes reais do coletor
+// (total_runs / total_failures, em /api/sources). Ficaram para tras.
+//
+// Atribuir "82 de confiabilidade" e "vies centro-esquerda" a um veiculo por
+// escrito, sem metodo aplicado, e a especie de juizo que este projeto nao
+// emite. Sobrou a taxonomia de faixas, que e escala de exibicao.

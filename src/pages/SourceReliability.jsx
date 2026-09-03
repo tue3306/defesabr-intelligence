@@ -308,7 +308,7 @@ function RatingModal({ source, criteria, onClose, onApply }) {
     const base = {}
     criteria.forEach((c, i) => { base[i] = scores[i] ?? source.score })
     return base
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [source, criteria, scores])
 
   const preview = useMemo(() => {

@@ -113,6 +113,7 @@ export const countryIntel = {
 }
 
 // Risco por nome (fallback para países sem ficha detalhada).
-export function riskForCountry(name) {
-  return countryIntel[name]?.risk ?? null
-}
+// `riskForCountry()` saiu: devolvia um numero de "risco" por pais a partir de
+// valores escritos a mao. O mapa passou a pintar VOLUME DE COBERTURA medido
+// (/api/news/countries) e nao ha risco calculado em lugar nenhum — devolver um
+// seria inventar o indicador mais persuasivo do painel.

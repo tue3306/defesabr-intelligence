@@ -458,8 +458,12 @@ export async function coletarFonte(fonte) {
         //
         // Um ano é generoso de propósito: cobre a série do ano corrente e o
         // anterior, que é o horizonte de qualquer comparação do produto.
-        if (item.publicadoEm) {
-          const idadeDias = (Date.now() - new Date(item.publicadoEm).getTime()) / 86400000
+        // Lê de `bruto`: `item` só é declarado abaixo, e referenciá-lo aqui
+        // derrubava a coleta INTEIRA com "Cannot access before initialization"
+        // — 50 fontes, 50 falhas. A limpeza de agregador não mexe na data,
+        // então `bruto.publicadoEm` é o mesmo valor.
+        if (bruto.publicadoEm) {
+          const idadeDias = (Date.now() - new Date(bruto.publicadoEm).getTime()) / 86400000
           if (Number.isFinite(idadeDias) && idadeDias > IDADE_MAXIMA_DIAS) continue
         }
 
@@ -528,6 +532,10 @@ export async function coletarFonte(fonte) {
     return {
       fonte: fonte.name, slug: fonte.slug, ok: true,
       encontrados: itens.length, novos, relevantes,
+      // Contadas e descartadas ate agora. Sem elas, o operador le "100
+      // encontrados, 0 novos" e nao distingue fonte que parou de fonte que so
+      // repetiu o que ja estava no acervo por outro veiculo.
+      duplicadas,
       duracaoMs: Date.now() - inicio,
     }
   } catch (err) {
@@ -564,6 +572,7 @@ export async function coletarTodas() {
     // impossível, e justamente numa tela cuja função é ser confiável.
     encontrados: resultados.reduce((a, r) => a + (r.encontrados || 0), 0),
     novos: resultados.reduce((a, r) => a + (r.novos || 0), 0),
+    duplicadas: resultados.reduce((a, r) => a + (r.duplicadas || 0), 0),
     relevantes: resultados.reduce((a, r) => a + (r.relevantes || 0), 0),
     falhas: resultados.filter((r) => !r.ok).length,
     detalhes: resultados,

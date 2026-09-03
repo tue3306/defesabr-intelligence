@@ -3,12 +3,12 @@
 // Valores ilustrativos com base em informações públicas do setor. Não oficiais.
 // -----------------------------------------------------------------------------
 
-export const bidSummary = [
-  { label: 'Empresas estratégicas (EED)', value: '+200', hint: 'certificadas pelo Min. Defesa', accent: 'brand' },
-  { label: 'Faturamento do setor', value: 'R$ 230 bi', hint: 'estimativa anual (BID ampliada)', accent: 'green' },
-  { label: 'Empregos', value: '+200 mil', hint: 'diretos e indiretos', accent: 'amber' },
-  { label: 'Exportações', value: 'US$ 2,5 bi', hint: 'estimativa anual', accent: 'brand' },
-]
+// `bidSummary` vivia aqui: "+200 empresas", "R$ 230 bi de faturamento",
+// "+200 mil empregos", "US$ 2,5 bi exportados". Quatro estimativas redondas
+// sem origem — e a ultima era conferivel e estava errada.
+//
+// As exportacoes reais vem do Comex Stat (MDIC), por capitulo da NCM e pais de
+// destino, via /api/economy/exports. Nao havia consumidor deste array.
 
 // Principais empresas da BID brasileira.
 export const bidCompanies = [
@@ -21,49 +21,7 @@ export const bidCompanies = [
 ]
 
 // Produtos de exportação e seus mercados.
-export const exportProducts = [
-  {
-    product: 'C-390 Millennium',
-    maker: 'Embraer',
-    type: 'Cargueiro multimissão',
-    clients: ['Portugal', 'Hungria', 'Países Baixos', 'Áustria', 'Rep. Tcheca', 'Coreia do Sul'],
-    highlight: 'Concorre globalmente com o C-130; carteira internacional em expansão.',
-  },
-  {
-    product: 'A-29 Super Tucano',
-    maker: 'Embraer',
-    type: 'Ataque leve / treinamento',
-    clients: ['EUA', 'Afeganistão', 'Nigéria', 'Filipinas', 'Indonésia', '+15 países'],
-    highlight: 'Mais de 260 aeronaves entregues a forças aéreas de vários continentes.',
-  },
-  {
-    product: 'ASTROS 2020',
-    maker: 'Avibras',
-    type: 'Artilharia de saturação',
-    clients: ['Arábia Saudita', 'Indonésia', 'Catar', 'Malásia'],
-    highlight: 'Plataforma de mísseis/foguetes com clientes no Oriente Médio e Ásia.',
-  },
-  {
-    product: 'Blindados (Guarani 6x6)',
-    maker: 'Iveco/EB',
-    type: 'Viatura blindada',
-    clients: ['Líbano', 'Argentina (interesse)'],
-    highlight: 'Plataforma com potencial de exportação regional.',
-  },
-  {
-    product: 'Munições e armas leves',
-    maker: 'CBC / Taurus',
-    type: 'Armamento',
-    clients: ['EUA', 'Europa', 'América Latina'],
-    highlight: 'Itens de maior volume na pauta de exportação de defesa.',
-  },
-]
+// `exportProducts` saiu junto: mesma origem escrita a mao, sem consumidor.
 
 // Destinos por região (para barra de proporção) — % ilustrativo da pauta.
-export const exportRegions = [
-  { region: 'América do Norte', share: 34, color: '#1f8a4c' },
-  { region: 'Europa', share: 28, color: '#0f6537' },
-  { region: 'Oriente Médio', share: 16, color: '#caa733' },
-  { region: 'Ásia-Pacífico', share: 13, color: '#2fa15f' },
-  { region: 'América Latina', share: 9, color: '#8b5cf6' },
-]
+// `exportRegions` saiu junto: mesma origem escrita a mao, sem consumidor.
