@@ -35,7 +35,12 @@ const servidor = app.listen(config.port, config.host, async () => {
   console.log(`  Banco         ${config.dbPath}`)
   if (fontesCriadas) console.log(`  Fontes        ${fontesCriadas} cadastradas`)
   if (contasCriadas) console.log(`  Contas        ${contasCriadas} de demonstração criadas`)
-  if (!config.auth.segredoFixado) {
+  if (config.auth.segredoFraco) {
+    // Em amarelo, não em cinza: quem definiu a variável acredita ter
+    // configurado a sessão, e precisa saber que ela foi RECUSADA.
+    console.log('  [33mSessões       AUTH_SECRET tem menos de 16 caracteres e foi ignorado[0m')
+    console.log('  [2m              Use uma string aleatoria longa; ha um gerador no README[0m')
+  } else if (!config.auth.segredoFixado) {
     console.log('  [2mSessões       AUTH_SECRET não definido — expiram a cada reinício[0m')
   }
 
@@ -58,7 +63,9 @@ const servidor = app.listen(config.port, config.host, async () => {
   }
 
   const agendador = iniciarAgendador()
-  console.log(`  Agendador     ${agendador.ativo ? `a cada ${agendador.intervaloMinutos} min` : 'desligado'}`)
+  console.log(`  Agendador     ${agendador.ativo
+    ? `a cada ${agendador.intervaloMinutos} min`
+    : '\x1b[33mdesligado (COLLECT_INTERVAL_MINUTES=0)\x1b[0m'}`)
   console.log(`  \x1b[2m${linha}\x1b[0m\n`)
 
   if (!config.coleta.naSubida) return
@@ -67,7 +74,11 @@ const servidor = app.listen(config.port, config.host, async () => {
   // deve disparar sete requisições externas quando já há dado no banco.
   const artigos = get('SELECT COUNT(*) AS n FROM articles')?.n ?? 0
   if (artigos > 0) {
-    console.log(`  \x1b[2m[coleta] acervo com ${artigos} artigo(s) — próxima coleta pelo agendador\x1b[0m\n`)
+    // Prometer "próxima coleta pelo agendador" com o agendador desligado é a
+    // mensagem mais confusa possível: quem lê espera atualização que não vem.
+    console.log(`  \x1b[2m[coleta] acervo com ${artigos} artigo(s) — ${agendador.ativo
+      ? 'próxima coleta pelo agendador'
+      : 'agendador desligado; colete com npm run collect'}\x1b[0m\n`)
     return
   }
 

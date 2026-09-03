@@ -17,9 +17,25 @@ const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
 // `projeto` é a raiz do repositório, onde o Vite escreve dist/.
 const projeto = join(raiz, '..')
 
+// Número positivo, com padrão quando o valor não serve.
 const num = (valor, padrao) => {
   const n = Number(valor)
   return Number.isFinite(n) && n > 0 ? n : padrao
+}
+
+// Número que ACEITA zero.
+//
+// `num()` trata 0 como "valor inválido, use o padrão", o que é certo para
+// PORT e para o tempo limite — porta zero e timeout zero não fazem sentido —
+// e errado para o intervalo de coleta, cujo zero significa "não agende".
+// `COLLECT_INTERVAL_MINUTES=0` estava documentado como o jeito de desligar o
+// agendador, no comentário abaixo e no .env.example, e devolvia 30: quem o
+// usasse em teste automatizado teria a coleta rodando por cima do teste sem
+// entender por quê.
+const numOuZero = (valor, padrao) => {
+  if (valor === undefined || valor === '') return padrao
+  const n = Number(valor)
+  return Number.isFinite(n) && n >= 0 ? n : padrao
 }
 
 export const config = {
@@ -63,15 +79,20 @@ export const config = {
     // pessoa poderia assinar um token de administrador.
     //
     // No Railway, defina AUTH_SECRET para as sessões sobreviverem ao deploy.
-    segredo: process.env.AUTH_SECRET
-      || randomBytes(32).toString('hex'),
-    segredoFixado: Boolean(process.env.AUTH_SECRET),
+    // Um segredo curto é pior que nenhum: dá a sensação de estar configurado
+    // e é adivinhável por força bruta. Abaixo de 16 caracteres ele é recusado
+    // em favor do aleatório, e `segredoFraco` faz o servidor avisar no boot.
+    segredo: (process.env.AUTH_SECRET || '').length >= 16
+      ? process.env.AUTH_SECRET
+      : randomBytes(32).toString('hex'),
+    segredoFixado: (process.env.AUTH_SECRET || '').length >= 16,
+    segredoFraco: Boolean(process.env.AUTH_SECRET) && process.env.AUTH_SECRET.length < 16,
     duracaoHoras: num(process.env.AUTH_TTL_HOURS, 12),
   },
 
   coleta: {
     // Intervalo do agendador. 0 desliga — útil em teste automatizado.
-    intervaloMinutos: num(process.env.COLLECT_INTERVAL_MINUTES, 30),
+    intervaloMinutos: numOuZero(process.env.COLLECT_INTERVAL_MINUTES, 30),
     // Coletar assim que o servidor sobe, se o acervo estiver vazio.
     naSubida: process.env.COLLECT_ON_BOOT !== '0',
     timeoutMs: num(process.env.COLLECT_TIMEOUT_MS, 15000),
