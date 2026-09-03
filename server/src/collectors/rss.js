@@ -40,6 +40,20 @@ import { avaliarRelevancia, classificar, limparRodape } from '../lib/relevance.j
  * Cadastrá-las encheria o painel de governança de erro permanente que ninguém
  * pode consertar — e erro que não se pode consertar vira erro que se ignora.
  *
+ * DUAS FONTES QUE FUNCIONAM AQUI E NÃO NO SERVIDOR
+ *
+ * Os dois feeds do Google Notícias respondem normalmente de uma máquina
+ * doméstica e devolvem HTTP 503 quando pedidos de dentro do Railway. Não é
+ * intermitência: é o Google recusando IP de datacenter, e o mesmo pedido
+ * repetido também recebe 503. Contornar exigiria disfarçar a origem, o que é
+ * evasão de detecção e não coleta.
+ *
+ * Ficam cadastrados de propósito. Em desenvolvimento contribuem bastante — são
+ * as únicas fontes que varrem a imprensa inteira em vez de um veículo só —, e
+ * em produção o painel os mostra em vermelho com o código real. Um erro
+ * explicado no código é diferente de um erro que ninguém entende: quem abrir o
+ * painel amanhã e vir 19 de 21 tem, aqui, a resposta do porquê.
+ *
  * SOBRE O CAMINHO `/RSS` DA RAIZ DO GOV.BR
  *
  * Polícia Federal, Ministério da Justiça, GSI, Defesa Civil, ABIN e Itamaraty
