@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
@@ -11,11 +11,11 @@ import { apiOnline } from '../services/apiBridge'
 import { useResource } from '../hooks/useResource'
 import { adminService } from '../services'
 import { useAuthStore } from '../store/authStore'
-import {
-  systemHealth, HEALTH_STATUS, integrations, ingestion,
-  platformMetrics, auditLog, AUDIT_LEVEL,
-} from '../data/adminData'
-import { sourcesByCategory, SOURCE_STATUS, sourceStatusSummary } from '../data/monitoredSources'
+// Só as TAXONOMIAS de estado sobrevivem daqui. Os dados que este painel
+// mostrava — `systemHealth`, `ingestion`, `platformMetrics`, `auditLog` —
+// eram escritos à mão e foram trocados pelo que o servidor mede.
+import { HEALTH_STATUS, AUDIT_LEVEL, integrations } from '../data/adminData'
+import { SOURCE_STATUS } from '../data/monitoredSources'
 import { formatDateTimeBR } from '../utils/dateUtils'
 
 const Section = ({ children, className = '' }) => (
@@ -49,6 +49,24 @@ export default function AdminDashboard() {
   const saude = useResource(() => adminService.health(), [])
   const fontes = useResource(() => adminService.sources(), [])
   const auditoria = useResource(() => adminService.audit({ limit: 12 }), [])
+  const usuarios = useResource(() => adminService.users(), [])
+
+  // Contas por plano, contadas do que o servidor devolve.
+  const contas = usuarios.data?.items || []
+  const contasPorPlano = useMemo(() => {
+    const conta = {}
+    for (const u of contas) conta[u.plan || 'sem plano'] = (conta[u.plan || 'sem plano'] || 0) + 1
+    return Object.entries(conta).sort((a, b) => b[1] - a[1])
+  }, [contas])
+
+  const acervo = saude.data?.archive
+  const agendador = saude.data?.scheduler
+  // Execuções nas últimas 24h, do histórico real de coleta.
+  const execucoes24h = useMemo(() => {
+    const itens = auditoria.data?.items || []
+    const corte = Date.now() - 24 * 3600_000
+    return itens.filter((e) => new Date(e.time || e.started_at || 0).getTime() >= corte).length
+  }, [auditoria.data])
 
   const servicos = saude.data?.services || []
   const operacionais = servicos.filter((x) => x.status === 'operational').length
@@ -58,8 +76,33 @@ export default function AdminDashboard() {
   const user = useAuthStore((s) => s.user)
   const firstName = user?.name?.split(' ')[0] || 'Administrador'
 
-  const sourceSummary = sourceStatusSummary()
-  const groups = sourcesByCategory()
+  // Este painel resumia `monitoredSources.js`: um catálogo de 12 fontes com
+  // status escritos à mão. O servidor tem 21 cadastradas e mede o estado de
+  // cada uma a cada coleta — e a página já buscava esses dados três linhas
+  // acima, para exibi-los na frase de rodapé. Duas contagens diferentes da
+  // mesma coisa, uma ao lado da outra, e a estática por cima.
+  const resumoFontes = useMemo(() => {
+    // `status` já vem normalizado pela ponte (paraFonte) para as chaves de
+    // SOURCE_STATUS. Ler `lastStatus` aqui — o campo cru da API — fazia todas
+    // as 21 caírem em 'configurada', e o painel exibia "21 sem coleta ainda"
+    // logo acima da própria frase que dizia "21 responderam na última coleta".
+    const r = { ativa: 0, indisponivel: 0, configurada: 0, pendente: 0 }
+    for (const f of listaFontes) {
+      if (r[f.status] !== undefined) r[f.status] += 1
+    }
+    return r
+  }, [listaFontes])
+
+  const porCategoria = useMemo(() => {
+    const mapa = new Map()
+    for (const f of listaFontes) {
+      // `category` é a categoria fixa do CATÁLOGO ('inst-br'); a categoria
+      // real da fonte — Oficial, Agência pública, Legislativo — vem em `type`.
+      const cat = f.type || 'Sem categoria'
+      mapa.set(cat, (mapa.get(cat) || 0) + 1)
+    }
+    return [...mapa.entries()].sort((a, b) => b[1] - a[1])
+  }, [listaFontes])
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -190,22 +233,22 @@ export default function AdminDashboard() {
               </Link>
             </div>
             <div className="mb-3 flex flex-wrap gap-2">
-              {Object.entries(sourceSummary).map(([key, count]) => {
-                const meta = SOURCE_STATUS[key]
+              {Object.entries(resumoFontes).filter(([, n]) => n > 0).map(([chave, quantas]) => {
+                const meta = SOURCE_STATUS[chave]
                 if (!meta) return null
                 return (
-                  <span key={key} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${meta.classes}`}>
-                    <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} /> {count} {meta.label.toLowerCase()}
+                  <span key={chave} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${meta.classes}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} /> {quantas} {meta.label.toLowerCase()}
                   </span>
                 )
               })}
             </div>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-              {groups.map((cat) => (
-                <div key={cat.id} className="rounded-lg bg-white/5 p-3">
-                  <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{cat.label}</p>
-                  <p className="mt-1 font-mono text-2xl font-extrabold">{cat.items.length}</p>
-                  <p className="text-[11px] muted">fontes cadastradas</p>
+              {porCategoria.map(([categoria, quantas]) => (
+                <div key={categoria} className="rounded-lg bg-white/5 p-3">
+                  <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{categoria}</p>
+                  <p className="mt-1 font-mono text-2xl font-extrabold">{quantas}</p>
+                  <p className="text-[11px] muted">fonte(s) cadastrada(s)</p>
                 </div>
               ))}
             </div>
@@ -257,22 +300,34 @@ export default function AdminDashboard() {
 
         {/* Trilho lateral */}
         <div className="space-y-6">
-          {/* Contas por plano */}
+          {/* Contas por plano.
+
+              Vinha de `platformMetrics.contasPorPlano`, escrito à mão: 128
+              contas no plano Explorar, 34 no Profissional, 6 no Institucional.
+              Existem três contas. Num painel de GOVERNANÇA, cuja função é
+              responder "qual é o estado real da plataforma", um número de
+              usuários inventado é a informação que menos pode ser inventada. */}
           <Section className="card p-5">
             <h2 className="mb-3 flex items-center gap-2 text-base font-bold tracking-tight">
               <Users size={17} className="text-brand-400 dark:text-brand-300" /> Contas por plano
             </h2>
-            <ul className="space-y-2.5">
-              {Object.entries(platformMetrics.contasPorPlano).map(([plan, count]) => (
-                <li key={plan} className="flex items-center justify-between gap-3">
-                  <span className="text-sm capitalize muted">{plan}</span>
-                  <span className="font-mono text-sm font-bold">{count}</span>
-                </li>
-              ))}
-            </ul>
-            <Link to="/configuracoes" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300">
-              Gerir usuários <ChevronRight size={14} />
-            </Link>
+            {contas.length === 0 ? (
+              <p className="text-sm italic muted">
+                {usuarios.loading ? 'Consultando…' : 'Não foi possível ler as contas.'}
+              </p>
+            ) : (
+              <ul className="space-y-2.5">
+                {contasPorPlano.map(([plano, quantas]) => (
+                  <li key={plano} className="flex items-center justify-between gap-3">
+                    <span className="text-sm capitalize muted">{plano}</span>
+                    <span className="font-mono text-sm font-bold">{quantas}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="mt-3 text-[11px] muted">
+              {contas.length} conta(s) cadastrada(s) no servidor.
+            </p>
           </Section>
 
           {/* Integrações */}
@@ -301,15 +356,22 @@ export default function AdminDashboard() {
             <h2 className="mb-3 flex items-center gap-2 text-base font-bold tracking-tight">
               <Activity size={17} className="text-brand-400 dark:text-brand-300" /> Ingestão (24h)
             </h2>
+            {/* Estes quatro números eram constantes de `ingestion`: 15 fontes
+                configuradas, 0 coletas, 0 normalizados, 0 na fila — imóveis,
+                coletasse a plataforma o que coletasse. "Na fila" sumiu junto:
+                não existe fila, a coleta é síncrona por ciclo, e um contador
+                sempre em zero sugere um mecanismo que não existe. */}
             <div className="grid grid-cols-2 gap-3">
-              <Stat label="Coletas" value={ingestion.coletasUltimas24h} />
-              <Stat label="Normalizados" value={ingestion.itensNormalizados} />
-              <Stat label="Na fila" value={ingestion.fila} />
-              <Stat label="Fontes ativas" value={ingestion.fontesAtivas} />
+              <Stat label="Execuções (24h)" value={execucoes24h} />
+              <Stat label="Artigos no acervo" value={acervo?.artigos ?? '—'} />
+              <Stat label="Aprovados" value={acervo?.artigosRelevantes ?? '—'} />
+              <Stat label="Fontes ativas" value={acervo?.fontes ?? '—'} />
             </div>
-            <Link to="/configuracoes" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300">
-              Configurar coleta <ArrowRight size={14} />
-            </Link>
+            <p className="mt-3 text-[11px] muted">
+              {agendador?.ativo
+                ? `Agendador a cada ${agendador.intervaloMinutos} min.`
+                : 'Agendador desligado.'}
+            </p>
           </Section>
         </div>
       </div>

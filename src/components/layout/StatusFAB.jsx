@@ -3,41 +3,76 @@ import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Activity, X, ArrowRight } from 'lucide-react'
 import { iaConfigurada } from '../../services/ia'
-import { useSettingsStore } from '../../store/settingsStore'
 import { useCan } from '../../auth/useCan'
 import { APP_VERSION } from '../../services/config'
-import { systemHealth } from '../../data/adminData'
 import { formatTime } from '../../utils/dateUtils'
+import { useResource } from '../../hooks/useResource'
+import { adminService } from '../../services'
 
 // -----------------------------------------------------------------------------
 // PAINEL FLUTUANTE DE STATUS — atalho de observabilidade do Administrador.
-// Espelha (de forma resumida) o que o Console de Governança mostra em detalhe.
+//
+// Ele contava um array ESTÁTICO (`systemHealth`, em data/adminData.js) e o
+// resultado era sempre o mesmo, ligado ou desligado o servidor. Pior: o que o
+// array declarava tinha ficado falso. Ele dizia
+//
+//   coleta de fontes ....... "planned — conectores previstos"     (são 21, ativas)
+//   armazenamento .......... "planned — banco no roadmap"          (SQLite, 700 artigos)
+//   autenticação ........... "planned — sessão simulada"           (scrypt + token)
+//   aplicação .............. "servida via GitHub Pages"            (Railway, com Node)
+//
+// Um indicador de saúde que não mede nada é pior que nenhum: ele dá confiança
+// sem base. Agora vem de `/api/system/status`, que conta as capacidades a
+// partir do próprio banco.
 // -----------------------------------------------------------------------------
 export default function StatusFAB() {
   const [open, setOpen] = useState(false)
   const can = useCan()
-  const sources = useSettingsStore((s) => s.rssSources)
+  const pode = can('admin.health')
+  // O hook precisa ser chamado sempre, mesmo sem permissão: sair antes mudaria
+  // a ordem dos hooks entre renders e o React quebraria.
+  const saude = useResource(() => adminService.health(), [], { enabled: pode })
 
-  // Diagnóstico é governança: exige a capacidade de saúde do sistema.
-  if (!can('admin.health')) return null
+  if (!pode) return null
 
-  const enabled = sources.filter((s) => s.enabled)
-  const online = enabled.filter((s) => s.status === 'online').length
+  // A forma vem da ponte (`GET /admin/health` → `/system/status`): contadores
+  // no topo e o acervo em `archive`.
+  const d = saude.data
   const ai = iaConfigurada()
-  const operational = systemHealth.filter((s) => s.status === 'operational').length
-  const degraded = systemHealth.filter((s) => s.status === 'degraded' || s.status === 'down').length
 
-  const overall = degraded > 0 ? 'red' : ai && (enabled.length === 0 || online === enabled.length) ? 'green' : 'amber'
+  const degraded = d?.degraded ?? 0
+  const operational = d?.operational ?? 0
+  const total = d?.total ?? 0
+  const totalFontes = d?.archive?.fontes ?? 0
+  const fontesComErro = d?.archive?.fontesComErro ?? 0
+
+  const overall = saude.error ? 'red'
+    : saude.loading ? 'amber'
+      : (degraded > 0 || fontesComErro > 0) ? 'amber'
+        : 'green'
   const dotColor = { green: 'bg-military-green', amber: 'bg-military-amber', red: 'bg-military-red' }[overall]
 
   const checks = [
-    { name: 'Camada de dados', ok: true, note: 'API — origem única' },
+    {
+      name: 'API de dados',
+      ok: !saude.error,
+      note: saude.error ? 'sem resposta' : saude.loading ? 'consultando…' : 'respondendo',
+    },
     {
       name: 'Fontes de coleta',
-      ok: enabled.length === 0 || online === enabled.length,
-      note: enabled.length ? `${online}/${enabled.length} online` : 'coleta desativada',
+      ok: !saude.error && fontesComErro === 0,
+      note: totalFontes ? `${totalFontes - fontesComErro}/${totalFontes} responderam` : '—',
     },
-    { name: 'Serviços monitorados', ok: degraded === 0, note: `${operational}/${systemHealth.length} operacionais` },
+    {
+      name: 'Capacidades',
+      ok: !saude.error && degraded === 0,
+      note: total ? `${operational}/${total} operacionais` : '—',
+    },
+    {
+      name: 'Síntese por IA',
+      ok: ai,
+      note: ai ? 'configurada' : 'não conectada',
+    },
   ]
 
   return (

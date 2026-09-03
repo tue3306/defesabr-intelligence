@@ -263,8 +263,8 @@ export function capacidades() {
     {
       id: 'contas',
       nome: 'Contas e permissões',
-      grupo: 'Funciona',
-      estado: 'ok',
+      grupo: 'Acesso',
+      estado: 'operacional',
       detalhe: 'Senha por scrypt, token assinado e papel verificado por rota no servidor.',
       descricao: 'Esta linha dizia, até pouco tempo atrás, que o servidor não autenticava ninguém — '
         + 'os perfis existiam apenas no navegador e a API atendia qualquer requisição. Deixou de ser '
