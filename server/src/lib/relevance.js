@@ -155,7 +155,64 @@ export function limparRodape(texto) {
 /** Quantos caracteres contam como "abertura" do texto. */
 export const CARACTERES_ABERTURA = 420
 
+/**
+ * Quanto do texto conta para qualificar.
+ *
+ * A regra dos "dois termos fortes em qualquer lugar" nasceu com feeds cujo
+ * resumo tem 500 caracteres — nesses, duas palavras exclusivas do domínio no
+ * mesmo parágrafo não são coincidência.
+ *
+ * Ela quebra quando o feed publica o texto INTEIRO no resumo. Medido nos
+ * feeds reais: DefesaNet tem resumo mediano de 497 caracteres, mas o G1 tem
+ * 3.434 e chega a 20.799, e a Agência Brasil tem 3.803. Num artigo de 20 mil
+ * caracteres sobre um debate eleitoral, encontrar "exército" e "forças
+ * armadas" de passagem é quase certo — e o texto entrava como notícia de
+ * defesa. Foi exatamente o que aconteceu com "Veja o que é #FATO e o que é
+ * #FAKE no debate de candidatos ao Senado".
+ *
+ * 1.800 caracteres cobrem título, linha fina e os primeiros parágrafos — onde
+ * o jornalismo põe o assunto. O número saiu de medição, não de gosto: contra
+ * o acervo real e contra 300 matérias de G1 e Folha,
+ *
+ *     limite      mantém do acervo      falsos da imprensa geral
+ *       420          329 de 334                2 de 300
+ *      1200          331 de 334                2 de 300
+ *      1800          333 de 334                2 de 300
+ *      2500          334 de 334                3 de 300
+ *   sem limite       334 de 334                5 de 300
+ *
+ * 1.800 perde uma matéria legítima e barra três falsas. Com imprensa geral
+ * trazendo ~1.500 itens por ciclo, essa troca vale.
+ */
+export const CARACTERES_CONSIDERADOS = 1800
+
 export const abertura = (texto) => limparRodape(texto).slice(0, CARACTERES_ABERTURA)
+
+/**
+ * Chave de deduplicacao ENTRE fontes.
+ *
+ * O `guid` desduplica dentro de uma fonte e nada alem disso. Mas o mesmo fato
+ * chega por varias: "Dinamarca acusa Russia de preparar sabotagens contra sua
+ * industria de defesa" entrou por G1 e por Estadao no mesmo ciclo, com guids
+ * diferentes, e o acervo ficou com as duas. O Google Noticias e pior — reemite
+ * o mesmo item com guid novo, entao ele se duplica sozinho entre execucoes.
+ *
+ * A chave e o titulo reduzido ao que ele tem de estavel: sem acento, sem
+ * pontuacao, sem caixa, sem o sufixo " - Veiculo" que o agregador acrescenta,
+ * e com os espacos colapsados. Dois titulos que so diferem nisso sao a mesma
+ * materia.
+ *
+ * Deliberadamente NAO e comparacao por similaridade: duas manchetes diferentes
+ * sobre o mesmo fato sao duas coberturas, e escolher qual sobrevive seria uma
+ * decisao editorial que este projeto nao toma sozinho.
+ */
+export function chaveDeTitulo(titulo) {
+  return normalizar(String(titulo || ''))
+    .replace(/\s+-\s+[^-]{3,40}$/, '')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
 
 /**
  * Avalia a relevância de um texto.
@@ -163,7 +220,9 @@ export const abertura = (texto) => limparRodape(texto).slice(0, CARACTERES_ABERT
  * @returns {{relevante, pontos, fortes, fracos, excluidos, naAbertura, termos}}
  */
 export function avaliarRelevancia(texto) {
-  const limpo = limparRodape(texto)
+  // O corte acontece ANTES de normalizar: menção enterrada no fim de um texto
+  // longo não qualifica. Ver `CARACTERES_CONSIDERADOS`.
+  const limpo = limparRodape(texto).slice(0, CARACTERES_CONSIDERADOS)
   const palheiro = normalizar(limpo)
   if (!palheiro.trim()) {
     return { relevante: false, pontos: 0, fortes: [], fracos: [], excluidos: [], naAbertura: false, termos: [] }
@@ -289,7 +348,8 @@ export const METODO_RELEVANCIA = {
   termosFracos: FRACOS.length,
   exclusoes: EXCLUSOES.length,
   caracteresAbertura: CARACTERES_ABERTURA,
-  regra: 'termo inequívoco na abertura, ou dois deles ao longo do texto',
+  caracteresConsiderados: CARACTERES_CONSIDERADOS,
+  regra: `termo inequívoco nos primeiros ${CARACTERES_ABERTURA} caracteres, ou dois deles dentro dos primeiros ${CARACTERES_CONSIDERADOS}`,
   etapas: [
     {
       titulo: 'Termo inequívoco',

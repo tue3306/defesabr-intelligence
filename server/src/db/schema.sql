@@ -19,6 +19,11 @@ PRAGMA foreign_keys = ON;
 -- ─────────────────────────────────────────────────────────────────────────────
 -- FONTES
 -- ─────────────────────────────────────────────────────────────────────────────
+-- `title_key` guarda o titulo normalizado (sem acento, sem pontuacao, sem o
+-- sufixo do veiculo) e existe para deduplicar ENTRE fontes. O `guid` so
+-- desduplica dentro da mesma fonte, e o mesmo fato chega por varias: a
+-- sabotagem russa contra a industria dinamarquesa entrou por G1 e Estadao no
+-- mesmo ciclo, e o Google Noticias reemite o mesmo item com guid novo.
 CREATE TABLE IF NOT EXISTS sources (
   id             INTEGER PRIMARY KEY AUTOINCREMENT,
   slug           TEXT NOT NULL UNIQUE,
@@ -28,6 +33,13 @@ CREATE TABLE IF NOT EXISTS sources (
   kind           TEXT NOT NULL DEFAULT 'rss' CHECK (kind IN ('rss', 'api')),
   category       TEXT,
   enabled        INTEGER NOT NULL DEFAULT 1,
+
+  -- Guardar SO o que o filtro aprova. Vale para imprensa geral: os feeds do
+  -- G1, Folha e afins trazem ~1.500 itens por ciclo com 1% de aproveitamento,
+  -- e gravar os 99% restantes encheria de futebol e celebridade um acervo que
+  -- existe para ser sobre defesa. As fontes curadas seguem gravando tudo,
+  -- porque e da amostra de recusados delas que o Analista audita o filtro.
+  somente_relevantes INTEGER NOT NULL DEFAULT 0,
 
   -- Resultado da última tentativa. É o que alimenta o painel de status:
   -- uma fonte que quebrou não avisa sozinha, ela só para de contribuir.
@@ -56,6 +68,9 @@ CREATE TABLE IF NOT EXISTS articles (
   -- guid é o identificador do item no feed. UNIQUE porque a coleta roda de
   -- novo a cada 30 min e não pode reinserir o que já está aqui.
   guid          TEXT NOT NULL UNIQUE,
+
+  -- Titulo normalizado, para deduplicar ENTRE fontes. Ver chaveDeTitulo().
+  title_key     TEXT,
   title         TEXT NOT NULL,
   url           TEXT,
   summary       TEXT,

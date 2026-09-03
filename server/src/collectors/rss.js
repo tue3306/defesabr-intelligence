@@ -1,7 +1,7 @@
 import { all, get, run, insert, agora, transacao } from '../db/index.js'
 import { buscarTexto } from '../lib/fetcher.js'
 import { parseFeed } from '../lib/feedParser.js'
-import { avaliarRelevancia, classificar, limparRodape } from '../lib/relevance.js'
+import { avaliarRelevancia, classificar, limparRodape, chaveDeTitulo } from '../lib/relevance.js'
 
 // -----------------------------------------------------------------------------
 // COLETA DE NOTÍCIAS (RSS)
@@ -222,6 +222,69 @@ export const FONTES_PADRAO = [
     category: 'Imprensa especializada',
   },
 
+  // ── Imprensa especializada em defesa (verificada agora) ──
+  {
+    slug: 'forte-apache',
+    name: 'Forte Apache',
+    url: 'https://www.forte.jor.br/feed/',
+    site_url: 'https://www.forte.jor.br',
+    category: 'Imprensa especializada',
+  },
+  {
+    slug: 'defesa-aerea-naval',
+    name: 'Defesa Aérea & Naval',
+    url: 'https://www.defesaaereanaval.com.br/feed',
+    site_url: 'https://www.defesaaereanaval.com.br',
+    category: 'Imprensa especializada',
+  },
+
+  // ══════════════════════════════════════════════════════════════════════
+  // IMPRENSA GERAL — cobertura ampla, guardando só o que passa no filtro
+  //
+  // Estas fontes cobrem tudo: eleição, futebol, celebridade, defesa. Medido
+  // nos feeds reais, 1% do que publicam passa no filtro de relevância — 2 de
+  // 260 itens de G1, Folha e CNN.
+  //
+  // Cadastrá-las mesmo assim vale, porque esse 1% é grande em termos
+  // absolutos: são os veículos de maior circulação do país, e a matéria de
+  // defesa que eles publicam não aparece em lugar nenhum das fontes oficiais.
+  // Um contrato do Exército noticiado pela Folha só entra no acervo por aqui.
+  //
+  // Mas guardá-las como as demais seria um erro caro: ~1.500 itens por ciclo,
+  // 99% deles irrelevantes, empilhados num acervo cuja função é ser sobre
+  // defesa. Por isso `somenteRelevantes`: o que o filtro recusa é descartado
+  // em vez de gravado. A amostra de recusados que o Analista audita continua
+  // vindo das fontes curadas, onde ela ensina alguma coisa — mil manchetes de
+  // celebridade recusadas não ensinam nada sobre o filtro.
+  // ══════════════════════════════════════════════════════════════════════
+  { slug: 'g1-politica', name: 'G1 — Política', url: 'https://g1.globo.com/rss/g1/politica/', site_url: 'https://g1.globo.com', category: 'Imprensa geral', somenteRelevantes: true },
+  { slug: 'g1-mundo', name: 'G1 — Mundo', url: 'https://g1.globo.com/rss/g1/mundo/', site_url: 'https://g1.globo.com', category: 'Imprensa geral', somenteRelevantes: true },
+  { slug: 'g1-brasil', name: 'G1 — Brasil', url: 'https://g1.globo.com/rss/g1/brasil/', site_url: 'https://g1.globo.com', category: 'Imprensa geral', somenteRelevantes: true },
+  { slug: 'g1-tecnologia', name: 'G1 — Tecnologia', url: 'https://g1.globo.com/rss/g1/tecnologia/', site_url: 'https://g1.globo.com', category: 'Imprensa geral', somenteRelevantes: true },
+  { slug: 'o-globo', name: 'O Globo', url: 'https://oglobo.globo.com/rss/oglobo', site_url: 'https://oglobo.globo.com', category: 'Imprensa geral', somenteRelevantes: true },
+  { slug: 'folha-poder', name: 'Folha de S.Paulo — Poder', url: 'https://feeds.folha.uol.com.br/poder/rss091.xml', site_url: 'https://www1.folha.uol.com.br', category: 'Imprensa geral', somenteRelevantes: true },
+  { slug: 'folha-mundo', name: 'Folha de S.Paulo — Mundo', url: 'https://feeds.folha.uol.com.br/mundo/rss091.xml', site_url: 'https://www1.folha.uol.com.br', category: 'Imprensa geral', somenteRelevantes: true },
+  { slug: 'folha-mercado', name: 'Folha de S.Paulo — Mercado', url: 'https://feeds.folha.uol.com.br/mercado/rss091.xml', site_url: 'https://www1.folha.uol.com.br', category: 'Imprensa geral', somenteRelevantes: true },
+  { slug: 'uol-noticias', name: 'UOL Notícias', url: 'https://rss.uol.com.br/feed/noticias.xml', site_url: 'https://noticias.uol.com.br', category: 'Imprensa geral', somenteRelevantes: true },
+  { slug: 'estadao-politica', name: 'Estadão — Política', url: 'https://www.estadao.com.br/arc/outboundfeeds/feeds/rss/sections/politica/?outputType=xml', site_url: 'https://www.estadao.com.br', category: 'Imprensa geral', somenteRelevantes: true },
+  { slug: 'estadao-internacional', name: 'Estadão — Internacional', url: 'https://www.estadao.com.br/arc/outboundfeeds/feeds/rss/sections/internacional/?outputType=xml', site_url: 'https://www.estadao.com.br', category: 'Imprensa geral', somenteRelevantes: true },
+  { slug: 'cnn-brasil', name: 'CNN Brasil', url: 'https://www.cnnbrasil.com.br/feed/', site_url: 'https://www.cnnbrasil.com.br', category: 'Imprensa geral', somenteRelevantes: true },
+  { slug: 'poder360', name: 'Poder360', url: 'https://www.poder360.com.br/feed/', site_url: 'https://www.poder360.com.br', category: 'Imprensa geral', somenteRelevantes: true },
+  { slug: 'metropoles', name: 'Metrópoles', url: 'https://www.metropoles.com/feed', site_url: 'https://www.metropoles.com', category: 'Imprensa geral', somenteRelevantes: true },
+  { slug: 'gazeta-do-povo', name: 'Gazeta do Povo — República', url: 'https://www.gazetadopovo.com.br/feed/rss/republica.xml', site_url: 'https://www.gazetadopovo.com.br', category: 'Imprensa geral', somenteRelevantes: true },
+  { slug: 'veja', name: 'Veja', url: 'https://veja.abril.com.br/feed/', site_url: 'https://veja.abril.com.br', category: 'Imprensa geral', somenteRelevantes: true },
+  { slug: 'istoe', name: 'IstoÉ', url: 'https://istoe.com.br/feed/', site_url: 'https://istoe.com.br', category: 'Imprensa geral', somenteRelevantes: true },
+  { slug: 'carta-capital', name: 'CartaCapital', url: 'https://www.cartacapital.com.br/feed/', site_url: 'https://www.cartacapital.com.br', category: 'Imprensa geral', somenteRelevantes: true },
+  { slug: 'jovem-pan', name: 'Jovem Pan', url: 'https://jovempan.com.br/feed', site_url: 'https://jovempan.com.br', category: 'Imprensa geral', somenteRelevantes: true },
+  { slug: 'terra', name: 'Terra', url: 'https://www.terra.com.br/rss/', site_url: 'https://www.terra.com.br', category: 'Imprensa geral', somenteRelevantes: true },
+  { slug: 'nexo', name: 'Nexo Jornal', url: 'https://www.nexojornal.com.br/rss.xml', site_url: 'https://www.nexojornal.com.br', category: 'Imprensa geral', somenteRelevantes: true },
+  { slug: 'bbc-brasil', name: 'BBC News Brasil', url: 'https://feeds.bbci.co.uk/portuguese/rss.xml', site_url: 'https://www.bbc.com/portuguese', category: 'Imprensa geral', somenteRelevantes: true },
+  { slug: 'exame', name: 'Exame', url: 'https://exame.com/feed/', site_url: 'https://exame.com', category: 'Imprensa geral', somenteRelevantes: true },
+  { slug: 'infomoney', name: 'InfoMoney', url: 'https://www.infomoney.com.br/feed/', site_url: 'https://www.infomoney.com.br', category: 'Imprensa geral', somenteRelevantes: true },
+  { slug: 'conjur', name: 'Consultor Jurídico', url: 'https://www.conjur.com.br/rss.xml', site_url: 'https://www.conjur.com.br', category: 'Imprensa geral', somenteRelevantes: true },
+  { slug: 'agencia-publica', name: 'Agência Pública', url: 'https://apublica.org/feed/', site_url: 'https://apublica.org', category: 'Imprensa geral', somenteRelevantes: true },
+  { slug: 'intercept-brasil', name: 'Intercept Brasil', url: 'https://www.intercept.com.br/feed/', site_url: 'https://www.intercept.com.br', category: 'Imprensa geral', somenteRelevantes: true },
+
   // ── Agregador ──
   //
   // O Google News expõe qualquer busca como RSS. É a única fonte aqui que
@@ -352,8 +415,9 @@ export function semearFontes() {
   for (const f of FONTES_PADRAO) {
     if (get('SELECT id FROM sources WHERE slug = ?', [f.slug])) continue
     run(
-      'INSERT INTO sources (slug, name, url, site_url, kind, category) VALUES (?, ?, ?, ?, ?, ?)',
-      [f.slug, f.name, f.url, f.site_url, 'rss', f.category]
+      `INSERT INTO sources (slug, name, url, site_url, kind, category, somente_relevantes)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [f.slug, f.name, f.url, f.site_url, 'rss', f.category, f.somenteRelevantes ? 1 : 0]
     )
     criadas += 1
   }
@@ -369,6 +433,7 @@ export async function coletarFonte(fonte) {
 
     let novos = 0
     let relevantes = 0
+    let duplicadas = 0
 
     // Fontes de agregador precisam de limpeza antes de qualquer avaliação —
     // ver `limparAgregador()`. As demais passam direto.
@@ -392,19 +457,33 @@ export async function coletarFonte(fonte) {
         const r = avaliarRelevancia(palheiro)
         const { categoria, urgencia } = classificar(palheiro)
 
+        // Fonte de imprensa geral guarda SÓ o que passa no filtro. Ver a nota
+        // em FONTES_PADRAO: são ~1.500 itens por ciclo com 1% de aproveitamento,
+        // e gravar os 99% restantes encheria de futebol e celebridade um acervo
+        // que existe para ser sobre defesa.
+        if (fonte.somente_relevantes && !r.relevante) continue
+
         // guid único: a coleta roda a cada 30 min e não pode reinserir.
         if (get('SELECT id FROM articles WHERE guid = ?', [item.guid])) continue
 
+        // Mesma matéria vinda de OUTRA fonte — ou da mesma com guid novo, que
+        // é o que o Google Notícias faz. Ver `chaveDeTitulo`.
+        const chave = chaveDeTitulo(item.titulo)
+        if (chave && get('SELECT id FROM articles WHERE title_key = ?', [chave])) {
+          duplicadas += 1
+          continue
+        }
+
         run(
           `INSERT INTO articles
-             (source_id, guid, title, url, summary, author, published_at,
+             (source_id, guid, title, title_key, url, summary, author, published_at,
               category, urgency, relevant, relevance_score, matched_terms)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             // Num agregador, quem assina a matéria é o veículo que a publicou,
             // não o agregador. Guardar "Google Notícias" como autor apagaria a
             // procedência justamente na fonte em que ela mais importa.
-            fonte.id, item.guid, item.titulo, item.url, resumo,
+            fonte.id, item.guid, item.titulo, chave, item.url, resumo,
             item.veiculo || item.autor,
             item.publicadoEm, categoria, urgencia,
             r.relevante ? 1 : 0, r.pontos, r.termos.slice(0, 8).join(', ') || null,

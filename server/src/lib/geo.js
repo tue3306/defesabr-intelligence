@@ -145,6 +145,27 @@ export function detectarLugares(texto) {
 // venezuelanas" e "acordo em Caracas" sao mencoes ao pais).
 // -----------------------------------------------------------------------------
 export const PAISES = [
+  // ── O BRASIL ──
+  //
+  // Faltava. A lista cobria 36 paises estrangeiros e omitia justamente aquele
+  // de que a plataforma trata: quem clicasse no Brasil no mapa via "0
+  // noticia(s)" e nenhuma manchete, porque nada jamais contou mencoes a ele.
+  //
+  // O sintoma chegou a ser contornado — o mapa passou a abrir no pais mais
+  // citado em vez de no Brasil, com um comentario dizendo que o Brasil era "o
+  // unico pais sem contagem". Contornar o sintoma deixou a causa de pe.
+  //
+  // Ele e contado como qualquer outro, mas NAO entra na escala de cor: quase
+  // toda materia do acervo o menciona, entao normalizar por ele achataria os
+  // 36 restantes em cinza. Ver `foraDaEscala` e o calculo de `maximo` em
+  // /news/countries. E o pais-base, nao um correlato estrangeiro.
+  {
+    nome: 'Brazil',
+    pt: 'Brasil',
+    foraDaEscala: true,
+    termos: ['brasil', 'brasileiro', 'brasileira', 'brasileiros', 'brasileiras', 'brasilia'],
+  },
+
   // Vizinhanca sul-americana — prioridade do produto
   { nome: 'Argentina', pt: 'Argentina', termos: ['argentina', 'argentino', 'argentinos', 'buenos aires'] },
   { nome: 'Bolivia', pt: 'Bolivia', termos: ['bolivia', 'boliviano', 'bolivianos', 'la paz'] },
@@ -213,6 +234,15 @@ export function detectarPaises(texto) {
 
 /** Nome em portugues de um pais, a partir da chave em ingles. */
 export const nomePtDoPais = (nome) => PAISES.find((p) => p.nome === nome)?.pt || nome
+
+/**
+ * O pais define a escala de cor do mapa?
+ *
+ * O Brasil nao: e mencionado em quase toda materia do acervo, e normalizar por
+ * ele achataria os 36 restantes. Aparece com contagem e manchetes, mas fica
+ * fora do calculo do maximo. Ver /news/countries.
+ */
+export const foraDaEscala = (nome) => !!PAISES.find((p) => p.nome === nome)?.foraDaEscala
 
 export default { UFS, REGIOES_ESTRATEGICAS, PAISES, detectarLugares, detectarPaises, nomePtDoPais }
 

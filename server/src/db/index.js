@@ -19,9 +19,52 @@ mkdirSync(dirname(config.dbPath), { recursive: true })
 
 export const db = new DatabaseSync(config.dbPath)
 
-/** Aplica o esquema. Idempotente — roda em toda subida. */
+/**
+ * Colunas acrescentadas depois que o esquema ja existia.
+ *
+ * `schema.sql` usa `CREATE TABLE IF NOT EXISTS`, o que significa que ele NAO
+ * altera tabela ja criada: num banco existente, uma coluna nova simplesmente
+ * nao aparece, e a primeira consulta que a usa morre com "no such column".
+ *
+ * No Railway o disco e efemero e o banco nasce a cada deploy, entao o defeito
+ * fica invisivel — ate o dia em que alguem montar um volume para o acervo
+ * persistir, que e justamente a configuracao recomendada no README. Ai o
+ * deploy seguinte quebra, e o motivo nao estara em lugar nenhum.
+ *
+ * Cada entrada e `[tabela, coluna, definicao]` e so e aplicada se faltar.
+ * SQLite nao tem `ADD COLUMN IF NOT EXISTS`, entao a checagem e explicita.
+ */
+const COLUNAS_ADICIONADAS = [
+  ['sources', 'somente_relevantes', 'INTEGER NOT NULL DEFAULT 0'],
+  ['articles', 'title_key', 'TEXT'],
+]
+
+/**
+ * Indices que dependem de coluna acrescentada depois.
+ *
+ * Ficam AQUI e nao no schema.sql por uma questao de ordem: o schema roda
+ * inteiro antes da migracao de colunas, entao um `CREATE INDEX` sobre coluna
+ * nova falharia com "no such column" num banco existente — que e exatamente o
+ * caso que a migracao veio resolver.
+ */
+const INDICES_ADICIONADOS = [
+  'CREATE INDEX IF NOT EXISTS idx_articles_title_key ON articles(title_key)',
+]
+
+/** Aplica o esquema e as colunas incrementais. Idempotente — roda em toda subida. */
 export function migrate() {
+  // 1. tabelas e indices que so dependem do esquema original
   db.exec(readFileSync(join(aqui, 'schema.sql'), 'utf8'))
+
+  // 2. colunas acrescentadas depois
+  for (const [tabela, coluna, definicao] of COLUNAS_ADICIONADAS) {
+    const existe = db.prepare(`PRAGMA table_info(${tabela})`).all()
+      .some((c) => c.name === coluna)
+    if (!existe) db.exec(`ALTER TABLE ${tabela} ADD COLUMN ${coluna} ${definicao}`)
+  }
+
+  // 3. indices sobre essas colunas — so agora elas existem
+  for (const sql of INDICES_ADICIONADOS) db.exec(sql)
 }
 
 // `DatabaseSync` devolve objetos com protótipo nulo. Isso quebra

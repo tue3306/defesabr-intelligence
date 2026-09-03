@@ -94,6 +94,14 @@ export const config = {
   // vez do absoluto da máquina de quem roda.
   raizProjeto: projeto,
 
+  // Agregadores com chave. OPCIONAIS: sem a variavel, o coletor nao roda e
+  // nao aparece como falha. Ver server/src/collectors/newsapi.js — as 50
+  // fontes RSS ja cobrem os mesmos veiculos que eles indexam.
+  agregadores: {
+    gnews: process.env.GNEWS_API_KEY || null,
+    newsdata: process.env.NEWSDATA_API_KEY || null,
+  },
+
   auth: {
     // Segredo que assina os tokens de sessão.
     //

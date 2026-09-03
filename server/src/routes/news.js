@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { all, get, run } from '../db/index.js'
 import { METODO_RELEVANCIA } from '../lib/relevance.js'
 import { avaliarRelevancia, classificar } from '../lib/relevance.js'
-import { UFS, REGIOES_ESTRATEGICAS, PAISES, detectarLugares, detectarPaises, nomePtDoPais } from '../lib/geo.js'
+import { UFS, REGIOES_ESTRATEGICAS, PAISES, detectarLugares, detectarPaises, nomePtDoPais, foraDaEscala } from '../lib/geo.js'
 import { dias, limite } from '../lib/parametros.js'
 
 const router = Router()
@@ -230,7 +230,7 @@ router.get('/news/countries', (req, res) => {
     if (!paises.length) { semPais += 1; continue }
     for (const nome of paises) {
       if (!porPais.has(nome)) {
-        porPais.set(nome, { nome, pt: nomePtDoPais(nome), total: 0, exemplos: [] })
+        porPais.set(nome, { nome, pt: nomePtDoPais(nome), foraDaEscala: foraDaEscala(nome), total: 0, exemplos: [] })
       }
       const p = porPais.get(nome)
       p.total += 1
@@ -245,10 +245,17 @@ router.get('/news/countries', (req, res) => {
 
   const items = [...porPais.values()].sort((x, y) => y.total - x.total)
 
+  // `maximo` normaliza a cor do mapa. O Brasil fica de fora dele: e mencionado
+  // em quase toda materia do acervo, e usa-lo como teto pintaria o mapa
+  // inteiro de cinza — a Venezuela com seis mencoes viraria 3% do Brasil com
+  // duzentas. O Brasil aparece na lista, com contagem e manchetes; so nao
+  // define a escala dos outros.
+  const escalaveis = items.filter((p) => !p.foraDaEscala)
+
   res.json({
     periodDays: days,
     items,
-    maximo: Math.max(...items.map((p) => p.total), 0),
+    maximo: Math.max(...escalaveis.map((p) => p.total), 0),
     totalAnalisado: artigos.length,
     semPaisIdentificado: semPais,
     paisesReconhecidos: PAISES.length,

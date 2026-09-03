@@ -3,6 +3,7 @@ import { migrate, get } from './db/index.js'
 import config from './config.js'
 import { criarApp } from './app.js'
 import { semearFontes, iniciarAgendador, coletarAgora, pararAgendador } from './collectors/index.js'
+import { semearAgregadores } from './collectors/newsapi.js'
 import { db } from './db/index.js'
 
 // Fecha o banco uma vez só, mesmo que os dois caminhos de saída disparem.
@@ -29,7 +30,7 @@ import { semearContas } from './routes/auth.js'
 // -----------------------------------------------------------------------------
 
 migrate()
-const fontesCriadas = semearFontes()
+const fontesCriadas = semearFontes() + semearAgregadores()
 // `await` no topo do módulo, e não por elegância: `semearContas` passou a ser
 // assíncrona (scrypt fora do event loop), e sem esperar por ela a porta abriria
 // antes de as contas existirem — um login no primeiro segundo do contêiner
