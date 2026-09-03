@@ -1,49 +1,92 @@
 import { useEffect, useRef } from 'react'
 import toast from 'react-hot-toast'
-import { Bell } from 'lucide-react'
 import { createElement } from 'react'
+import { Bell } from 'lucide-react'
 import { useNewsStore } from '../store/newsStore'
 import { useAuthStore } from '../store/authStore'
+import { viaPonte, apiOnline } from '../services/apiBridge'
 
-// Fila de alertas demonstrativos que chegam "ao vivo" para simular um feed
-// de inteligência em tempo real. Os níveis usam as chaves de enum (sem acento).
-const LIVE_FEED = [
-  { title: 'Movimentação naval atípica no Atlântico Sul', level: 'ALTO' },
-  { title: 'Novo edital de aquisição de blindados publicado', level: 'MEDIO' },
-  { title: 'Tentativa de intrusão em rede governamental contida', level: 'CRITICO' },
-  { title: 'Exercício conjunto Brasil–Argentina anunciado', level: 'BAIXO' },
-  { title: 'Atualização do orçamento de defesa em discussão', level: 'MEDIO' },
-  { title: 'Drone não identificado sobre área restrita', level: 'ALTO' },
-  { title: 'Acordo de cooperação cibernética assinado', level: 'BAIXO' },
-  { title: 'Alerta de desinformação em fontes monitoradas', level: 'MEDIO' },
-  // Crimes e movimentações suspeitas (segurança pública / fronteiras)
-  { title: 'Apreensão de carga ilícita na fronteira oeste', level: 'ALTO' },
-  { title: 'Movimentação suspeita de embarcações próximo à costa', level: 'MEDIO' },
-  { title: 'Operação contra facção em rota de narcotráfico', level: 'ALTO' },
-  { title: 'Aumento atípico de travessias na fronteira norte', level: 'MEDIO' },
-  { title: 'Furto de cargas estratégicas investigado pela PF', level: 'MEDIO' },
-]
+// -----------------------------------------------------------------------------
+// NOTIFICAÇÕES DO QUE REALMENTE CHEGOU
+//
+// Este arquivo era uma lista de treze alertas escritos à mão que um
+// `setInterval` disparava a cada 45 segundos, em rodízio: "Drone não
+// identificado sobre área restrita", "Tentativa de intrusão em rede
+// governamental contida", "Movimentação naval atípica no Atlântico Sul".
+//
+// Era a coisa mais perigosa do produto. Um gráfico com número inventado é uma
+// afirmação discutível; um ALERTA inventado é um acontecimento — quem o vê
+// surgir na tela conclui que algo aconteceu agora, e não tem como saber que
+// não aconteceu. Numa apresentação, o alerta cairia na tela na frente de quem
+// avalia, com nível "CRÍTICO", sobre um fato que nunca existiu.
+//
+// O que entra no lugar é modesto e verdadeiro: o servidor coleta a cada 30
+// minutos, e este hook pergunta periodicamente se apareceu matéria nova de
+// urgência ALTA ou CRÍTICA. Se apareceu, notifica com o título real e o link
+// para a fonte. Se não apareceu — o caso comum — a tela fica quieta.
+//
+// Silêncio é a resposta certa quando não há novidade. A versão anterior nunca
+// ficava quieta, e era exatamente esse o problema.
+// -----------------------------------------------------------------------------
 
-const INTERVAL_MS = 45000 // 45s entre alertas
+const INTERVALO_MS = 5 * 60 * 1000 // 5 min: a coleta roda a cada 30
+const URGENCIAS_QUE_NOTIFICAM = new Set(['ALTO', 'CRITICO', 'CRÍTICO'])
 
-// Emite notificações periódicas para demonstrar atualização em tempo real.
-// Só funciona com o usuário autenticado — notificações são por conta.
 export function useLiveNotifications() {
   const addNotification = useNewsStore((s) => s.addNotification)
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  const indexRef = useRef(0)
+
+  // Guids já anunciados. Sem isto, cada consulta reanunciaria as mesmas
+  // matérias e o resultado seria o mesmo teatro de antes, com dado real.
+  const jaVistos = useRef(new Set())
+  const primeiraVez = useRef(true)
 
   useEffect(() => {
     if (!isAuthenticated) return
-    const id = setInterval(() => {
-      const item = LIVE_FEED[indexRef.current % LIVE_FEED.length]
-      indexRef.current += 1
-      addNotification(item)
-      toast(item.title, {
-        icon: createElement(Bell, { size: 16, className: 'text-brand-400 dark:text-brand-300' }),
-        duration: 3500,
-      })
-    }, INTERVAL_MS)
-    return () => clearInterval(id)
+    let vivo = true
+
+    const consultar = async () => {
+      try {
+        if (!(await apiOnline())) return
+        const d = await viaPonte('GET /news', { days: 2, limit: 30 })
+        const itens = d?.items || []
+        if (!vivo) return
+
+        const novos = itens.filter(
+          (n) => URGENCIAS_QUE_NOTIFICAM.has(String(n.urgency || '').toUpperCase())
+            && !jaVistos.current.has(n.id ?? n.guid ?? n.title)
+        )
+        novos.forEach((n) => jaVistos.current.add(n.id ?? n.guid ?? n.title))
+
+        // A primeira consulta apenas MEMORIZA o que já estava no acervo. Sem
+        // isso, abrir a plataforma dispararia uma saraivada de avisos sobre
+        // matérias de ontem, como se tivessem acabado de chegar.
+        if (primeiraVez.current) { primeiraVez.current = false; return }
+
+        // No máximo três por rodada: se a coleta trouxer quinze de uma vez, o
+        // usuário não precisa de quinze torradas empilhadas.
+        for (const n of novos.slice(0, 3)) {
+          addNotification({
+            title: n.title,
+            level: String(n.urgency).toUpperCase() === 'CRITICO' ? 'CRITICO' : 'ALTO',
+            url: n.url,
+            source: n.source,
+          })
+          toast(n.title, {
+            icon: createElement(Bell, { size: 16, className: 'text-brand-400 dark:text-brand-300' }),
+            duration: 5000,
+          })
+        }
+      } catch {
+        // API fora do ar não é motivo para avisar nada: a ausência de
+        // notificação já é a informação correta.
+      }
+    }
+
+    consultar()
+    const id = setInterval(consultar, INTERVALO_MS)
+    return () => { vivo = false; clearInterval(id) }
   }, [addNotification, isAuthenticated])
 }
+
+export default useLiveNotifications

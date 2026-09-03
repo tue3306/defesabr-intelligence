@@ -46,7 +46,7 @@ export const FAQ = [
   },
   {
     q: 'O que a plataforma NÃO faz?',
-    a: 'Não gera análise por IA, não autentica no servidor (os quatro perfis são verificados no navegador) e não produz avaliação de risco nem dossiê — isso é juízo humano, e as telas que fingiam fazê-lo foram removidas. O console de administração lista o estado real de cada capacidade.',
+    a: 'Não gera análise por IA — nenhum texto aqui foi escrito por máquina — e não produz avaliação de risco nem dossiê, que são juízo humano; as telas que fingiam fazê-lo foram removidas. A autenticação, essa passou a ser real: senha em scrypt, token assinado e papel conferido no servidor a cada rota. O console de administração lista o estado de cada capacidade.',
   },
   {
     q: 'Quanto custa?',

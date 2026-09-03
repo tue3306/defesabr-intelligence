@@ -126,7 +126,7 @@ export default function Search() {
       <PageHeader
         icon={SearchIcon}
         title="Busca global"
-        description="Procure em todos os módulos ao mesmo tempo — notícias, dossiês, riscos, programas, narrativas, fontes, agenda, legislativo e glossário."
+        description="Procure em tudo o que a plataforma coletou ao mesmo tempo — notícias do acervo, proposições legislativas, fontes cadastradas e o glossário."
         help="A busca entende termos relacionados do domínio: procurar por “submarino” também encontra PROSUB e conteúdo naval."
         breadcrumb={[{ label: 'Busca' }]}
         meta={[{ label: 'Índice', value: data?.total != null ? `${data.total} resultado(s)` : 'banco de notícias e proposições' }]}

@@ -7,7 +7,7 @@ import { Lock, Sparkles } from 'lucide-react'
 export default function Paywall({
   active = true,
   title = 'Conteúdo exclusivo para assinantes',
-  desc = 'Assine para desbloquear análises, briefings e cenários estratégicos completos.',
+  desc = 'Assine para desbloquear o radar legislativo, as séries completas e a exportação.',
   children,
 }) {
   if (!active) return children

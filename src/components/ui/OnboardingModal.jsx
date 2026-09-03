@@ -21,13 +21,13 @@ const STEPS = [
   },
   {
     icon: BarChart3,
-    title: 'Dados, Cenários e Dossiês',
-    text: 'Veja gastos militares, câmbio, mapa de risco e o nível de tensão. A Análise Semanal projeta cenários e os Dossiês "Em Foco" aprofundam cada tema.',
+    title: 'Dados e séries econômicas',
+    text: 'Gastos militares (World Bank), câmbio e juros (Banco Central), exportações da indústria de defesa (Comex Stat) e cobertura por país, contada a partir do próprio acervo.',
   },
   {
     icon: Sparkles,
     title: 'Pergunte ao Analista',
-    text: 'Use o assistente no canto inferior direito para tirar dúvidas sobre programas, conceitos e dossiês. E pressione Ctrl + K para a busca rápida em qualquer página.',
+    text: 'Pressione Ctrl + K para a busca rápida em qualquer página, ou use a Busca global para procurar em notícias, proposições e fontes ao mesmo tempo.',
   },
   {
     icon: GraduationCap,

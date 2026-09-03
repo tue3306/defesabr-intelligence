@@ -1,21 +1,34 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { archiveSeeds, seedNotifications } from '../data/mockData'
 
+// -----------------------------------------------------------------------------
+// ESTADO LOCAL DO USUÁRIO — o que ELE salvou, e só isso.
+//
+// Esta loja nascia populada: cinco notificações e um arquivo de clippings
+// escritos à mão, ambos de `mockData`. O efeito era que a plataforma abria
+// com trinta avisos não lidos sobre acontecimentos que não aconteceram, e um
+// arquivo de edições que ninguém publicou.
+//
+// Agora ela nasce vazia. O arquivo enche quando o usuário salva uma edição; as
+// notificações, quando a coleta traz matéria de urgência alta — ver
+// `useLiveNotifications`, que consulta o acervo em vez de inventar alerta.
+//
+// Uma bandeja de entrada vazia é a resposta certa para quem acabou de chegar.
+// -----------------------------------------------------------------------------
 export const useNewsStore = create(
   persist(
     (set, get) => ({
-      // Arquivo de clippings salvos
-      clippings: archiveSeeds,
+      // Arquivo de clippings salvos pelo usuário
+      clippings: [],
 
-      // Notificações
-      notifications: seedNotifications,
+      // Notificações do que a coleta realmente trouxe
+      notifications: [],
 
-      // [ALTERADO] Favoritos — "Minha Pasta" (notícias salvas pelo usuário)
+      // Favoritos — "Minha Pasta" (notícias salvas pelo usuário)
       favorites: [],
 
-      // Último clipping gerado na sessão
-      latestClipping: archiveSeeds[0]?.data || null,
+      // Último clipping carregado na sessão (vem do servidor)
+      latestClipping: null,
 
       addClipping: (clipping) => {
         const id = `clip-${clipping.date?.split('/').reverse().join('-') || Date.now()}`
@@ -76,6 +89,9 @@ export const useNewsStore = create(
           ),
         }),
     }),
-    { name: 'defesabr-news' }
+    // Chave nova (-v2). Quem já abriu a plataforma tem as cinco notificações
+    // falsas e o arquivo de exemplo gravados no próprio navegador; manter a
+    // chave antiga faria esse conteúdo sobreviver ao deploy que o removeu.
+    { name: 'defesabr-news-v2' }
   )
 )

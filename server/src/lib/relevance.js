@@ -200,13 +200,27 @@ export function avaliarRelevancia(texto) {
 // CLASSIFICAÇÃO
 // ─────────────────────────────────────────────────────────────────────────────
 const REGRAS_CATEGORIA = [
-  { cat: 'Cibersegurança', termos: ['ciberseguranca', 'ciberataque', 'ciberdefesa', 'ransomware', 'ataque hacker', 'vazamento de dados'] },
+  { cat: 'Cibersegurança', termos: ['ciberseguranca', 'ciberataque', 'ciberdefesa', 'ransomware', 'ataque hacker', 'vazamento de dados', 'ataque cibernetico', 'incidente cibernetico', 'seguranca cibernetica', 'ctir gov'] },
   { cat: 'Fronteiras', termos: ['faixa de fronteira', 'triplice fronteira', 'amazonia azul', 'garimpo ilegal', 'narcotrafico', 'contrabando', 'operacao agata', 'sisfron'] },
   { cat: 'Indústria', termos: ['embraer', 'avibras', 'imbel', 'industria de defesa', 'base industrial de defesa', 'estaleiro', 'kc-390'] },
   { cat: 'Orçamento', termos: ['orcamento', 'contingenciamento', 'licitacao', 'investimento'] },
   { cat: 'Diplomacia', termos: ['itamaraty', 'mercosul', 'otan', 'onu', 'geopolitica', 'acordo bilateral', 'missao de paz'] },
   { cat: 'Inteligência', termos: ['abin', 'agencia brasileira de inteligencia', 'desinformacao', 'espionagem', 'guerra hibrida'] },
   { cat: 'Forças Armadas', termos: ['forcas armadas', 'exercito brasileiro', 'marinha do brasil', 'aeronautica', 'submarino', 'fragata', 'exercicio militar'] },
+
+  // ── Categorias acrescentadas com as fontes de segurança pública ──
+  //
+  // Sem elas, "PF faz operação contra o tráfico interestadual" e "Defesa Civil
+  // reconhece situação de emergência" caíam no PADRÃO — 'Forças Armadas' —, e
+  // o clipping exibia uma operação policial e um decreto de calamidade como se
+  // fossem assunto militar. Categoria errada é pior que categoria ausente:
+  // quem filtra por "Forças Armadas" recebe o que não pediu e conclui que o
+  // filtro não funciona.
+  //
+  // Ficam DEPOIS das específicas de propósito: uma matéria sobre narcotráfico
+  // na tríplice fronteira é assunto de Fronteiras, que já a captura acima.
+  { cat: 'Segurança Pública', termos: ['policia federal', 'trafico interestadual', 'trafico internacional', 'trafico transnacional', 'trafico de drogas', 'faccao criminosa', 'crime organizado', 'organizacao criminosa', 'lavagem de dinheiro', 'mandados de busca'] },
+  { cat: 'Proteção Civil', termos: ['defesa civil', 'protecao e defesa civil', 'situacao de emergencia', 'estado de calamidade', 'desastre natural', 'enchente', 'estiagem'] },
 ]
 
 const REGRAS_URGENCIA = [
@@ -230,13 +244,36 @@ const RX_URGENCIA = REGRAS_URGENCIA.map((r) => ({ nivel: r.nivel, rxs: r.termos.
  * A CATEGORIA lê o texto todo: errar o assunto para menos custa menos que
  * inflar o alarme.
  */
+// Publicação de ato oficial, não acontecimento.
+//
+// "Defesa Civil RECONHECE situação de emergência em seis cidades" entrava como
+// CRÍTICO porque a palavra "emergência" está lá. Mas o reconhecimento é ato
+// administrativo — sai em portaria, semanalmente, sobre desastre que já
+// ocorreu. Marcá-lo como crítico gasta o nível mais alto da escala em rotina,
+// e uma escala em que tudo é crítico não informa nada.
+//
+// A regra não silencia a notícia: apenas a impede de ocupar o topo da escala.
+//
+// Estes são RADICAIS, não palavras — "reconhec" precisa casar com "reconhece",
+// "reconheceu" e "reconhecimento". Por isso NÃO usam `fronteira()`, que fecha
+// os dois lados e faria "reconhec" nunca casar com nada. Só o lado esquerdo é
+// travado, para não casar dentro de outra palavra.
+const RX_ATO_ADMINISTRATIVO = [
+  'reconhec', 'portaria', 'decreto', 'publicad', 'diario oficial', 'homologa',
+].map((t) => new RegExp(`(?<![\\p{L}\\p{N}])${t}`, 'iu'))
+
 export function classificar(texto) {
   const limpo = limparRodape(texto)
   const palheiro = normalizar(limpo)
   const inicio = normalizar(abertura(limpo))
+
+  const urgenciaBruta = RX_URGENCIA.find(({ rxs }) => rxs.some((rx) => rx.test(inicio)))?.nivel || 'BAIXO'
+  const ehAto = RX_ATO_ADMINISTRATIVO.some((rx) => rx.test(inicio))
+
   return {
     categoria: RX_CATEGORIA.find(({ rxs }) => rxs.some((rx) => rx.test(palheiro)))?.cat || 'Forças Armadas',
-    urgencia: RX_URGENCIA.find(({ rxs }) => rxs.some((rx) => rx.test(inicio)))?.nivel || 'BAIXO',
+    // Ato administrativo tem teto MÉDIO, seja qual for a palavra que carrega.
+    urgencia: ehAto && urgenciaBruta === 'CRITICO' ? 'MEDIO' : urgenciaBruta,
   }
 }
 

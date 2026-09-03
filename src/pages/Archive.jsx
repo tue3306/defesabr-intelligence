@@ -351,7 +351,7 @@ export default function Archive() {
             <EmptyState
               icon={Star}
               title="Sua pasta está vazia"
-              hint="Ao ler o Clipping Diário, clique em “Salvar” numa notícia para guardá-la aqui e montar seu próprio dossiê."
+              hint="Ao ler o Clipping Diário, clique em “Salvar” numa notícia para guardá-la aqui."
               action={{ label: 'Abrir Clipping Diário', to: '/clipping' }}
             />
           ) : (

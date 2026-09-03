@@ -19,7 +19,7 @@ const AXES = [
     id: 'plano',
     title: 'PLANO — o quanto você vê',
     icon: Layers,
-    text: 'Define a PROFUNDIDADE do conteúdo: prévias, análises completas, cenários, matriz de riscos, relatórios e exportações. É o que você assina.',
+    text: 'Define a PROFUNDIDADE do conteúdo: radar legislativo, séries econômicas completas, filtros avançados, modo apresentação e exportação. É o que você assina.',
     items: ['Explorar', 'Profissional', 'Institucional'],
   },
   {

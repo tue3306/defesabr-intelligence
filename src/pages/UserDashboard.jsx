@@ -64,11 +64,16 @@ const DISCOVERY_MODULES = [
   { to: '/fontes', icon: Database, label: 'Confiabilidade das fontes', hint: 'Disponibilidade medida de cada fonte' },
 ]
 
-// O que o plano Profissional acrescenta — upsell honesto, sem exagero.
+// O que o plano Profissional acrescenta.
+//
+// Prometia "matriz de riscos, cenários e monitor de narrativas (FIMI)" e
+// "assistente de IA" — nada disso existe: as telas saíram por exibirem texto
+// redigido e a IA nunca foi ligada. Upsell honesto é o que o pagamento de fato
+// destrava, e nenhum item a mais.
 const PRO_FEATURES = [
-  { icon: Activity, text: 'Quadro de tensão por região e análise semanal completa' },
-  { icon: Radar, text: 'Matriz de riscos, cenários e monitor de narrativas (FIMI)' },
-  { icon: Sparkles, text: 'Assistente de IA, relatórios e exportação (PDF/CSV)' },
+  { icon: Activity, text: 'Radar legislativo: proposições de defesa na Câmara' },
+  { icon: Radar, text: 'Séries econômicas e industriais completas, com comparativos' },
+  { icon: Sparkles, text: 'Exportação em PDF e CSV, filtros avançados e modo apresentação' },
 ]
 
 // -----------------------------------------------------------------------------
@@ -154,8 +159,11 @@ export default function UserDashboard() {
                     </Link>
                   }
                 >
-                  <Link to="/analise" className="btn-ghost border-white/20 text-white hover:bg-white/10">
-                    <BarChart3 size={16} /> Análise semanal
+                  {/* Levava a /analise, rota que não existe: a Análise Semanal
+                      era texto redigido e foi removida. Dados & gráficos é o
+                      que de fato aprofunda a leitura de quem tem o plano. */}
+                  <Link to="/dados" className="btn-ghost border-white/20 text-white hover:bg-white/10">
+                    <BarChart3 size={16} /> Dados &amp; gráficos
                   </Link>
                 </Can>
                 <Can do="presentation.mode">
@@ -218,15 +226,13 @@ export default function UserDashboard() {
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap gap-2">
             <Link to="/clipping" className="btn-ghost text-sm"><Newspaper size={15} /> Clipping diário</Link>
-            <Can do="risk.access">
-              <Link to="/riscos" className="btn-ghost text-sm"><Radar size={15} /> Matriz de riscos</Link>
-            </Can>
-            <Can do="reports.export">
-              <Link to="/relatorios" className="btn-ghost text-sm"><FileText size={15} /> Relatórios</Link>
-            </Can>
-            <Can do="ai.assistant">
-              <Link to="/dossies" className="btn-ghost text-sm"><Bot size={15} /> Dossiês assistidos</Link>
-            </Can>
+            {/* Havia aqui três atalhos para /riscos, /relatorios e /dossies.
+                Nenhuma dessas rotas existe — as telas foram removidas e os
+                links ficaram, levando a 404 a partir do painel principal.
+                Estes três levam a lugares que abrem. */}
+            <Link to="/legislativo" className="btn-ghost text-sm"><FileText size={15} /> Radar legislativo</Link>
+            <Link to="/dados" className="btn-ghost text-sm"><Radar size={15} /> Dados &amp; gráficos</Link>
+            <Link to="/busca" className="btn-ghost text-sm"><Newspaper size={15} /> Buscar no acervo</Link>
             <Can not do="analysis.full">
               <Link to="/planos" className="btn-primary text-sm">
                 <Sparkles size={15} /> Conhecer o plano Profissional
@@ -429,7 +435,7 @@ export default function UserDashboard() {
                 compact
                 icon={Bookmark}
                 title="Sua pasta está vazia"
-                hint="Use “Salvar” em qualquer notícia para montar seu dossiê pessoal."
+                hint="Use “Salvar” em qualquer notícia para guardá-la na sua pasta."
                 action={{ label: 'Abrir clipping', to: '/clipping', icon: Newspaper }}
               />
             )}

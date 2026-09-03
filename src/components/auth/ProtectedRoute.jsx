@@ -9,10 +9,14 @@ import { useContasDemo, ROTULO_PAPEL } from '../../auth/useContasDemo'
 import { useGate } from '../../auth/useCan'
 import { CAPABILITIES, PLAN_LABELS, PROFILES } from '../../auth/permissions'
 
+// O que a conta REALMENTE dá. Esta lista prometia "dossiês, cenários e
+// programas estratégicos" e "mesa do analista" — telas que foram removidas por
+// exibirem texto escrito à mão. Prometer na porta o que não existe lá dentro é
+// a pior hora de mentir: o visitante entra justamente para conferir.
 const BENEFITS = [
-  { icon: Bot, text: 'Painel de situação, mapa de risco e clipping diário' },
-  { icon: Sparkles, text: 'Dossiês, cenários e programas estratégicos' },
-  { icon: FileDown, text: 'Relatórios, exportações e mesa do analista' },
+  { icon: Bot, text: 'Painel de situação, cobertura por país e clipping diário' },
+  { icon: Sparkles, text: 'Busca no acervo, arquivo pessoal e séries econômicas' },
+  { icon: FileDown, text: 'Exportação em PDF e CSV, conforme o plano' },
 ]
 
 // Textos do bloqueio por PAPEL, por perfil exigido.

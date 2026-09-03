@@ -142,7 +142,7 @@ export default function DailyClipping() {
       <PageHeader
         icon={Newspaper}
         title="Clipping Diário"
-        description="Seleção editorial do que aconteceu em segurança e defesa, com resumo executivo, impacto para o Brasil e nível de alerta do dia."
+        description="O que a coleta trouxe em segurança e defesa no período, filtrado por relevância, classificado por categoria e urgência, com o nível de alerta do dia."
         help="O nível de alerta resume a intensidade dos eventos do dia: NORMAL, ATENÇÃO, ALERTA ou CRÍTICO."
         breadcrumb={[{ label: 'Inteligência' }, { label: 'Clipping Diário' }]}
         badges={
@@ -257,9 +257,19 @@ export default function DailyClipping() {
               <h2 className="text-lg font-bold tracking-tight">Resumo executivo</h2>
               <Badge type="alert" value={result.alert_level} />
             </div>
-            {result.summary_executive?.split('\n').filter(Boolean).map((p, i) => (
-              <p key={i} className="mb-2 text-sm leading-relaxed text-gray-700 dark:text-gray-300">{p}</p>
-            ))}
+            {result.summary_executive
+              ? result.summary_executive.split('\n').filter(Boolean).map((p, i) => (
+                <p key={i} className="mb-2 text-sm leading-relaxed text-gray-700 dark:text-gray-300">{p}</p>
+              ))
+              : (
+                // Cabeçalho sem texto embaixo deixa o leitor supondo que algo
+                // falhou ao carregar. A nota do servidor diz a verdade: não é
+                // falha, é recurso que esta versão não tem.
+                <p className="text-sm italic leading-relaxed muted">
+                  {result.summary_note
+                    || 'Resumo executivo automático não é gerado nesta versão — exigiria um modelo de linguagem.'}
+                </p>
+              )}
             {result.editor_note && (
               <blockquote className="editorial-quote mt-4">
                 <span className="font-semibold not-italic text-gold-600 dark:text-gold-400">Nota do analista: </span>

@@ -116,13 +116,18 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
       </button>
 
       <div className="ml-auto flex items-center gap-1.5">
-        {/* Atalho de produção — só para quem produz */}
-        {can('workbench.access') && (
+        {/* Atalho do Analista.
+            Apontava para /mesa, rota que não existe desde que a mesa de
+            trabalho foi removida — e era guardado por `workbench.access`, uma
+            capacidade que ninguém mais recebe, então nem aparecia para
+            reclamar. Agora leva a Método & Coleta, que é o trabalho real do
+            perfil, sob a capacidade que de fato o governa. */}
+        {can('collection.monitor') && (
           <Link
-            to="/mesa"
+            to="/coleta"
             className="hidden rounded-lg p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 md:inline-flex"
-            aria-label="Mesa de trabalho do analista"
-            title="Mesa de trabalho"
+            aria-label="Método e coleta"
+            title="Método & Coleta"
           >
             <ClipboardList size={20} />
           </Link>
@@ -260,8 +265,8 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
                 {/* Atalhos de conta */}
                 <div className="mt-1 border-t border-gray-200 pt-1 dark:border-gray-700/40">
                   <MenuLink to="/conta" icon={UserCog} label="Minha conta" onClick={() => setUserOpen(false)} />
-                  {can('workbench.access') && (
-                    <MenuLink to="/mesa" icon={ClipboardList} label="Mesa de trabalho" onClick={() => setUserOpen(false)} />
+                  {can('collection.monitor') && (
+                    <MenuLink to="/coleta" icon={ClipboardList} label="Método & Coleta" onClick={() => setUserOpen(false)} />
                   )}
                   {can('admin.access') && (
                     <MenuLink to="/admin" icon={ShieldCheck} label="Console de governança" onClick={() => setUserOpen(false)} />
