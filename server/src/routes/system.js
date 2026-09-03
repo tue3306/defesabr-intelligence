@@ -127,7 +127,7 @@ router.get('/meta', (req, res) => {
       { nome: 'Agência Brasil / Agência Gov (EBC)', tipo: 'RSS', url: 'https://agenciabrasil.ebc.com.br' },
       { nome: 'Dados Abertos da Câmara', tipo: 'API', url: 'https://dadosabertos.camara.leg.br' },
       { nome: 'World Bank Open Data', tipo: 'API', url: 'https://data.worldbank.org' },
-      { nome: 'AwesomeAPI', tipo: 'API', url: 'https://docs.awesomeapi.com.br' },
+      { nome: 'Banco Central do Brasil — SGS', tipo: 'API', url: 'https://dadosabertos.bcb.gov.br' },
     ],
     naoImplementado: ['Análise por IA', 'Contas e permissões', 'Dossiês de analista'],
   })

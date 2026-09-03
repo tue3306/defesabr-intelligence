@@ -139,8 +139,8 @@ export function capacidades() {
       nome: 'Câmbio',
       coletor: 'cambio',
       descricao: 'Cotação USD/BRL e EUR/BRL. Muda ao longo do dia, então o que vale é a hora da coleta.',
-      fonte: 'economia.awesomeapi.com.br',
-      contagem: () => contar("SELECT COUNT(*) AS n FROM indicators WHERE provider = 'awesomeapi'"),
+      fonte: 'api.bcb.gov.br — SGS (séries 1 e 21619)',
+      contagem: () => contar("SELECT COUNT(*) AS n FROM indicators WHERE provider = 'bcb' AND code IN ('usd','eur')"),
       evidencia: (t) => `${t} cotação(ões) registradas`,
     }),
 

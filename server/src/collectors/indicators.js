@@ -93,41 +93,11 @@ export async function coletarWorldBank() {
   }
 }
 
-export async function coletarCambio() {
-  const inicio = Date.now()
-  try {
-    const dados = await buscarJson('https://economia.awesomeapi.com.br/json/last/USD-BRL,EUR-BRL')
-    const pares = [
-      ['USD', dados?.USDBRL],
-      ['EUR', dados?.EURBRL],
-    ]
-    let gravados = 0
-
-    transacao(() => {
-      for (const [moeda, d] of pares) {
-        if (!d?.bid) continue
-        // O período aqui é o INSTANTE, não o ano: câmbio de ontem é outro dado,
-        // não uma revisão do de hoje.
-        run(
-          `INSERT INTO indicators (provider, code, country, period, value, unit)
-           VALUES ('awesomeapi', ?, 'BRA', ?, ?, 'BRL')
-           ON CONFLICT (provider, code, country, period)
-           DO UPDATE SET value = excluded.value`,
-          [`${moeda}BRL`, new Date().toISOString().slice(0, 13), Number(d.bid)]
-        )
-        gravados += 1
-      }
-    })
-
-    return { ok: true, gravados, duracaoMs: Date.now() - inicio }
-  } catch (err) {
-    return {
-      ok: false, gravados: 0,
-      erro: String(err?.message || err).slice(0, 180),
-      duracaoMs: Date.now() - inicio,
-    }
-  }
-}
+// Aqui vivia `coletarCambio()`, que buscava USD e EUR na AwesomeAPI. Saiu:
+// respondia 429 de dentro do Railway (IP de datacenter) e entregava, quando
+// respondia, o mesmo par de números que o coletor do BCB já traz do SGS.
+// Um coletor que falha para sempre num painel de saúde vira erro que ninguém
+// lê — e este falhava a cada 30 minutos sem que faltasse nada por causa dele.
 
 // ── Leitura ──────────────────────────────────────────────────────────────────
 
@@ -145,13 +115,27 @@ export const ultimoValor = (code, pais = 'BRA') => get(
   [code, pais]
 )
 
+/**
+ * Última cotação de USD e EUR — do Banco Central.
+ *
+ * Lia `provider = 'awesomeapi'`. A AwesomeAPI responde normalmente de uma
+ * máquina doméstica e devolve HTTP 429 de dentro do Railway: o painel de
+ * saúde em produção mostrava "Câmbio — última execução falhou: HTTP 429" a
+ * cada ciclo, permanentemente.
+ *
+ * A dependência tinha deixado de ser necessária. O coletor do BCB passou a
+ * trazer dólar E euro do SGS (séries 1 e 21619) — fonte mais autoritativa que
+ * um agregador, que funciona de dentro do contêiner e que já era consultada de
+ * qualquer forma. Manter as duas era pagar uma requisição a mais por ciclo
+ * para receber o mesmo número de um lugar menos oficial.
+ */
 export function ultimoCambio() {
   const pegar = (code) => get(
     `SELECT value, period, fetched_at FROM indicators
-     WHERE provider = 'awesomeapi' AND code = ? ORDER BY period DESC LIMIT 1`,
+     WHERE provider = 'bcb' AND code = ? ORDER BY period DESC LIMIT 1`,
     [code]
   )
-  return { usd: pegar('USDBRL') || null, eur: pegar('EURBRL') || null }
+  return { usd: pegar('usd') || null, eur: pegar('eur') || null }
 }
 
-export default { coletarWorldBank, coletarCambio, serie, ultimoValor, ultimoCambio }
+export default { coletarWorldBank, serie, ultimoValor, ultimoCambio }

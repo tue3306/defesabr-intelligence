@@ -2,7 +2,7 @@ import { all, get, run, insert, agora } from '../db/index.js'
 import config from '../config.js'
 import { coletarTodas, coletarFonte, semearFontes } from './rss.js'
 import { coletarCamara, enriquecerSituacoes } from './camara.js'
-import { coletarWorldBank, coletarCambio } from './indicators.js'
+import { coletarWorldBank } from './indicators.js'
 import { coletarComex } from './comex.js'
 import { coletarBcb } from './bcb.js'
 
@@ -86,11 +86,10 @@ export async function coletarTudo(gatilho = 'agendado') {
   // resposta de POST /system/collect e o resumo de boot não mencionavam dois
   // dos seis coletores, e quem lesse a resposta concluiria que eles não
   // rodaram. A coleta funcionava; o relatório dela é que mentia por omissão.
-  const [noticias, legislativo, indicadores, cambio, comex, bcb] = await Promise.all([
+  const [noticias, legislativo, indicadores, comex, bcb] = await Promise.all([
     registrar('rss', coletarTodas, gatilho),
     registrar('camara', coletarCamara, gatilho),
     registrar('worldbank', coletarWorldBank, gatilho),
-    registrar('cambio', coletarCambio, gatilho),
     registrar('comex', coletarComex, gatilho),
     registrar('bcb', coletarBcb, gatilho),
   ])
@@ -111,7 +110,10 @@ export async function coletarTudo(gatilho = 'agendado') {
     noticias,
     legislativo: { ...legislativo, situacoesAtualizadas: situacoes.atualizadas },
     indicadores,
-    cambio,
+    // `cambio` saiu: o BCB entrega dólar e euro, e a AwesomeAPI recusava o IP
+    // do Railway. A chave permanece no retorno apontando para o BCB, para não
+    // quebrar quem já lia `r.cambio`.
+    cambio: bcb,
     comex,
     bcb,
   }

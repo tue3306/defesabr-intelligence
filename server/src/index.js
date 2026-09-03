@@ -101,7 +101,6 @@ const servidor = app.listen(config.port, config.host, async () => {
     console.log(`  [coleta] notícias    ${r.noticias.novos} novo(s), ${r.noticias.relevantes} relevante(s)`)
     console.log(`  [coleta] legislativo ${r.legislativo.novos} proposição(ões)`)
     console.log(`  [coleta] indicadores ${r.indicadores.gravados} ponto(s)`)
-    console.log(`  [coleta] câmbio      ${r.cambio.gravados} cotação(ões)`)
     console.log(`  [coleta] BCB         ${r.bcb?.gravados ?? 0} ponto(s) do SGS`)
     console.log(`  [coleta] Comex       ${r.comex?.gravados ?? 0} linha(s) de exportação`)
     console.log(`  \x1b[2m[coleta] concluída em ${(r.duracaoMs / 1000).toFixed(1)}s\x1b[0m\n`)
