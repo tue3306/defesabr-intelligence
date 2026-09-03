@@ -46,7 +46,31 @@ export const config = {
   // servidor subir e ficar inalcançável de fora do contêiner.
   host: process.env.HOST || '0.0.0.0',
 
-  ambiente: process.env.NODE_ENV || 'development',
+  // AMBIENTE — e por que ele não é só `process.env.NODE_ENV`.
+  //
+  // O Railway não define NODE_ENV por conta própria. O deploy subia, portanto,
+  // com `ambiente: 'development'`, e três comportamentos de desenvolvimento
+  // ficavam ativos num serviço público:
+  //
+  //   • o tratador de erros anexava `detalhe` com a mensagem crua da exceção,
+  //     expondo estrutura interna a quem conseguisse provocar um 500;
+  //   • o CORS liberava QUALQUER origem localhost — conferido no ar, a
+  //     produção respondia `access-control-allow-origin: http://localhost:9999`;
+  //   • o log despejava o stack de cada erro.
+  //
+  // Depender de alguém lembrar de definir a variável no painel é depender de
+  // memória para uma decisão de segurança. O Railway injeta as suas próprias
+  // variáveis em todo deploy; a presença delas é sinal suficiente.
+  //
+  // NODE_ENV explícito continua tendo a palavra final — quem quiser depurar em
+  // produção define `NODE_ENV=development` e assume a escolha.
+  ambiente: process.env.NODE_ENV
+    || (process.env.RAILWAY_ENVIRONMENT
+      || process.env.RAILWAY_ENVIRONMENT_NAME
+      || process.env.RAILWAY_PROJECT_ID
+      || process.env.RAILWAY_SERVICE_ID
+      ? 'production'
+      : 'development'),
 
   // O banco fica em server/data/ por padrão. No Railway, apontar DB_PATH para
   // um volume montado é o que dá persistência entre deploys — sem volume, o
