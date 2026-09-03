@@ -156,3 +156,34 @@ CREATE TABLE IF NOT EXISTS bookmarks (
 );
 
 CREATE INDEX IF NOT EXISTS idx_bookmarks_client ON bookmarks(client_id, created_at DESC);
+
+-- -----------------------------------------------------------------------------
+-- CONTAS
+--
+-- A plataforma tem quatro perfis de acesso, e ate agora a verificacao acontecia
+-- so no navegador: trocar de perfil mudava o que a interface mostrava, e a API
+-- atendia qualquer requisicao sem perguntar quem chamava. Um menu escondido nao
+-- e controle de acesso — quem soubesse o endereco do endpoint entrava.
+--
+-- Esta tabela e o minimo para que a diferenca entre Usuario, Analista e
+-- Administrador seja verificada no SERVIDOR.
+--
+-- A senha e guardada como scrypt (node:crypto) com sal por conta. Nunca em
+-- texto puro, nem com hash rapido: scrypt e deliberadamente caro, que e o que
+-- torna a lista inutil se vazar.
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS users (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  name          TEXT    NOT NULL,
+  email         TEXT    NOT NULL UNIQUE,
+  password_hash TEXT    NOT NULL,
+  password_salt TEXT    NOT NULL,
+  role          TEXT    NOT NULL DEFAULT 'user'
+                CHECK (role IN ('user', 'analyst', 'admin')),
+  plan          TEXT    NOT NULL DEFAULT 'explorar'
+                CHECK (plan IN ('explorar', 'profissional', 'institucional')),
+  created_at    TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
+  last_login_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);

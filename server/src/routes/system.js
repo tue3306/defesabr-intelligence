@@ -4,16 +4,17 @@ import config from '../config.js'
 import { panorama, capacidades, historicoDeExecucoes } from '../services/status.js'
 import { coletarAgora, coletarFonte, estadoDoAgendador } from '../collectors/index.js'
 import { METODO_RELEVANCIA, avaliarRelevancia, classificar } from '../lib/relevance.js'
+import { exigirPapel } from '../lib/auth.js'
 
 const router = Router()
 
 // GET /api/system/status — o painel de diagnóstico
-router.get('/system/status', (req, res) => res.json(panorama()))
+router.get('/system/status', exigirPapel('admin'), (req, res) => res.json(panorama()))
 
-router.get('/system/capabilities', (req, res) => res.json({ items: capacidades() }))
+router.get('/system/capabilities', exigirPapel('admin'), (req, res) => res.json({ items: capacidades() }))
 
 // GET /api/system/runs — histórico das coletas
-router.get('/system/runs', (req, res) => {
+router.get('/system/runs', exigirPapel('analyst'), (req, res) => {
   const limite = Math.min(parseInt(req.query.limit, 10) || 40, 200)
   const itens = historicoDeExecucoes(limite)
 
@@ -35,7 +36,7 @@ router.get('/system/runs', (req, res) => {
 })
 
 // POST /api/system/collect — dispara a coleta manualmente
-router.post('/system/collect', async (req, res, next) => {
+router.post('/system/collect', exigirPapel('admin'), async (req, res, next) => {
   try {
     const r = await coletarAgora('manual')
     if (r.jaEmAndamento) return res.status(409).json(r)
@@ -47,7 +48,7 @@ router.post('/system/collect', async (req, res, next) => {
 //
 // Existe para diagnóstico: quando o painel mostra uma fonte com erro, é
 // preciso poder tentar só ela e ler a mensagem, sem disparar as sete.
-router.post('/system/collect/:sourceId', async (req, res, next) => {
+router.post('/system/collect/:sourceId', exigirPapel('admin'), async (req, res, next) => {
   try {
     const fonte = get('SELECT * FROM sources WHERE id = ?', [req.params.sourceId])
     if (!fonte) return res.status(404).json({ error: 'Fonte não encontrada.' })
@@ -56,7 +57,7 @@ router.post('/system/collect/:sourceId', async (req, res, next) => {
 })
 
 // GET /api/system/method — como o filtro decide
-router.get('/system/method', (req, res) => {
+router.get('/system/method', exigirPapel('analyst'), (req, res) => {
   res.json({
     ...METODO_RELEVANCIA,
     // Amostra do que o filtro RECUSOU. É a metade que costuma ficar
@@ -76,7 +77,7 @@ router.get('/system/method', (req, res) => {
 //
 // Deixa o filtro demonstrável ao vivo: cola-se um título e vê-se a decisão com
 // os termos que casaram. Sem isso, "a regra é auditável" é só uma afirmação.
-router.post('/system/method/test', (req, res) => {
+router.post('/system/method/test', exigirPapel('analyst'), (req, res) => {
   const texto = String(req.body?.text || '').trim()
   if (!texto) return res.status(400).json({ error: 'Envie um texto em "text".' })
 

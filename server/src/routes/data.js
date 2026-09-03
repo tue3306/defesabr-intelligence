@@ -4,6 +4,7 @@ import { situacaoDaProposicao, PALAVRAS_CHAVE } from '../collectors/camara.js'
 import {
   INDICADORES_WB, PAISES_COMPARACAO, serie, ultimoValor, ultimoCambio, rotuloIndicador,
 } from '../collectors/indicators.js'
+import { exigirPapel } from '../lib/auth.js'
 
 const router = Router()
 
@@ -229,7 +230,7 @@ router.get('/economy/exports', (req, res) => {
   })
 })
 
-router.get('/sources', (req, res) => {
+router.get('/sources', exigirPapel('analyst'), (req, res) => {
   const itens = all(
     `SELECT s.*, (SELECT COUNT(*) FROM articles a WHERE a.source_id = s.id) AS artigos,
             (SELECT COUNT(*) FROM articles a WHERE a.source_id = s.id AND a.relevant = 1) AS relevantes

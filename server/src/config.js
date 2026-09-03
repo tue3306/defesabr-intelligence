@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto'
 import { dirname, join, isAbsolute } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -52,6 +53,21 @@ export const config = {
   // Raiz do repositório. Serve para exibir caminhos relativos na interface em
   // vez do absoluto da máquina de quem roda.
   raizProjeto: projeto,
+
+  auth: {
+    // Segredo que assina os tokens de sessão.
+    //
+    // Sem AUTH_SECRET no ambiente, gera um aleatório a cada boot — o que
+    // INVALIDA as sessões a cada reinício. É o padrão certo: um segredo fixo
+    // embutido no código seria público (o repositório é aberto), e qualquer
+    // pessoa poderia assinar um token de administrador.
+    //
+    // No Railway, defina AUTH_SECRET para as sessões sobreviverem ao deploy.
+    segredo: process.env.AUTH_SECRET
+      || randomBytes(32).toString('hex'),
+    segredoFixado: Boolean(process.env.AUTH_SECRET),
+    duracaoHoras: num(process.env.AUTH_TTL_HOURS, 12),
+  },
 
   coleta: {
     // Intervalo do agendador. 0 desliga — útil em teste automatizado.

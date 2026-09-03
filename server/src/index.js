@@ -3,6 +3,7 @@ import { migrate, get } from './db/index.js'
 import config from './config.js'
 import { criarApp } from './app.js'
 import { semearFontes, iniciarAgendador, coletarAgora, pararAgendador } from './collectors/index.js'
+import { semearContas } from './routes/auth.js'
 
 // -----------------------------------------------------------------------------
 // PONTO DE ENTRADA
@@ -16,6 +17,7 @@ import { semearFontes, iniciarAgendador, coletarAgora, pararAgendador } from './
 
 migrate()
 const fontesCriadas = semearFontes()
+const contasCriadas = semearContas()
 
 const app = criarApp()
 const servidor = app.listen(config.port, config.host, async () => {
@@ -27,6 +29,10 @@ const servidor = app.listen(config.port, config.host, async () => {
   console.log(`  Node          ${process.version}`)
   console.log(`  Banco         ${config.dbPath}`)
   if (fontesCriadas) console.log(`  Fontes        ${fontesCriadas} cadastradas`)
+  if (contasCriadas) console.log(`  Contas        ${contasCriadas} de demonstração criadas`)
+  if (!config.auth.segredoFixado) {
+    console.log('  [2mSessões       AUTH_SECRET não definido — expiram a cada reinício[0m')
+  }
 
   // O front compilado existe?
   //

@@ -6,6 +6,8 @@ import config from './config.js'
 import noticias from './routes/news.js'
 import dados from './routes/data.js'
 import sistema from './routes/system.js'
+import autenticacao from './routes/auth.js'
+import { lerConta } from './lib/auth.js'
 
 // -----------------------------------------------------------------------------
 // APLICAÇÃO EXPRESS
@@ -57,6 +59,11 @@ export function criarApp() {
     })
   }
 
+  // Lê a sessão ANTES das rotas: quem exige papel encontra `req.conta` pronto,
+  // e quem não exige simplesmente ignora. Não bloqueia nada por si só.
+  app.use('/api', lerConta)
+
+  app.use('/api', autenticacao)
   app.use('/api', noticias)
   app.use('/api', dados)
   app.use('/api', sistema)

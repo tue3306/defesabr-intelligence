@@ -13,7 +13,8 @@
     "collect": "node scripts/collect.js",
     "reclassify": "node scripts/reclassify.js",
     "reset": "node scripts/reset.js",
-    "check": "node scripts/check.js"
+    "check": "node scripts/check.js",
+    "check:auth": "node scripts/check-auth.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

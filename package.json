@@ -22,7 +22,8 @@
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",
     "lint": "eslint src server scripts",
-    "prebuild": "eslint src server scripts --quiet"
+    "prebuild": "eslint src server scripts --quiet",
+    "check:auth": "npm --prefix server run check:auth"
   },
   "dependencies": {
     "framer-motion": "^11.3.24",
