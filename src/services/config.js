@@ -32,7 +32,13 @@ export const API_BASE_URL = (env.VITE_API_BASE_URL || '').replace(/\/$/, '')
 
 /** Identidade da aplicação (exibida em rodapés, PDFs e cabeçalhos HTTP). */
 export const APP_NAME = env.VITE_APP_NAME || 'DefesaBR Intelligence'
-export const APP_VERSION = env.VITE_APP_VERSION || '1.0.0'
+// A versao vinha fixa em '1.0.0' enquanto o package.json ja marcava 2.0.0 e a
+// API respondia "versao":"2.0.0" — a interface se apresentava como uma versao
+// que nao era a dela, inclusive no cabecalho X-Client-Version enviado ao
+// servidor. `__APP_VERSION__` e injetado pelo Vite a partir do package.json
+// (ver vite.config.js), entao passa a ser impossivel divergir.
+export const APP_VERSION = env.VITE_APP_VERSION
+  || (typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0')
 
 /** Timeout padrão das requisições (ms). */
 export const REQUEST_TIMEOUT = Number(env.VITE_API_TIMEOUT || 12000)

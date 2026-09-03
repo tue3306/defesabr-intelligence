@@ -248,7 +248,27 @@ router.get('/sources/summary', (req, res) => {
             SUM(CASE WHEN last_status = 'ok' THEN 1 ELSE 0 END) AS ok
        FROM sources WHERE enabled = 1`
   )
-  res.json({ total: r?.total ?? 0, ok: r?.ok ?? 0 })
+
+  // A lista leve: nome, categoria e se respondeu. Nada de `lastError` nem de
+  // historico de falhas — isso e telemetria operacional e continua no
+  // /sources, que exige papel `analyst`.
+  //
+  // Ela existe porque a tela de Configuracoes mostrava uma lista de 15 fontes
+  // ESCRITA A MAO com `status: 'online'` fixo, incluindo tres que o proprio
+  // codigo documenta como HTTP 403. Luz verde ao lado de fonte quebrada e
+  // pior que nenhuma luz.
+  const itens = all(
+    `SELECT name, category, last_status, last_count, last_fetch_at
+       FROM sources WHERE enabled = 1 ORDER BY name`
+  ).map((f) => ({
+    name: f.name,
+    category: f.category,
+    status: f.last_status || 'nunca',
+    items: f.last_count ?? null,
+    lastFetchAt: f.last_fetch_at,
+  }))
+
+  res.json({ total: r?.total ?? 0, ok: r?.ok ?? 0, items: itens })
 })
 
 router.get('/sources', exigirPapel('analyst'), (req, res) => {

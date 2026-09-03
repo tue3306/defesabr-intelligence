@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Rss, KeyRound, Bell, SlidersHorizontal, UserCog, Trash2, Plus, Circle, Eye, EyeOff,
@@ -14,6 +14,8 @@ import { useTheme } from '../hooks/useTheme'
 import { FOCUS_AREAS, CATEGORIES } from '../data/mockData'
 import { PLANS, PLAN_LABEL } from '../data/plansData'
 import { iaConfigurada } from '../services/ia'
+import { request } from '../services/client'
+import { useFontesReais } from '../hooks/useFontesReais'
 import { API_BASE_URL, APP_VERSION } from '../services/config'
 import { listEndpoints } from '../services'
 import { categoryColor } from '../utils/textUtils'
@@ -115,7 +117,7 @@ export default function Settings() {
 
 
           <Section icon={Rss} title="Fontes monitoradas" badge="Produção">
-            <SourcesEditor s={s} />
+            <SourcesEditor />
           </Section>
         </>
       )}
@@ -137,7 +139,7 @@ export default function Settings() {
             </p>
           </Section>
 
-          <Section icon={BarChart3} title="Analytics do site" badge="Admin">
+          <Section icon={BarChart3} title="Números da plataforma" badge="Admin">
             <Analytics />
           </Section>
 
@@ -212,21 +214,48 @@ function PlanSection() {
   )
 }
 
-const ANALYTICS = [
-  { label: 'Usuários ativos (30d)', value: '1.284', delta: '+12%' },
-  { label: 'Visualizações de página', value: '48,7 mil', delta: '+8%' },
-  { label: 'Assinantes pagos', value: '326', delta: '+5%' },
-  { label: 'Taxa de conversão', value: '4,2%', delta: '+0,6 p.p.' },
-]
-
+// Aqui havia um bloco "Números da plataforma" com quatro numeros escritos a mao:
+// 1.284 usuarios ativos (+12%), 48,7 mil visualizacoes (+8%), 326 assinantes
+// pagos (+5%) e 4,2% de conversao. Nenhum vinha de lugar nenhum — nao existe
+// analitica de uso nesta plataforma, e nao existe cobranca: "326 assinantes
+// pagos" era uma invencao sobre um sistema de pagamento que nao foi escrito.
+//
+// Eram exibidos ao ADMINISTRADOR, que e exatamente quem tomaria decisao com
+// base neles. Numero de negocio inventado num painel de administracao e a
+// forma mais direta de transformar um diagnostico em ficcao.
+//
+// O que entra no lugar e o que o servidor sabe contar: contas cadastradas por
+// papel e o tamanho do acervo. Sao numeros pequenos e verdadeiros.
 function Analytics() {
+  const [d, setD] = useState(null)
+  const [erro, setErro] = useState(false)
+
+  useEffect(() => {
+    let vivo = true
+    request('GET /admin/overview')
+      .then(({ data }) => { if (vivo) setD(data) })
+      .catch(() => { if (vivo) setErro(true) })
+    return () => { vivo = false }
+  }, [])
+
+  if (erro) return <p className="text-sm muted">O servidor nao respondeu — sem numeros a mostrar.</p>
+  if (!d) return <p className="text-sm muted">Consultando o servidor…</p>
+
+  const m = d.metrics || {}
+  const cartoes = [
+    { label: 'Artigos no acervo', value: m.artigos ?? '—', nota: `${m.artigosRelevantes ?? 0} aprovados pelo filtro` },
+    { label: 'Fontes cadastradas', value: m.fontes ?? '—', nota: m.fontesComErro ? `${m.fontesComErro} com erro na última coleta` : 'todas responderam' },
+    { label: 'Proposições acompanhadas', value: m.proposicoes ?? '—', nota: 'Câmara, dados abertos' },
+    { label: 'Pontos de série', value: m.indicadores ?? '—', nota: 'BCB, World Bank e Comex Stat' },
+  ]
+
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      {ANALYTICS.map((a) => (
+      {cartoes.map((a) => (
         <div key={a.label} className="rounded-lg bg-white/5 p-3">
           <p className="text-xs muted">{a.label}</p>
-          <p className="mt-1 text-2xl font-bold">{a.value}</p>
-          <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">{a.delta}</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums">{a.value}</p>
+          <p className="text-[11px] muted">{a.nota}</p>
         </div>
       ))}
     </div>
@@ -284,43 +313,77 @@ function NotificationsSection({ enabled, onToggle }) {
   )
 }
 
-function SourcesEditor({ s }) {
-  const [url, setUrl] = useState('')
+function SourcesEditor() {
+  const fontes = useFontesReais()
+
+  // Esta tela mostrava 15 fontes escritas à mão, com `status: 'online'`
+  // literal — entre elas Marinha, FAB e Exército, que o próprio código
+  // documenta como HTTP 403 e 404 e que por isso NEM ESTÃO cadastradas no
+  // servidor. E vinha com ativar, desativar, adicionar e remover: quatro
+  // controles que não controlavam nada, porque a coleta roda no servidor e
+  // nunca leu essa lista.
+  //
+  // Agora são as fontes de verdade, com o estado medido na última coleta. É
+  // leitura, e a tela diz por quê: quem administra a coleta é o Administrador,
+  // no console de governança.
+  const porCategoria = fontes.itens.reduce((acc, f) => {
+    (acc[f.category || 'Outras'] ||= []).push(f)
+    return acc
+  }, {})
+
   return (
     <>
       <p className="mb-3 text-xs muted">
-        Estas são fontes que o <strong>navegador</strong> tenta ler direto, e por isso costumam falhar:
-        o site de origem precisa autorizar leitura de outro domínio (CORS), e a maioria não autoriza.
-        Elas seguem aqui como reserva para quando a API estiver fora do ar.
-        {' '}A coleta que realmente funciona é a do <strong>servidor</strong>, que não tem essa
-        limitação — as fontes dela ficam em <em>Administração → Fontes e coleta</em>.
+        As fontes que alimentam o acervo, com o estado apurado na última coleta. Quem busca é o
+        <strong> servidor</strong>, a cada 30 minutos — o navegador não lê feed direto, porque a
+        maioria dos sites não autoriza leitura de outro domínio (CORS).
+        {' '}Cadastrar ou desativar fonte é ato de administração, em <em>Console de Governança</em>.
       </p>
-      <div className="space-y-2">
-        {s.rssSources.map((src) => (
-          <div key={src.id} className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2 text-sm">
-            <span className="flex items-center gap-2">
-              <Circle size={9} className={src.status === 'online' ? 'fill-emerald-400 text-emerald-700 dark:text-emerald-400' : 'fill-red-400 text-red-700 dark:text-red-400'} />
-              <span className="font-medium">{src.name}</span>
-            </span>
-            <div className="flex items-center gap-2">
-              <button onClick={() => s.toggleSource(src.id)}
-                className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${src.enabled ? 'bg-brand-500/20 text-brand-300' : 'bg-gray-600/30 text-gray-400'}`}>
-                {src.enabled ? 'Ativa' : 'Inativa'}
-              </button>
-              <button onClick={() => s.removeSource(src.id)} className="text-red-700 dark:text-red-400 hover:text-red-300" aria-label="Remover fonte">
-                <Trash2 size={15} />
-              </button>
+
+      {fontes.carregando && <p className="text-sm muted">Consultando o servidor…</p>}
+
+      {!fontes.carregando && !fontes.itens.length && (
+        <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">
+          Não foi possível ler a lista de fontes — a API não respondeu.
+        </p>
+      )}
+
+      {fontes.total != null && (
+        <p className="mb-3 text-sm">
+          <strong className="font-mono">{fontes.ok}</strong> de{' '}
+          <strong className="font-mono">{fontes.total}</strong> responderam na última execução.
+        </p>
+      )}
+
+      <div className="space-y-4">
+        {Object.entries(porCategoria).map(([cat, lista]) => (
+          <div key={cat}>
+            <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wider muted">
+              {cat} · {lista.length}
+            </p>
+            <div className="space-y-1.5">
+              {lista.map((f) => (
+                <div key={f.name} className="flex items-center justify-between gap-3 rounded-lg bg-white/5 px-3 py-1.5 text-sm">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <Circle
+                      size={9}
+                      className={f.status === 'ok'
+                        ? 'fill-emerald-400 text-emerald-700 dark:text-emerald-400'
+                        : f.status === 'nunca'
+                          ? 'fill-gray-400 text-gray-500'
+                          : 'fill-red-400 text-red-700 dark:text-red-400'}
+                    />
+                    <span className="truncate font-medium">{f.name}</span>
+                  </span>
+                  <span className="shrink-0 font-mono text-xs muted">
+                    {f.status === 'ok' ? `${f.items ?? 0} itens` : f.status}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
         ))}
       </div>
-      <form
-        onSubmit={(e) => { e.preventDefault(); if (url.trim()) { s.addSource(url.trim()); setUrl(''); toast.success('Fonte adicionada') } }}
-        className="mt-3 flex gap-2"
-      >
-        <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://exemplo.com/feed.rss" className="input" aria-label="URL da nova fonte RSS" />
-        <button type="submit" className="btn-ghost shrink-0"><Plus size={16} /> Adicionar</button>
-      </form>
     </>
   )
 }
@@ -375,9 +438,12 @@ function ApiKeyEditor({ s }) {
 }
 
 function Diagnostics() {
-  const sources = useSettingsStore((st) => st.rssSources)
-  const online = sources.filter((x) => x.enabled && x.status === 'online').length
-  const total = sources.filter((x) => x.enabled).length
+  // Media as fontes REAIS do servidor. Antes contava a lista escrita a mao,
+  // cujo `status` era literal — o indicador dizia "8/8 habilitadas" com o
+  // servidor inteiro fora do ar.
+  const fontes = useFontesReais()
+  const online = fontes.ok ?? 0
+  const total = fontes.total ?? 0
   const ai = iaConfigurada()
   // Este bloco marcava AwesomeAPI e World Bank como `ok: true` fixo — dois
   // "ok" que nunca mudavam, mesmo com o servidor fora do ar —, dizia "modo
@@ -387,7 +453,7 @@ function Diagnostics() {
   // sabe de fato.
   const items = [
     { name: 'Síntese por IA', ok: ai, note: ai ? 'configurada' : 'não conectada' },
-    { name: 'Fontes RSS locais', ok: total === 0 || online === total, note: total ? `${online}/${total} habilitadas` : 'nenhuma habilitada' },
+    { name: 'Fontes de coleta', ok: total > 0 && online === total, note: total ? `${online}/${total} responderam` : 'servidor não respondeu' },
     { name: 'Versão da interface', ok: true, note: APP_VERSION },
   ]
   return (

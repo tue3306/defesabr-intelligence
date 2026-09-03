@@ -1,7 +1,13 @@
+import { readFileSync } from 'node:fs'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+// Versao unica, lida do package.json. Antes a interface tinha a sua propria
+// constante '1.0.0', que divergiu silenciosamente do 2.0.0 do projeto.
+const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'))
+
 export default defineConfig({
+  define: { __APP_VERSION__: JSON.stringify(version) },
   // A aplicacao tem BACKEND: nao roda em hospedagem estatica. O mesmo processo
   // Node serve a API e esta pasta, entao a base e sempre a raiz.
   base: '/',

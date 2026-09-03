@@ -28,6 +28,7 @@ import SearchBar from '../components/ui/SearchBar'
 import TagFilter from '../components/ui/TagFilter'
 import Can from '../auth/Can'
 import { newsService } from '../services/newsService'
+import { useFontesReais } from '../hooks/useFontesReais'
 import { useNewsStore } from '../store/newsStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { URGENCY_LEVELS } from '../data/mockData'
@@ -43,7 +44,10 @@ export default function DailyClipping() {
   const addClipping = useNewsStore((s) => s.addClipping)
   const latest = useNewsStore((s) => s.latestClipping)
   const clippings = useNewsStore((s) => s.clippings)
-  const activeSources = useSettingsStore((s) => s.rssSources.filter((src) => src.enabled).length)
+  // Contava as fontes "habilitadas" da lista escrita a mao. O numero da
+  // edicao vem do servidor (`result.active_sources`); este era so o fallback,
+  // e um fallback que inventa numero e pior que nenhum.
+  const fontesReais = useFontesReais()
 
   const [result, setResult] = useState(latest)
   const [sourcesOpen, setSourcesOpen] = useState(false)
@@ -158,11 +162,10 @@ export default function DailyClipping() {
           { label: 'Edição', value: result?.date || formatFullDate() },
           { label: 'Notícias', value: String(allNews.length) },
           // Duas coleções de fontes convivem aqui, e o contador precisa mostrar
-          // a que produziu ESTA edição. Quando o clipping veio do servidor, o
-          // número é o de fontes que responderam na última execução; quando é
-          // acervo local, é o das fontes que o navegador tentaria ler — todas
-          // desabilitadas por padrão, porque falham por CORS.
-          { label: 'Fontes ativas', value: String(result?.active_sources ?? activeSources) },
+          // a que produziu ESTA edição: quantas responderam na última execução
+          // da coleta. O fallback também vem do servidor — antes era a
+          // contagem de uma lista escrita à mão no navegador.
+          { label: 'Fontes ativas', value: String(result?.active_sources ?? fontesReais.total ?? '—') },
         ]}
         actions={
           <>
@@ -504,42 +507,46 @@ function ThemeCounter({ news }) {
 // Painel informativo: quais fontes alimentam a edição. A gestão das fontes
 // vive em Configurações — aqui a lista é apenas de consulta.
 function SourcesPanel({ open, onToggle }) {
-  const sources = useSettingsStore((s) => s.rssSources)
-  const online = sources.filter((s) => s.status === 'online').length
+  // Listava as 15 fontes escritas a mao e contava quantas tinham
+  // `status: 'online'` — um literal. O painel dizia "11 online" com o servidor
+  // fora do ar. Agora sao as fontes reais, com o estado da ultima coleta.
+  const fontes = useFontesReais()
+  const online = fontes.ok ?? 0
 
   return (
     <section className="card overflow-hidden">
       <button onClick={onToggle} className="flex w-full items-center justify-between gap-3 p-4" aria-expanded={open}>
         <span className="flex items-center gap-2 font-semibold">
-          <Rss size={17} className="text-gold-500" /> Fontes monitoradas ({sources.length})
+          <Rss size={17} className="text-gold-500" /> Fontes monitoradas ({fontes.total ?? '—'})
         </span>
         <span className="flex items-center gap-3">
-          <span className="text-xs muted">{online} online</span>
+          <span className="text-xs muted">{online} responderam</span>
           <ChevronDown size={18} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
         </span>
       </button>
       {open && (
-        <div className="space-y-2 border-t border-gray-200 p-4 dark:border-white/[0.07]">
-          {sources.map((s) => (
-            <div
-              key={s.id}
-              className="flex items-center justify-between gap-3 rounded-lg bg-gray-50 px-3 py-2 text-sm dark:bg-white/5"
-            >
+        <div className="space-y-1.5 border-t border-gray-200 p-4 dark:border-white/[0.07]">
+          {!fontes.itens.length && (
+            <p className="text-sm muted">
+              {fontes.carregando ? 'Consultando o servidor…' : 'A API não respondeu.'}
+            </p>
+          )}
+          {fontes.itens.map((f) => (
+            <div key={f.name} className="flex items-center justify-between gap-3 text-sm">
               <span className="flex min-w-0 items-center gap-2">
                 <Circle
-                  size={9}
-                  className={s.status === 'online' ? 'fill-emerald-400 text-emerald-700 dark:text-emerald-400' : 'fill-red-400 text-red-700 dark:text-red-400'}
+                  size={8}
+                  className={f.status === 'ok'
+                    ? 'fill-emerald-400 text-emerald-700 dark:text-emerald-400'
+                    : 'fill-red-400 text-red-700 dark:text-red-400'}
                 />
-                <span className="truncate font-medium">{s.name}</span>
+                <span className="truncate">{f.name}</span>
               </span>
-              <span className={`chip shrink-0 ${s.enabled ? 'text-emerald-800 dark:text-emerald-300' : ''}`}>
-                {s.enabled ? 'Coletando' : 'Pausada'}
+              <span className="shrink-0 font-mono text-xs muted">
+                {f.status === 'ok' ? `${f.items ?? 0}` : f.status}
               </span>
             </div>
           ))}
-          <Link to="/configuracoes" className="btn-ghost mt-1 w-full justify-center text-xs">
-            <SlidersHorizontal size={14} /> Gerenciar fontes em Configurações
-          </Link>
         </div>
       )}
     </section>

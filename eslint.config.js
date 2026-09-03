@@ -37,7 +37,11 @@ export default [
     languageOptions: {
       ecmaVersion: 2023,
       sourceType: 'module',
-      globals: { ...globals.browser },
+      globals: {
+        ...globals.browser,
+        // Injetado pelo Vite em tempo de build (ver vite.config.js).
+        __APP_VERSION__: 'readonly',
+      },
       parserOptions: {
         ecmaFeatures: { jsx: true },
       },
