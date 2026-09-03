@@ -379,12 +379,16 @@ function Diagnostics() {
   const online = sources.filter((x) => x.enabled && x.status === 'online').length
   const total = sources.filter((x) => x.enabled).length
   const ai = iaConfigurada()
+  // Este bloco marcava AwesomeAPI e World Bank como `ok: true` fixo — dois
+  // "ok" que nunca mudavam, mesmo com o servidor fora do ar —, dizia "modo
+  // demo" para a IA (o modo não existe mais) e anunciava a versão v1.0.0, que
+  // não é a do projeto. O estado das integrações é medido no console de
+  // governança, a partir das execuções reais; aqui fica só o que esta tela
+  // sabe de fato.
   const items = [
-    { name: 'Claude API', ok: ai, note: ai ? 'configurada' : 'modo demo' },
-    { name: 'Fontes RSS', ok: online === total, note: `${online}/${total} online` },
-    { name: 'AwesomeAPI (câmbio)', ok: true, note: 'ok' },
-    { name: 'World Bank', ok: true, note: 'ok' },
-    { name: 'Build', ok: true, note: 'v1.0.0' },
+    { name: 'Síntese por IA', ok: ai, note: ai ? 'configurada' : 'não conectada' },
+    { name: 'Fontes RSS locais', ok: total === 0 || online === total, note: total ? `${online}/${total} habilitadas` : 'nenhuma habilitada' },
+    { name: 'Versão da interface', ok: true, note: APP_VERSION },
   ]
   return (
     <ul className="space-y-2 text-sm">

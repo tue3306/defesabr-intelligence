@@ -7,13 +7,19 @@ import toast from 'react-hot-toast'
 const REPO_URL = 'https://github.com/tue3306/defesabr-intelligence'
 const TECH_STACK = ['React 18', 'Vite', 'Tailwind CSS', 'Zustand', 'Recharts', 'Framer Motion']
 
+// As fontes que a plataforma REALMENTE consulta hoje.
+//
+// Esta lista anunciava GDELT, rss2json, AwesomeAPI e Alpha Vantage. As quatro
+// eram clientes que rodavam no NAVEGADOR e caíam para dados escritos à mão;
+// foram substituídas pelo servidor, que busca direto de quem publica. Manter
+// os nomes antigos numa página chamada "Sobre" seria descrever um produto que
+// não existe mais para quem foi ali justamente conferir.
 const APIS = [
-  { name: 'GDELT Project', use: 'Notícias globais em tempo real', free: true },
-  { name: 'World Bank API', use: 'Gastos militares (histórico e % do PIB)', free: true },
-  { name: 'AwesomeAPI', use: 'Cotações de câmbio BRL', free: true },
-  { name: 'rss2json', use: 'Leitura de feeds RSS de defesa', free: true },
-  { name: 'Alpha Vantage', use: 'Ações do setor de defesa', free: true },
-  { name: 'Anthropic Claude', use: 'Compilação, resumo e análise por IA', free: false },
+  { name: 'Feeds RSS oficiais', use: 'gov.br, Agência Brasil/EBC, Senado e imprensa especializada', free: true },
+  { name: 'Câmara dos Deputados', use: 'Proposições de defesa, via Dados Abertos', free: true },
+  { name: 'World Bank Open Data', use: 'Gasto militar e PIB (histórico e % do PIB)', free: true },
+  { name: 'Banco Central — SGS', use: 'Dólar, euro, Selic, IPCA e IGP-M', free: true },
+  { name: 'Comex Stat (MDIC)', use: 'Exportações da indústria de defesa por NCM', free: true },
 ]
 
 

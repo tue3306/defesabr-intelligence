@@ -45,6 +45,11 @@ export const adminService = {
   health: () => request('GET /admin/health'),
   diagnostics: () => request('GET /admin/diagnostics'),
 
+  // Teste REAL de uma fonte: o servidor busca o feed agora e devolve o que
+  // aconteceu — quantos itens vieram, quantos eram novos, ou o erro.
+  // Substitui uma "verificação" que derivava o resultado de um hash do id.
+  testarFonte: (id) => request(`POST /system/collect/${id}`),
+
   /**
    * Perfis de acesso. Resolve localmente e diz isso em `meta.source`, para a
    * tela poder distinguir configuração de dado coletado.

@@ -633,19 +633,34 @@ function FontesSection() {
     toast.success(s.collecting ? `Coleta de ${s.name} pausada.` : `Coleta de ${s.name} marcada como ativa.`)
   }
 
-  const testar = (s) => {
+  // Teste de fonte — de verdade.
+  //
+  // Este botão derivava o resultado de `hashId(s.id)`: uma em cada cinco
+  // fontes "falhava", sempre a mesma, com uma latência inventada a partir do
+  // mesmo número. Num console de governança, uma verificação que inventa a
+  // resposta é pior que botão nenhum — ela produz a evidência que o operador
+  // veio buscar, e a evidência é falsa.
+  //
+  // `POST /system/collect/:id` faz o servidor buscar aquele feed AGORA e
+  // devolve o que aconteceu: itens encontrados, novos, ou a mensagem de erro.
+  const testar = async (s) => {
     setTesting(s.id)
-    // Resultado ESTÁVEL derivado do id: a mesma fonte devolve sempre o mesmo
-    // diagnóstico, como um teste real devolveria enquanto nada mudasse.
-    const h = hashId(s.id)
-    const ok = h % 5 !== 0
-    const latency = 120 + (h % 380)
-    timer.current = setTimeout(() => {
-      setChecks((c) => ({ ...c, [s.id]: { ok, latency } }))
+    try {
+      const { data } = await adminService.testarFonte(s.id)
+      setChecks((c) => ({ ...c, [s.id]: { ok: !!data?.ok, latency: data?.duracaoMs ?? null } }))
+      if (data?.ok) {
+        toast.success(
+          `${s.name}: respondeu em ${data.duracaoMs} ms — ${data.encontrados} item(ns), ${data.novos} novo(s).`
+        )
+      } else {
+        toast.error(`${s.name}: ${data?.erro || 'sem resposta'}`)
+      }
+    } catch (e) {
+      setChecks((c) => ({ ...c, [s.id]: { ok: false, latency: null } }))
+      toast.error(`${s.name}: ${e?.userMessage || e?.message || 'falha ao testar'}`)
+    } finally {
       setTesting(null)
-      if (ok) toast.success(`${s.name}: alcançável, ~${latency} ms (verificação simulada).`)
-      else toast.error(`${s.name}: sem resposta — bloqueio de CORS ou limite do proxy.`)
-    }, 900)
+    }
   }
 
   const remover = () => {
@@ -833,14 +848,17 @@ function IntegracoesSection() {
 
   const reconectar = (integration) => {
     setChecking(integration.id)
-    const h = hashId(integration.id)
-    // Integração ainda não implantada nunca "reconecta": dizer o contrário
-    // seria inventar um sucesso que não existe.
+    // Este bloco sorteava o desfecho por `hashId`: uma em cada quatro
+    // integrações "recusava o handshake", com latência inventada. Não há como
+    // testar uma integração isoladamente — o que existe é o estado MEDIDO de
+    // cada coletor, que o painel de saúde já mostra. Então a resposta honesta
+    // é dizer onde olhar, em vez de encenar uma verificação.
     const outcome = integration.status === 'planned'
-      ? { ok: false, message: 'Integração ainda não implantada — depende de backend/proxy.' }
-      : h % 4 === 0
-        ? { ok: false, message: 'Handshake recusado pelo provedor (verificação simulada).' }
-        : { ok: true, message: `Credencial válida, resposta em ~${140 + (h % 260)} ms.` }
+      ? { ok: false, message: 'Integração ainda não implantada — não há o que verificar.' }
+      : {
+        ok: true,
+        message: 'O estado desta integração é medido a cada coleta. Veja "Saúde dos serviços".',
+      }
 
     timer.current = setTimeout(() => {
       setItems((list) => list.map((x) => (
@@ -1214,8 +1232,3 @@ function Fact({ label, value }) {
 
 // Hash estável de um id — base dos resultados simulados. Determinístico de
 // propósito: `Math.random()` daria diagnósticos diferentes a cada render.
-function hashId(id = '') {
-  let h = 0
-  for (let i = 0; i < id.length; i += 1) h = (h * 31 + id.charCodeAt(i)) % 100000
-  return h
-}
