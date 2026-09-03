@@ -21,14 +21,22 @@
 // conteúdo já não é mock nenhum.
 // -----------------------------------------------------------------------------
 
+// Precisa espelhar `REGRAS_CATEGORIA` do servidor
+// (server/src/lib/relevance.js). Faltavam três, e o efeito era silencioso: a
+// tela de Configurações e o filtro do Arquivo simplesmente não ofereciam
+// 'Programas & Meios', 'Segurança Pública' e 'Proteção Civil' — 26% do acervo
+// era inalcançável por filtro sem que nada indicasse a ausência.
 export const CATEGORIES = [
   'Forças Armadas',
+  'Programas & Meios',
   'Cibersegurança',
   'Fronteiras',
   'Indústria',
   'Diplomacia',
   'Orçamento',
   'Inteligência',
+  'Segurança Pública',
+  'Proteção Civil',
 ]
 
 export const URGENCY_LEVELS = ['CRITICO', 'ALTO', 'MEDIO', 'BAIXO']

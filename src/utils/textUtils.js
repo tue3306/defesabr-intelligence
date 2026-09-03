@@ -31,14 +31,20 @@ export const alertMeta = {
 
 // Cor por categoria (para gráficos e badges). A chave é exibida diretamente.
 // Paleta alinhada às Forças/Defesa para diferenciar visualmente cada área.
+// Uma cor por categoria do servidor. Precisam ser TODAS: sem entrada, a
+// categoria cai no cinza de fallback — e três categorias cinzas na mesma
+// legenda são três categorias que o leitor não consegue distinguir.
 export const categoryColors = {
-  'Forças Armadas': '#2e7d46', // verde Exército
-  Cibersegurança: '#8b5cf6',   // roxo
-  Fronteiras: '#d4841a',       // âmbar
-  Indústria: '#64748b',        // azul FAB
-  Diplomacia: '#caa733',       // ouro Defesa
-  Orçamento: '#c0392b',        // vermelho
-  Inteligência: '#475569',     // azul-marinho
+  'Forças Armadas': '#2e7d46',   // verde Exército
+  'Programas & Meios': '#0d7d8f', // teal — meios e sistemas nomeados
+  Cibersegurança: '#8b5cf6',      // roxo
+  Fronteiras: '#d4841a',          // âmbar
+  Indústria: '#64748b',           // cinza-azulado
+  Diplomacia: '#caa733',          // ouro Defesa
+  Orçamento: '#c0392b',           // vermelho
+  Inteligência: '#475569',        // azul-marinho
+  'Segurança Pública': '#1e5f9e', // azul polícia
+  'Proteção Civil': '#b5651d',    // laranja-terra, defesa civil
 }
 
 export function categoryColor(cat) {

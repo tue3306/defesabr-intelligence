@@ -277,28 +277,46 @@ export function avaliarRelevancia(texto) {
 // ─────────────────────────────────────────────────────────────────────────────
 // CLASSIFICAÇÃO
 // ─────────────────────────────────────────────────────────────────────────────
+// A ORDEM IMPORTA: vale a primeira regra que casa, e a lista vai da mais
+// especifica para a mais ampla. 'Forças Armadas' fica por ultimo porque seus
+// termos sao os mais gerais do dominio — se estivesse antes, engoliria as
+// demais.
+//
+// A distribuicao medida contra o acervo mostrava o problema: 79% dos artigos
+// relevantes caiam em 'Forças Armadas', o que deixava o grafico de radar da
+// tela de Dados achatado num unico eixo e tornava o filtro por categoria do
+// Clipping inutil — filtrar por algo que e 4 em cada 5 nao filtra nada.
+//
+// A causa nao era a regra padrao engolindo tudo: era falta de categoria para
+// duas coisas que o acervo tem de sobra. Programa e meio (PROSUB, Gripen,
+// fragata Tamandare, Aramar) nao e a instituicao Forcas Armadas, e verba
+// tambem nao — "Cortes colocam Ministerio da Defesa em modo sobrevivencia" e
+// materia de orcamento. Com as duas, 'Forças Armadas' cai para 57% e volta a
+// significar o que o nome diz: a instituicao, seu pessoal e suas operacoes.
 const REGRAS_CATEGORIA = [
   { cat: 'Cibersegurança', termos: ['ciberseguranca', 'ciberataque', 'ciberdefesa', 'ransomware', 'ataque hacker', 'vazamento de dados', 'ataque cibernetico', 'incidente cibernetico', 'seguranca cibernetica', 'ctir gov'] },
   { cat: 'Fronteiras', termos: ['faixa de fronteira', 'triplice fronteira', 'amazonia azul', 'garimpo ilegal', 'narcotrafico', 'contrabando', 'operacao agata', 'sisfron'] },
-  { cat: 'Indústria', termos: ['embraer', 'avibras', 'imbel', 'industria de defesa', 'base industrial de defesa', 'estaleiro', 'kc-390'] },
-  { cat: 'Orçamento', termos: ['orcamento', 'contingenciamento', 'licitacao', 'investimento'] },
-  { cat: 'Diplomacia', termos: ['itamaraty', 'mercosul', 'otan', 'onu', 'geopolitica', 'acordo bilateral', 'missao de paz'] },
-  { cat: 'Inteligência', termos: ['abin', 'agencia brasileira de inteligencia', 'desinformacao', 'espionagem', 'guerra hibrida'] },
-  { cat: 'Forças Armadas', termos: ['forcas armadas', 'exercito brasileiro', 'marinha do brasil', 'aeronautica', 'submarino', 'fragata', 'exercicio militar'] },
 
-  // ── Categorias acrescentadas com as fontes de segurança pública ──
-  //
-  // Sem elas, "PF faz operação contra o tráfico interestadual" e "Defesa Civil
-  // reconhece situação de emergência" caíam no PADRÃO — 'Forças Armadas' —, e
-  // o clipping exibia uma operação policial e um decreto de calamidade como se
-  // fossem assunto militar. Categoria errada é pior que categoria ausente:
-  // quem filtra por "Forças Armadas" recebe o que não pediu e conclui que o
-  // filtro não funciona.
-  //
-  // Ficam DEPOIS das específicas de propósito: uma matéria sobre narcotráfico
-  // na tríplice fronteira é assunto de Fronteiras, que já a captura acima.
+  // Sistema, plataforma ou programa nomeado. Vem ANTES de Orçamento porque
+  // "Exército pede R$ 456 bilhões para o Gripen" é notícia de programa com
+  // cifra, não de execução orçamentária.
+  { cat: 'Programas & Meios', termos: ['prosub', 'gripen', 'tamandare', 'kc-390', 'super tucano', 'astros', 'riachuelo', 'sgdc', 'sisgaaz', 'programa nuclear', 'submarino', 'submarinos', 'fragata', 'fragatas', 'corveta', 'corvetas', 'porta-avioes', 'blindado', 'blindados', 'helicoptero militar', 'caca militar', 'aeronave militar', 'navio-patrulha', 'destroier', 'missil', 'misseis'] },
+
+  { cat: 'Indústria', termos: ['embraer', 'avibras', 'imbel', 'taurus armas', 'industria de defesa', 'base industrial de defesa', 'estaleiro'] },
+
+  // Termos de dinheiro deliberadamente contidos: "milhões" e "recursos"
+  // aparecem em qualquer matéria e mandariam metade do acervo para cá.
+  { cat: 'Orçamento', termos: ['orcamento', 'orcamentaria', 'contingenciamento', 'licitacao', 'ploa', 'ldo', 'custeio', 'contingenciar', 'corte no orcamento', 'cortes no orcamento', 'inativos', 'pensionistas', 'soldo', 'investimentos nas forcas armadas'] },
+
+  { cat: 'Diplomacia', termos: ['itamaraty', 'mercosul', 'otan', 'onu', 'geopolitica', 'acordo bilateral', 'missao de paz', 'acordo militar', 'cooperacao militar'] },
+  { cat: 'Inteligência', termos: ['abin', 'agencia brasileira de inteligencia', 'desinformacao', 'espionagem', 'guerra hibrida'] },
   { cat: 'Segurança Pública', termos: ['policia federal', 'trafico interestadual', 'trafico internacional', 'trafico transnacional', 'trafico de drogas', 'faccao criminosa', 'crime organizado', 'organizacao criminosa', 'lavagem de dinheiro', 'mandados de busca'] },
   { cat: 'Proteção Civil', termos: ['defesa civil', 'protecao e defesa civil', 'situacao de emergencia', 'estado de calamidade', 'desastre natural', 'enchente', 'estiagem'] },
+
+  // A mais ampla, e por isso a ultima. Tambem e o padrao de quem nao casa com
+  // nenhuma: um texto que passou no filtro de relevancia e sobre defesa, e
+  // 'Forças Armadas' e a resposta menos errada quando nada mais se aplica.
+  { cat: 'Forças Armadas', termos: ['forcas armadas', 'exercito brasileiro', 'marinha do brasil', 'aeronautica', 'exercicio militar', 'ministerio da defesa', 'comando militar', 'estado-maior', 'adido militar', 'tropas militares', 'operacao militar'] },
 ]
 
 const REGRAS_URGENCIA = [
