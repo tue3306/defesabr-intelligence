@@ -48,11 +48,15 @@ import { avaliarRelevancia, classificar, limparRodape, chaveDeTitulo } from '../
  * repetido também recebe 503. Contornar exigiria disfarçar a origem, o que é
  * evasão de detecção e não coleta.
  *
- * Ficam cadastrados de propósito. Em desenvolvimento contribuem bastante — são
- * as únicas fontes que varrem a imprensa inteira em vez de um veículo só —, e
- * em produção o painel os mostra em vermelho com o código real. Um erro
- * explicado no código é diferente de um erro que ninguém entende: quem abrir o
- * painel amanhã e vir 19 de 21 tem, aqui, a resposta do porquê.
+ * O Defesa Aérea & Naval entrou depois e caiu no mesmo caso: HTTP 403 de
+ * dentro do Railway, 200 daqui. São TRÊS fontes com esse comportamento.
+ *
+ * Ficam cadastradas de propósito. Em desenvolvimento contribuem bastante — os
+ * agregadores varrem a imprensa inteira em vez de um veículo só, e o Defesa
+ * Aérea & Naval é especializado —, e em produção o painel as mostra em
+ * vermelho com o código real. Um erro explicado no código é diferente de um
+ * erro que ninguém entende: quem abrir o painel e vir 47 de 50 tem, aqui, a
+ * resposta do porquê.
  *
  * SOBRE O CAMINHO `/RSS` DA RAIZ DO GOV.BR
  *
