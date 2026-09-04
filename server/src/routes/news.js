@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { all, get, run } from '../db/index.js'
 import { METODO_RELEVANCIA } from '../lib/relevance.js'
 import { avaliarRelevancia, classificar } from '../lib/relevance.js'
-import { UFS, REGIOES_ESTRATEGICAS, PAISES, detectarLugares, detectarPaises, nomePtDoPais, foraDaEscala } from '../lib/geo.js'
+import { UFS, REGIOES_ESTRATEGICAS, PAISES, detectarLugares, detectarPaises, nomePtDoPais, foraDaEscala, isoDoPais } from '../lib/geo.js'
 import { consolidar, LIMIAR_SIMILARIDADE, JANELA_HORAS } from '../lib/eventos.js'
 import { dias, limite } from '../lib/parametros.js'
 
@@ -323,6 +323,101 @@ router.get('/news/countries', (req, res) => {
     nota: 'Contagem de MENCOES a paises no texto das noticias coletadas. Mede volume de '
       + 'cobertura, nao risco, tensao ou atividade militar. Um pais aparece mais porque a '
       + 'imprensa escreveu mais sobre ele no periodo.',
+  })
+})
+
+// GET /api/news/pais/:nome — dossie de um pais
+//
+// O mapa pintava paises e mostrava cinco manchetes. Isso e um grafico, nao um
+// ponto de exploracao: quem clica na Russia quer saber o que esta acontecendo
+// ali, nao ver cinco titulos e um numero.
+//
+// O dossie reune, para um pais, tudo o que a plataforma sabe DELE: cobertura
+// noticiosa com tendencia, distribuicao por categoria e urgencia, os eventos
+// mais recentes e — quando existir — as vitimas de ransomware registradas.
+//
+// A juncao entre os dois mundos passa por `isoDoPais`: o mapa fala o nome em
+// ingles do world-atlas, o ransomware.live fala ISO2. Sem essa ponte, clicar
+// num pais nunca poderia mostrar as duas coisas juntas.
+//
+// NAO INVENTA RELACAO. Um pais so aparece ligado a uma noticia se o detector
+// achou o termo dele no texto; se nao achou, o dossie diz que nao ha
+// cobertura, em vez de estimar.
+router.get('/news/pais/:nome', (req, res) => {
+  const nome = String(req.params.nome).slice(0, 60)
+  const days = dias(req.query.days, 180)
+  const iso = isoDoPais(nome)
+  const pt = nomePtDoPais(nome)
+
+  const janela = (d) => `strftime('%Y-%m-%dT%H:%M:%SZ','now', '-${d} days')`
+
+  // Detecta em memoria: a deteccao e por regex sobre o texto, e nao ha coluna
+  // de pais no artigo. Com algumas centenas de linhas isso custa poucos ms.
+  const candidatos = all(
+    `SELECT a.id, a.title, a.summary, a.category, a.urgency, a.published_at, a.url,
+            s.name AS fonte
+       FROM articles a LEFT JOIN sources s ON s.id = a.source_id
+      WHERE a.relevant = 1 AND a.published_at >= ${janela(days * 2)}
+      ORDER BY a.published_at DESC`
+  )
+
+  const corte = new Date(Date.now() - days * 86400000).toISOString()
+  const doPais = []
+  let anteriores = 0
+
+  for (const a of candidatos) {
+    if (!detectarPaises(`${a.title} ${a.summary || ''}`).includes(nome)) continue
+    if (a.published_at >= corte) doPais.push(a)
+    else anteriores += 1
+  }
+
+  const contar = (campo) => {
+    const m = new Map()
+    for (const a of doPais) {
+      const k = a[campo] || '(sem)'
+      m.set(k, (m.get(k) || 0) + 1)
+    }
+    return [...m.entries()].map(([nome_, total]) => ({ nome: nome_, total })).sort((x, y) => y.total - x.total)
+  }
+
+  // Ransomware, quando o pais tem codigo ISO conhecido.
+  const vitimas = iso ? all(
+    `SELECT victim, "group", sector, discovered_at, criticality, nature
+       FROM ransomware_victims WHERE country = ? ORDER BY discovered_at DESC LIMIT 15`,
+    [iso]
+  ) : []
+  const totalVitimas = iso
+    ? get('SELECT COUNT(*) AS n FROM ransomware_victims WHERE country = ?', [iso])?.n ?? 0
+    : 0
+
+  res.json({
+    pais: nome,
+    pt,
+    iso,
+    periodoDias: days,
+    cobertura: {
+      total: doPais.length,
+      periodoAnterior: anteriores,
+      // Tendencia so quando ha base de comparacao: com zero no periodo
+      // anterior, "+100%" nao significa nada.
+      variacao: anteriores > 0 ? Math.round(((doPais.length - anteriores) / anteriores) * 100) : null,
+      porCategoria: contar('category'),
+      porUrgencia: contar('urgency'),
+      porFonte: contar('fonte').slice(0, 8),
+    },
+    noticias: doPais.slice(0, 20).map((a) => ({
+      id: a.id, titulo: a.title, resumo: a.summary, categoria: a.category,
+      urgencia: a.urgency, publicadoEm: a.published_at, url: a.url, fonte: a.fonte,
+    })),
+    ransomware: {
+      total: totalVitimas,
+      itens: vitimas,
+      // Sem ISO nao ha como cruzar: a interface precisa distinguir "nenhuma
+      // vitima" de "nao da para saber".
+      disponivel: !!iso,
+    },
+    nota: 'Um pais so aparece ligado a uma noticia quando o detector encontrou um termo dele '
+      + 'no texto — nome, gentilico ou capital. Mencao e o que se mede; relacao causal, nao.',
   })
 })
 

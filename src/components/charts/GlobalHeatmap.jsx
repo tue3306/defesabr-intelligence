@@ -1,9 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { ComposableMap, Geographies, Geography } from 'react-simple-maps'
-import { Newspaper, MapPin, Flag } from 'lucide-react'
 import { countryIntel, AMERICAS } from '../../data/countryNews'
 import { apiOnline, viaPonte } from '../../services/apiBridge'
-import { categoryColor , textoSobre } from '../../utils/textUtils'
+import CountryDossier from './CountryDossier'
 
 const geoUrl = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json'
 
@@ -183,114 +182,19 @@ export default function GlobalHeatmap({ height = 380, withNews = true }) {
       </div>
 
       {/* Painel de notícias do país ativo */}
-      {withNews && <CountryNewsPanel active={active} aoVivo={aoVivo} />}
+      {withNews && <CountryDossier pais={activeName} />}
     </div>
   )
 }
 
-function CountryNewsPanel({ active, aoVivo }) {
-  if (!active) {
-    return <p className="mt-4 border-t border-gray-700/40 pt-4 text-center text-sm muted">Selecione um país no mapa.</p>
-  }
-  const { name, namePt, risk, intel } = active
-  // [ALTERADO] Relevância do país para o Brasil
-  const relevance = name === 'Brazil' ? 'País-foco' : AMERICAS.has(name) ? 'Alta' : 'Média'
-  const relColor = relevance === 'Alta' ? '#2e7d46' : relevance === 'Média' ? '#caa733' : '#147a43'
-  const noticias = aoVivo ? (active.cobertura?.exemplos || []) : (intel?.news || [])
-  return (
-    <div className="mt-4 border-t border-gray-700/40 pt-4">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="flex items-center gap-2 text-sm font-bold tracking-tight">
-          <MapPin size={16} className="text-brand-400 dark:text-brand-300" /> {namePt}
-        </h3>
-        <div className="flex items-center gap-2">
-          {/* A cor de relevância vai para a BORDA e o fundo; o texto herda o
-              tema. Como cor de texto ela caía a 2,7:1 no escuro. */}
-          <span
-            className="rounded-full border px-2 py-0.5 text-xs font-semibold text-gray-900 dark:text-gray-100"
-            style={{ borderColor: relColor, background: `${relColor}26` }}
-          >
-            Relevância p/ Brasil: {relevance}
-          </span>
-          {/* O selo muda de fundo conforme o valor. Texto branco fixo dava
-              2,3:1 sobre os tons claros da faixa média; a cor do texto segue a
-              luminância do próprio fundo, que é a única forma de acertar nos
-              dois extremos.
-
-              O RÓTULO muda com a origem do dado, e isso não é detalhe: com a
-              API no ar o número é contagem de notícias coletadas, e chamá-lo
-              de "risco" seria vender uma medida que ninguém fez. */}
-          <span
-            className="rounded-full px-2 py-0.5 text-xs font-bold"
-            style={{ background: colorFor(risk), color: textoSobre(colorFor(risk)) }}
-          >
-            {aoVivo
-              ? `${active.cobertura?.total ?? 0} notícia(s)`
-              : `risco ${risk ?? '—'}/100`}
-          </span>
-        </div>
-      </div>
-
-      {intel?.brazil && (
-        <p className="mb-3 flex items-start gap-2 rounded-lg bg-brand-500/10 px-3 py-2 text-xs text-brand-200">
-          <Flag size={13} className="mt-0.5 shrink-0" />
-          <span><strong>Relação com o Brasil:</strong> {intel.brazil}</span>
-        </p>
-      )}
-
-      {/* Com a API no ar, as manchetes são as que a coleta encontrou citando
-          este país — clicáveis, com data e categoria reais. Sem ela, caem as
-          fichas do acervo local. */}
-      {noticias.length ? (
-        <ul className="space-y-2">
-          {noticias.map((n, i) => (
-            <li key={n.id ?? i} className="flex items-start gap-2.5 rounded-lg bg-white/5 px-3 py-2">
-              <Newspaper size={15} className="mt-0.5 shrink-0 text-gray-400" />
-              <div className="min-w-0">
-                {n.url ? (
-                  <a
-                    href={n.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-sm font-medium text-gray-900 hover:underline dark:text-gray-200"
-                  >
-                    {n.title}
-                  </a>
-                ) : (
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-200">{n.title}</p>
-                )}
-                <p className="mt-0.5 flex items-center gap-1.5 text-[11px] muted">
-                  <span className="h-2 w-2 rounded-full" style={{ background: categoryColor(n.category) }} />
-                  {n.category || 'Sem categoria'} · {n.date ? new Date(n.date).toLocaleDateString('pt-BR') : '—'}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-sm muted">
-          {!aoVivo
-            ? 'Sem dados de cobertura — o servidor de coleta não respondeu.'
-            : name === 'Brazil'
-              // O Brasil não é contado de propósito, e a tela precisa dizer por
-              // quê: todo o acervo é sobre ele. Incluí-lo somaria ~150 menções
-              // contra 16 do segundo colocado, e o mapa inteiro viraria uma
-              // mancha só — a escala é relativa ao máximo.
-              ? 'O Brasil não entra na contagem: o acervo inteiro é sobre ele. '
-                + 'Este mapa mostra quais OUTROS países a cobertura brasileira de defesa cita.'
-              : 'Nenhuma notícia coletada no período menciona este país.'}
-        </p>
-      )}
-
-      {aoVivo && (
-        <p className="mt-3 text-[11px] muted">
-          A cor do mapa mede <strong>volume de cobertura</strong> — quantas notícias coletadas
-          citam cada país —, não risco, tensão ou atividade militar.
-        </p>
-      )}
-    </div>
-  )
-}
+// `CountryNewsPanel` vivia aqui: mostrava cinco manchetes e um selo de
+// "relevancia para o Brasil" derivado de um Set de paises das Americas — uma
+// classificacao escrita a mao, nao medida.
+//
+// Foi substituido por <CountryDossier />, que busca o dossie do pais no
+// servidor: cobertura com tendencia contra o periodo anterior, distribuicao
+// por categoria, noticias recentes e as vitimas de ransomware do territorio.
+// Duas fontes independentes cruzadas pelo codigo ISO.
 
 function Legend({ color, label }) {
   return (

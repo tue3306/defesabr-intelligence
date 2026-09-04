@@ -206,6 +206,13 @@ export const PONTES = new Map([
 
   // O clipping como EVENTOS: o mesmo fato coberto por varios veiculos vira uma
   // linha com o selo de corroboracao.
+  // Dossie de um pais: cobertura com tendencia, categorias, noticias e as
+  // vitimas de ransomware do territorio. E o que torna o mapa navegavel.
+  ['GET /news/pais', {
+    caminho: '/news/pais',
+    parametros: ({ days = 180 } = {}) => ({ days }),
+  }],
+
   ['GET /news/eventos', {
     caminho: '/news/eventos',
     parametros: ({ days = 7, category, urgency, limit } = {}) => ({ days, category, urgency, limit }),

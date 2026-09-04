@@ -160,53 +160,53 @@ export const PAISES = [
   // 36 restantes em cinza. Ver `foraDaEscala` e o calculo de `maximo` em
   // /news/countries. E o pais-base, nao um correlato estrangeiro.
   {
-    nome: 'Brazil',
+    nome: 'Brazil', iso: 'BR',
     pt: 'Brasil',
     foraDaEscala: true,
     termos: ['brasil', 'brasileiro', 'brasileira', 'brasileiros', 'brasileiras', 'brasilia'],
   },
 
   // Vizinhanca sul-americana — prioridade do produto
-  { nome: 'Argentina', pt: 'Argentina', termos: ['argentina', 'argentino', 'argentinos', 'buenos aires'] },
-  { nome: 'Bolivia', pt: 'Bolivia', termos: ['bolivia', 'boliviano', 'bolivianos', 'la paz'] },
-  { nome: 'Chile', pt: 'Chile', termos: ['chile', 'chileno', 'chilenos'] },
-  { nome: 'Colombia', pt: 'Colombia', termos: ['colombia', 'colombiano', 'colombianos', 'bogota'] },
-  { nome: 'Ecuador', pt: 'Equador', termos: ['equador', 'equatoriano', 'equatorianos', 'quito'] },
-  { nome: 'Guyana', pt: 'Guiana', termos: ['guiana', 'essequibo', 'georgetown'] },
-  { nome: 'Paraguay', pt: 'Paraguai', termos: ['paraguai', 'paraguaio', 'paraguaios', 'assuncao'] },
-  { nome: 'Peru', pt: 'Peru', termos: ['peru', 'peruano', 'peruanos'] },
-  { nome: 'Suriname', pt: 'Suriname', termos: ['suriname', 'paramaribo'] },
-  { nome: 'Uruguay', pt: 'Uruguai', termos: ['uruguai', 'uruguaio', 'uruguaios', 'montevideu'] },
-  { nome: 'Venezuela', pt: 'Venezuela', termos: ['venezuela', 'venezuelano', 'venezuelanos', 'caracas'] },
+  { nome: 'Argentina', iso: 'AR', pt: 'Argentina', termos: ['argentina', 'argentino', 'argentinos', 'buenos aires'] },
+  { nome: 'Bolivia', iso: 'BO', pt: 'Bolivia', termos: ['bolivia', 'boliviano', 'bolivianos', 'la paz'] },
+  { nome: 'Chile', iso: 'CL', pt: 'Chile', termos: ['chile', 'chileno', 'chilenos'] },
+  { nome: 'Colombia', iso: 'CO', pt: 'Colombia', termos: ['colombia', 'colombiano', 'colombianos', 'bogota'] },
+  { nome: 'Ecuador', iso: 'EC', pt: 'Equador', termos: ['equador', 'equatoriano', 'equatorianos', 'quito'] },
+  { nome: 'Guyana', iso: 'GY', pt: 'Guiana', termos: ['guiana', 'essequibo', 'georgetown'] },
+  { nome: 'Paraguay', iso: 'PY', pt: 'Paraguai', termos: ['paraguai', 'paraguaio', 'paraguaios', 'assuncao'] },
+  { nome: 'Peru', iso: 'PE', pt: 'Peru', termos: ['peru', 'peruano', 'peruanos'] },
+  { nome: 'Suriname', iso: 'SR', pt: 'Suriname', termos: ['suriname', 'paramaribo'] },
+  { nome: 'Uruguay', iso: 'UY', pt: 'Uruguai', termos: ['uruguai', 'uruguaio', 'uruguaios', 'montevideu'] },
+  { nome: 'Venezuela', iso: 'VE', pt: 'Venezuela', termos: ['venezuela', 'venezuelano', 'venezuelanos', 'caracas'] },
 
   // Resto das Americas
-  { nome: 'United States of America', pt: 'Estados Unidos', termos: ['estados unidos', 'eua', 'norte-americano', 'norte-americanos', 'washington', 'pentagono', 'casa branca'] },
-  { nome: 'Canada', pt: 'Canada', termos: ['canada', 'canadense', 'canadenses', 'ottawa'] },
-  { nome: 'Mexico', pt: 'Mexico', termos: ['mexico', 'mexicano', 'mexicanos'] },
-  { nome: 'Cuba', pt: 'Cuba', termos: ['cuba', 'cubano', 'cubanos', 'havana'] },
-  { nome: 'Haiti', pt: 'Haiti', termos: ['haiti', 'haitiano', 'haitianos'] },
+  { nome: 'United States of America', iso: 'US', pt: 'Estados Unidos', termos: ['estados unidos', 'eua', 'norte-americano', 'norte-americanos', 'washington', 'pentagono', 'casa branca'] },
+  { nome: 'Canada', iso: 'CA', pt: 'Canada', termos: ['canada', 'canadense', 'canadenses', 'ottawa'] },
+  { nome: 'Mexico', iso: 'MX', pt: 'Mexico', termos: ['mexico', 'mexicano', 'mexicanos'] },
+  { nome: 'Cuba', iso: 'CU', pt: 'Cuba', termos: ['cuba', 'cubano', 'cubanos', 'havana'] },
+  { nome: 'Haiti', iso: 'HT', pt: 'Haiti', termos: ['haiti', 'haitiano', 'haitianos'] },
 
   // Potencias e parceiros com peso em defesa
-  { nome: 'China', pt: 'China', termos: ['china', 'chines', 'chinesa', 'chineses', 'pequim'] },
-  { nome: 'Russia', pt: 'Russia', termos: ['russia', 'russo', 'russa', 'russos', 'moscou', 'kremlin'] },
-  { nome: 'Ukraine', pt: 'Ucrania', termos: ['ucrania', 'ucraniano', 'ucranianos', 'kiev'] },
-  { nome: 'France', pt: 'Franca', termos: ['franca', 'frances', 'francesa', 'franceses', 'paris'] },
-  { nome: 'United Kingdom', pt: 'Reino Unido', termos: ['reino unido', 'inglaterra', 'britanico', 'britanica', 'britanicos', 'londres'] },
-  { nome: 'Germany', pt: 'Alemanha', termos: ['alemanha', 'alemao', 'alema', 'alemaes', 'berlim'] },
-  { nome: 'Italy', pt: 'Italia', termos: ['italia', 'italiano', 'italianos'] },
-  { nome: 'Spain', pt: 'Espanha', termos: ['espanha', 'espanhol', 'espanhola', 'espanhois', 'madri'] },
-  { nome: 'Portugal', pt: 'Portugal', termos: ['portugal', 'portugues', 'portuguesa', 'portugueses', 'lisboa'] },
-  { nome: 'Israel', pt: 'Israel', termos: ['israel', 'israelense', 'israelenses'] },
-  { nome: 'Iran', pt: 'Ira', termos: ['iraniano', 'iranianos', 'teera'] },
-  { nome: 'India', pt: 'India', termos: ['india', 'indiano', 'indianos', 'nova delhi'] },
-  { nome: 'Japan', pt: 'Japao', termos: ['japao', 'japones', 'japonesa', 'japoneses', 'toquio'] },
-  { nome: 'South Korea', pt: 'Coreia do Sul', termos: ['coreia do sul', 'sul-coreano', 'sul-coreanos', 'seul'] },
-  { nome: 'North Korea', pt: 'Coreia do Norte', termos: ['coreia do norte', 'norte-coreano', 'norte-coreanos', 'pyongyang'] },
-  { nome: 'Turkey', pt: 'Turquia', termos: ['turquia', 'turco', 'turcos', 'ancara'] },
-  { nome: 'South Africa', pt: 'Africa do Sul', termos: ['africa do sul', 'sul-africano', 'sul-africanos'] },
-  { nome: 'Angola', pt: 'Angola', termos: ['angola', 'angolano', 'angolanos', 'luanda'] },
-  { nome: 'Nigeria', pt: 'Nigeria', termos: ['nigeria', 'nigeriano', 'nigerianos'] },
-  { nome: 'Sweden', pt: 'Suecia', termos: ['suecia', 'sueco', 'sueca', 'suecos', 'estocolmo', 'saab'] },
+  { nome: 'China', iso: 'CN', pt: 'China', termos: ['china', 'chines', 'chinesa', 'chineses', 'pequim'] },
+  { nome: 'Russia', iso: 'RU', pt: 'Russia', termos: ['russia', 'russo', 'russa', 'russos', 'moscou', 'kremlin'] },
+  { nome: 'Ukraine', iso: 'UA', pt: 'Ucrania', termos: ['ucrania', 'ucraniano', 'ucranianos', 'kiev'] },
+  { nome: 'France', iso: 'FR', pt: 'Franca', termos: ['franca', 'frances', 'francesa', 'franceses', 'paris'] },
+  { nome: 'United Kingdom', iso: 'GB', pt: 'Reino Unido', termos: ['reino unido', 'inglaterra', 'britanico', 'britanica', 'britanicos', 'londres'] },
+  { nome: 'Germany', iso: 'DE', pt: 'Alemanha', termos: ['alemanha', 'alemao', 'alema', 'alemaes', 'berlim'] },
+  { nome: 'Italy', iso: 'IT', pt: 'Italia', termos: ['italia', 'italiano', 'italianos'] },
+  { nome: 'Spain', iso: 'ES', pt: 'Espanha', termos: ['espanha', 'espanhol', 'espanhola', 'espanhois', 'madri'] },
+  { nome: 'Portugal', iso: 'PT', pt: 'Portugal', termos: ['portugal', 'portugues', 'portuguesa', 'portugueses', 'lisboa'] },
+  { nome: 'Israel', iso: 'IL', pt: 'Israel', termos: ['israel', 'israelense', 'israelenses'] },
+  { nome: 'Iran', iso: 'IR', pt: 'Ira', termos: ['iraniano', 'iranianos', 'teera'] },
+  { nome: 'India', iso: 'IN', pt: 'India', termos: ['india', 'indiano', 'indianos', 'nova delhi'] },
+  { nome: 'Japan', iso: 'JP', pt: 'Japao', termos: ['japao', 'japones', 'japonesa', 'japoneses', 'toquio'] },
+  { nome: 'South Korea', iso: 'KR', pt: 'Coreia do Sul', termos: ['coreia do sul', 'sul-coreano', 'sul-coreanos', 'seul'] },
+  { nome: 'North Korea', iso: 'KP', pt: 'Coreia do Norte', termos: ['coreia do norte', 'norte-coreano', 'norte-coreanos', 'pyongyang'] },
+  { nome: 'Turkey', iso: 'TR', pt: 'Turquia', termos: ['turquia', 'turco', 'turcos', 'ancara'] },
+  { nome: 'South Africa', iso: 'ZA', pt: 'Africa do Sul', termos: ['africa do sul', 'sul-africano', 'sul-africanos'] },
+  { nome: 'Angola', iso: 'AO', pt: 'Angola', termos: ['angola', 'angolano', 'angolanos', 'luanda'] },
+  { nome: 'Nigeria', iso: 'NG', pt: 'Nigeria', termos: ['nigeria', 'nigeriano', 'nigerianos'] },
+  { nome: 'Sweden', iso: 'SE', pt: 'Suecia', termos: ['suecia', 'sueco', 'sueca', 'suecos', 'estocolmo', 'saab'] },
 ]
 
 // A mesma armadilha do filtro de relevancia, agora com nome de pais: sem
@@ -243,6 +243,22 @@ export const nomePtDoPais = (nome) => PAISES.find((p) => p.nome === nome)?.pt ||
  * fora do calculo do maximo. Ver /news/countries.
  */
 export const foraDaEscala = (nome) => !!PAISES.find((p) => p.nome === nome)?.foraDaEscala
+
+/**
+ * Codigo ISO-3166 alfa-2 do pais, pelo nome do world-atlas.
+ *
+ * Existe porque a plataforma fala DOIS vocabularios de pais e precisava
+ * cruza-los: o mapa usa o nome em ingles do world-atlas ("United States of
+ * America"), e o ransomware.live usa ISO2 ("US"). Sem esta ponte, clicar num
+ * pais no mapa nunca poderia mostrar as vitimas de ransomware dele.
+ */
+export const isoDoPais = (nome) => PAISES.find((p) => p.nome === nome)?.iso || null
+
+/** O caminho inverso: do ISO para o nome do mapa. */
+export const paisDoIso = (iso) => {
+  const alvo = String(iso || '').toUpperCase()
+  return PAISES.find((p) => p.iso === alvo) || null
+}
 
 export default { UFS, REGIOES_ESTRATEGICAS, PAISES, detectarLugares, detectarPaises, nomePtDoPais }
 
