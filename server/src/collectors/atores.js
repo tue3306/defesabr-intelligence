@@ -40,13 +40,34 @@ import config from '../config.js'
 
 const BASE = 'https://api-pro.ransomware.live'
 const IDADE_MAXIMA_HORAS = 24
-// 25 por ciclo: sao ~110 grupos com vitima brasileira, e a coleta roda a cada
-// 30 minutos. O acervo inteiro se preenche em cinco ciclos e depois so renova
-// o que passou de 24h — algumas requisicoes por hora, folgado na cota.
-const POR_CICLO = 25
 
-/** Grupos com vítima brasileira, mais desatualizados primeiro. */
+// Quantos perfis buscar por ciclo, em REGIME e na PARTIDA A FRIO.
+//
+// Em regime, 25 basta: sao ~110 grupos com vitima brasileira e a coleta roda a
+// cada 30 minutos, entao a renovacao de 24h se distribui em algumas
+// requisicoes por hora.
+//
+// A partida a frio e outro caso, e ele acontece toda semana. O disco do
+// Railway e efemero: cada deploy recria o banco vazio. Com 25 por ciclo, os
+// perfis levam CINCO CICLOS — duas horas e meia — para existir, e nesse
+// intervalo a tela de Atores mostra "0 CVEs" e "0 tecnicas". E justamente a
+// parte mais valiosa da plataforma vazia logo depois de publicar.
+//
+// Medido: 110 requisicoes levam ~90 segundos com o limite de duas conexoes
+// por host. Cabe numa coleta, e acontece uma vez por deploy.
+const POR_CICLO = 25
+const POR_CICLO_PARTIDA_FRIA = 120
+
+/**
+ * Grupos com vítima brasileira, mais desatualizados primeiro.
+ *
+ * Na partida a frio — tabela vazia, o que acontece a cada deploy no Railway —
+ * o lote e maior, para a tela nao ficar duas horas e meia sem CVEs.
+ */
 function aRenovar() {
+  const jaTem = get('SELECT COUNT(*) AS n FROM threat_actors')?.n ?? 0
+  const lote = jaTem === 0 ? POR_CICLO_PARTIDA_FRIA : POR_CICLO
+
   return all(
     `SELECT v.nome, a.fetched_at
        FROM (SELECT DISTINCT "group" AS nome, LOWER("group") AS chave
@@ -57,7 +78,7 @@ function aRenovar() {
          OR a.fetched_at < strftime('%Y-%m-%dT%H:%M:%SZ','now', ?)
       ORDER BY a.fetched_at IS NOT NULL, a.fetched_at
       LIMIT ?`,
-    [`-${IDADE_MAXIMA_HORAS} hours`, POR_CICLO]
+    [`-${IDADE_MAXIMA_HORAS} hours`, lote]
   )
 }
 
@@ -175,6 +196,7 @@ export async function coletarAtores() {
     gravados,
     falhas,
     pendentes: pendentes.length,
+    partidaFria: pendentes.length > POR_CICLO,
     duracaoMs: Date.now() - inicio,
   }
 }
