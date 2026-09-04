@@ -89,7 +89,10 @@ export async function coletarTudo(gatilho = 'agendado') {
   // resposta de POST /system/collect e o resumo de boot não mencionavam dois
   // dos seis coletores, e quem lesse a resposta concluiria que eles não
   // rodaram. A coleta funcionava; o relatório dela é que mentia por omissão.
-  const [noticias, legislativo, indicadores, comex, bcb, agregadores, ransomware, atores] = await Promise.all([
+  // ── COLETORES INDEPENDENTES, EM PARALELO ──
+  //
+  // Cada um busca de um servico diferente e nao depende de nenhum outro.
+  const [noticias, legislativo, indicadores, comex, bcb, agregadores, ransomware] = await Promise.all([
     registrar('rss', coletarTodas, gatilho),
     registrar('camara', coletarCamara, gatilho),
     registrar('worldbank', coletarWorldBank, gatilho),
@@ -97,8 +100,23 @@ export async function coletarTudo(gatilho = 'agendado') {
     registrar('bcb', coletarBcb, gatilho),
     registrar('agregadores', coletarAgregadores, gatilho),
     registrar('ransomware', coletarRansomware, gatilho),
-    registrar('atores', coletarAtores, gatilho),
   ])
+
+  // ── DEPOIS, O QUE DEPENDE DO QUE ACABOU DE ENTRAR ──
+  //
+  // `coletarAtores` decide QUAIS grupos buscar lendo as vitimas brasileiras do
+  // banco. Rodando em paralelo com `coletarRansomware`, ele consultava a tabela
+  // ANTES de ela ser preenchida — e numa partida a frio, quando o banco nasce
+  // vazio, achava zero grupos e terminava em 47ms sem gravar nada.
+  //
+  // O efeito em producao: o disco do Railway e efemero, entao toda publicacao
+  // recria o banco; a tela de Atores ficava com "0 CVEs" ate o ciclo seguinte,
+  // meia hora depois. A causa nao era o tamanho do lote — era a ordem.
+  //
+  // A dependencia agora esta expressa na estrutura: quem depende de dado
+  // recem-inserido roda depois de quem o insere. Custa alguns segundos a mais
+  // de coleta e elimina a corrida.
+  const atores = await registrar('atores', coletarAtores, gatilho)
 
   // Depois, e só se a Câmara respondeu: enriquecer exige uma requisição por
   // proposição, então roda em lote pequeno e fora do caminho crítico.
