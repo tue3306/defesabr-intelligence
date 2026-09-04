@@ -4,8 +4,15 @@
 
 # 🛡️ DefesaBR Intelligence
 
-**Agregador de fontes públicas sobre defesa e segurança do Brasil.**
-Coleta automatizada, API própria e interface — com a procedência de cada dado declarada.
+**Inteligência estratégica e cibernética sobre o Brasil.**
+
+O que ameaça o país, antes de virar notícia.
+
+### [→ Ver a plataforma funcionando](https://defesabr-intelligence-production.up.railway.app/)
+
+<sub>No ar, com dado real, coletado nos últimos 30 minutos.</sub>
+
+[![Ver ao vivo](https://img.shields.io/badge/ver%20ao%20vivo-defesabr--intelligence-caa733?style=for-the-badge)](https://defesabr-intelligence-production.up.railway.app/)
 
 [![React 18](https://img.shields.io/badge/React-18-149eca?logo=react&logoColor=white)](https://react.dev/)
 [![Vite 5](https://img.shields.io/badge/Vite-5-646cff?logo=vite&logoColor=white)](https://vitejs.dev/)
@@ -15,6 +22,84 @@ Coleta automatizada, API própria e interface — com a procedência de cada dad
 [![License: MIT](https://img.shields.io/badge/license-MIT-5c616a)](LICENSE)
 
 </div>
+
+---
+
+## Entre e veja
+
+A plataforma é navegável sem cadastro. Três contas de exemplo, uma por perfil,
+aparecem no próprio modal de **Entrar** — com a senha à vista, porque são contas
+públicas de um projeto acadêmico e escondê-las seria teatro.
+
+| E-mail | Senha | Perfil | O que enxerga |
+|---|---|---|---|
+| `usuario@defesabr.com` | `usuario123` | Usuário | O acervo já filtrado: clipping, mapas, busca |
+| `analista@defesabr.com` | `analista123` | Analista | \+ saúde da coleta e auditoria do filtro |
+| `admin@defesabr.com` | `admin123` | Administrador | \+ console de governança da plataforma |
+
+A diferença entre os três é **verificada no servidor**. Trocar o papel no
+`localStorage` não abre nada: ele vem de um token assinado, e cada rota
+protegida responde 401 sem sessão e 403 com papel insuficiente.
+
+---
+
+## O problema que ela resolve
+
+Acompanhar defesa e segurança do Brasil pela imprensa tem três limites, e a
+plataforma existe para cada um deles.
+
+**O incidente chega tarde.** Um vazamento de dados aparece no site de extorsão
+do grupo criminoso dias ou semanas antes de virar notícia — e, na maioria das
+vezes, nunca vira. A plataforma lê esses sites: são **545 organizações
+brasileiras** com vazamento divulgado desde 2017, entre elas prefeituras,
+câmaras municipais e secretarias estaduais de saúde.
+
+**O alerta genérico não ajuda.** Um boletim de vulnerabilidades lista as
+centenas de CVEs críticos do mês. Aqui a lista é cruzada: apenas as
+vulnerabilidades que grupos **com vítima brasileira registrada** sabem
+explorar — hoje 36, com o CVSS, o produto afetado e quem as usa. A priorização
+sai do cruzamento, não de um juízo sobre gravidade.
+
+**A mesma notícia chega cinquenta vezes.** As fontes publicam o mesmo fato de
+formas diferentes. O clipping agrupa o que é o mesmo evento e mostra quantos
+veículos o cobriram — corroboração é informação; três manchetes parecidas são
+ruído.
+
+---
+
+## O que ela entrega
+
+| | |
+|---|---|
+| **Clipping consolidado** | Matérias de 50 fontes agrupadas por evento, com selo de quantos veículos cobriram cada fato e as fontes originais visíveis |
+| **Ameaças cibernéticas** | Organizações brasileiras divulgadas por grupos de ransomware, com criticidade derivada de domínio e setor, e o recorte do Estado em primeiro plano |
+| **Atores & vulnerabilidades** | Perfil de cada grupo com técnicas mapeadas ao MITRE ATT&CK, ferramentas e CVEs — e a lista de correção com prioridade real |
+| **Mapa navegável** | Cada país abre um dossiê: cobertura noticiosa com tendência, categorias, e as vítimas de ransomware do território |
+| **Radar legislativo** | Proposições de defesa em tramitação, dos Dados Abertos da Câmara |
+| **Séries econômicas** | Gasto militar (World Bank), câmbio e juros (Banco Central), exportações da indústria de defesa (Comex Stat) |
+
+Todo painel declara a origem da sua série. Quando uma fonte não responde, a
+tela mostra a ausência — nunca um número plausível no lugar.
+
+---
+
+## O princípio, e por que ele aparece no código
+
+**Nada aqui é inventado.** É a regra que governou cada decisão, e o histórico
+do repositório mostra as vezes em que ela foi aplicada contra o próprio
+projeto: saíram um botão de "gerar clipping com IA" que animava quatro etapas
+e devolvia texto escrito à mão, quatro métricas de negócio no painel do
+administrador (incluindo "326 assinantes pagos", sem sistema de cobrança), uma
+lista de quinze fontes com status "online" fixo, cenários com probabilidades de
+62% atrás de um paywall, e alertas de segurança que um temporizador fabricava a
+cada 45 segundos.
+
+Onde falta capacidade, a interface diz. O Clipping exibe *"Sem síntese por IA:
+nenhum texto desta edição foi escrito por máquina"* em vez de deixar um campo
+vazio sem explicação — e o console em `/admin` lista o estado real de cada
+capacidade, contado do banco.
+
+Ver [ROADMAP.md](ROADMAP.md) para o que ainda falta e onde encaixa.
 
 ---
 
@@ -57,15 +142,9 @@ São quatro perfis, e cada um responde a uma pergunta diferente:
 | **Analista** (Ana) | a coleta está saudável? | **Mesa de análise** + **Método & Coleta** | `/admin` |
 | **Administrador** (Rafael) | a plataforma está de pé? | **Console de governança** | — |
 
-Três contas de exemplo, uma por perfil, são criadas na primeira subida e
-aparecem no modal de **Entrar** com a senha à vista — são contas públicas de um
-projeto acadêmico, e escondê-las seria teatro:
-
-| E-mail | Senha | Papel | Plano |
-|---|---|---|---|
-| `usuario@defesabr.com` | `usuario123` | Usuário | Explorar |
-| `analista@defesabr.com` | `analista123` | Analista | Profissional |
-| `admin@defesabr.com` | `admin123` | Administrador | Institucional |
+As credenciais das três contas de exemplo estão em
+[Entre e veja](#entre-e-veja), no topo. Os planos que acompanham cada uma são
+`explorar`, `profissional` e `institucional`, nessa ordem.
 
 O **Cadastro** também funciona e cria conta de verdade: senha guardada como
 hash *scrypt* com sal por conta. Toda conta nova nasce com papel `user` —
@@ -369,7 +448,11 @@ desenho, não depois.
 
 ## Deploy no Railway
 
-O projeto já está preparado. Basta conectar o repositório:
+Esta instância está no ar em
+**[defesabr-intelligence-production.up.railway.app](https://defesabr-intelligence-production.up.railway.app/)**,
+publicada a cada push na `main`.
+
+Para subir a sua, basta conectar o repositório:
 
 1. **Build** — `npm install --include=dev && npm run build` (em `railway.json`)
 2. **Start** — `npm start` (serve a API e o `dist/`)
