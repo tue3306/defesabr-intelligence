@@ -263,6 +263,9 @@ export function capacidades() {
         + 'Previsto para a próxima etapa; até lá os campos correspondentes ficam explicitamente vazios '
         + 'em vez de preenchidos com texto plausível.',
       fonte: '—',
+      pendente: 'O contrato ja esta fechado: `summaryExecutive` existe na resposta do clipping '
+        + 'e a tela o exibe quando vier preenchido. Falta so quem o preenche — ver ROADMAP.md, '
+        + 'secao 1. Sem chave, o recurso nao roda e nao conta como falha.',
       metricas: {},
     },
     {
@@ -280,6 +283,9 @@ export function capacidades() {
         + 'A verificação é testável — `npm run check:auth` percorre quatro identidades contra doze '
         + 'rotas e confere o código de cada resposta.',
       fonte: 'server/src/lib/auth.js · server/src/routes/auth.js',
+      pendente: 'Falta o ciclo em volta: recuperacao de senha, confirmacao de e-mail e '
+        + 'promocao de papel pela interface. O esquema ja isola o que seria por conta, e a '
+        + 'migracao incremental de colunas existe — ver ROADMAP.md, secao 2.',
       metricas: {
         contas: get('SELECT COUNT(*) AS n FROM users')?.n ?? 0,
         papeis: 3,
