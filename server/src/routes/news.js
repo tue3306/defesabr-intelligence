@@ -3,6 +3,7 @@ import { all, get, run } from '../db/index.js'
 import { METODO_RELEVANCIA } from '../lib/relevance.js'
 import { avaliarRelevancia, classificar } from '../lib/relevance.js'
 import { UFS, REGIOES_ESTRATEGICAS, PAISES, detectarLugares, detectarPaises, nomePtDoPais, foraDaEscala } from '../lib/geo.js'
+import { consolidar, LIMIAR_SIMILARIDADE, JANELA_HORAS } from '../lib/eventos.js'
 import { dias, limite } from '../lib/parametros.js'
 
 const router = Router()
@@ -199,6 +200,66 @@ router.get('/news/stats', (req, res) => {
       coletados: get(`SELECT COUNT(*) AS n FROM articles WHERE published_at >= ${corte}`)?.n ?? 0,
       aprovados: get(`SELECT COUNT(*) AS n FROM articles WHERE relevant = 1 AND published_at >= ${corte}`)?.n ?? 0,
     },
+  })
+})
+
+// GET /api/news/eventos — o clipping como EVENTOS, nao como lista de materias
+//
+// Com 50 fontes, o mesmo fato chega tres vezes: "Alemanha testa missil
+// balistico israelense", "...em meio a tensao com a Russia" e "VIDEO: Alemanha
+// testa missil balistico" sao a mesma coisa e ocupavam tres linhas.
+//
+// A deduplicacao por titulo normalizado so pega o caso identico; estes titulos
+// sao diferentes, cada redacao escreve o seu. Aqui viram UM evento com TRES
+// fontes — e "tres veiculos cobriram isto" e informacao, enquanto "tres linhas
+// parecidas" e ruido.
+router.get('/news/eventos', (req, res) => {
+  const days = dias(req.query.days, 7)
+  const categoria = String(req.query.category || '').trim()
+  const urgencia = String(req.query.urgency || '').trim().toUpperCase()
+
+  const artigos = all(
+    `SELECT a.id, a.title, a.summary, a.url, a.category, a.urgency, a.published_at,
+            s.name AS fonte
+       FROM articles a LEFT JOIN sources s ON s.id = a.source_id
+      WHERE a.relevant = 1
+        AND a.published_at >= strftime('%Y-%m-%dT%H:%M:%SZ','now', '-${days} days')
+        ${categoria ? 'AND a.category = ?' : ''}
+        ${urgencia ? 'AND a.urgency = ?' : ''}
+      ORDER BY a.published_at DESC`,
+    [categoria, urgencia].filter(Boolean)
+  )
+
+  const eventos = consolidar(artigos)
+
+  // Ordem do produto: primeiro o que mais veiculos cobriram, depois o mais
+  // urgente, depois o mais recente. Corroboracao vem antes de recencia porque
+  // um fato que tres redacoes cobriram no mesmo dia importa mais que um que
+  // so uma publicou ha uma hora.
+  const ordem = { CRITICO: 3, ALTO: 2, MEDIO: 1, BAIXO: 0 }
+  eventos.sort((x, y) =>
+    y.veiculos - x.veiculos
+    || (ordem[y.urgencia] || 0) - (ordem[x.urgencia] || 0)
+    || new Date(y.ultimaPublicacao) - new Date(x.ultimaPublicacao))
+
+  const multiFonte = eventos.filter((e) => e.veiculos > 1)
+
+  res.json({
+    periodDays: days,
+    items: eventos.slice(0, limite(req.query.limit, 60, 200)),
+    total: eventos.length,
+    materias: artigos.length,
+    // A metrica que justifica a tela existir: quantas materias viraram quantos
+    // eventos, e quantos foram corroborados por mais de um veiculo.
+    consolidacao: {
+      materias: artigos.length,
+      eventos: eventos.length,
+      comMaisDeUmVeiculo: multiFonte.length,
+      reducao: artigos.length ? Math.round((1 - eventos.length / artigos.length) * 100) : 0,
+    },
+    metodo: `Titulos com ${Math.round(LIMIAR_SIMILARIDADE * 100)}% de termos significativos em `
+      + `comum, publicados a menos de ${JANELA_HORAS}h um do outro, sao tratados como o mesmo `
+      + 'evento. O representante e a fonte que publicou primeiro, e todas as fontes ficam visiveis.',
   })
 })
 

@@ -29,6 +29,7 @@ import TagFilter from '../components/ui/TagFilter'
 import Can from '../auth/Can'
 import { newsService } from '../services/newsService'
 import { useFontesReais } from '../hooks/useFontesReais'
+import EventosConsolidados from '../components/clipping/EventosConsolidados'
 import { useNewsStore } from '../store/newsStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { URGENCY_LEVELS } from '../data/mockData'
@@ -244,6 +245,12 @@ export default function DailyClipping() {
           action={{ label: 'Ver edições arquivadas', to: '/arquivo', icon: CalendarDays }}
         />
       )}
+
+      {/* Os eventos vem ANTES da edicao: e a leitura de inteligencia, e a
+          edicao do dia e o documento. Quem abre o clipping quer saber o que
+          aconteceu, e "tres veiculos cobriram isto" responde melhor que uma
+          lista de manchetes parecidas. */}
+      <EventosConsolidados />
 
       {result && (
         <motion.div

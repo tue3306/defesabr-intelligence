@@ -204,6 +204,13 @@ export const PONTES = new Map([
     }),
   }],
 
+  // O clipping como EVENTOS: o mesmo fato coberto por varios veiculos vira uma
+  // linha com o selo de corroboracao.
+  ['GET /news/eventos', {
+    caminho: '/news/eventos',
+    parametros: ({ days = 7, category, urgency, limit } = {}) => ({ days, category, urgency, limit }),
+  }],
+
   ['GET /news/volume', {
     caminho: '/news/stats',
     parametros: ({ days = 14 } = {}) => ({ days }),
