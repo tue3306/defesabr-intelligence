@@ -103,11 +103,18 @@ export const config = {
   },
 
   // ransomware.live — vitimas divulgadas por grupos de extorsao.
-  // OPCIONAL: sem chave o coletor nao roda e nao aparece como falha.
-  // A chave nao entra no repositorio: este e publico, e token em repositorio
-  // publico e varrido por robos em horas.
+  //
+  // A chave do plano gratuito fica embutida por decisao do dono do projeto,
+  // para que a tela de Ameacas Ciberneticas funcione em qualquer clone sem
+  // configuracao. O plano e gratuito e sem custo por chamada.
+  //
+  // O que isso implica, para quem mantiver: este repositorio e publico, e
+  // chave em repositorio publico e indexada por buscadores e varrida por
+  // robos. Se a cota comecar a se esgotar sem explicacao, e isso — o remedio
+  // e gerar outra em ransomware.live e defini-la em RANSOMWARE_API_KEY, que
+  // tem precedencia sobre o valor abaixo e nunca precisa ser commitada.
   ransomware: {
-    chave: process.env.RANSOMWARE_API_KEY || null,
+    chave: process.env.RANSOMWARE_API_KEY || '07e8cc54-f885-4f3f-88cb-04f77b0a5da6',
   },
 
   auth: {
