@@ -340,6 +340,10 @@ export const PONTES = new Map([
     parametros: ({ days = 365, limit } = {}) => ({ days, limit }),
   }],
 
+  // Atores: quem ataca o Brasil, com TTPs, CVEs e ferramentas.
+  ['GET /cyber/atores', { caminho: '/cyber/atores', parametros: ({ limit } = {}) => ({ limit }) }],
+  ['GET /cyber/cves', { caminho: '/cyber/cves' }],
+
   // Só o que exige atenção agora: incidente CRÍTICO contra organização
   // brasileira nas últimas N horas.
   ['GET /cyber/alertas', {

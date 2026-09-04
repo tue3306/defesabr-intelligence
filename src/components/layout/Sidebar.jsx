@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Newspaper, BarChart3, LineChart, Archive, Settings, HelpCircle,
   Shield, Tv, Lock, GraduationCap, Home, Sparkles, DollarSign, X,
   Target, Waves, Scale, Factory, Layers, Radio, Landmark, CalendarDays, BadgeCheck,
-  UserCircle, ShieldCheck, ShieldAlert, FileText, ClipboardList, Search, FlaskConical,
+  UserCircle, ShieldCheck, ShieldAlert, FileText, ClipboardList, Search, FlaskConical, Crosshair,
 } from 'lucide-react'
 import Logo from '../ui/Logo'
 import { useAuthStore } from '../../store/authStore'
@@ -44,6 +44,11 @@ const NAV_SECTIONS = [
         // porque incidente cibernético raramente vira manchete. Esta tela não
         // depende da imprensa: lê o que os próprios grupos de extorsão publicam.
         to: '/ciberameacas', label: 'Ameaças Cibernéticas', icon: ShieldAlert, requiresAuth: true,
+      },
+      {
+        // A outra metade: quem ataca e como. Uma coisa é saber que o grupo tem
+        // 19 vítimas aqui; outra é saber que ele explora CVE-2023-48788.
+        to: '/atores', label: 'Atores & Vulnerabilidades', icon: Crosshair, requiresAuth: true,
       },
       { to: '/arquivo', label: 'Arquivo & Pasta', icon: Archive, requiresAuth: true },
     ],

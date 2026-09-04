@@ -6,6 +6,7 @@ import {
 } from '../collectors/indicators.js'
 import { normalizar } from '../lib/relevance.js'
 import { panoramaRansomware, alertasRansomware } from '../collectors/ransomware.js'
+import { atoresContraBrasil, ator, cvesContraBrasil } from '../collectors/atores.js'
 import { exigirPapel } from '../lib/auth.js'
 import { limite } from '../lib/parametros.js'
 
@@ -253,6 +254,34 @@ router.get('/cyber/ransomware', (req, res) => {
   // esconderia justamente a serie que da sentido ao numero do mes.
   const dias = Math.min(Math.max(parseInt(req.query.days, 10) || 365, 1), 3650)
   res.json(panoramaRansomware({ dias, limite: limite(req.query.limit, 60, 200) }))
+})
+
+// GET /api/cyber/atores — quem ataca o Brasil, e o que se sabe de cada um
+router.get('/cyber/atores', (req, res) => {
+  res.json({
+    items: atoresContraBrasil({ limite: limite(req.query.limit, 20, 60) }),
+    nota: '`vitimasBr` vem do acervo desta plataforma; `vitimasMundo` vem da fonte e '
+      + 'conta o planeta inteiro. Sao numeros diferentes de proposito.',
+  })
+})
+
+// GET /api/cyber/ator/:nome — perfil completo: TTPs, CVEs, ferramentas
+router.get('/cyber/ator/:nome', (req, res) => {
+  res.json(ator(String(req.params.nome).slice(0, 80)))
+})
+
+// GET /api/cyber/cves — vulnerabilidades exploradas por quem ataca o Brasil
+//
+// Lista de correcao com prioridade real: nao "as vulnerabilidades do mes", e
+// sim as que grupos com vitima brasileira registrada sabem usar.
+router.get('/cyber/cves', (req, res) => {
+  const items = cvesContraBrasil()
+  res.json({
+    total: items.length,
+    items,
+    nota: 'CVEs atribuidos aos grupos pela propria fonte, restritos aos que tem vitima '
+      + 'brasileira no acervo. CVSS e severidade sao os publicados no registro do CVE.',
+  })
 })
 
 // GET /api/cyber/alertas — so o que exige atencao agora

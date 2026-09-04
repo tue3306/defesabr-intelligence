@@ -39,6 +39,7 @@ const DefenseIndustry = lazy(() => import('./pages/DefenseIndustry'))
 const Legislative = lazy(() => import('./pages/Legislative'))
 const SourceReliability = lazy(() => import('./pages/SourceReliability'))
 const CyberThreats = lazy(() => import('./pages/CyberThreats'))
+const ThreatActors = lazy(() => import('./pages/ThreatActors'))
 // Mesa de trabalho (perfil Analista)
 // Console de governança (perfil Administrador)
 const Collection = lazy(() => import('./pages/Collection'))
@@ -143,6 +144,10 @@ export default function App() {
           <Route
             path="/ciberameacas"
             element={<Guarded scope="Ameaças Cibernéticas"><CyberThreats /></Guarded>}
+          />
+          <Route
+            path="/atores"
+            element={<Guarded scope="Atores & Vulnerabilidades"><ThreatActors /></Guarded>}
           />
 
           {/* ── ANALISTA — monitoramento da coleta ── */}

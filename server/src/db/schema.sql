@@ -235,3 +235,32 @@ CREATE TABLE IF NOT EXISTS ransomware_victims (
 
 CREATE INDEX IF NOT EXISTS idx_rw_country ON ransomware_victims(country);
 CREATE INDEX IF NOT EXISTS idx_rw_discovered ON ransomware_victims(discovered_at DESC);
+
+
+-- PERFIS DE ATOR (ransomware.live /group/{nome})
+--
+-- Responde a metade que serve para DEFENDER: quem ataca e como. Um operador
+-- que sabe que o grupo entra por credencial de VPN valida (T1078) e explora
+-- CVE-2020-3259 em Cisco ASA tem o que fazer amanha; quem so sabe o nome, nao.
+--
+-- Os campos ricos ficam como JSON porque a forma vem da fonte e tem
+-- profundidade variavel (tatica -> tecnicas -> detalhe). Normalizar em tabelas
+-- fixaria uma estrutura que nao e nossa e quebraria quando a fonte mudar.
+CREATE TABLE IF NOT EXISTS threat_actors (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  name          TEXT NOT NULL UNIQUE,
+  -- Minusculas: a fonte grafa o mesmo grupo de formas diferentes conforme o
+  -- endpoint, e o join sensivel a caixa nunca casava.
+  name_key      TEXT,
+  description   TEXT,
+  victims_total INTEGER,
+  first_seen    TEXT,
+  last_seen     TEXT,
+  ttps_json     TEXT,
+  cves_json     TEXT,
+  tools_json    TEXT,
+  locations_json TEXT,
+  negotiation_count INTEGER DEFAULT 0,
+  has_ransomnote INTEGER DEFAULT 0,
+  fetched_at    TEXT
+);

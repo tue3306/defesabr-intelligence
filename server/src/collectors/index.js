@@ -5,6 +5,7 @@ import { coletarCamara, enriquecerSituacoes } from './camara.js'
 import { coletarWorldBank } from './indicators.js'
 import { coletarAgregadores } from './newsapi.js'
 import { coletarRansomware } from './ransomware.js'
+import { coletarAtores } from './atores.js'
 import { coletarComex } from './comex.js'
 import { coletarBcb } from './bcb.js'
 
@@ -88,7 +89,7 @@ export async function coletarTudo(gatilho = 'agendado') {
   // resposta de POST /system/collect e o resumo de boot não mencionavam dois
   // dos seis coletores, e quem lesse a resposta concluiria que eles não
   // rodaram. A coleta funcionava; o relatório dela é que mentia por omissão.
-  const [noticias, legislativo, indicadores, comex, bcb, agregadores, ransomware] = await Promise.all([
+  const [noticias, legislativo, indicadores, comex, bcb, agregadores, ransomware, atores] = await Promise.all([
     registrar('rss', coletarTodas, gatilho),
     registrar('camara', coletarCamara, gatilho),
     registrar('worldbank', coletarWorldBank, gatilho),
@@ -96,6 +97,7 @@ export async function coletarTudo(gatilho = 'agendado') {
     registrar('bcb', coletarBcb, gatilho),
     registrar('agregadores', coletarAgregadores, gatilho),
     registrar('ransomware', coletarRansomware, gatilho),
+    registrar('atores', coletarAtores, gatilho),
   ])
 
   // Depois, e só se a Câmara respondeu: enriquecer exige uma requisição por
@@ -122,6 +124,7 @@ export async function coletarTudo(gatilho = 'agendado') {
     bcb,
     agregadores,
     ransomware,
+    atores,
   }
 }
 

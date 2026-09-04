@@ -48,6 +48,11 @@ const COLUNAS_ADICIONADAS = [
   ['ransomware_victims', 'criticality', 'TEXT'],
   ['ransomware_victims', 'criticality_reason', 'TEXT'],
   ['ransomware_victims', 'nature', 'TEXT'],
+  // Nome do ator em minusculas. A fonte grafa o mesmo grupo de formas
+  // diferentes conforme o endpoint — 'emperador' na vitima, 'Emperador' no
+  // perfil — e o join sensivel a caixa nunca casava, entao esses atores eram
+  // rebuscados a cada ciclo, para sempre.
+  ['threat_actors', 'name_key', 'TEXT'],
 ]
 
 /**
@@ -61,6 +66,7 @@ const COLUNAS_ADICIONADAS = [
 const INDICES_ADICIONADOS = [
   'CREATE INDEX IF NOT EXISTS idx_articles_title_key ON articles(title_key)',
   'CREATE INDEX IF NOT EXISTS idx_rw_crit ON ransomware_victims(criticality)',
+  'CREATE UNIQUE INDEX IF NOT EXISTS idx_actor_key ON threat_actors(name_key)',
 ]
 
 /** Aplica o esquema e as colunas incrementais. Idempotente — roda em toda subida. */
