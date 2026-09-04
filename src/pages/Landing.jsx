@@ -1,12 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import {
-  Newspaper, Globe2, BarChart3, LineChart, GraduationCap, ShieldCheck,
-  ArrowRight, Sparkles, BookOpen, Brain, RotateCcw, Check, Linkedin, Twitter, Youtube, Instagram,
-  Radar, Building2, ShieldAlert, Landmark, Factory, ChevronDown, HelpCircle, Route, CircleDot,
-  Eye, UserCircle, PenTool, ShieldQuestion, Target, Database,
-} from 'lucide-react'
+import { Newspaper, Globe2, BarChart3, LineChart, GraduationCap, ShieldCheck, ArrowRight, Sparkles, BookOpen, Brain, RotateCcw, Check, Linkedin, Twitter, Youtube, Instagram, Radar, Building2, ShieldAlert, Landmark, Factory, ChevronDown, HelpCircle, Route, CircleDot, Eye, UserCircle, PenTool, ShieldQuestion, Target, Database, Crosshair, Layers } from 'lucide-react'
 import NewsCard from '../components/ui/NewsCard'
 import { SkeletonCard } from '../components/ui/Skeleton'
 import Badge from '../components/ui/Badge'
@@ -18,6 +13,7 @@ import { useNews } from '../hooks/useNews'
 import { useNewsVolume } from '../hooks/useNewsVolume'
 import { useGastoMilitar, useIndiceDeAlerta } from '../hooks/useDadosReais'
 import { useVitrine } from '../hooks/useVitrine'
+import { useVitrineReal } from '../hooks/useVitrineReal'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { PROFILES, PROFILE_ORDER } from '../auth/permissions'
@@ -95,46 +91,105 @@ export default function Landing() {
   const gasto = useGastoMilitar()
   const alerta = useIndiceDeAlerta(7)
   const vitrine = useVitrine()
+  const v = useVitrineReal()
   const feed = news.slice(0, 3)
 
   return (
     <div className="space-y-10">
-      {/* HERO */}
+      {/* ═══════════════════════════════════════════════════════════════════
+          HERO
+          ═══════════════════════════════════════════════════════════════════
+
+          A primeira dobra dizia: "Clipping diário, análise de cenários, mapas
+          de risco e dados ao vivo — para empresas, instituições, pesquisadores
+          e estudantes." É uma frase que serve para qualquer produto de
+          qualquer setor, e por isso não serve para nenhum. Quem lia não
+          descobria o que a plataforma faz, para quem é, nem por que pagaria.
+
+          Enquanto isso a plataforma passou a ter coisas que não existem
+          prontas em outro lugar — 545 organizações brasileiras com vazamento
+          divulgado, os órgãos públicos entre elas, as vulnerabilidades
+          cruzadas com quem ataca o país — e nada disso aparecia aqui.
+
+          A regra desta seção: cada número exibido vem da API, medido. Nenhum é
+          escrito à mão, e quando a coleta não responde o número some em vez de
+          virar estimativa. Uma vitrine que envelhece sozinha é a forma mais
+          barata de perder credibilidade — o visitante confere o primeiro
+          número e desconfia do resto da página.
+          ═══════════════════════════════════════════════════════════════════ */}
       <Section className="card overflow-hidden">
         <div className="on-dark relative bg-gradient-to-br from-military-darker via-military-card to-brand-900/50 p-8 sm:p-12">
           <span className="inline-flex items-center gap-2 rounded-full bg-brand-500/15 px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-300">
-            <ShieldCheck size={14} /> Inteligência em Defesa & Segurança
+            <ShieldCheck size={14} /> Inteligência estratégica e cibernética · Brasil
           </span>
-          <h1 className="mt-4 max-w-3xl text-3xl font-extrabold leading-tight tracking-tight sm:text-5xl">
+
+          <h1 className="mt-4 max-w-4xl text-3xl font-extrabold leading-tight tracking-tight sm:text-5xl">
             {isAuthenticated ? (
               <>Bem-vindo de volta, {user?.name?.split(' ')[0]}.</>
             ) : (
-              // Antes prometia "decifrado por IA". Nenhum texto desta plataforma
-              // foi escrito por máquina, e a primeira frase que o visitante lê
-              // não pode ser a única falsa. O que a plataforma REALMENTE faz é
-              // coletar de fontes oficiais e filtrar por relevância — e isso é
-              // mais concreto do que a promessa que substituiu.
-              <>O cenário de defesa do Brasil, <span className="text-brand-400 dark:text-brand-300">coletado na fonte</span>.</>
+              <>
+                O que ameaça o Brasil,{' '}
+                <span className="text-brand-400 dark:text-brand-300">antes de virar notícia</span>.
+              </>
             )}
           </h1>
-          <p className="mt-4 max-w-xl text-base text-gray-300 sm:text-lg">
-            Clipping diário, análise de cenários, mapas de risco e dados ao vivo — para empresas,
-            instituições, pesquisadores e estudantes.
+
+          <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300 sm:text-lg">
+            Um servidor lê fontes oficiais e a imprensa a cada 30 minutos, filtra por uma regra
+            publicada e cruza o resultado com os vazamentos que grupos de extorsão divulgam sobre
+            organizações brasileiras. Você recebe o fato consolidado, com a fonte, o país
+            envolvido e quem está por trás.
           </p>
-          <div className="mt-6 flex flex-wrap gap-3">
+
+          {/* ── A PROVA, EM NÚMEROS MEDIDOS ── */}
+          <dl className="mt-7 grid max-w-3xl grid-cols-2 gap-4 sm:grid-cols-4">
+            <Prova
+              valor={v.vitimasBr}
+              rotulo="organizações brasileiras"
+              detalhe="com vazamento divulgado desde 2017"
+            />
+            <Prova
+              valor={v.fontes}
+              rotulo="fontes coletadas"
+              detalhe={v.fontesOk != null ? `${v.fontesOk} responderam na última coleta` : 'a cada 30 minutos'}
+            />
+            <Prova
+              valor={v.artigos}
+              rotulo="matérias no acervo"
+              detalhe="aprovadas por filtro auditável"
+            />
+            <Prova
+              valor={v.paises}
+              rotulo="países correlacionados"
+              detalhe="por menção no texto coletado"
+            />
+          </dl>
+
+          <div className="mt-8 flex flex-wrap gap-3">
             {isAuthenticated ? (
               <Link to="/painel" className="btn-primary">Ir para o painel <ArrowRight size={16} /></Link>
             ) : (
-              <Link to="/planos" className="btn-primary"><Sparkles size={16} /> Ver planos</Link>
+              <>
+                <Link to="/planos" className="btn-primary"><Sparkles size={16} /> Ver planos</Link>
+                <Link to="/clipping" className="btn-ghost border-white/30 text-white hover:bg-white/10">
+                  Ver o clipping de hoje
+                </Link>
+              </>
             )}
-            <Link to="/painel" className="btn-ghost border-white/30 text-white hover:bg-white/10">
-              Explorar painel
-            </Link>
             <Link to="/aprender" className="btn-ghost border-white/30 text-white hover:bg-white/10">
               Centro educacional
             </Link>
           </div>
-          <div className="mt-7 flex items-center gap-4">
+
+          <p className="mt-5 text-xs text-gray-400">
+            {v.aoVivo
+              ? 'Números lidos da API agora — nenhum é escrito à mão.'
+              : v.carregando
+                ? 'Consultando a base…'
+                : 'A API não respondeu; os números aparecem quando ela voltar.'}
+          </p>
+
+          <div className="mt-6 flex items-center gap-4">
             <span className="text-xs uppercase tracking-wide text-gray-400">Siga</span>
             {SOCIALS.map(({ icon: Icon, label, href }) => (
               <a key={label} href={href} target="_blank" rel="noreferrer" aria-label={label} className="text-gray-300 hover:text-white">
@@ -144,6 +199,64 @@ export default function Landing() {
           </div>
         </div>
       </Section>
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          POR QUE PAGAR, EM VEZ DE ACOMPANHAR NOTÍCIA DE GRAÇA
+          ═══════════════════════════════════════════════════════════════════
+
+          É a pergunta que um cliente faz nos primeiros dez segundos, e a home
+          não a respondia em lugar nenhum. Cada resposta abaixo aponta para uma
+          tela que existe e funciona — nenhuma promete recurso futuro.
+          ═══════════════════════════════════════════════════════════════════ */}
+      {!isAuthenticated && (
+        <Section>
+          <h2 className="text-xl font-extrabold tracking-tight sm:text-2xl">
+            Por que isto, e não acompanhar notícia de graça?
+          </h2>
+          <p className="mt-1 max-w-2xl text-sm muted">
+            Notícia é o que já aconteceu e alguém decidiu publicar. Três coisas aqui não estão
+            no noticiário.
+          </p>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-3">
+            <Diferencial
+              icone={ShieldCheck}
+              titulo="O incidente antes da manchete"
+              texto="Um vazamento aparece no site de extorsão do grupo dias ou semanas antes de virar
+                     notícia — e na maioria das vezes nunca vira. A plataforma lê esses sites e mostra
+                     quais organizações brasileiras foram divulgadas, com setor e data."
+              numero={v.vitimasBr}
+              unidade="organizações brasileiras no acervo"
+              para="/ciberameacas"
+            />
+            <Diferencial
+              icone={Crosshair}
+              titulo="A correção que importa primeiro"
+              texto="Boletim de vulnerabilidade lista os CVEs críticos do mês, que são centenas. Aqui a
+                     lista é cruzada: só as que grupos COM VÍTIMA BRASILEIRA registrada sabem explorar,
+                     com o CVSS e quem as usa."
+              numero={v.gruposContraBrasil}
+              unidade="grupos com vítima no Brasil"
+              para="/atores"
+            />
+            <Diferencial
+              icone={Layers}
+              titulo="O fato, não a repetição dele"
+              texto="Cinquenta fontes publicam a mesma coisa de formas diferentes. O clipping agrupa o
+                     que é o mesmo evento e mostra quantos veículos o cobriram — corroboração é
+                     informação; três manchetes parecidas são ruído."
+              numero={v.fontes}
+              unidade="fontes lidas a cada 30 min"
+              para="/clipping"
+            />
+          </div>
+
+          <p className="mt-4 text-xs muted">
+            O acervo agregado é público. O detalhe — quais organizações, quais órgãos do Estado,
+            quais vulnerabilidades e por qual grupo — exige conta.
+          </p>
+        </Section>
+      )}
 
       {/* FAIXA DE CREDIBILIDADE — padrões como referência conceitual */}
       <Section className="card px-5 py-5 sm:px-6">
@@ -551,5 +664,44 @@ function ConceptOfDay() {
         {revealed ? (<><RotateCcw size={14} /> Ocultar</>) : 'Revelar definição'}
       </button>
     </div>
+  )
+}
+
+/**
+ * Um número da vitrine.
+ *
+ * Ausência é exibida como ausência: sem dado, o traço. A tentação de mostrar
+ * "0" é forte e errada — zero é uma afirmação ("não há vítimas brasileiras"),
+ * e o que se sabe nesse caso é que a API não respondeu.
+ */
+function Prova({ valor, rotulo, detalhe }) {
+  return (
+    <div>
+      <dt className="font-mono text-3xl font-extrabold tabular-nums text-white sm:text-4xl">
+        {valor == null ? <span className="text-gray-500">—</span> : valor.toLocaleString('pt-BR')}
+      </dt>
+      <dd className="mt-0.5 text-sm font-semibold text-gray-200">{rotulo}</dd>
+      <dd className="text-xs text-gray-400">{detalhe}</dd>
+    </div>
+  )
+}
+
+/** Um diferencial, sempre ancorado numa tela que existe. */
+function Diferencial({ icone: Icone, titulo, texto, numero, unidade, para }) {
+  return (
+    <Link to={para} className="card group flex flex-col p-5 transition-colors hover:border-gold-500/50">
+      <Icone size={22} className="text-gold-600 dark:text-gold-400" />
+      <h3 className="mt-3 font-bold tracking-tight">{titulo}</h3>
+      <p className="mt-1.5 flex-1 text-sm leading-relaxed muted">{texto}</p>
+      {numero != null && (
+        <p className="mt-3 border-t border-gray-200 pt-3 text-sm dark:border-white/10">
+          <strong className="font-mono text-lg">{numero.toLocaleString('pt-BR')}</strong>{' '}
+          <span className="muted">{unidade}</span>
+        </p>
+      )}
+      <span className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-brand-600 dark:text-brand-300">
+        Ver <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
+      </span>
+    </Link>
   )
 }

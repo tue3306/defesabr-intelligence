@@ -233,6 +233,14 @@ export function panoramaRansomware({ dias = 365, limite = 60 } = {}) {
           WHERE ${brWhere} AND "group" IS NOT NULL
           GROUP BY "group" ORDER BY total DESC LIMIT 10`, [desde]
       ),
+      // O TOTAL de grupos, nao o tamanho do ranking acima. A vitrine lia
+      // `porGrupo.length` e anunciava "10 grupos com vitima no Brasil" —
+      // eram 109, e o 10 era o LIMIT da consulta. Numero de vitrine que sai
+      // de um LIMIT e a forma mais silenciosa de mentir.
+      gruposTotal: get(
+        `SELECT COUNT(DISTINCT "group") AS n FROM ransomware_victims
+          WHERE country = 'BR' AND "group" IS NOT NULL AND "group" != ''`
+      )?.n ?? 0,
       porAno: all(
         `SELECT substr(discovered_at, 1, 4) AS ano, COUNT(*) AS total
            FROM ransomware_victims
