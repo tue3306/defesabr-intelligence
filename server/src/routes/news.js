@@ -5,6 +5,7 @@ import { avaliarRelevancia, classificar } from '../lib/relevance.js'
 import { UFS, REGIOES_ESTRATEGICAS, PAISES, detectarLugares, detectarPaises, nomePtDoPais, foraDaEscala, isoDoPais } from '../lib/geo.js'
 import { consolidar, LIMIAR_SIMILARIDADE, JANELA_HORAS } from '../lib/eventos.js'
 import { dias, limite } from '../lib/parametros.js'
+import { exigirPapel } from '../lib/auth.js'
 
 const router = Router()
 
@@ -213,7 +214,7 @@ router.get('/news/stats', (req, res) => {
 // sao diferentes, cada redacao escreve o seu. Aqui viram UM evento com TRES
 // fontes — e "tres veiculos cobriram isto" e informacao, enquanto "tres linhas
 // parecidas" e ruido.
-router.get('/news/eventos', (req, res) => {
+router.get('/news/eventos', exigirPapel('user'), (req, res) => {
   const days = dias(req.query.days, 7)
   const categoria = String(req.query.category || '').trim()
   const urgencia = String(req.query.urgency || '').trim().toUpperCase()
@@ -343,7 +344,7 @@ router.get('/news/countries', (req, res) => {
 // NAO INVENTA RELACAO. Um pais so aparece ligado a uma noticia se o detector
 // achou o termo dele no texto; se nao achou, o dossie diz que nao ha
 // cobertura, em vez de estimar.
-router.get('/news/pais/:nome', (req, res) => {
+router.get('/news/pais/:nome', exigirPapel('user'), (req, res) => {
   const nome = String(req.params.nome).slice(0, 60)
   const days = dias(req.query.days, 180)
   const iso = isoDoPais(nome)

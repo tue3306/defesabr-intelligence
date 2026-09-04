@@ -253,11 +253,46 @@ router.get('/cyber/ransomware', (req, res) => {
   // 365 por padrao: o acervo brasileiro vai de 2017 a hoje, e uma janela curta
   // esconderia justamente a serie que da sentido ao numero do mes.
   const dias = Math.min(Math.max(parseInt(req.query.days, 10) || 365, 1), 3650)
-  res.json(panoramaRansomware({ dias, limite: limite(req.query.limit, 60, 200) }))
+  const p = panoramaRansomware({ dias, limite: limite(req.query.limit, 60, 200) })
+
+  // SEM SESSAO devolve os AGREGADOS e nao as listas.
+  //
+  // Os totais sao a vitrine — "545 organizacoes brasileiras divulgadas" e o
+  // argumento da plataforma, e escondê-lo nao protege nada. Ja a lista nominal
+  // de vitimas e de orgaos publicos atacados e o produto, e vale para quem
+  // entra. A separacao tambem tem um lado que nao e comercial: uma lista de
+  // empresas brasileiras atacadas, aberta e raspavel, e material que se
+  // propaga sozinho sobre terceiros que nao pediram para estar ali.
+  if (!req.conta) {
+    res.json({
+      ...p,
+      brasil: { ...p.brasil, itens: [], estado: [] },
+      restrito: true,
+      motivo: 'Entre para ver as organizacoes nominalmente e o recorte do Estado brasileiro.',
+    })
+    return
+  }
+  res.json(p)
 })
 
+// ─────────────────────────────────────────────────────────────────────────────
+// INTELIGENCIA PROFUNDA — EXIGE SESSAO
+//
+// Estes tres endpoints estavam abertos, protegidos apenas pelo `requiresAuth`
+// do menu lateral. E exatamente o antipadrao que este projeto corrigiu nos
+// perfis: esconder o botao nao e controlar acesso. Qualquer um com o endereco
+// raspava os perfis de ator, as TTPs e a lista de CVEs sem ter conta.
+//
+// Sao tambem a parte mais valiosa da plataforma — o cruzamento entre
+// vulnerabilidade conhecida e grupo com vitima brasileira nao existe pronto em
+// lugar nenhum. Deixa-la aberta e dar de graca o que justifica a assinatura.
+//
+// `exigirPapel('user')` pede sessao valida, sem exigir papel especial: e
+// conteudo de assinante, nao ferramenta de analista.
+// ─────────────────────────────────────────────────────────────────────────────
+
 // GET /api/cyber/atores — quem ataca o Brasil, e o que se sabe de cada um
-router.get('/cyber/atores', (req, res) => {
+router.get('/cyber/atores', exigirPapel('user'), (req, res) => {
   res.json({
     items: atoresContraBrasil({ limite: limite(req.query.limit, 20, 60) }),
     nota: '`vitimasBr` vem do acervo desta plataforma; `vitimasMundo` vem da fonte e '
@@ -266,7 +301,7 @@ router.get('/cyber/atores', (req, res) => {
 })
 
 // GET /api/cyber/ator/:nome — perfil completo: TTPs, CVEs, ferramentas
-router.get('/cyber/ator/:nome', (req, res) => {
+router.get('/cyber/ator/:nome', exigirPapel('user'), (req, res) => {
   res.json(ator(String(req.params.nome).slice(0, 80)))
 })
 
@@ -274,7 +309,7 @@ router.get('/cyber/ator/:nome', (req, res) => {
 //
 // Lista de correcao com prioridade real: nao "as vulnerabilidades do mes", e
 // sim as que grupos com vitima brasileira registrada sabem usar.
-router.get('/cyber/cves', (req, res) => {
+router.get('/cyber/cves', exigirPapel('user'), (req, res) => {
   const items = cvesContraBrasil()
   res.json({
     total: items.length,
@@ -288,7 +323,7 @@ router.get('/cyber/cves', (req, res) => {
 //
 // Pergunta estreita de proposito: incidente CRITICO contra organizacao
 // brasileira nas ultimas N horas. Quem alerta nao precisa do painel inteiro.
-router.get('/cyber/alertas', (req, res) => {
+router.get('/cyber/alertas', exigirPapel('user'), (req, res) => {
   const horas = Math.min(Math.max(parseInt(req.query.hours, 10) || 48, 1), 720)
   const itens = alertasRansomware({ horas })
   res.json({ horas, total: itens.length, items: itens })
