@@ -48,15 +48,38 @@ export function useLiveNotifications() {
     const consultar = async () => {
       try {
         if (!(await apiOnline())) return
-        const d = await viaPonte('GET /news', { days: 2, limit: 30 })
-        const itens = d?.items || []
+
+        // Duas origens, e a segunda é a que justifica este hook existir.
+        //
+        // Notícia de urgência alta é útil, mas chega depois — o jornalismo
+        // publica quando já aconteceu. Um vazamento de órgão público aparece
+        // no site do grupo de extorsão dias antes, e é o tipo de coisa que
+        // alguém precisa saber no dia, não na semana seguinte.
+        const [d, alertas] = await Promise.all([
+          viaPonte('GET /news', { days: 2, limit: 30 }),
+          viaPonte('GET /cyber/alertas', { hours: 48 }).catch(() => null),
+        ])
         if (!vivo) return
 
-        const novos = itens.filter(
+        const doAcervo = (d?.items || []).filter(
           (n) => URGENCIAS_QUE_NOTIFICAM.has(String(n.urgency || '').toUpperCase())
-            && !jaVistos.current.has(n.id ?? n.guid ?? n.title)
-        )
-        novos.forEach((n) => jaVistos.current.add(n.id ?? n.guid ?? n.title))
+        ).map((n) => ({
+          chave: n.id ?? n.guid ?? n.title,
+          title: n.title,
+          level: String(n.urgency).toUpperCase() === 'CRITICO' ? 'CRITICO' : 'ALTO',
+          url: n.url,
+          source: n.source,
+        }))
+
+        const doCiber = (alertas?.items || []).map((v) => ({
+          chave: `rw-${v.external_id}`,
+          title: `Ransomware — ${v.victim}`,
+          level: 'CRITICO',
+          source: `${v.group} · ${v.criticality_reason}`,
+        }))
+
+        const novos = [...doCiber, ...doAcervo].filter((n) => !jaVistos.current.has(n.chave))
+        novos.forEach((n) => jaVistos.current.add(n.chave))
 
         // A primeira consulta apenas MEMORIZA o que já estava no acervo. Sem
         // isso, abrir a plataforma dispararia uma saraivada de avisos sobre
@@ -66,12 +89,7 @@ export function useLiveNotifications() {
         // No máximo três por rodada: se a coleta trouxer quinze de uma vez, o
         // usuário não precisa de quinze torradas empilhadas.
         for (const n of novos.slice(0, 3)) {
-          addNotification({
-            title: n.title,
-            level: String(n.urgency).toUpperCase() === 'CRITICO' ? 'CRITICO' : 'ALTO',
-            url: n.url,
-            source: n.source,
-          })
+          addNotification({ title: n.title, level: n.level, url: n.url, source: n.source })
           toast(n.title, {
             icon: createElement(Bell, { size: 16, className: 'text-brand-400 dark:text-brand-300' }),
             duration: 5000,

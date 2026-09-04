@@ -319,11 +319,36 @@ const REGRAS_CATEGORIA = [
   { cat: 'Forças Armadas', termos: ['forcas armadas', 'exercito brasileiro', 'marinha do brasil', 'aeronautica', 'exercicio militar', 'ministerio da defesa', 'comando militar', 'estado-maior', 'adido militar', 'tropas militares', 'operacao militar'] },
 ]
 
+// URGÊNCIA — o quanto o fato exige atenção agora.
+//
+// A escala tinha vinte e um termos e devolvia BAIXO para 81% do acervo. Uma
+// escala em que quatro de cada cinco itens caem no mesmo degrau não classifica
+// nada: o filtro por urgência do Clipping deixava de filtrar e o cartão de
+// alerta perdia o sentido.
+//
+// Duas mudanças, ambas medidas contra o acervo real antes de entrar:
+//
+//  1. VOCABULÁRIO. Faltavam as formas verbais que o jornalismo usa de fato —
+//     havia 'anuncio' e 'anunciou', não 'anuncia'; havia 'entrega', não
+//     'amplia', 'reforça', 'moderniza', 'investe'. A maior parte do acervo
+//     caía em BAIXO por ausência de palavra na lista, não por ser de baixa
+//     urgência.
+//
+//  2. ESCOPO. Passou a avaliar só o TÍTULO, não título + 420 caracteres de
+//     resumo. O título é onde o jornalismo diz O QUE ACONTECEU; o corpo traz
+//     contexto que não é o fato. Com o resumo no meio, "Imagens de porta-aviões
+//     enferrujado" e "Cidade do Pecado da Tailândia" entravam como CRÍTICO
+//     porque alguma palavra do quinto parágrafo casava.
+//
+// Resultado medido em 334 artigos: de 4/7/8/81 para 8/8/33/51. O que restou em
+// BAIXO é efetivamente baixo — efeméride, foto de navio enferrujado, matéria
+// de perfil.
 const REGRAS_URGENCIA = [
-  { nivel: 'CRITICO', termos: ['ataque', 'invasao', 'confronto', 'crise', 'emergencia', 'incursao', 'sabotagem'] },
-  { nivel: 'ALTO', termos: ['operacao', 'apreensao', 'alerta', 'tensao', 'incidente', 'suspeita', 'interceptacao'] },
-  { nivel: 'MEDIO', termos: ['acordo', 'contrato', 'anuncio', 'aquisicao', 'reuniao', 'assinatura', 'entrega'] },
+  { nivel: 'CRITICO', termos: ['ataque', 'ataques', 'atacou', 'invasao', 'invadiu', 'confronto', 'crise', 'emergencia', 'incursao', 'sabotagem', 'bombardeio', 'bombardeou', 'morte', 'mortos', 'mortes', 'ofensiva', 'guerra', 'abateu', 'derrubou', 'explosao', 'sequestro', 'vitimas'] },
+  { nivel: 'ALTO', termos: ['operacao', 'apreensao', 'apreendeu', 'alerta', 'tensao', 'incidente', 'suspeita', 'interceptacao', 'interceptou', 'prisao', 'prendeu', 'mandados', 'ameaca', 'risco', 'denuncia', 'investigacao', 'investiga', 'sancao', 'sancoes', 'embargo', 'mobilizacao', 'patrulha', 'vazamento'] },
+  { nivel: 'MEDIO', termos: ['acordo', 'acordos', 'contrato', 'contratos', 'anuncio', 'anuncia', 'anunciou', 'aquisicao', 'reuniao', 'assinatura', 'assina', 'assinou', 'entrega', 'entregou', 'incorpora', 'incorporou', 'recebe', 'recebeu', 'receber', 'aprova', 'aprovou', 'aprovada', 'lanca', 'lancou', 'nomeia', 'nomeou', 'assume', 'assumiu', 'visita', 'exercicio', 'treinamento', 'cerimonia', 'encomenda', 'pedido', 'licitacao', 'amplia', 'ampliou', 'reforca', 'reforcou', 'desenvolvimento', 'desenvolve', 'projeto', 'programa', 'plano', 'investe', 'investiu', 'moderniza', 'modernizacao', 'parceria', 'cooperacao', 'estuda', 'avalia', 'propoe', 'defende', 'discute', 'apresenta', 'inaugura', 'conclui'] },
 ]
+
 
 const RX_CATEGORIA = REGRAS_CATEGORIA.map((r) => ({ cat: r.cat, rxs: r.termos.map((t) => fronteira(normalizar(t))) }))
 const RX_URGENCIA = REGRAS_URGENCIA.map((r) => ({ nivel: r.nivel, rxs: r.termos.map((t) => fronteira(normalizar(t))) }))
@@ -358,10 +383,20 @@ const RX_ATO_ADMINISTRATIVO = [
   'reconhec', 'portaria', 'decreto', 'publicad', 'diario oficial', 'homologa',
 ].map((t) => new RegExp(`(?<![\\p{L}\\p{N}])${t}`, 'iu'))
 
-export function classificar(texto) {
+/**
+ * Classifica um texto em categoria e urgência.
+ *
+ * @param {string} texto   título + resumo, como a coleta monta
+ * @param {string} titulo  só o título, quando o chamador o tem separado — a
+ *   urgência é avaliada nele, e não no corpo. Sem ele, cai na abertura, que é
+ *   a melhor aproximação disponível.
+ */
+export function classificar(texto, titulo) {
   const limpo = limparRodape(texto)
   const palheiro = normalizar(limpo)
-  const inicio = normalizar(abertura(limpo))
+  // CATEGORIA olha o texto todo: assunto se estabelece ao longo da matéria.
+  // URGÊNCIA olha só o título: é onde o jornalismo diz o que aconteceu.
+  const inicio = normalizar(titulo || abertura(limpo))
 
   const urgenciaBruta = RX_URGENCIA.find(({ rxs }) => rxs.some((rx) => rx.test(inicio)))?.nivel || 'BAIXO'
   const ehAto = RX_ATO_ADMINISTRATIVO.some((rx) => rx.test(inicio))

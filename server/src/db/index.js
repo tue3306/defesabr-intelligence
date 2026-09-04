@@ -43,6 +43,11 @@ const COLUNAS_ADICIONADAS = [
   // inteiro para memoria a cada busca.
   ['articles', 'search_key', 'TEXT'],
   ['bills', 'search_key', 'TEXT'],
+  // Criticidade do incidente e a natureza da vitima (estado / infraestrutura
+  // / privado). Derivadas na coleta, ver server/src/lib/criticidade.js.
+  ['ransomware_victims', 'criticality', 'TEXT'],
+  ['ransomware_victims', 'criticality_reason', 'TEXT'],
+  ['ransomware_victims', 'nature', 'TEXT'],
 ]
 
 /**
@@ -55,6 +60,7 @@ const COLUNAS_ADICIONADAS = [
  */
 const INDICES_ADICIONADOS = [
   'CREATE INDEX IF NOT EXISTS idx_articles_title_key ON articles(title_key)',
+  'CREATE INDEX IF NOT EXISTS idx_rw_crit ON ransomware_victims(criticality)',
 ]
 
 /** Aplica o esquema e as colunas incrementais. Idempotente — roda em toda subida. */

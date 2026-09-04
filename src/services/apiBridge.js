@@ -337,7 +337,14 @@ export const PONTES = new Map([
   // Ameaças cibernéticas: vítimas divulgadas por grupos de extorsão.
   ['GET /cyber/ransomware', {
     caminho: '/cyber/ransomware',
-    parametros: ({ days = 180, limit } = {}) => ({ days, limit }),
+    parametros: ({ days = 365, limit } = {}) => ({ days, limit }),
+  }],
+
+  // Só o que exige atenção agora: incidente CRÍTICO contra organização
+  // brasileira nas últimas N horas.
+  ['GET /cyber/alertas', {
+    caminho: '/cyber/alertas',
+    parametros: ({ hours = 48 } = {}) => ({ hours }),
   }],
 
   // Resumo público (total e quantas responderam) — não exige sessão.

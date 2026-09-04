@@ -113,7 +113,7 @@ export async function coletarAgregadores() {
           const chave = chaveDeTitulo(item.titulo)
           if (chave && get('SELECT id FROM articles WHERE title_key = ?', [chave])) continue
 
-          const { categoria, urgencia } = classificar(palheiro)
+          const { categoria, urgencia } = classificar(palheiro, item.titulo)
           const fonte = get('SELECT id FROM sources WHERE slug = ?', [`agregador-${p.id}`])
           if (!fonte) continue
 

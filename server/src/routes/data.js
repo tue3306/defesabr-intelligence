@@ -5,7 +5,7 @@ import {
   INDICADORES_WB, PAISES_COMPARACAO, serie, ultimoValor, ultimoCambio, rotuloIndicador,
 } from '../collectors/indicators.js'
 import { normalizar } from '../lib/relevance.js'
-import { panoramaRansomware } from '../collectors/ransomware.js'
+import { panoramaRansomware, alertasRansomware } from '../collectors/ransomware.js'
 import { exigirPapel } from '../lib/auth.js'
 import { limite } from '../lib/parametros.js'
 
@@ -249,8 +249,20 @@ router.get('/economy/exports', (req, res) => {
 // brasileiro vem em primeiro plano e o global como referencia — sem ela,
 // "3 vitimas no Brasil" nao diz se e muito ou pouco.
 router.get('/cyber/ransomware', (req, res) => {
-  const dias = Math.min(Math.max(parseInt(req.query.days, 10) || 90, 1), 730)
-  res.json(panoramaRansomware({ dias, limite: limite(req.query.limit, 40, 100) }))
+  // 365 por padrao: o acervo brasileiro vai de 2017 a hoje, e uma janela curta
+  // esconderia justamente a serie que da sentido ao numero do mes.
+  const dias = Math.min(Math.max(parseInt(req.query.days, 10) || 365, 1), 3650)
+  res.json(panoramaRansomware({ dias, limite: limite(req.query.limit, 60, 200) }))
+})
+
+// GET /api/cyber/alertas — so o que exige atencao agora
+//
+// Pergunta estreita de proposito: incidente CRITICO contra organizacao
+// brasileira nas ultimas N horas. Quem alerta nao precisa do painel inteiro.
+router.get('/cyber/alertas', (req, res) => {
+  const horas = Math.min(Math.max(parseInt(req.query.hours, 10) || 48, 1), 720)
+  const itens = alertasRansomware({ horas })
+  res.json({ horas, total: itens.length, items: itens })
 })
 
 router.get('/sources/summary', (req, res) => {

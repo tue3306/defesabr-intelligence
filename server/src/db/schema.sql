@@ -222,6 +222,14 @@ CREATE TABLE IF NOT EXISTS ransomware_victims (
   post_url      TEXT,
   website       TEXT,
   description   TEXT,
+
+  -- Derivadas na coleta a partir de dominio e setor. Ver lib/criticidade.js:
+  -- a escala responde "quanto este ataque importa para quem acompanha
+  -- seguranca e defesa do Brasil", e nao gravidade tecnica do incidente.
+  criticality   TEXT,
+  criticality_reason TEXT,
+  nature        TEXT,
+
   fetched_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
 );
 

@@ -481,7 +481,7 @@ export async function coletarFonte(fonte) {
         const palheiro = `${item.titulo} ${resumo || ''}`
 
         const r = avaliarRelevancia(palheiro)
-        const { categoria, urgencia } = classificar(palheiro)
+        const { categoria, urgencia } = classificar(palheiro, item.titulo)
 
         // Fonte de imprensa geral guarda SÓ o que passa no filtro. Ver a nota
         // em FONTES_PADRAO: são ~1.500 itens por ciclo com 1% de aproveitamento,

@@ -46,7 +46,7 @@ transacao(() => {
 
     const palheiro = `${a.title} ${resumo || ''}`
     const r = avaliarRelevancia(palheiro)
-    const { categoria, urgencia } = classificar(palheiro)
+    const { categoria, urgencia } = classificar(palheiro, a.title)
 
     if (!!a.relevant !== r.relevante || a.category !== categoria || a.urgency !== urgencia) {
       if (!simular) {
