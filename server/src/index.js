@@ -114,6 +114,49 @@ const servidor = app.listen(config.port, config.host, async () => {
   }
 })
 
+// ─────────────────────────────────────────────────────────────────────────────
+// FALHAS QUE NINGUÉM PEGOU
+//
+// Faltavam os dois tratadores de nível de processo, e a ausência não é
+// teórica: desde o Node 15, uma promessa rejeitada sem `catch` DERRUBA o
+// processo. Basta um `await` sem proteção em qualquer caminho novo — uma rota
+// assíncrona escrita sem `next(err)`, um coletor chamado fora de `registrar()`
+// — para o servidor inteiro morrer por causa de um feed fora do ar.
+//
+// No Railway isso é caro de um jeito específico: o disco é efêmero, então cada
+// reinício recomeça o acervo do zero e a plataforma passa alguns minutos com
+// as telas vazias. E `restartPolicyMaxRetries: 3` significa que três quedas
+// seguidas param o serviço de vez.
+//
+// OS DOIS CASOS PEDEM RESPOSTAS OPOSTAS, e é por isso que não há um tratador
+// só para ambos:
+//
+//   REJEIÇÃO NÃO TRATADA — o processo continua. Uma promessa rejeitada não diz
+//   nada sobre o resto da memória: o servidor segue capaz de responder o
+//   acervo que já tem. Derrubar a API porque uma coleta falhou é trocar um
+//   problema pequeno por um grande. Fica registrado em vermelho para não
+//   virar silêncio.
+//
+//   EXCEÇÃO NÃO CAPTURADA — o processo sai. Aqui a pilha foi interrompida no
+//   meio, e o que sobrou pode estar pela metade: uma transação aberta, um
+//   arquivo sem fechar. Seguir servindo a partir de um estado que ninguém
+//   consegue descrever é como se serve dado errado com cara de certo. Sair
+//   com código 1 e deixar o Railway subir de novo é o desfecho honesto — e o
+//   banco é fechado antes, para o WAL não ficar sem checkpoint.
+// ─────────────────────────────────────────────────────────────────────────────
+process.on('unhandledRejection', (motivo) => {
+  console.error('[31m[processo] promessa rejeitada sem tratamento:[0m', motivo?.message || motivo)
+  if (config.ambiente !== 'production') console.error(motivo?.stack)
+})
+
+process.on('uncaughtException', (err) => {
+  console.error('[31m[processo] exceção não capturada:[0m', err?.message || err)
+  console.error(err?.stack)
+  pararAgendador()
+  fecharBanco()
+  process.exit(1)
+})
+
 // Encerramento limpo. Sem isto, o Railway espera o timeout a cada deploy —
 // e conexões abertas ficam penduradas.
 for (const sinal of ['SIGTERM', 'SIGINT']) {

@@ -129,20 +129,56 @@ router.get('/meta', (req, res) => {
       { nome: 'World Bank Open Data', tipo: 'API', url: 'https://data.worldbank.org' },
       { nome: 'Banco Central do Brasil — SGS', tipo: 'API', url: 'https://dadosabertos.bcb.gov.br' },
     ],
-    naoImplementado: ['Análise por IA', 'Contas e permissões', 'Dossiês de analista'],
+    // O que a plataforma AINDA NÃO faz — contado, não escrito à mão.
+    //
+    // A lista era fixa e dizia `['Análise por IA', 'Contas e permissões',
+    // 'Dossiês de analista']`. As contas passaram a existir — senha em scrypt,
+    // token assinado, papel verificado por rota, 48 checagens em
+    // `npm run check:auth` — e a rota pública continuou anunciando que elas
+    // não existiam. Uma lista escrita à mão sobre o que falta envelhece
+    // exatamente quando a coisa deixa de faltar, que é o pior momento
+    // possível: a API desmentia a própria plataforma para qualquer um que
+    // lesse `/api/meta`.
+    //
+    // Agora sai de `capacidades()`, a mesma fonte que alimenta o painel de
+    // saúde do administrador. Implementar algo é o que remove o item daqui.
+    naoImplementado: capacidades()
+      .filter((c) => c.estado === 'nao_implementado')
+      .map((c) => c.nome),
   })
 })
 
 // ═══════════════════════════ FAVORITOS ═══════════════════════════
 //
-// Sem contas, o "dono" é o navegador: a interface gera um identificador local
-// e o envia no cabeçalho. Não identifica pessoa — e some se o usuário limpar
-// os dados do site. A API é honesta sobre isso em vez de fingir uma sessão.
-
-const clienteDe = (req) => String(req.get('X-Client-Id') || req.query.clientId || '').trim()
+// QUEM É O DONO DE UM FAVORITO
+//
+// Estas rotas nasceram antes das contas, e o "dono" era o navegador: a
+// interface geraria um identificador local e o enviaria em `X-Client-Id`. Duas
+// coisas aconteceram depois, e as duas pedem esta mudança.
+//
+// A PRIMEIRA é que as contas passaram a existir. Um favorito preso ao
+// navegador some quando a pessoa troca de máquina, e a "Minha Pasta" de quem
+// entrou com a mesma conta em dois lugares seria duas pastas diferentes.
+// Havendo sessão, o dono do favorito é a CONTA — que é o que o usuário
+// entende por "meus salvos".
+//
+// A SEGUNDA é que o identificador de cliente é escolhido por quem chama. Não
+// é segredo, não é verificado e não custa nada adivinhar: `curl -H
+// 'X-Client-Id: <id de outro>' .../api/bookmarks` devolveria a pasta alheia, e
+// o DELETE apagaria. Enquanto ninguém enviava o cabeçalho isso era um furo
+// dormindo; ligá-lo à sessão é o que o fecha antes de acordar.
+//
+// O prefixo mantém os dois espaços separados na MESMA coluna — sem migração,
+// sem tabela nova. `conta:7` nunca colide com `anon:7`, e um visitante não
+// alcança a pasta de ninguém escrevendo um número no cabeçalho.
+const donoDe = (req) => {
+  if (req.conta?.sub) return `conta:${req.conta.sub}`
+  const cliente = String(req.get('X-Client-Id') || req.query.clientId || '').trim().slice(0, 80)
+  return cliente ? `anon:${cliente}` : ''
+}
 
 router.get('/bookmarks', (req, res) => {
-  const cliente = clienteDe(req)
+  const cliente = donoDe(req)
   if (!cliente) return res.json({ items: [], total: 0 })
 
   const itens = all(
@@ -169,8 +205,8 @@ router.get('/bookmarks', (req, res) => {
 })
 
 router.post('/bookmarks/:articleId', (req, res) => {
-  const cliente = clienteDe(req)
-  if (!cliente) return res.status(400).json({ error: 'Cabeçalho X-Client-Id ausente.' })
+  const cliente = donoDe(req)
+  if (!cliente) return res.status(400).json({ error: 'Entre na plataforma ou envie o cabeçalho X-Client-Id.' })
   if (!get('SELECT id FROM articles WHERE id = ?', [req.params.articleId])) {
     return res.status(404).json({ error: 'Notícia não encontrada.' })
   }
@@ -182,8 +218,8 @@ router.post('/bookmarks/:articleId', (req, res) => {
 })
 
 router.delete('/bookmarks/:articleId', (req, res) => {
-  const cliente = clienteDe(req)
-  if (!cliente) return res.status(400).json({ error: 'Cabeçalho X-Client-Id ausente.' })
+  const cliente = donoDe(req)
+  if (!cliente) return res.status(400).json({ error: 'Entre na plataforma ou envie o cabeçalho X-Client-Id.' })
   run('DELETE FROM bookmarks WHERE client_id = ? AND article_id = ?', [cliente, req.params.articleId])
   res.json({ ok: true })
 })

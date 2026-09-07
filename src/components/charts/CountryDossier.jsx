@@ -3,6 +3,7 @@ import {
 } from 'lucide-react'
 import DataState from '../ui/DataState'
 import { useResource } from '../../hooks/useResource'
+import { useAuthStore } from '../../store/authStore'
 import { request } from '../../services/client'
 import { categoryColor } from '../../utils/textUtils'
 import { formatDateBR } from '../../utils/dateUtils'
@@ -32,9 +33,26 @@ import { formatDateBR } from '../../utils/dateUtils'
 // -----------------------------------------------------------------------------
 
 export default function CountryDossier({ pais, dias = 180 }) {
+  // O DOSSIÊ EXIGE SESSÃO, E PERGUNTAR ANTES É DIFERENTE DE FALHAR DEPOIS.
+  //
+  // `/news/pais/:nome` passa por `exigirPapel('user')` — é conteúdo de
+  // assinante, e a proteção está certa. Mas o componente pedia o dossiê sem
+  // olhar se havia sessão, e o mapa aparece na PÁGINA INICIAL, aberta a
+  // visitante. Medido no navegador: toda visita à home registrava um
+  // `GET /api/news/pais/Brazil?days=180 → 401` no console, e quem clicasse
+  // num país via um bloco de erro vermelho.
+  //
+  // Erro é a resposta certa para algo que deu errado. Não ter entrado não deu
+  // errado — é o estado normal de quem ainda não entrou, e merece um convite,
+  // não um alarme. É a mesma distinção que a API já faz em
+  // `/cyber/ransomware`, que devolve `restrito` com o motivo em vez de recusar.
+  const temSessao = useAuthStore((e) => e.isAuthenticated)
+
   const r = useResource(
-    () => (pais ? request(`GET /news/pais/${encodeURIComponent(pais)}`, { params: { days: dias } }) : Promise.resolve(null)),
-    [pais, dias],
+    () => (pais && temSessao
+      ? request(`GET /news/pais/${encodeURIComponent(pais)}`, { params: { days: dias } })
+      : Promise.resolve(null)),
+    [pais, dias, temSessao],
   )
   const d = r.data
 
@@ -43,6 +61,19 @@ export default function CountryDossier({ pais, dias = 180 }) {
       <p className="mt-4 border-t border-gray-200 pt-4 text-center text-sm muted dark:border-gray-700/40">
         Selecione um país no mapa para abrir o dossiê.
       </p>
+    )
+  }
+
+  if (!temSessao) {
+    return (
+      <div className="mt-4 border-t border-gray-200 pt-4 dark:border-gray-700/40">
+        <p className="rounded-lg bg-gray-100 px-3 py-2.5 text-sm muted dark:bg-white/5">
+          <strong className="font-semibold text-gray-900 dark:text-gray-100">Entre para abrir o dossiê.</strong>{' '}
+          A cobertura noticiosa do país, a tendência contra o período anterior e as vítimas de
+          ransomware do território são conteúdo de assinante. O mapa e a contagem de menções
+          seguem abertos.
+        </p>
+      </div>
     )
   }
 

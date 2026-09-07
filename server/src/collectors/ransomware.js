@@ -1,6 +1,7 @@
 import { all, get, run, transacao } from '../db/index.js'
 import { buscarJson } from '../lib/fetcher.js'
 import { criticidadeDoIncidente } from '../lib/criticidade.js'
+import { urlSegura, dominioSeguro } from '../lib/saneamento.js'
 import config from '../config.js'
 
 // -----------------------------------------------------------------------------
@@ -127,8 +128,24 @@ export async function coletarRansomware() {
               pais, setor,
               v?.discovered || v?.published || null,
               v?.attackdate || null,
-              v?.post_url || null,
-              v?.website || null,
+              // OS DOIS CAMPOS TEM FORMATOS DIFERENTES, e tratar ambos como
+              // URL apaga um deles.
+              //
+              // `post_url` e endereco do site de extorsao e vira `href` na
+              // tela de Ameacas — sanea como URL. Vinha inclusive com a string
+              // literal "null" quando a fonte nao tinha o dado, e `"null" ||
+              // null` e `"null"`: o resultado era `<a href="null">`, um link
+              // que navegava para dentro da propria plataforma.
+              //
+              // `website` e o DOMINIO da vitima ("arcos.mg.gov.br"), nao um
+              // endereco. Passa-lo por `urlSegura` devolveria null para os 624
+              // registros do banco e apagaria o campo da lista de vitimas do
+              // Estado. Sanea como dominio, e continua sendo texto.
+              //
+              // Sao dados escritos por quem opera o vazamento — o ultimo lugar
+              // do projeto onde faz sentido confiar no que vem escrito.
+              urlSegura(v?.post_url),
+              dominioSeguro(v?.website),
               String(v?.description || '').slice(0, 1500) || null,
               c.nivel, c.motivo, c.natureza,
             ]

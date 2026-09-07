@@ -2,7 +2,7 @@ import { all, get, run, transacao } from '../db/index.js'
 import { buscarJson } from '../lib/fetcher.js'
 
 // -----------------------------------------------------------------------------
-// INDICADORES — World Bank Open Data e câmbio (AwesomeAPI)
+// INDICADORES — World Bank Open Data (o câmbio vem do BCB, ver bcb.js)
 //
 // Duas naturezas opostas de dado, e a interface precisa tratá-las diferente:
 //

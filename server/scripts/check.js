@@ -42,7 +42,11 @@ async function checar(nome, caminho, validar, opcoes = {}) {
       headers: {
         'Content-Type': 'application/json',
         'X-Client-Id': 'teste-de-fumaca',
-        ...(TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {}),
+        // `semSessao` existe para o caso em que a AUSENCIA de sessao E o
+        // objeto do teste. A suite entra como administrador para poder medir
+        // a forma das respostas protegidas, e isso mascarava a verificacao de
+        // "sem dono, recusa": com sessao, a conta E o dono.
+        ...(TOKEN && !opcoes.semSessao ? { Authorization: `Bearer ${TOKEN}` } : {}),
         ...opcoes.headers,
       },
       body: opcoes.body ? JSON.stringify(opcoes.body) : undefined,
@@ -140,8 +144,30 @@ if (feed?.items?.[0]) {
   await checar('DELETE /bookmarks/:id', `/api/bookmarks/${id}`, (b) => b?.ok && 'removido', { method: 'DELETE' })
   await checar('GET /bookmarks (após remover)', '/api/bookmarks', (b) => !b.items.some((i) => i.id === id) && 'vazio de novo')
 }
-await checar('POST /bookmarks sem cliente', `/api/bookmarks/1`, () => 'recusa correta',
-  { method: 'POST', status: 400, headers: { 'X-Client-Id': '' } })
+// FAVORITO SEM DONO: nem sessao, nem identificador de cliente. E o unico caso
+// em que a rota deve recusar — e o teste so prova isso se ele proprio nao
+// estiver autenticado, senao a conta do administrador vira o dono e a resposta
+// legitima passa a ser 201.
+await checar('POST /bookmarks sem dono', `/api/bookmarks/1`, () => 'recusa correta',
+  { method: 'POST', status: 400, semSessao: true, headers: { 'X-Client-Id': '' } })
+
+// A PASTA SEGUE A CONTA. Com sessao, o cabecalho de cliente e irrelevante: dois
+// clientes diferentes na MESMA conta veem a mesma pasta. E o que faz "Minha
+// Pasta" sobreviver a troca de navegador, e o que impede um visitante de
+// alcancar a pasta de alguem escrevendo um identificador no cabecalho.
+if (feed?.items?.[0]) {
+  const id = feed.items[0].id
+  await checar('POST /bookmarks (conta)', `/api/bookmarks/${id}`,
+    () => 'salvo na conta', { method: 'POST', status: 201, headers: { 'X-Client-Id': 'navegador-A' } })
+  await checar('GET /bookmarks (outro navegador)', '/api/bookmarks',
+    (b) => b?.items?.some((i) => i.id === id) && 'a pasta segue a conta',
+    { headers: { 'X-Client-Id': 'navegador-B' } })
+  await checar('GET /bookmarks (visitante)', '/api/bookmarks',
+    (b) => b?.total === 0 && 'visitante nao alcanca a pasta da conta',
+    { semSessao: true, headers: { 'X-Client-Id': 'navegador-A' } })
+  await checar('DELETE /bookmarks (conta)', `/api/bookmarks/${id}`,
+    (b) => b?.ok && 'removido', { method: 'DELETE' })
+}
 
 console.log('\nERROS')
 await checar('GET rota inexistente', '/api/nao-existe', (b) => b?.error && 'devolve JSON de erro', { status: 404 })

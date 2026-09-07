@@ -1,5 +1,6 @@
 import { all, get, run } from '../db/index.js'
 import { buscarJson } from '../lib/fetcher.js'
+import { textoLimpo } from '../lib/saneamento.js'
 import config from '../config.js'
 
 // -----------------------------------------------------------------------------
@@ -80,37 +81,6 @@ function aRenovar() {
       LIMIT ?`,
     [`-${IDADE_MAXIMA_HORAS} hours`, lote]
   )
-}
-
-/**
- * Texto limpo a partir de HTML de terceiro.
- *
- * A descrição do ator vem com marcação — `<br>`, `<b>`, links. Há duas formas
- * erradas de tratar isso e uma certa.
- *
- *   ERRADO 1  renderizar como HTML no navegador. É conteúdo de uma API
- *             externa sobre a qual não temos controle nenhum; um `<script>`
- *             ali vira XSS na nossa tela.
- *   ERRADO 2  exibir como texto puro. O leitor vê "<br>" literal no meio da
- *             frase, que foi o que aconteceu antes desta função existir.
- *   CERTO     converter a marcação em quebra de linha e REMOVER o resto,
- *             aqui no servidor, uma vez, na gravação. O que chega ao
- *             navegador já é texto.
- */
-function textoLimpo(html) {
-  return String(html || '')
-    .replace(/<\s*br\s*\/?\s*>/gi, '\n')
-    .replace(/<\s*\/?\s*(p|div|li)\s*[^>]*>/gi, '\n')
-    .replace(/<[^>]*>/g, '')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
-    .replace(/\n{3,}/g, '\n\n')
-    .replace(/[ \t]{2,}/g, ' ')
-    .trim()
 }
 
 /** Conta ferramentas num objeto `{ categoria: [nomes] }`. */

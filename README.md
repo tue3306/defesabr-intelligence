@@ -50,15 +50,21 @@ plataforma existe para cada um deles.
 
 **O incidente chega tarde.** Um vazamento de dados aparece no site de extorsão
 do grupo criminoso dias ou semanas antes de virar notícia — e, na maioria das
-vezes, nunca vira. A plataforma lê esses sites: são **545 organizações
+vezes, nunca vira. A plataforma lê esses sites: são **mais de 540 organizações
 brasileiras** com vazamento divulgado desde 2017, entre elas prefeituras,
-câmaras municipais e secretarias estaduais de saúde.
+câmaras municipais e secretarias estaduais de saúde. O número cresce a cada
+coleta — a contagem exata do momento está na tela de Ameaças Cibernéticas.
 
 **O alerta genérico não ajuda.** Um boletim de vulnerabilidades lista as
 centenas de CVEs críticos do mês. Aqui a lista é cruzada: apenas as
 vulnerabilidades que grupos **com vítima brasileira registrada** sabem
-explorar — hoje 36, com o CVSS, o produto afetado e quem as usa. A priorização
-sai do cruzamento, não de um juízo sobre gravidade.
+explorar — algumas dezenas, com o CVSS, o produto afetado e quem as usa. A
+priorização sai do cruzamento, não de um juízo sobre gravidade.
+
+<sub>Aqui não há número fixo de propósito. Esta linha já disse "hoje 36"
+enquanto a plataforma servia 72: um número escrito à mão sobre um acervo que a
+coleta atualiza a cada 30 minutos envelhece sozinho, e um README que erra o
+próprio número é a primeira coisa que um leitor confere.</sub>
 
 **A mesma notícia chega cinquenta vezes.** As fontes publicam o mesmo fato de
 formas diferentes. O clipping agrupa o que é o mesmo evento e mostra quantos
@@ -154,8 +160,9 @@ promover alguém é ato de governança, não de autoformulário.
 > com papel e validade; cada rota protegida passa por `exigirPapel()`, que
 > responde **401** sem sessão e **403** com papel insuficiente. Trocar o papel
 > no `localStorage` não abre nada — ele vem do token assinado, não do cliente.
-> `npm run check:auth` percorre quatro identidades contra doze rotas e confere
-> o código de cada resposta: **48 verificações**.
+> `npm run check:auth` percorre quatro identidades contra cada rota protegida e confere
+> o código de cada resposta — inclusive nas rotas que MUDAM estado, que é
+> onde a ausência de guarda custa caro.
 
 #### Os dois eixos de permissão
 
@@ -183,7 +190,7 @@ visões serem indistinguíveis.
 | `npm run build` | Compila a interface para `dist/` |
 | `npm start` | Serve API **e** interface compilada num processo só |
 | `npm run collect` | Dispara uma coleta pela linha de comando |
-| `npm run check` | Testa os 26 endpoints da API |
+| `npm run check` | Percorre a API e valida a FORMA de cada resposta, não só o status |
 | `npm run reclassify` | Reaplica as regras de relevância ao acervo já coletado |
 | `npm run reset:db` | Apaga o banco (pergunta antes) |
 
@@ -206,9 +213,8 @@ visões serem indistinguíveis.
 | [World Bank Open Data](https://data.worldbank.org) | API | Gasto militar, efetivo e PIB — 13 países |
 | [Banco Central (SGS)](https://dadosabertos.bcb.gov.br) | API | Dólar, IPCA, Selic e IGP-M — **atualizados no dia** |
 | [Comex Stat (MDIC)](https://comexstat.mdic.gov.br) | API | Exportações de aeronaves e armamento, por país |
-| [AwesomeAPI](https://docs.awesomeapi.com.br) | API | Câmbio USD/BRL e EUR/BRL |
 
-São **21 feeds RSS** mais cinco APIs de governo. Um agendador roda a coleta a
+São **50 feeds RSS** mais as APIs de governo acima. Um agendador roda a coleta a
 cada 30 minutos, com trava contra sobreposição; cada execução fica registrada
 com duração e resultado — a trilha que a aba **Auditoria** do console exibe e
 que a tela **Método & Coleta** do Analista mostra execução por execução.

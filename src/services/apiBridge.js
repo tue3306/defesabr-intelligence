@@ -52,6 +52,7 @@ const base = () => `${API_BASE_URL}/api`
  * é curto o bastante para recuperar sozinho e longo o bastante para não pesar.
  */
 let ultimaSonda = { em: 0, online: null }
+let sondaEmVoo = null
 const JANELA_SONDA = 15_000
 
 export async function apiOnline() {
@@ -59,16 +60,39 @@ export async function apiOnline() {
   if (ultimaSonda.online !== null && agora - ultimaSonda.em < JANELA_SONDA) {
     return ultimaSonda.online
   }
-  try {
-    const c = new AbortController()
-    const t = setTimeout(() => c.abort(), 3000)
-    const r = await fetch(`${base()}/health`, { signal: c.signal })
-    clearTimeout(t)
-    ultimaSonda = { em: agora, online: r.ok }
-  } catch {
-    ultimaSonda = { em: agora, online: false }
-  }
-  return ultimaSonda.online
+
+  // O CACHE SÓ EXISTE DEPOIS DA RESPOSTA, e é aí que estava o furo.
+  //
+  // Seis lugares chamam `apiOnline()` — o mapa, os hooks de dados, o de
+  // fontes, o de notificações, o de notícias — e todos montam no mesmo
+  // instante da primeira pintura. Nenhum encontra cache, porque nenhuma sonda
+  // terminou ainda: as seis disparam em paralelo. Medido no navegador, a
+  // página inicial abria com SETE requisições idênticas a `/api/health`.
+  //
+  // Não é só desperdício de rede: cada uma consome uma das conexões que o
+  // navegador dá por origem, atrasando as consultas que realmente trazem
+  // conteúdo — a sonda competia com o dado que ela existe para autorizar.
+  //
+  // Guardar a promessa EM VOO resolve com uma linha: quem chegar durante a
+  // sonda em andamento espera a mesma resposta em vez de abrir outra.
+  if (sondaEmVoo) return sondaEmVoo
+
+  sondaEmVoo = (async () => {
+    try {
+      const c = new AbortController()
+      const t = setTimeout(() => c.abort(), 3000)
+      const r = await fetch(`${base()}/health`, { signal: c.signal })
+      clearTimeout(t)
+      ultimaSonda = { em: Date.now(), online: r.ok }
+    } catch {
+      ultimaSonda = { em: Date.now(), online: false }
+    } finally {
+      sondaEmVoo = null
+    }
+    return ultimaSonda.online
+  })()
+
+  return sondaEmVoo
 }
 
 /** Força a próxima consulta a sondar de novo (usado após uma coleta manual). */
@@ -206,12 +230,16 @@ export const PONTES = new Map([
 
   // O clipping como EVENTOS: o mesmo fato coberto por varios veiculos vira uma
   // linha com o selo de corroboracao.
-  // Dossie de um pais: cobertura com tendencia, categorias, noticias e as
-  // vitimas de ransomware do territorio. E o que torna o mapa navegavel.
-  ['GET /news/pais', {
-    caminho: '/news/pais',
-    parametros: ({ days = 180 } = {}) => ({ days }),
-  }],
+  // O dossie de pais NAO tem ponte, e nao e esquecimento.
+  //
+  // Havia aqui uma entrada `'GET /news/pais'`, e ela nunca casava com nada: o
+  // chamador pede `GET /news/pais/Russia`, com o nome no CAMINHO, e a busca
+  // no mapa e por chave exata. A entrada era codigo morto que ainda aparecia
+  // na lista de "endpoints registrados" do diagnostico do Admin — anunciando
+  // uma ponte que nao existia.
+  //
+  // O dossie segue funcionando pelo caminho HTTP direto de `client.js`, que
+  // ja manda o cabecalho de sessao. Ver `CountryDossier`.
 
   ['GET /news/eventos', {
     caminho: '/news/eventos',

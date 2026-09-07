@@ -95,7 +95,20 @@ export async function request(endpoint, { params = {}, body, signal, timeout = R
   const controller = new AbortController()
   const onAbort = () => controller.abort()
   signal?.addEventListener('abort', onAbort)
-  const timer = setTimeout(() => controller.abort('timeout'), timeout)
+
+  // POR QUE UM BOOLEANO E NAO A RAZAO DO ABORT.
+  //
+  // Os dois motivos de interrupcao chegam ao `catch` como o MESMO erro
+  // (`AbortError`): o tempo limite estourou, ou quem chamou desistiu — o que
+  // acontece a cada troca de pagina, quando o React desmonta o componente. O
+  // codigo tratava os dois como TIMEOUT, e a tela dizia "A fonte demorou
+  // demais para responder" a quem tinha simplesmente navegado para outro
+  // lugar, culpando a fonte por uma acao do proprio usuario.
+  //
+  // `controller.abort('timeout')` nao resolve: a razao nao viaja ate o erro
+  // que o fetch rejeita em toda plataforma. Marcar aqui, sim.
+  let porTempo = false
+  const timer = setTimeout(() => { porTempo = true; controller.abort() }, timeout)
 
   try {
     const res = await fetch(`${API_BASE_URL}/api${path}${buildQuery(params)}`, {
@@ -110,8 +123,21 @@ export async function request(endpoint, { params = {}, body, signal, timeout = R
     })
 
     if (!res.ok) {
+      // O CORPO SÓ PODE SER LIDO UMA VEZ.
+      //
+      // Estava escrito `(await res.json())?.error || (await res.json())?.message`,
+      // e a segunda leitura sempre falha: `fetch` entrega um fluxo, e consumi-lo
+      // duas vezes lança "body stream already read". Quando a API respondia com
+      // `message` e sem `error`, a primeira metade dava `undefined`, a segunda
+      // estourava, o `catch` engolia — e `detail` ficava vazio. A mensagem
+      // específica do servidor era substituída pelo genérico "Falha na consulta
+      // (HTTP 500)", justamente nos casos em que o servidor tinha explicado o
+      // problema.
       let detail = ''
-      try { detail = (await res.json())?.error || (await res.json())?.message } catch { /* corpo não-JSON */ }
+      try {
+        const corpo = await res.json()
+        detail = corpo?.error || corpo?.message || ''
+      } catch { /* corpo não-JSON: fica o genérico */ }
       throw new ApiError(detail || `Falha na consulta (HTTP ${res.status}).`, {
         status: res.status, endpoint,
       })
@@ -132,10 +158,13 @@ export async function request(endpoint, { params = {}, body, signal, timeout = R
     }
   } catch (err) {
     if (err instanceof ApiError) throw err
-    const aborted = err?.name === 'AbortError'
+    const interrompida = err?.name === 'AbortError'
+    const codigo = interrompida ? (porTempo ? 'TIMEOUT' : 'CANCELADA') : 'NETWORK'
     throw new ApiError(
-      aborted ? 'A consulta foi interrompida.' : (err?.message || 'Falha de rede.'),
-      { endpoint, cause: err, code: aborted ? 'TIMEOUT' : 'NETWORK' },
+      codigo === 'TIMEOUT' ? 'A fonte demorou demais para responder.'
+        : codigo === 'CANCELADA' ? 'A consulta foi interrompida.'
+          : (err?.message || 'Falha de rede.'),
+      { endpoint, cause: err, code: codigo },
     )
   } finally {
     clearTimeout(timer)

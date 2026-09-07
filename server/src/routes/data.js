@@ -8,6 +8,7 @@ import { normalizar } from '../lib/relevance.js'
 import { panoramaRansomware, alertasRansomware } from '../collectors/ransomware.js'
 import { atoresContraBrasil, ator, cvesContraBrasil } from '../collectors/atores.js'
 import { exigirPapel } from '../lib/auth.js'
+import { limitar } from '../lib/limite.js'
 import { limite } from '../lib/parametros.js'
 
 const router = Router()
@@ -50,28 +51,47 @@ router.get('/legislative', (req, res) => {
   })
 })
 
-/** Consulta a tramitação atual na Câmara, ao vivo. */
-router.post('/legislative/:id/refresh', async (req, res, next) => {
-  try {
-    const b = get('SELECT * FROM bills WHERE id = ?', [req.params.id])
-    if (!b) return res.status(404).json({ error: 'Proposição não encontrada.' })
+/**
+ * Consulta a tramitação atual na Câmara, ao vivo.
+ *
+ * EXIGE SESSÃO DE ANALISTA, e a razão não é o dado — a tramitação é pública.
+ * É que esta rota faz o servidor emitir uma requisição para a Câmara a cada
+ * chamada. Aberta, ela é um amplificador: um laço de shell transforma uma
+ * requisição barata para quem chama em milhares de requisições aos Dados
+ * Abertos saindo do IP desta plataforma. Quem paga a conta é o serviço
+ * público do outro lado, e quem leva o bloqueio é este projeto.
+ *
+ * Conferido antes da correção: `curl -X POST .../legislative/1/refresh` sem
+ * token nenhum respondia 200 em 560 ms, com a ida à Câmara acontecendo de
+ * verdade.
+ *
+ * O teto por IP é a segunda camada: mesmo com sessão legítima, atualizar
+ * tramitação é ação pontual de diagnóstico, não algo que se faça em rajada.
+ */
+router.post('/legislative/:id/refresh',
+  exigirPapel('analyst'),
+  limitar({ max: 20, janelaMs: 60_000 }),
+  async (req, res, next) => {
+    try {
+      const b = get('SELECT * FROM bills WHERE id = ?', [req.params.id])
+      if (!b) return res.status(404).json({ error: 'Proposição não encontrada.' })
 
-    const s = await situacaoDaProposicao(b.external_id)
-    if (s) {
-      run(
-        `UPDATE bills SET status_text = ?, presented_at = COALESCE(?, presented_at),
-           summary = COALESCE(?, summary),
-           fetched_at = strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE id = ?`,
-        [s.statusText, s.presentedAt, s.summary, b.id]
-      )
-    }
-    res.json({
-      ok: !!s,
-      status: s,
-      mensagem: s ? 'Tramitação atualizada.' : 'A Câmara não retornou situação para esta proposição.',
-    })
-  } catch (err) { next(err) }
-})
+      const s = await situacaoDaProposicao(b.external_id)
+      if (s) {
+        run(
+          `UPDATE bills SET status_text = ?, presented_at = COALESCE(?, presented_at),
+             summary = COALESCE(?, summary),
+             fetched_at = strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE id = ?`,
+          [s.statusText, s.presentedAt, s.summary, b.id]
+        )
+      }
+      res.json({
+        ok: !!s,
+        status: s,
+        mensagem: s ? 'Tramitação atualizada.' : 'A Câmara não retornou situação para esta proposição.',
+      })
+    } catch (err) { next(err) }
+  })
 
 // ═══════════════════════════ ECONOMIA ═══════════════════════════
 
@@ -85,7 +105,19 @@ router.get('/economy/indicators', (req, res) => {
       series: serie(ind.code, 'BRA'),
     })),
     exchange: ultimoCambio(),
-    providers: ['World Bank Open Data', 'AwesomeAPI'],
+    // A PROCEDÊNCIA TEM DE APONTAR PARA QUEM PRODUZIU O NÚMERO.
+    //
+    // Dizia `['World Bank Open Data', 'AwesomeAPI']`, e o câmbio deixou de vir
+    // da AwesomeAPI faz tempo — ela recusava o IP do Railway, e o Banco Central
+    // passou a entregar dólar e euro pelo SGS. `ultimoCambio()` consulta
+    // `provider = 'bcb'` e nada mais; as 22 linhas antigas de `awesomeapi` que
+    // sobraram no banco não são lidas por ninguém.
+    //
+    // O resultado era a cotação CERTA com o crédito ERRADO. Num produto cuja
+    // regra é declarar a origem de cada série, atribuir um número à fonte
+    // errada é pior que não atribuir: quem quisesse conferir iria bater na
+    // porta de quem não publicou aquilo.
+    providers: ['World Bank Open Data', 'Banco Central do Brasil — SGS'],
     // A defasagem é parte do dado, não uma ressalva de rodapé: quem lê precisa
     // saber que o "último valor" pode ser de dois anos atrás.
     nota: 'O World Bank publica com defasagem de um a dois anos. O ano ao lado de cada valor é o '
@@ -402,13 +434,34 @@ router.get('/sources', exigirPapel('analyst'), (req, res) => {
   })
 })
 
-router.patch('/sources/:id', (req, res) => {
+// PATCH /api/sources/:id — liga e desliga uma fonte
+//
+// ESTAVA ABERTA. Sem sessão nenhuma, um `curl -X PATCH .../api/sources/1
+// -d '{"enabled":false}'` respondia 200 e desligava a fonte: conferido no ar,
+// o total de fontes ativas caiu de 50 para 49. Cinquenta chamadas e a coleta
+// inteira para — sem erro em lugar nenhum, porque desligar uma fonte é uma
+// operação legítima. O painel mostraria as fontes como "pendente" e ninguém
+// saberia por quê.
+//
+// É a mesma classe de falha que o projeto já corrigiu duas vezes: o botão
+// estava escondido atrás do papel de administrador na interface, e ninguém
+// perguntou quem podia chamar a rota por baixo. Esconder o botão não é
+// controle de acesso.
+//
+// `admin` e não `analyst`: mexer no que a plataforma coleta é ato de
+// governança, e é o mesmo papel que `/system/collect/:sourceId` já exigia
+// para a operação irmã.
+router.patch('/sources/:id', exigirPapel('admin'), (req, res) => {
   const s = get('SELECT * FROM sources WHERE id = ?', [req.params.id])
   if (!s) return res.status(404).json({ error: 'Fonte não encontrada.' })
-  if (typeof req.body?.enabled === 'boolean') {
-    run('UPDATE sources SET enabled = ? WHERE id = ?', [req.body.enabled ? 1 : 0, s.id])
+  if (typeof req.body?.enabled !== 'boolean') {
+    // Antes respondia `{ ok: true }` a um corpo sem `enabled`, sem ter mudado
+    // nada. Quem chamasse com o campo errado receberia confirmação de uma
+    // alteração que não aconteceu.
+    return res.status(400).json({ error: 'Envie `enabled` como booleano.', campo: 'enabled' })
   }
-  res.json({ ok: true })
+  run('UPDATE sources SET enabled = ? WHERE id = ?', [req.body.enabled ? 1 : 0, s.id])
+  res.json({ ok: true, id: s.id, enabled: req.body.enabled })
 })
 
 // ═══════════════════════════ BUSCA ═══════════════════════════

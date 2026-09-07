@@ -1,6 +1,7 @@
 import { all, get, run, insert, agora, transacao } from '../db/index.js'
 import { buscarTexto } from '../lib/fetcher.js'
 import { parseFeed } from '../lib/feedParser.js'
+import { urlSegura } from '../lib/saneamento.js'
 import { avaliarRelevancia, classificar, limparRodape, chaveDeTitulo, chaveDeBusca } from '../lib/relevance.js'
 
 // -----------------------------------------------------------------------------
@@ -483,6 +484,22 @@ export async function coletarFonte(fonte) {
         const r = avaliarRelevancia(palheiro)
         const { categoria, urgencia } = classificar(palheiro, item.titulo)
 
+        // O ENDEREÇO É CONTEÚDO DE TERCEIRO, e vira `href` na interface.
+        //
+        // O parser lê `<link>` e o valor era gravado como veio. Do outro lado,
+        // NewsCard, o dossiê de país e os eventos consolidados o põem em
+        // `href={n.url}`. Um `javascript:...` publicado num feed produziria um
+        // link que roda script na origem desta plataforma quando clicado — e o
+        // que mora no `localStorage` dessa origem é o token de sessão. O React
+        // avisa no console e renderiza assim mesmo: o aviso é para quem
+        // desenvolve, não para quem clica.
+        //
+        // `urlSegura` resolve contra o site da fonte (feed com link relativo é
+        // comum) e só deixa passar http e https. O que não passa vira `null`,
+        // e a matéria entra no acervo sem virar âncora — a coluna aceita nulo,
+        // e perder o link é melhor que servir um link executável.
+        const endereco = urlSegura(item.url, fonte.site_url || fonte.url)
+
         // Fonte de imprensa geral guarda SÓ o que passa no filtro. Ver a nota
         // em FONTES_PADRAO: são ~1.500 itens por ciclo com 1% de aproveitamento,
         // e gravar os 99% restantes encheria de futebol e celebridade um acervo
@@ -509,7 +526,7 @@ export async function coletarFonte(fonte) {
             // Num agregador, quem assina a matéria é o veículo que a publicou,
             // não o agregador. Guardar "Google Notícias" como autor apagaria a
             // procedência justamente na fonte em que ela mais importa.
-            fonte.id, item.guid, item.titulo, chave, chaveDeBusca(item.titulo, resumo), item.url, resumo,
+            fonte.id, item.guid, item.titulo, chave, chaveDeBusca(item.titulo, resumo), endereco, resumo,
             item.veiculo || item.autor,
             item.publicadoEm, categoria, urgencia,
             r.relevante ? 1 : 0, r.pontos, r.termos.slice(0, 8).join(', ') || null,

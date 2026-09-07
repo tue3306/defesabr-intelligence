@@ -1,37 +1,48 @@
 // -----------------------------------------------------------------------------
 // CONFIGURAÇÃO DA CAMADA DE DADOS
 //
-// A plataforma TEM backend (`server/`). Toda leitura passa por
-// `src/services/*`, que hoje resolve de três formas — nesta ordem:
+// Há UM caminho de dados, e é a API. Toda leitura passa por
+// `src/services/client.js`, que resolve pela ponte (`apiBridge.js`) quando o
+// endpoint está mapeado e por HTTP direto quando não está. Se a API não
+// responde, a consulta FALHA e a tela mostra erro — nenhum número aparece sem
+// ter vindo de uma fonte.
 //
-//   1. PONTE      endpoint com backend real  → HTTP     (meta.source = 'live')
-//   2. LOCAL      endpoint sem backend       → src/data (meta.source = 'demo')
-//   3. RESERVA    API caiu no meio           → src/data (meta.source = 'fallback')
+// O QUE ESTE ARQUIVO DIZIA ATÉ AGORA, E POR QUE FOI REESCRITO
 //
-// A ponte (`apiBridge.js`) ativa SOZINHA quando a API responde: ela usa o
-// caminho relativo `/api`, que o Vite encaminha em desenvolvimento e que o
-// próprio servidor atende em produção. Não há variável para configurar.
+// O cabeçalho descrevia três caminhos, e o segundo e o terceiro eram
+// "endpoint sem backend → src/data (meta.source = 'demo')" e "API caiu no
+// meio → src/data (meta.source = 'fallback')". Isso deixou de ser verdade
+// quando os resolvedores locais saíram: `viaPonte` lança, e não há reserva
+// escrita à mão para cair.
 //
-// Por que híbrido: parte do produto tem fonte pública verificável — notícias,
-// proposições, indicadores, saúde do sistema — e parte não tem e não terá
-// enquanto não houver analista ou modelo de linguagem. Os selos "AO VIVO" e
-// "DEMO" já existentes na interface dizem qual é qual, tela a tela.
+// Junto do texto ficaram cinco exportações órfãs — `DATA_MODE`, `isDemoMode`,
+// `MOCK_LATENCY`, `REFERENCE_DATE` e `referenceDate()` —, nenhuma importada
+// por arquivo nenhum. `REFERENCE_DATE` era a mais perigosa das cinco: fixava
+// 2026-08-24 como "hoje" para manter a coerência de um acervo demonstrativo
+// que não existe mais. Bastava alguém reencontrá-la e usá-la achando que era
+// a data de referência do produto para o painel inteiro congelar num dia
+// arbitrário do passado.
 //
-// `DATA_MODE` continua existindo para forçar HTTP em TODOS os endpoints
-// (inclusive os sem backend), o que só faz sentido quando a API cobrir tudo.
+// Documentação obsoleta não é neutra: num projeto cuja regra número um é não
+// exibir dado inventado, um arquivo de configuração que descreve como cair
+// para dados escritos à mão é um convite a reintroduzi-los.
 // -----------------------------------------------------------------------------
 
 const env = import.meta.env || {}
 
-/** 'mock' | 'api' */
-// Havia dois modos, e o padrão era servir dados escritos à mão. Agora há um.
-export const DATA_MODE = 'api'
-
-/** Base da API quando DATA_MODE === 'api' (ex.: https://api.defesabr.gov.br/v1). */
+/**
+ * Base da API.
+ *
+ * Vazio é o normal e o recomendado: o caminho relativo `/api` é encaminhado
+ * pelo Vite em desenvolvimento e atendido pelo próprio servidor em produção —
+ * mesma origem, nenhum CORS no caminho. Só se define quando o front é servido
+ * separado da API.
+ */
 export const API_BASE_URL = (env.VITE_API_BASE_URL || '').replace(/\/$/, '')
 
 /** Identidade da aplicação (exibida em rodapés, PDFs e cabeçalhos HTTP). */
 export const APP_NAME = env.VITE_APP_NAME || 'DefesaBR Intelligence'
+
 // A versao vinha fixa em '1.0.0' enquanto o package.json ja marcava 2.0.0 e a
 // API respondia "versao":"2.0.0" — a interface se apresentava como uma versao
 // que nao era a dela, inclusive no cabecalho X-Client-Version enviado ao
@@ -43,40 +54,5 @@ export const APP_VERSION = env.VITE_APP_VERSION
 /** Timeout padrão das requisições (ms). */
 export const REQUEST_TIMEOUT = Number(env.VITE_API_TIMEOUT || 12000)
 
-/**
- * Latência simulada no modo mock. Sem ela, os estados de carregamento nunca
- * aparecem e a demonstração parece irreal — e defeitos de "loading" passam
- * despercebidos. Pode ser desligada com VITE_MOCK_LATENCY=0.
- */
-export const MOCK_LATENCY = (() => {
-  const raw = env.VITE_MOCK_LATENCY
-  if (raw === '0' || raw === 'false') return { min: 0, max: 0 }
-  return { min: 180, max: 520 }
-})()
-
 /** Chave de persistência dos ajustes (usada também fora do store). */
 export const SETTINGS_STORAGE_KEY = 'defesabr-settings-v3'
-
-/** true quando a plataforma roda em modo demonstração (sem backend). */
-/** Mantido por compatibilidade: nunca há modo demonstração. */
-export const isDemoMode = () => false
-
-/**
- * DATA DE REFERÊNCIA DO CONJUNTO DEMONSTRATIVO.
- *
- * O acervo de demonstração foi escrito em torno de uma data fixa: prazos da
- * fila de produção, agenda estratégica, marcos de programas e trilha de
- * auditoria são coerentes entre si a partir dela. Usar `new Date()` faria a
- * demonstração envelhecer sozinha — prazos venceriam, a agenda esvaziaria e o
- * conjunto perderia a coerência interna.
- *
- * Ao ligar um backend real, troque por `new Date().toISOString().slice(0, 10)`
- * num único lugar: nenhuma tela precisa mudar.
- */
-export const REFERENCE_DATE = env.VITE_REFERENCE_DATE || '2026-08-24'
-
-/** A data de referência como Date no fuso local (evita o desvio de UTC). */
-export function referenceDate() {
-  const [y, m, d] = REFERENCE_DATE.split('-').map(Number)
-  return new Date(y, m - 1, d)
-}

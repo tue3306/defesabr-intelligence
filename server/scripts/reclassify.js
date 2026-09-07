@@ -10,6 +10,7 @@
 import { all, run, migrate, transacao } from '../src/db/index.js'
 import { avaliarRelevancia, classificar, limparRodape } from '../src/lib/relevance.js'
 import { ehNaoNoticia } from '../src/collectors/rss.js'
+import { urlSegura, dominioSeguro } from '../src/lib/saneamento.js'
 
 migrate()
 
@@ -63,12 +64,53 @@ transacao(() => {
   }
 })
 
+// ─────────────────────────────────────────────────────────────────────────────
+// SANEAMENTO RETROATIVO DOS ENDEREÇOS
+//
+// A coleta passou a validar o esquema de toda URL de terceiro na gravação
+// (ver `lib/saneamento.js`), mas isso só vale para o que entra DEPOIS. As
+// linhas já gravadas continuam como vieram, e a interface as renderiza como
+// `href` do mesmo jeito.
+//
+// No Railway o disco é efêmero e o acervo renasce a cada deploy, então lá o
+// problema se resolve sozinho. Num volume montado — que é a configuração que o
+// README recomenda para o acervo persistir — ele NÃO se resolve, e é
+// exatamente onde ninguém iria procurar.
+//
+// O caso encontrado no acervo real não era exótico: o ransomware.live devolve
+// a string literal `"null"` quando não tem o endereço do vazamento, e
+// `"null" || null` é `"null"`. O resultado era `<a href="null">` — um link que
+// parece funcionar e navega para dentro da própria plataforma.
+let urlsLimpas = 0
+
+transacao(() => {
+  for (const a of all('SELECT id, url FROM articles WHERE url IS NOT NULL')) {
+    const limpa = urlSegura(a.url)
+    if (limpa === a.url) continue
+    urlsLimpas += 1
+    if (!simular) run('UPDATE articles SET url = ? WHERE id = ?', [limpa, a.id])
+  }
+
+  // `post_url` é endereço e `website` é domínio: formatos diferentes, funções
+  // diferentes. Tratar os dois como URL apagaria o domínio de 624 vítimas.
+  for (const v of all('SELECT id, post_url, website FROM ransomware_victims')) {
+    const post = urlSegura(v.post_url)
+    const site = dominioSeguro(v.website)
+    if (post === v.post_url && site === v.website) continue
+    urlsLimpas += 1
+    if (!simular) {
+      run('UPDATE ransomware_victims SET post_url = ?, website = ? WHERE id = ?', [post, site, v.id])
+    }
+  }
+})
+
 const relevantes = all('SELECT COUNT(*) AS n FROM articles WHERE relevant = 1')[0].n
 
 console.log(simular ? 'Simulação (nada foi gravado)' : 'Reclassificação concluída')
 console.log(`  artigos analisados    : ${artigos.length}`)
 console.log(`  descartados (não são notícia) : ${descartados.length}`)
 console.log(`  resumos limpos        : ${resumosLimpos}`)
+console.log(`  endereços saneados    : ${urlsLimpas}`)
 console.log(`  reclassificados       : ${reclassificados}`)
 console.log(`  passaram a relevante  : ${viraramRelevantes}`)
 console.log(`  deixaram de ser       : ${deixaramDeSer}`)

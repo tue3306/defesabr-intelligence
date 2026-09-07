@@ -37,6 +37,58 @@ const ROTAS = [
 
   { metodo: 'GET', caminho: '/api/system/status', minimo: 'admin' },
   { metodo: 'GET', caminho: '/api/system/capabilities', minimo: 'admin' },
+
+  // ── ROTAS QUE MUDAM ESTADO ──
+  //
+  // ESTAS FALTAVAM, e a ausencia custou caro. A suite cobria doze rotas, todas
+  // de LEITURA, e passava com 48 de 48 enquanto duas rotas de ESCRITA estavam
+  // completamente abertas:
+  //
+  //   PATCH /api/sources/:id            desligava qualquer fonte da coleta.
+  //     Conferido: um curl sem token nenhum respondia 200 e as fontes ativas
+  //     caiam de 50 para 49. Cinquenta chamadas e a plataforma para de coletar,
+  //     sem erro em lugar nenhum — desligar fonte e operacao legitima, entao
+  //     nada acende.
+  //
+  //   POST /api/legislative/:id/refresh fazia o servidor consultar a Camara.
+  //     Aberta, e um amplificador: quem chama gasta uma requisicao, os Dados
+  //     Abertos recebem milhares, e o IP bloqueado seria o desta plataforma.
+  //
+  // As duas passaram despercebidas pelo mesmo motivo: o botao correspondente
+  // esta escondido atras do papel de administrador NA INTERFACE, e ninguem
+  // perguntou quem alcanca a rota por baixo. E o antipadrao que este projeto
+  // ja corrigiu nos perfis — esconder o botao nao e controle de acesso.
+  //
+  // Uma suite de autorizacao que so testa leitura mede a metade que menos
+  // importa: ler dado publico a mais e vazamento, escrever sem permissao e
+  // sabotagem.
+  //
+  // POR QUE ESTES ALVOS. Cada uma e inofensiva quando autorizada, para a suite
+  // poder rodar em producao sem estragar nada: `enabled: true` numa fonte ja
+  // ligada nao muda coisa alguma, e os identificadores inexistentes fazem a
+  // rota parar no 404 ANTES de tocar em qualquer coisa — o que se mede aqui e
+  // a GUARDA, nao o efeito.
+  {
+    metodo: 'PATCH',
+    caminho: '/api/sources/1',
+    minimo: 'admin',
+    corpo: { enabled: true },
+    muta: true,
+  },
+  {
+    metodo: 'POST',
+    caminho: '/api/legislative/999999/refresh',
+    minimo: 'analyst',
+    autorizado: 404,
+    muta: true,
+  },
+  {
+    metodo: 'POST',
+    caminho: '/api/system/collect/999999',
+    minimo: 'admin',
+    autorizado: 404,
+    muta: true,
+  },
 ]
 
 const NIVEL = { user: 1, analyst: 2, admin: 3 }
@@ -52,11 +104,20 @@ async function entrar(conta) {
   return (await r.json()).token
 }
 
-/** O que ESPERAMOS: 200 se o papel alcança o mínimo, senão 401 (sem sessão) ou 403. */
-function esperado(minimo, papel) {
-  if (!minimo) return 200
+/**
+ * O que ESPERAMOS: 401 sem sessão, 403 com papel insuficiente, e o desfecho
+ * autorizado quando o papel alcança o mínimo.
+ *
+ * `rota.autorizado` existe porque nem toda rota permitida devolve 200: as que
+ * recebem um identificador inexistente de propósito devolvem 404, e é isso que
+ * as torna seguras de testar. Confundir "não autorizado" com "não encontrado"
+ * é justamente o erro que este arquivo existe para não deixar passar.
+ */
+function esperado(rota, papel) {
+  const autorizado = rota.autorizado || 200
+  if (!rota.minimo) return autorizado
   if (!papel) return 401
-  return (NIVEL[papel] || 0) >= NIVEL[minimo] ? 200 : 403
+  return (NIVEL[papel] || 0) >= NIVEL[rota.minimo] ? autorizado : 403
 }
 
 const cor = (t, c) => `\x1b[${c}m${t}\x1b[0m`
@@ -80,7 +141,7 @@ async function main() {
     console.log(cor(`  ${conta.rotulo.toUpperCase()}`, 1))
 
     for (const rota of ROTAS) {
-      const esperava = esperado(rota.minimo, conta.papel)
+      const esperava = esperado(rota, conta.papel)
       let obtido
       try {
         const r = await fetch(BASE + rota.caminho, {
@@ -102,8 +163,10 @@ async function main() {
 
       const marca = ok ? cor('  ok  ', 32) : cor(' FALHA', 31)
       const alvo = rota.minimo ? `[${rota.minimo}+]` : '[público]'
+      // As que mudam estado ficam marcadas: sao as que doem quando falham.
+      const escrita = rota.muta ? cor(' ✎', 33) : '  '
       console.log(
-        `  ${marca} ${rota.metodo.padEnd(4)} ${rota.caminho.padEnd(34)} ${alvo.padEnd(11)}`
+        `  ${marca}${escrita} ${rota.metodo.padEnd(5)} ${rota.caminho.padEnd(34)} ${alvo.padEnd(11)}`
         + ` esperado ${esperava}, obtido ${obtido}`,
       )
     }

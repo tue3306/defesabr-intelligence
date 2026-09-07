@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { API_BASE_URL } from '../services/config'
 import { useSubscriptionStore } from './subscriptionStore'
+import { useNewsStore } from './newsStore'
 
 // -----------------------------------------------------------------------------
 // SESSÃO
@@ -47,6 +48,22 @@ async function postar(caminho, corpo) {
   return dados
 }
 
+/**
+ * A pasta de favoritos passa a seguir a CONTA, e não o navegador.
+ *
+ * Chamado nos três pontos em que uma sessão se estabelece — entrar, cadastrar
+ * e revalidar na subida. Sem isto, `/api/bookmarks` continuaria existindo sem
+ * que nenhum caminho de usuário o alcançasse, e "Minha Pasta" seria uma pasta
+ * por navegador.
+ *
+ * Não é aguardado: a sincronização é um efeito colateral bem-vindo do login,
+ * não uma condição dele. Um servidor lento não pode atrasar a entrada, e uma
+ * falha aqui não pode transformar um login correto em erro na tela.
+ */
+function sincronizarPasta() {
+  useNewsStore.getState().sincronizarFavoritos?.()
+}
+
 export const useAuthStore = create(
   persist(
     (set, get) => ({
@@ -69,6 +86,7 @@ export const useAuthStore = create(
           const { user, token } = await postar('/auth/login', { email, password })
           useSubscriptionStore.getState().setPlan(user.plan)
           set({ user, token, isAuthenticated: true, carregando: false })
+          sincronizarPasta()
           return { ok: true, user }
         } catch (err) {
           set({ carregando: false })
@@ -83,6 +101,7 @@ export const useAuthStore = create(
           const { user, token } = await postar('/auth/register', { name, email, password })
           useSubscriptionStore.getState().setPlan(user.plan)
           set({ user, token, isAuthenticated: true, carregando: false })
+          sincronizarPasta()
           return { ok: true, user }
         } catch (err) {
           set({ carregando: false })
@@ -112,6 +131,7 @@ export const useAuthStore = create(
           const { user } = await r.json()
           useSubscriptionStore.getState().setPlan(user.plan)
           set({ user, isAuthenticated: true })
+          sincronizarPasta()
         } catch {
           set({ user: null, token: null, isAuthenticated: false })
         }
