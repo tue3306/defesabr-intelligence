@@ -43,6 +43,7 @@ const ICONE_ALVO = {
   vitima: ShieldAlert,
   ator: Target,
   uf: MapPin,
+  municipio: MapPin,
   setor: Factory,
   infraestrutura: Landmark,
 }
@@ -54,9 +55,9 @@ const JANELAS = [
 ]
 
 const FORCAS = [
-  { id: 1, rotulo: 'Todas' },
+  { id: 4, rotulo: 'Fato concreto' },
   { id: 3, rotulo: 'Diretas ou mais' },
-  { id: 4, rotulo: 'Só as mais fortes' },
+  { id: 1, rotulo: 'Todas' },
 ]
 
 /** Cor da faixa de força. Escala de procedência, não de risco — ver o cabeçalho. */
@@ -69,7 +70,25 @@ function corForca(f) {
 
 export default function Correlations() {
   const [dias, setDias] = useState(60)
-  const [minForca, setMinForca] = useState(1)
+  // ───────────────────────────────────────────────────────────────────────────
+  // A TELA ABRE PELAS LIGAÇÕES DIRETAS, NÃO POR TODAS
+  //
+  // Medido no acervo real: 159 das 167 ligações são `setor-sob-pressao`, a
+  // regra mais fraca da escala. Ela é legítima — situa a leitura — mas numa
+  // plataforma de defesa quase toda matéria trata de um setor com incidente
+  // registrado, então ela dispara quase sempre e diz quase o mesmo.
+  //
+  // Com o padrão em "todas", a página abria com dezenas de cartões repetindo
+  // a mesma observação genérica, e as poucas ligações que apontam para um fato
+  // concreto — um município atacado, um CVE que um grupo com vítima brasileira
+  // explora — ficavam soterradas na página três. O produto parecia lista de
+  // notícias com nota de rodapé.
+  //
+  // Abrir em "diretas ou mais" põe a substância primeiro. Nada é escondido: o
+  // filtro está à vista, "Todas" fica a um clique, e a contagem no topo
+  // continua declarando o total verdadeiro.
+  // ───────────────────────────────────────────────────────────────────────────
+  const [minForca, setMinForca] = useState(3)
   const [aberto, setAberto] = useState(null)
 
   const r = useResource(
@@ -148,8 +167,8 @@ export default function Correlations() {
         onRetry={r.refetch}
         emptyProps={{
           icon: Link2,
-          title: 'Nenhuma correlação no período',
-          hint: 'Amplie a janela ou reduza a força mínima. A maioria das matérias não tem correlação — e esse é o resultado correto.',
+          title: 'Nenhuma ligação direta no período',
+          hint: 'A tela abre filtrando as ligações mais diretas. Escolha "Todas" para incluir as coincidências de setor, ou amplie a janela. A maioria das matérias não tem correlação — e esse é o resultado correto.',
         }}
       >
         <div className="space-y-3">

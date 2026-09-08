@@ -61,6 +61,7 @@ const FORCA = {
   NOME_ORGANIZACAO: 5,
   CVE: 5,
   GRUPO: 4,
+  MUNICIPIO: 4,
   UF_ESTADO: 3,
   INFRAESTRUTURA: 3,
   SETOR: 2,
@@ -445,10 +446,111 @@ function regraInfraestrutura(artigo, entidades) {
     }))
 }
 
+/**
+ * Rotulos de FUNCAO que aparecem no lugar do municipio.
+ *
+ * Nem todo dominio `<algo>.<uf>.gov.br` traz cidade: `saude.mt.gov.br` e a
+ * secretaria estadual de saude, `secont.es.gov.br` e a de controle. Esses
+ * rotulos sao palavras comuns, e casa-los contra o texto ligaria QUALQUER
+ * materia sobre saude a um vazamento no Mato Grosso.
+ *
+ * A lista e de exclusao, e nao de inclusao, porque o que se quer barrar e
+ * finito e conhecido — funcoes administrativas — enquanto os municipios sao
+ * cinco mil e poucos.
+ */
+const ROTULO_DE_FUNCAO = new Set([
+  'saude', 'educacao', 'fazenda', 'seguranca', 'transparencia', 'intranet',
+  'secont', 'siapenet', 'fnde', 'receita', 'previdencia', 'cultura', 'esporte',
+  'turismo', 'meioambiente', 'planejamento', 'administracao', 'assistencia',
+  'governo', 'portal', 'servicos', 'transporte', 'obras', 'ouvidoria', 'camara',
+])
+
+/**
+ * R7 — O municipio citado teve orgao publico com vazamento divulgado.
+ *
+ * A GEOGRAFIA PARAVA NA UF, e isso desperdicava o dado mais especifico que a
+ * fonte entrega. Um dominio como `arcos.mg.gov.br` diz duas coisas: o estado
+ * (Minas Gerais) e a CIDADE (Arcos). A regra da UF usava so a primeira, e
+ * respondia "3 orgaos de Minas Gerais foram atacados" a uma materia que falava
+ * exatamente da Prefeitura de Arcos — perto, generico, e bem menos util que a
+ * ligacao direta que o dado permitia.
+ *
+ * O nome do municipio sai do proprio dominio, sem tabela de cidades: o rotulo
+ * imediatamente antes da sigla da UF. `arcos.mg.gov.br` da "arcos",
+ * `jaboatao.pe.gov.br` da "jaboatao", `fortaleza.ce.gov.br` da "fortaleza".
+ *
+ * DUAS GUARDAS, e as duas sairam de olhar os dominios reais do acervo:
+ *
+ *   Rotulo de FUNCAO nao e cidade. Sem a exclusao, `saude.mt.gov.br` ligaria
+ *   toda materia sobre saude a um vazamento no Mato Grosso.
+ *
+ *   Fronteira de palavra, sempre. A tentacao aqui e comparar contra o texto
+ *   com os espacos removidos, para alcancar cidades de nome composto como
+ *   `santoantoniodapatrulha`. Nao vale a pena: sem espacos, "arcos" casa
+ *   dentro de "marcos", e o custo de um falso positivo e maior que o ganho de
+ *   alcancar as compostas. Cidade de nome composto simplesmente nao e
+ *   detectada, e isso e uma perda declarada.
+ */
+function regraMunicipio(artigo) {
+  const palheiro = normalizar(`${artigo.title} ${artigo.summary || ''}`)
+  if (!palheiro.trim()) return []
+
+  const linhas = all(
+    `SELECT victim, "group", website, discovered_at, sector, nature
+       FROM ransomware_victims
+      WHERE country = 'BR' AND website LIKE '%.gov.br'
+      ORDER BY discovered_at DESC`
+  )
+
+  const vistos = new Set()
+  const out = []
+
+  for (const v of linhas) {
+    // `<municipio>.<uf>.gov.br` — quatro rotulos, com a UF na terceira posicao
+    // a partir do fim. Dominio federal (`fnde.gov.br`) tem tres e nao entra.
+    const partes = String(v.website || '').toLowerCase().replace(/^www\./, '').split('.')
+    if (partes.length !== 4) continue
+    const [slug, uf] = partes
+    const unidade = UFS.find((u) => u.uf.toLowerCase() === uf)
+    if (!unidade) continue
+    if (slug.length < 5 || ROTULO_DE_FUNCAO.has(slug)) continue
+    if (vistos.has(slug)) continue
+
+    const rx = new RegExp(
+      `(?<![\\p{L}\\p{N}])${slug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}\\p{N}])`,
+      'u'
+    )
+    if (!rx.test(palheiro)) continue
+    vistos.add(slug)
+
+    out.push({
+      regra: 'municipio-orgao-atacado',
+      alvoTipo: 'municipio',
+      alvoId: `${slug}.${uf}`,
+      alvoRotulo: `${v.victim} (${unidade.uf})`,
+      motivo: `A matéria cita um município cujo órgão público consta na lista de vazamentos: `
+        + `"${v.victim}", no domínio ${v.website}, divulgado pelo grupo ${v.group || 'não identificado'}.`,
+      evidencia: `"${slug}" no texto = rótulo do município em ${v.website}`,
+      contextoBr: `${unidade.nome} · administração municipal`
+        + `${v.sector ? ` · setor ${v.sector}` : ''}. Divulgação em `
+        + `${(v.discovered_at || '').slice(0, 10) || 'data não informada'}.`,
+      impacto: 'Administração municipal: serviço ao cidadão, folha e dados administrativos são o '
+        + 'que costuma estar exposto. A notificação cabe ao CTIR Gov.',
+      // Forca 4: liga a materia a um incidente CONCRETO e nomeado, mas por
+      // nome e nao por dominio contra dominio — que e o unico caso de forca 5.
+      forca: FORCA.MUNICIPIO,
+    })
+  }
+  return out
+}
+
 const REGRAS = [
   regraOrganizacaoVitima,
   regraCve,
   regraGrupo,
+  // Municipio ANTES da UF: e a ligacao mais especifica que a geografia permite,
+  // e as duas podem valer para a mesma materia — quem le ve primeiro a cidade.
+  regraMunicipio,
   regraUf,
   regraSetor,
   regraInfraestrutura,
@@ -554,6 +656,7 @@ export const METODO_CORRELACAO = {
     { id: 'organizacao-vitima-nome', forca: FORCA.NOME_ORGANIZACAO, titulo: 'Organização citada consta como vítima (por nome)', criterio: 'O nome normalizado da entidade é IGUAL ao da vítima. Continência não vale: "Vale" dentro de "Vale do Aço" não é a mineradora.' },
     { id: 'cve-ator-brasil', forca: FORCA.CVE, titulo: 'CVE citado é explorado por grupo com vítima brasileira', criterio: 'O identificador CVE aparece no texto e no perfil de um grupo que tem vítima brasileira registrada.' },
     { id: 'grupo-citado', forca: FORCA.GRUPO, titulo: 'Grupo citado tem vítima brasileira', criterio: 'O nome do grupo aparece no texto com fronteira de palavra, e o grupo consta no acervo com vítima no Brasil.' },
+    { id: 'municipio-orgao-atacado', forca: FORCA.MUNICIPIO, titulo: 'O município citado teve órgão público com vazamento', criterio: 'O rótulo do município sai do próprio domínio da vítima (arcos.mg.gov.br → "arcos") e é casado com fronteira de palavra. Rótulo de função administrativa (saude, fazenda) é excluído: não é cidade.' },
     { id: 'uf-orgaos-atacados', forca: FORCA.UF_ESTADO, titulo: 'A UF citada tem órgãos com vazamento divulgado', criterio: 'Domínios terminados em .<uf>.gov.br identificam a unidade da federação sem inferência.' },
     { id: 'infraestrutura-critica', forca: FORCA.INFRAESTRUTURA, titulo: 'Infraestrutura crítica nomeada', criterio: 'Instalação específica do catálogo, não categoria genérica.' },
     { id: 'setor-sob-pressao', forca: FORCA.SETOR, titulo: 'O setor tratado tem incidentes brasileiros no período', criterio: `Coincidência de SETOR na janela de ${JANELA_DIAS} dias. Situa a leitura; não afirma que a matéria e o incidente são o mesmo fato.` },
@@ -564,6 +667,9 @@ export const METODO_CORRELACAO = {
     'Nome de grupo so e reconhecido quando o texto tambem tem contexto cibernetico, e nomes '
       + 'que sao palavra comum (global, nova, apos, fog, maze) nunca contam sozinhos.',
     'Igualdade de nome exige correspondencia exata do texto normalizado — continencia nao vale.',
+    'Municipio sai do dominio da vitima, nunca de tabela externa, e rotulo de funcao administrativa '
+      + '(saude.mt.gov.br) e excluido: nao e cidade. Cidade de nome composto nao e detectada, porque '
+      + 'comparar sem espacos faria "arcos" casar dentro de "marcos".',
   ],
   ressalva: 'Correlação não é causalidade. Cada ligação declara a regra que a produziu e a '
     + 'evidência literal que a sustenta; nenhuma nasce de similaridade semântica ou de estimativa.',
