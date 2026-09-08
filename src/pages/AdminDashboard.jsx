@@ -304,7 +304,7 @@ export default function AdminDashboard() {
 
               Vinha de `platformMetrics.contasPorPlano`, escrito à mão: 128
               contas no plano Explorar, 34 no Profissional, 6 no Institucional.
-              Existem três contas. Num painel de GOVERNANÇA, cuja função é
+              Existem duas. Num painel de GOVERNANÇA, cuja função é
               responder "qual é o estado real da plataforma", um número de
               usuários inventado é a informação que menos pode ser inventada. */}
           <Section className="card p-5">

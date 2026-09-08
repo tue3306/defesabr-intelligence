@@ -348,8 +348,8 @@ function PermissionsTab() {
       </Card>
 
       <Card
-        title="Os quatro perfis do produto"
-        desc="Como cada perfil se posiciona na plataforma."
+        title="Os perfis do modelo de permissão"
+        desc="São arquétipos, não contas: descrevem o que cada papel alcança. A instalação nasce com duas contas — Usuário e Administrador —, e o papel Analista é herdado pelo Administrador."
       >
         <ul className="space-y-2">
           {PROFILE_ORDER.map((id) => {

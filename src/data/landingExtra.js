@@ -30,7 +30,7 @@ export const STANDARDS = ['ISO/IEC 27001', 'ISO 31000', 'NIST CSF', 'MITRE ATT&C
 export const FAQ = [
   {
     q: 'Os dados exibidos são reais?',
-    a: 'Sim. As notícias vêm de 15 feeds RSS de fontes oficiais e imprensa especializada; as proposições, da API de Dados Abertos da Câmara; os indicadores, do Banco Central e do World Bank; as exportações, do Comex Stat do MDIC. Cada tela declara a origem, e o que não tem fonte não é exibido.',
+    a: 'Sim. As notícias vêm de 50 fontes RSS — órgãos oficiais, agências públicas e imprensa; as proposições, da API de Dados Abertos da Câmara; os indicadores, do Banco Central e do World Bank; as exportações, do Comex Stat do MDIC; e as organizações brasileiras com vazamento divulgado, do ransomware.live. Cada tela declara a origem, e o que não tem fonte não é exibido.',
   },
   {
     q: 'A plataforma precisa de servidor ou banco de dados?',
@@ -42,22 +42,38 @@ export const FAQ = [
   },
   {
     q: 'É um sistema oficial de algum órgão público?',
-    a: 'Não. É um projeto acadêmico independente que agrega fontes públicas e cita a origem de cada dado. Menções a órgãos, programas ou normas não implicam vínculo, homologação ou certificação.',
+    a: 'Não. É um projeto independente de código aberto que agrega fontes públicas e cita a origem de cada dado. Menções a órgãos, programas ou normas não implicam vínculo, homologação ou certificação.',
   },
   {
     q: 'O que a plataforma NÃO faz?',
     a: 'Não gera análise por IA — nenhum texto aqui foi escrito por máquina — e não produz avaliação de risco nem dossiê, que são juízo humano; as telas que fingiam fazê-lo foram removidas. A autenticação, essa passou a ser real: senha em scrypt, token assinado e papel conferido no servidor a cada rota. O console de administração lista o estado de cada capacidade.',
   },
   {
+    q: 'O que a plataforma faz que um leitor de RSS não faz?',
+    a: 'Correlaciona. Cada matéria é cruzada com as organizações brasileiras que tiveram vazamento divulgado, com os grupos criminosos que as atacaram e com os CVEs que esses grupos sabem explorar. São oito regras determinísticas, e cada ligação mostra o motivo, a evidência literal que a sustenta e o impacto possível — nada nasce de semelhança semântica ou de estimativa.',
+  },
+  {
     q: 'Quanto custa?',
-    a: 'Nada. Os planos exibidos descrevem um modelo de produto possível e não há cobrança — servem para mostrar como o acesso seria escalonado.',
+    a: 'Nada, e não há como custar: o projeto é de código aberto, sem cobrança, sem assinatura e sem plano pago. Qualquer pessoa pode clonar o repositório e subir a própria instância. A página de níveis descreve o que cada nível de leitura destrava — é documentação do modelo de permissão, não tabela de preços.',
   },
 ]
 
 // Roadmap (evolução planejada).
+// O ROADMAP DIZIA QUE O QUE JA EXISTE AINDA ESTAVA POR VIR.
+//
+// "Autenticacao no servidor" aparecia como PLANEJADA, com o texto "hoje os
+// perfis sao verificados no navegador". Isso deixou de ser verdade ha muito:
+// ha senha em scrypt, token assinado, `exigirPapel()` por rota e uma suite que
+// percorre cada identidade contra cada rota protegida. Pior que envelhecer, o
+// item anunciava como estado ATUAL exatamente a falha que o projeto corrigiu —
+// dizia ao leitor que a plataforma so escondia menu.
+//
+// A correlacao tambem estava reduzida a "geografica", que era o que ela era
+// quando o item foi escrito.
 export const ROADMAP = [
-  { phase: 'Disponível', title: 'Coleta e clipping', text: 'Fontes RSS oficiais e quatro APIs de governo, com filtro de relevância auditável e coleta a cada 30 minutos.', done: true },
-  { phase: 'Disponível', title: 'Correlação geográfica', text: 'Detecção de estados e 36 países no texto das notícias, alimentando os dois mapas.', done: true },
-  { phase: 'Planejado', title: 'Autenticação no servidor', text: 'Sessão, senha e verificação por rota — hoje os perfis são verificados no navegador.', done: false },
-  { phase: 'Planejado', title: 'Análise por modelo de linguagem', text: 'Resumo executivo do clipping e síntese de período, hoje declarados como ausentes.', done: false },
+  { phase: 'Disponível', title: 'Coleta e clipping', text: '50 fontes RSS e quatro APIs de governo, com filtro de relevância auditável e coleta a cada 30 minutos.', done: true },
+  { phase: 'Disponível', title: 'Correlação com o Brasil', text: 'Oito regras determinísticas ligam matérias a organizações atacadas, grupos, CVEs, municípios, UFs e setores — cada uma com a evidência à vista.', done: true },
+  { phase: 'Disponível', title: 'Autenticação no servidor', text: 'Senha em scrypt, token assinado e papel conferido por rota: 401 sem sessão, 403 com papel insuficiente.', done: true },
+  { phase: 'Planejado', title: 'Entrar com conta Google', text: 'As colunas `username` e `auth_provider` já existem para receber o provedor externo sem remodelar nada.', done: false },
+  { phase: 'Planejado', title: 'Análise por modelo de linguagem', text: 'Resumo executivo do clipping e síntese de período, hoje declarados como ausentes em vez de preenchidos.', done: false },
 ]
