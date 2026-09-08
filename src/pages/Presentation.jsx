@@ -152,7 +152,7 @@ const SLIDES = [
   { title: 'Volume de notícias — 14 dias', render: (h) => <VolumeSlide height={h} /> },
   { title: 'Volume por categoria — 30 dias', render: (h) => <RadarSlide height={h} /> },
   { title: 'Índice de alerta nacional', render: (h) => <AlertaSlide height={h} /> },
-  { title: 'Mapa de calor de risco — foco Américas', render: (h) => <GlobalHeatmap height={h} withNews={false} /> },
+  { title: 'Cobertura noticiosa por país — o Brasil como âncora', render: (h) => <GlobalHeatmap height={h} withNews={false} /> },
 ]
 
 const AUTOPLAY_MS = 9000

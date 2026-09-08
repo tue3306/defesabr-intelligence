@@ -105,7 +105,10 @@ export const CAPABILITIES = {
   'indicators.basic': { label: 'Indicadores básicos', reason: 'auth', tier: 'Usuário' },
   'education.access': { label: 'Centro educacional', reason: 'auth', tier: 'Usuário' },
   'analysis.preview': { label: 'Prévia de análises', reason: 'auth', tier: 'Usuário' },
-  'map.risk': { label: 'Mapa de risco', reason: 'auth', tier: 'Usuário' },
+  // A capacidade guarda o id `map.risk` por compatibilidade — trocar a chave
+  // exigiria varrer cada tela que a pede. O ROTULO, que e o que aparece para
+  // quem le, passou a dizer o que o mapa mede: cobertura, nao risco.
+  'map.risk': { label: 'Mapa de cobertura por país', reason: 'auth', tier: 'Usuário' },
   'calendar.read': { label: 'Calendário estratégico', reason: 'auth', tier: 'Usuário' },
   'programs.read': { label: 'Programas estratégicos', reason: 'auth', tier: 'Usuário' },
   'folder.save': { label: 'Minha Pasta (salvar conteúdos)', reason: 'auth', tier: 'Usuário' },

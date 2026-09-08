@@ -321,6 +321,24 @@ router.get('/news/countries', (req, res) => {
     totalAnalisado: artigos.length,
     semPaisIdentificado: semPais,
     paisesReconhecidos: PAISES.length,
+
+    // O CATALOGO INTEIRO, e nao so quem teve mencao no periodo.
+    //
+    // `items` traz apenas os paises citados, o que basta para pintar o mapa e
+    // nao basta para ESCOLHER um: a lista de selecao ficava sem os paises que
+    // a plataforma acompanha e que simplesmente nao foram citados na janela —
+    // e quem procurasse por eles concluiria que nao existem.
+    //
+    // Serve tambem como fonte unica dos nomes em portugues. O front mantinha
+    // uma segunda tabela com quinze paises, ao lado de um `risk` de 0 a 100
+    // escrito a mao e de manchetes inventadas com data. Duas tabelas de nome
+    // divergem com o tempo; uma delas carregava dado falso junto.
+    catalogo: PAISES.map((p) => ({
+      nome: p.nome,
+      pt: p.pt,
+      iso: p.iso || null,
+      foraDaEscala: !!p.foraDaEscala,
+    })),
     nota: 'Contagem de MENCOES a paises no texto das noticias coletadas. Mede volume de '
       + 'cobertura, nao risco, tensao ou atividade militar. Um pais aparece mais porque a '
       + 'imprensa escreveu mais sobre ele no periodo.',

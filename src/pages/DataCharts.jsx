@@ -39,7 +39,10 @@ const TABS = [
   { id: 'volume', label: 'Volume & Categorias', icon: Layers },
   { id: 'gastos', label: 'Gastos militares', icon: Wallet },
   { id: 'internacional', label: 'Comparação internacional', icon: Globe2 },
-  { id: 'risco', label: 'Risco por país', icon: ShieldAlert },
+  // Nao e risco: e volume de cobertura. Ver a nota em GlobalHeatmap — a
+  // legenda dizia "Critico" para contagem de mencoes, e o rotulo da aba
+  // dizia a mesma coisa errada uma tela antes.
+  { id: 'risco', label: 'Cobertura por país', icon: ShieldAlert },
 ]
 
 // A série real cobre 14 dias; janelas maiores são PROJEÇÃO demonstrativa.
@@ -427,7 +430,7 @@ export default function DataCharts() {
             className="xl:col-span-2"
             badge={paises.data?.items?.length ? 'live' : 'sem-dado'}
             title="Cobertura por país"
-            subtitle="Quantas notícias coletadas mencionam cada país — foco nas Américas."
+            subtitle="Quantas notícias coletadas mencionam cada país. O Brasil é a âncora e fica fora da escala de cor: citado em quase toda matéria, como teto pintaria o resto do mundo de cinza."
             method="Quantas notícias coletadas mencionam cada país, normalizado de 0 a 100 pelo país mais citado. Mede volume de cobertura, não risco. Passe o cursor sobre um país para ver as manchetes."
             rows={activityRows}
             filename="atividade-por-pais.csv"

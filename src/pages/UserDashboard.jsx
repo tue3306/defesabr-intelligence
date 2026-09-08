@@ -307,7 +307,7 @@ export default function UserDashboard() {
               O que sobra abaixo é medido: cobertura por país conta menções em
               notícia coletada, e diz isso no próprio texto. */}
 
-          {/* Mapa de risco — sempre disponível */}
+          {/* Mapa de cobertura — sempre disponível */}
           <Section className="card p-5">
             <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
               <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">

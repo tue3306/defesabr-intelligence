@@ -144,6 +144,16 @@ export function detectarLugares(texto) {
 // que de fato aparecem (gentilico e capital incluidos, porque "forcas
 // venezuelanas" e "acordo em Caracas" sao mencoes ao pais).
 // -----------------------------------------------------------------------------
+// O CAMPO `pt` E DE EXIBICAO; `termos` E DE DETECCAO. Nao confundir.
+//
+// `pt` aparece na tela — no mapa, no dossie, na lista de selecao — e estava sem
+// acento em catorze paises. "Ira" num produto em portugues nao le como o pais:
+// le como o verbo, ou como substantivo de raiva. "Russia", "Japao" e "Franca"
+// simplesmente pareciam erro de digitacao, num painel cujo argumento e rigor.
+//
+// `termos` continua SEM acento de proposito: e comparado contra o texto ja
+// normalizado por `normalizar()`, e acentua-lo faria a deteccao parar de casar
+// com qualquer coisa. Os dois campos parecem o mesmo tipo de dado e nao sao.
 export const PAISES = [
   // ── O BRASIL ──
   //
@@ -168,9 +178,9 @@ export const PAISES = [
 
   // Vizinhanca sul-americana — prioridade do produto
   { nome: 'Argentina', iso: 'AR', pt: 'Argentina', termos: ['argentina', 'argentino', 'argentinos', 'buenos aires'] },
-  { nome: 'Bolivia', iso: 'BO', pt: 'Bolivia', termos: ['bolivia', 'boliviano', 'bolivianos', 'la paz'] },
+  { nome: 'Bolivia', iso: 'BO', pt: 'Bolívia', termos: ['bolivia', 'boliviano', 'bolivianos', 'la paz'] },
   { nome: 'Chile', iso: 'CL', pt: 'Chile', termos: ['chile', 'chileno', 'chilenos'] },
-  { nome: 'Colombia', iso: 'CO', pt: 'Colombia', termos: ['colombia', 'colombiano', 'colombianos', 'bogota'] },
+  { nome: 'Colombia', iso: 'CO', pt: 'Colômbia', termos: ['colombia', 'colombiano', 'colombianos', 'bogota'] },
   { nome: 'Ecuador', iso: 'EC', pt: 'Equador', termos: ['equador', 'equatoriano', 'equatorianos', 'quito'] },
   { nome: 'Guyana', iso: 'GY', pt: 'Guiana', termos: ['guiana', 'essequibo', 'georgetown'] },
   { nome: 'Paraguay', iso: 'PY', pt: 'Paraguai', termos: ['paraguai', 'paraguaio', 'paraguaios', 'assuncao'] },
@@ -181,32 +191,32 @@ export const PAISES = [
 
   // Resto das Americas
   { nome: 'United States of America', iso: 'US', pt: 'Estados Unidos', termos: ['estados unidos', 'eua', 'norte-americano', 'norte-americanos', 'washington', 'pentagono', 'casa branca'] },
-  { nome: 'Canada', iso: 'CA', pt: 'Canada', termos: ['canada', 'canadense', 'canadenses', 'ottawa'] },
-  { nome: 'Mexico', iso: 'MX', pt: 'Mexico', termos: ['mexico', 'mexicano', 'mexicanos'] },
+  { nome: 'Canada', iso: 'CA', pt: 'Canadá', termos: ['canada', 'canadense', 'canadenses', 'ottawa'] },
+  { nome: 'Mexico', iso: 'MX', pt: 'México', termos: ['mexico', 'mexicano', 'mexicanos'] },
   { nome: 'Cuba', iso: 'CU', pt: 'Cuba', termos: ['cuba', 'cubano', 'cubanos', 'havana'] },
   { nome: 'Haiti', iso: 'HT', pt: 'Haiti', termos: ['haiti', 'haitiano', 'haitianos'] },
 
   // Potencias e parceiros com peso em defesa
   { nome: 'China', iso: 'CN', pt: 'China', termos: ['china', 'chines', 'chinesa', 'chineses', 'pequim'] },
-  { nome: 'Russia', iso: 'RU', pt: 'Russia', termos: ['russia', 'russo', 'russa', 'russos', 'moscou', 'kremlin'] },
-  { nome: 'Ukraine', iso: 'UA', pt: 'Ucrania', termos: ['ucrania', 'ucraniano', 'ucranianos', 'kiev'] },
-  { nome: 'France', iso: 'FR', pt: 'Franca', termos: ['franca', 'frances', 'francesa', 'franceses', 'paris'] },
+  { nome: 'Russia', iso: 'RU', pt: 'Rússia', termos: ['russia', 'russo', 'russa', 'russos', 'moscou', 'kremlin'] },
+  { nome: 'Ukraine', iso: 'UA', pt: 'Ucrânia', termos: ['ucrania', 'ucraniano', 'ucranianos', 'kiev'] },
+  { nome: 'France', iso: 'FR', pt: 'França', termos: ['franca', 'frances', 'francesa', 'franceses', 'paris'] },
   { nome: 'United Kingdom', iso: 'GB', pt: 'Reino Unido', termos: ['reino unido', 'inglaterra', 'britanico', 'britanica', 'britanicos', 'londres'] },
   { nome: 'Germany', iso: 'DE', pt: 'Alemanha', termos: ['alemanha', 'alemao', 'alema', 'alemaes', 'berlim'] },
-  { nome: 'Italy', iso: 'IT', pt: 'Italia', termos: ['italia', 'italiano', 'italianos'] },
+  { nome: 'Italy', iso: 'IT', pt: 'Itália', termos: ['italia', 'italiano', 'italianos'] },
   { nome: 'Spain', iso: 'ES', pt: 'Espanha', termos: ['espanha', 'espanhol', 'espanhola', 'espanhois', 'madri'] },
   { nome: 'Portugal', iso: 'PT', pt: 'Portugal', termos: ['portugal', 'portugues', 'portuguesa', 'portugueses', 'lisboa'] },
   { nome: 'Israel', iso: 'IL', pt: 'Israel', termos: ['israel', 'israelense', 'israelenses'] },
-  { nome: 'Iran', iso: 'IR', pt: 'Ira', termos: ['iraniano', 'iranianos', 'teera'] },
-  { nome: 'India', iso: 'IN', pt: 'India', termos: ['india', 'indiano', 'indianos', 'nova delhi'] },
-  { nome: 'Japan', iso: 'JP', pt: 'Japao', termos: ['japao', 'japones', 'japonesa', 'japoneses', 'toquio'] },
+  { nome: 'Iran', iso: 'IR', pt: 'Irã', termos: ['iraniano', 'iranianos', 'teera'] },
+  { nome: 'India', iso: 'IN', pt: 'Índia', termos: ['india', 'indiano', 'indianos', 'nova delhi'] },
+  { nome: 'Japan', iso: 'JP', pt: 'Japão', termos: ['japao', 'japones', 'japonesa', 'japoneses', 'toquio'] },
   { nome: 'South Korea', iso: 'KR', pt: 'Coreia do Sul', termos: ['coreia do sul', 'sul-coreano', 'sul-coreanos', 'seul'] },
   { nome: 'North Korea', iso: 'KP', pt: 'Coreia do Norte', termos: ['coreia do norte', 'norte-coreano', 'norte-coreanos', 'pyongyang'] },
   { nome: 'Turkey', iso: 'TR', pt: 'Turquia', termos: ['turquia', 'turco', 'turcos', 'ancara'] },
-  { nome: 'South Africa', iso: 'ZA', pt: 'Africa do Sul', termos: ['africa do sul', 'sul-africano', 'sul-africanos'] },
+  { nome: 'South Africa', iso: 'ZA', pt: 'África do Sul', termos: ['africa do sul', 'sul-africano', 'sul-africanos'] },
   { nome: 'Angola', iso: 'AO', pt: 'Angola', termos: ['angola', 'angolano', 'angolanos', 'luanda'] },
-  { nome: 'Nigeria', iso: 'NG', pt: 'Nigeria', termos: ['nigeria', 'nigeriano', 'nigerianos'] },
-  { nome: 'Sweden', iso: 'SE', pt: 'Suecia', termos: ['suecia', 'sueco', 'sueca', 'suecos', 'estocolmo', 'saab'] },
+  { nome: 'Nigeria', iso: 'NG', pt: 'Nigéria', termos: ['nigeria', 'nigeriano', 'nigerianos'] },
+  { nome: 'Sweden', iso: 'SE', pt: 'Suécia', termos: ['suecia', 'sueco', 'sueca', 'suecos', 'estocolmo', 'saab'] },
 ]
 
 // A mesma armadilha do filtro de relevancia, agora com nome de pais: sem

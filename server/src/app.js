@@ -112,10 +112,52 @@ export function criarApp() {
   // desenvolvimento a pasta não existe e o Vite cuida disso — por isso a
   // verificação, e não uma falha.
   if (existsSync(config.staticDir)) {
-    app.use(express.static(config.staticDir, { maxAge: '1h', index: false }))
-    // O front usa HashRouter, então não há rota de servidor para reescrever:
-    // basta devolver o index para qualquer caminho que não seja /api.
-    app.get(/^(?!\/api).*/, (req, res) => res.sendFile(join(config.staticDir, 'index.html')))
+    // ── CACHE: OS ARQUIVOS COM HASH SIM, O `index.html` NUNCA ──
+    //
+    // O Vite põe o hash do conteúdo no nome de cada bundle
+    // (`index-CDdGef2R.js`), então esses arquivos são IMUTÁVEIS: o nome muda
+    // quando o conteúdo muda. Podem ser guardados por um ano sem risco.
+    //
+    // O `index.html` é o oposto: o nome nunca muda e o conteúdo aponta para os
+    // bundles do build atual. Guardá-lo em cache é o que faz um navegador
+    // continuar pedindo, depois de um deploy, os arquivos do build anterior —
+    // que não existem mais.
+    app.use(express.static(config.staticDir, {
+      index: false,
+      maxAge: '1y',
+      immutable: true,
+      setHeaders(res, caminho) {
+        if (caminho.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache')
+      },
+    }))
+
+    // ── ARQUIVO ESTÁTICO QUE NÃO EXISTE DEVE DAR 404, NÃO HTML ──
+    //
+    // O catch-all abaixo devolvia `index.html` para QUALQUER caminho fora de
+    // /api — inclusive para `/assets/Home-BezuJ_e3.js`. Conferido no navegador:
+    // depois de um deploy, a aba que já estava aberta pede os bundles antigos,
+    // recebe HTML no lugar de JavaScript e morre com
+    //
+    //   "Expected a JavaScript-or-Wasm module script but the server responded
+    //    with a MIME type of text/html"
+    //
+    // seguido de "Failed to fetch dynamically imported module" e uma tela em
+    // branco. O erro não diz o que aconteceu, e acontece com TODA pessoa que
+    // estiver com a plataforma aberta no momento de uma publicação.
+    //
+    // Com 404, o navegador reporta arquivo ausente — que é a verdade — e o
+    // ErrorBoundary do front consegue oferecer recarregar.
+    const RX_ARQUIVO = /\.[a-z0-9]{2,5}$/i
+    app.get(/^(?!\/api).*/, (req, res) => {
+      if (RX_ARQUIVO.test(req.path)) {
+        return res.status(404).type('text/plain').send(
+          'Arquivo não encontrado. Se a plataforma acabou de ser publicada, recarregue a página.'
+        )
+      }
+      // O front usa HashRouter, então não há rota de servidor para reescrever:
+      // qualquer caminho que não seja /api nem arquivo recebe o index.
+      res.sendFile(join(config.staticDir, 'index.html'))
+    })
   }
 
   app.use('/api', (req, res) => {
