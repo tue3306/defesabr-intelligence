@@ -10,6 +10,10 @@
 // numero de cartao terminado em 4242. Era a mesma fabricacao que o projeto
 // removeu de todo o resto, so que com cifrao.
 //
+// Sairam tambem 'Multiplos usuarios (assentos)' e 'Integracoes / SSO': nao ha
+// assento, nao ha SSO e nao ha cobranca por usuario. Listar como recurso o que
+// nao existe e a mesma fabricacao que o preco era, so que sem cifrao.
+//
 // O que sobra e o que continua sendo verdade: o nome de cada nivel, o que ele
 // destrava e a comparacao entre eles. Serve para tornar o modelo de permissao
 // inspecionavel — ver src/auth/permissions.js, que e quem decide de fato.
@@ -22,7 +26,7 @@ export const PLANS = [
     name: 'Explorar',
     icon: 'Compass',
     tagline: 'Conheça o cenário de defesa do Brasil.',
-    cta: 'Começar grátis',
+    cta: 'Visualizar assim',
     features: [
       'Clipping diário do acervo coletado',
       'Painel de situação e nível de alerta',
@@ -36,7 +40,7 @@ export const PLANS = [
     icon: 'Crosshair',
     recommended: true,
     tagline: 'Inteligência completa para quem decide.',
-    cta: 'Assinar agora',
+    cta: 'Visualizar assim',
     features: [
       'Tudo do Explorar',
       'Radar legislativo (Câmara, dados abertos)',
@@ -52,14 +56,12 @@ export const PLANS = [
     icon: 'Building2',
     contact: true,
     tagline: 'Para equipes, empresas e órgãos públicos.',
-    cta: 'Falar com especialistas',
+    cta: 'Visualizar assim',
     features: [
       'Tudo do Profissional',
       'Papéis verificados no servidor (Analista, Admin)',
       'Monitoramento da coleta e auditoria do filtro',
       'Console de governança e diagnóstico',
-      'Múltiplos usuários (assentos)',
-      'Integrações / SSO (roadmap)',
     ],
   },
 ]
@@ -92,12 +94,20 @@ export const PLAN_COMPARISON = [
     ],
   },
   {
-    group: 'Equipe e governança',
+    // ESTE GRUPO VENDIA O QUE NAO EXISTE.
+    //
+    // Tinha "Usuarios: 1 / 1 / 5-infinito" — cota de assento num projeto sem
+    // cobranca por usuario e sem limite de contas — e "Suporte prioritario e
+    // onboarding", que nao existe em nenhuma forma: nao ha equipe, nao ha
+    // canal de suporte e nao ha processo de implantacao.
+    //
+    // O que sobrou e o unico item do grupo que e verdade e verificavel: a
+    // governanca de contas, que existe no Console e exige papel de
+    // administrador conferido no servidor.
+    group: 'Governança',
     rows: [
-      { label: 'Usuários', explorar: '1', profissional: '1', institucional: '5–∞' },
-      { label: 'Gestão de papéis e usuários', explorar: false, profissional: false, institucional: true },
-      { label: 'Suporte prioritário e onboarding', explorar: false, profissional: false, institucional: true },
-      { label: 'Integrações / SSO', explorar: false, profissional: false, institucional: 'Roadmap' },
+      { label: 'Ver as contas do banco e seus papéis', explorar: false, profissional: false, institucional: 'Papel Admin' },
+      { label: 'Governar fontes de coleta e disparar coleta', explorar: false, profissional: false, institucional: 'Papel Admin' },
     ],
   },
 ]
@@ -105,8 +115,8 @@ export const PLAN_COMPARISON = [
 export const PLAN_FAQ = [
   { q: 'Posso trocar de nível quando quiser?', a: 'Sim. O projeto é de código aberto e toda conta recebe o nível completo de leitura; trocar aqui serve para ver a plataforma pelos olhos de quem tem menos acesso.' },
   { q: 'Quanto custa?', a: 'Nada. Não existe cobrança, assinatura nem plano pago: o código é aberto e qualquer pessoa pode hospedar a própria instância.' },
-  { q: 'Qual a diferença entre papel e plano?', a: 'Papel é o que você pode FAZER: Usuário consulta, Analista monitora a coleta e audita o filtro, Administrador governa a plataforma. Plano é o quanto você pode VER (Explorar, Profissional, Institucional). Os eixos são independentes, e o papel é verificado no servidor — não é o menu escondido que protege as áreas restritas.' },
-  { q: 'O plano anual compensa?', a: 'Sim: no anual o mês sai por ~R$ 74 — cerca de 17% de economia frente ao mensal.' },
+  { q: 'Qual a diferença entre papel e plano?', a: 'Papel é o que você pode FAZER: Usuário consulta, Analista monitora a coleta e audita o filtro, Administrador governa a plataforma. Nível é o quanto você pode VER (Explorar, Profissional, Institucional). Num projeto aberto o nível já vem completo para toda conta; o que de fato separa os perfis é o papel, verificado no servidor a cada requisição — não é o menu escondido que protege as áreas restritas.' },
+
   { q: 'Os números exibidos são reais?', a: 'Sim. As notícias são coletadas de feeds públicos oficiais pelo servidor; os indicadores econômicos vêm do Banco Central (SGS), do World Bank e do Comex Stat; as proposições, dos Dados Abertos da Câmara. Cada painel declara a origem da sua série e, quando a fonte não responde, mostra a ausência em vez de um valor plausível.' },
 ]
 

@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Shield, Cpu, Database, AlertTriangle, Github, Send, Star, GitFork, ExternalLink, Code2, Compass, Radar, Cog, Brain, Share2, Layers, PlugZap } from 'lucide-react'
 import { APP_VERSION } from '../services/config'
-import toast from 'react-hot-toast'
 
 const REPO_URL = 'https://github.com/tue3306/defesabr-intelligence'
 const TECH_STACK = ['React 18', 'Vite', 'Tailwind CSS', 'Zustand', 'Recharts', 'Framer Motion']
@@ -52,13 +51,8 @@ const ARCHITECTURE_NOTES = [
 ]
 
 export default function About() {
-  const [form, setForm] = useState({ name: '', email: '', message: '' })
 
-  const submit = (e) => {
-    e.preventDefault()
-    toast.success('Mensagem enviada (simulação). Obrigado pelo contato!')
-    setForm({ name: '', email: '', message: '' })
-  }
+
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -141,14 +135,41 @@ export default function About() {
 
       {/* Contato */}
       <Card icon={Send} title="Contato">
-        <form onSubmit={submit} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <input className="input" placeholder="Nome" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-          <input className="input" type="email" placeholder="E-mail" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
-          <textarea className="input sm:col-span-2" rows={3} placeholder="Mensagem" value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} required />
-          <div className="sm:col-span-2">
-            <button type="submit" className="btn-primary"><Send size={16} /> Enviar mensagem</button>
-          </div>
-        </form>
+{/* CONTATO DE PROJETO ABERTO — canal que existe, e nao formulario que finge.
+          *
+          * Havia aqui nome, e-mail e mensagem, com um botao que respondia
+          * "Mensagem enviada (simulacao). Obrigado pelo contato!" e limpava os
+          * campos. Nada saia do navegador: nao ha backend de e-mail, nao ha
+          * caixa de entrada, e ninguem do outro lado. Quem escrevesse um
+          * relato de problema ficaria esperando resposta que nunca viria — que
+          * e a forma mais desagradavel possivel de uma interface mentir.
+          *
+          * Num projeto de codigo aberto o canal de contato ja existe e
+          * funciona: as issues do repositorio. Sao publicas, ficam
+          * registradas, e qualquer pessoa pode acompanhar a resposta. */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <a
+            href={`${REPO_URL}/issues/new`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-primary justify-center"
+          >
+            <Send size={16} /> Relatar um problema
+          </a>
+          <a
+            href={`${REPO_URL}/discussions`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-ghost justify-center"
+          >
+            <Github size={16} /> Discussões do projeto
+          </a>
+          <p className="text-xs leading-relaxed muted sm:col-span-2">
+            Havia um formulário aqui. Ele respondia &quot;mensagem enviada&quot; e não enviava nada —
+            não há serviço de e-mail neste projeto. As issues do repositório são públicas, ficam
+            registradas e recebem resposta; um formulário que finge, não.
+          </p>
+        </div>
       </Card>
 
       {/* Repositório / Código aberto */}

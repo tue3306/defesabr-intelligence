@@ -75,18 +75,32 @@ export default function ProtectedRoute({ children, permission, capability }) {
         list={BENEFITS.map((b) => ({ icon: b.icon, text: b.text }))}
       >
         <p className="mt-6 text-xs font-semibold uppercase tracking-wide muted">Contas iniciais</p>
-        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
+        {/* CENTRALIZADO, E SEM GRADE FIXA.
+          *
+          * Era `sm:grid-cols-3`, de quando havia TRES contas de exemplo. Com
+          * duas, os botoes ocupavam duas das tres colunas e encostavam a
+          * esquerda, deixando um vao a direita sob um titulo centralizado — o
+          * desalinhamento que denuncia que o layout foi feito para outra
+          * quantidade.
+          *
+          * `flex` com `justify-center` nao depende da contagem: serve para
+          * duas contas hoje e para quantas a instalacao semear amanha.
+          *
+          * A chave era `c.email`, campo que `/auth/contas` deixou de devolver
+          * quando as contas passaram a entrar por nome de usuario — as duas
+          * ficavam com `key={undefined}`. */}
+        <div className="mt-2 flex flex-wrap justify-center gap-2">
           {contas.map((c, i) => (
             <button
-              key={c.email}
+              key={c.username || c.role}
               onClick={() => entrar(c.role)}
-              className={`${i === 0 ? 'btn-primary' : 'btn-ghost'} justify-center`}
+              className={`${i === 0 ? 'btn-primary' : 'btn-ghost'} min-w-[9.5rem] justify-center`}
             >
               {ROTULO_PAPEL[c.role] || c.role} {i === 0 && <ArrowRight size={15} />}
             </button>
           ))}
         </div>
-        <p className="mt-3 text-xs muted">
+        <p className="mt-3 text-center text-xs muted">
           Contas reais deste projeto aberto — o acervo que elas mostram é o coletado das fontes
           públicas. Cada papel alcança um recorte diferente da plataforma,
           e a diferença é verificada no servidor.

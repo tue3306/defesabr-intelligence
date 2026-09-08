@@ -120,6 +120,7 @@ regras determinísticas de correlação:
 | Organização citada consta como vítima (nome) | 5 | Nome normalizado **idêntico** — continência não vale |
 | CVE citado é explorado por grupo com vítima brasileira | 5 | O identificador está no texto **e** no perfil do grupo |
 | Grupo citado tem vítima brasileira | 4 | Nome do grupo **+** contexto cibernético no mesmo texto |
+| O município citado teve órgão com vazamento | 4 | O rótulo sai do próprio domínio: `arcos.mg.gov.br` → "arcos" |
 | A UF citada tem órgão com vazamento | 3 | Domínios `.<uf>.gov.br` identificam o estado sem inferência |
 | Infraestrutura crítica nomeada | 3 | Instalação específica do catálogo, não categoria genérica |
 | O setor tratado tem incidentes no período | 2 | Coincidência de setor — **situa** a leitura, não afirma o mesmo fato |
@@ -159,6 +160,14 @@ publicar.
   preposição mais comum do português: o estado aparecia como a entidade mais
   citada da plataforma, com 102 menções em 185 artigos, à frente do Ministério
   da Defesa. Nenhuma era o estado.
+- **Rótulo de função não é município.** Nem todo domínio `<algo>.<uf>.gov.br`
+  traz cidade: `saude.mt.gov.br` é a secretaria estadual de saúde. Sem a
+  exclusão, qualquer matéria sobre saúde ligaria a um vazamento no Mato Grosso.
+  E o município é sempre casado com **fronteira de palavra** — comparar contra
+  o texto sem espaços alcançaria nomes compostos como
+  `santoantoniodapatrulha`, mas faria "arcos" casar dentro de "marcos". A
+  cidade de nome composto não é detectada, e a perda está declarada no método
+  publicado.
 
 Uma correlação forte errada é pior que correlação nenhuma — é justamente a que
 o leitor não vai conferir, porque a força alta diz que não precisa.
@@ -446,7 +455,7 @@ inclusive as que MUDAM estado.
 | `GET` | `/intel/correlacoes` | `user` | As ligações encontradas, com motivo, evidência, contexto e impacto |
 | `GET` | `/intel/brasil` | `user` | Panorama do país: entidades citadas, setores sob pressão, estados, ligações fortes |
 | `GET` | `/intel/entidade/:tipo/:id` | `user` | Dossiê de uma entidade: matérias que a citam, correlações e vazamentos |
-| `GET` | `/intel/metodo` | — | **As sete regras, as guardas e o catálogo inteiro** |
+| `GET` | `/intel/metodo` | — | **As oito regras, as quatro guardas e o catálogo inteiro** |
 
 ### Notícias
 | Método | Rota | Guarda | O que faz |
@@ -592,7 +601,18 @@ Marinha e FAB devolvem HTTP 403; o Exército não publica RSS. Cadastrá-las
 encheria o painel de erro permanente que ninguém pode consertar — e erro que não
 se conserta vira erro que se ignora. Estão documentadas em `/fontes`.
 
-**O mapa mede cobertura, não risco.** `/mapa` conta menções a unidades da
+**O mapa mede cobertura, não risco — e a legenda passou a dizer isso.**
+As cores eram rotuladas "Baixo · Moderado · Alto · **Crítico**", com vermelho no
+topo, sobre uma escala que conta menções. A interface afirmava o contrário do
+que o código sabia: um país vermelho com "Crítico" ao lado é lido como perigo,
+e a ressalva no rodapé não desfaz o que a cor já disse. A paleta virou rampa de
+intensidade numa cor só, o Brasil recebe a cor da marca com o selo *âncora*
+(fica fora da escala porque, como teto, pintaria o mundo de cinza), e o país é
+escolhido por **clique ou por uma lista com busca** — antes o cursor
+atravessando o mapa trocava o dossiê inteiro, o que tornava a seleção
+inutilizável.
+
+ `/mapa` conta menções a unidades da
 federação no texto das notícias. Uma notícia de orçamento citando Brasília pesa
 igual a uma operação de fronteira citando Roraima — e a tela diz isso antes do
 desenho, não depois.

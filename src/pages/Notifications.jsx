@@ -25,31 +25,49 @@ const FILTERS = [
 
 const PER_PAGE = 20
 
-// Regras de alerta demonstrativas — o que o assinante configuraria para ser
-// avisado sem precisar abrir a plataforma.
-const SEED_RULES = [
+// ─────────────────────────────────────────────────────────────────────────────
+// AS REGRAS DE ALERTA ERAM TRES LINHAS SEM NADA ATRAS
+//
+// Havia `SEED_RULES` com "Elevacao da postura nacional", "Ocorrencias em
+// Fronteiras" e "Marcos de programas estrategicos", cada uma com canal
+// declarado ("E-mail + painel", "E-mail semanal") e um interruptor
+// Ativa/Pausada que o usuario podia acionar.
+//
+// Nenhuma era avaliada por coisa alguma. Nao ha motor de regras, nao ha envio
+// de e-mail, e o estado do interruptor vivia so na memoria da aba — sumia no
+// primeiro recarregamento. Alguem podia ativar as tres, fechar o navegador e
+// acreditar que seria avisado quando a postura nacional subisse.
+//
+// Numa plataforma cujo produto e alerta, encenar alerta e o pior defeito
+// possivel: o dano nao aparece na tela, aparece no silencio de um aviso que
+// nunca chega.
+//
+// O QUE SOBROU E O QUE FUNCIONA DE VERDADE: `useLiveNotifications` le o acervo
+// e gera aviso a partir das ocorrencias de urgencia alta que a coleta trouxe.
+// Isso e real, roda a cada ciclo e aparece no painel. O que falta — regra
+// configuravel e disparo por e-mail — esta declarado, nao simulado.
+// ─────────────────────────────────────────────────────────────────────────────
+const CAPACIDADES_DE_ALERTA = [
   {
-    id: 'rule-1',
-    name: 'Elevação da postura nacional',
-    trigger: 'Quando o nível de alerta subir para ALERTA ou CRÍTICO',
-    channel: 'E-mail + painel',
-    active: true,
+    id: 'painel',
+    nome: 'Aviso no painel a partir da coleta',
+    detalhe: 'Ocorrencia de urgencia ALTA ou CRITICA no acervo vira notificacao, a cada ciclo.',
+    existe: true,
   },
   {
-    id: 'rule-2',
-    name: 'Ocorrências em Fronteiras',
-    trigger: 'Nova ocorrência de urgência ALTA na categoria Fronteiras',
-    channel: 'Painel',
-    active: true,
+    id: 'regra',
+    nome: 'Regra configuravel pelo usuario',
+    detalhe: 'Exige um motor de regras no servidor, que avalie cada item coletado contra o que voce definiu.',
+    existe: false,
   },
   {
-    id: 'rule-3',
-    name: 'Marcos de programas estratégicos',
-    trigger: 'Entrega ou atraso registrado em PROSUB, FX-2 ou Tamandaré',
-    channel: 'E-mail semanal',
-    active: false,
+    id: 'email',
+    nome: 'Disparo por e-mail',
+    detalhe: 'Exige servico de envio e confirmacao de endereco. Nenhum dos dois existe neste projeto.',
+    existe: false,
   },
 ]
+
 
 const CHANNELS = ['Painel', 'E-mail + painel', 'E-mail semanal']
 
@@ -82,7 +100,6 @@ export default function Notifications() {
   const [page, setPage] = useState(1)
   const [confirm, setConfirm] = useState(null)
   const [ruleModal, setRuleModal] = useState(false)
-  const [rules, setRules] = useState(SEED_RULES)
   // O store não expõe "excluir" nem "marcar como não lida"; ambos vivem aqui
   // como estado local até existir um backend de notificações.
   const [dismissed, setDismissed] = useState([])
@@ -137,15 +154,14 @@ export default function Notifications() {
   const clearFilters = () => { setFilter('all'); setLevel(''); setPage(1) }
   const hasFilters = filter !== 'all' || !!level
 
-  const toggleRule = (rule) => {
-    setRules((prev) => prev.map((r) => (r.id === rule.id ? { ...r, active: !r.active } : r)))
-    toast.success(rule.active ? `Regra pausada: ${rule.name}` : `Regra ativada: ${rule.name}`)
-  }
-
-  const addRule = (rule) => {
-    setRules((prev) => [{ ...rule, id: `rule-${prev.length + 1}-local`, active: true }, ...prev])
+  // `addRule` criava uma regra no estado local e anunciava "Regra de alerta
+  // criada". Nada a avaliava e ela sumia no recarregamento — a mesma ficcao das
+  // tres regras semeadas. O modal permanece como estrutura do fluxo, e diz o
+  // que acontece de verdade em vez de encenar sucesso.
+  const addRule = () => {
     setRuleModal(false)
-    toast.success('Regra de alerta criada')
+    toast('Regra configurável ainda não existe: depende de um motor de regras no servidor, '
+      + 'que avalie cada item coletado. Nada foi gravado.', { icon: 'ℹ️', duration: 7000 })
   }
 
   return (
@@ -318,36 +334,31 @@ export default function Notifications() {
           }
         >
           <ul className="space-y-2">
-            {rules.map((rule) => (
+            {CAPACIDADES_DE_ALERTA.map((c) => (
               <li
-                key={rule.id}
+                key={c.id}
                 className="flex flex-col gap-3 rounded-lg border border-gray-200 p-3 sm:flex-row sm:items-center sm:justify-between dark:border-white/10"
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold">{rule.name}</p>
-                  <p className="mt-0.5 text-xs leading-relaxed muted">{rule.trigger}</p>
-                  <p className="mt-1 inline-flex items-center gap-1 text-[11px] muted">
-                    <SlidersHorizontal size={11} /> {rule.channel}
-                  </p>
+                  <p className="text-sm font-semibold">{c.nome}</p>
+                  <p className="mt-0.5 text-xs leading-relaxed muted">{c.detalhe}</p>
                 </div>
-                <button
-                  onClick={() => toggleRule(rule)}
-                  aria-pressed={rule.active}
-                  className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    rule.active
+                <span
+                  className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold ${
+                    c.existe
                       ? 'bg-military-green/15 text-emerald-800 dark:text-emerald-300'
                       : 'border border-gray-300 text-gray-500 dark:border-white/10 dark:text-gray-400'
                   }`}
                 >
-                  {rule.active ? 'Ativa' : 'Pausada'}
-                </button>
+                  {c.existe ? 'Em operação' : 'Ainda não existe'}
+                </span>
               </li>
             ))}
           </ul>
 
           <p className="mt-3 text-xs muted">
-            O disparo por e-mail depende de backend. Neste ambiente as regras ficam registradas e
-            os alertas aparecem no painel.{' '}
+            Os avisos do painel vêm do acervo coletado e são reais. Regra configurável e envio por
+            e-mail estão declarados acima como ausentes em vez de simulados — ver{' '}
             <Link to="/configuracoes" className="font-semibold text-brand-500 hover:underline dark:text-brand-400">
               Preferências de notificação
             </Link>

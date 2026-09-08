@@ -104,11 +104,7 @@ export default function Plans() {
         {PLANS.map((p) => {
           const Icon = PLAN_ICONS[p.icon] || Compass
           const active = plan === p.id
-          // Sem preço: não há cobrança. Exibir "R$ 89/mês" ao lado de um botão
-          // que não cobra nada é a mesma fabricação que o projeto removeu de
-          // todo o resto.
-          const price = 'Aberto'
-          const period = 'sem cobrança'
+
           return (
             <div
               key={p.id}
@@ -128,10 +124,15 @@ export default function Plans() {
               </span>
               <h2 className="text-lg font-bold tracking-tight">{p.name}</h2>
               <p className="mt-1 text-sm muted">{p.tagline}</p>
-              <div className="mt-4 flex items-end gap-1">
-                <span className="text-3xl font-extrabold tracking-tight">{price}</span>
-                <span className="mb-1 text-xs muted">{period}</span>
-              </div>
+              {/* O SLOT DE PRECO SAIU INTEIRO.
+                *
+                * Ele continuou aqui depois que os valores foram removidos do
+                * catalogo, exibindo a palavra "Aberto" em fonte de preco com
+                * "sem cobranca" ao lado — moldura de tabela de precos com o
+                * numero trocado por uma palavra. Continuava vendendo, so que
+                * sem numero. Num projeto aberto o cartao nao precisa responder
+                * "quanto custa": precisa responder "o que este nivel destrava",
+                * que e o que a lista abaixo faz. */}
 
               <ul className="mt-5 flex-1 space-y-2 text-sm">
                 {p.features.map((f) => (
@@ -144,7 +145,7 @@ export default function Plans() {
 
               {active ? (
                 <div className="mt-6 flex items-center justify-center gap-2 rounded-lg bg-emerald-500/15 py-2.5 text-sm font-semibold text-emerald-800 dark:text-emerald-300">
-                  <BadgeCheck size={16} /> Plano atual
+                  <BadgeCheck size={16} /> Nível atual
                 </div>
               ) : (
                 <button
@@ -159,21 +160,36 @@ export default function Plans() {
         })}
       </div>
 
-      {/* GARANTIA */}
+      {/* A "GARANTIA" ERA DE UM CONTRATO QUE NAO EXISTE.
+        *
+        * Dizia "Cancele quando quiser, sem fidelidade" e "Upgrade/downgrade
+        * imediato" — promessas sobre uma assinatura que nunca houve — ao lado
+        * de um terceiro selo admitindo que nao ha cobranca. Os tres juntos se
+        * contradiziam: nao se cancela o que nao se assina.
+        *
+        * O que fica e o que e verdade e util para quem chega: como o acesso e
+        * decidido, e onde conferir. */}
       <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-center text-xs muted">
-        <span className="inline-flex items-center gap-1.5"><ShieldCheck size={14} className="text-emerald-500 dark:text-emerald-400" /> Cancele quando quiser, sem fidelidade</span>
-        <span className="inline-flex items-center gap-1.5"><Check size={14} className="text-emerald-500 dark:text-emerald-400" /> Upgrade/downgrade imediato</span>
-        <span className="inline-flex items-center gap-1.5"><Info size={14} /> Projeto acadêmico — não há cobrança</span>
+        <span className="inline-flex items-center gap-1.5">
+          <ShieldCheck size={14} className="text-emerald-500 dark:text-emerald-400" />
+          Código aberto — sem cobrança, sem assinatura, sem conta obrigatória para o conteúdo público
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <Check size={14} className="text-emerald-500 dark:text-emerald-400" />
+          O papel é conferido no servidor a cada requisição
+        </span>
       </div>
 
       {/* PLANO x PAPEL — os dois eixos do acesso */}
       <section className="card p-5 sm:p-6">
         <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-          <Info size={18} className="text-brand-400 dark:text-brand-300" /> Plano e papel são coisas diferentes
+          <Info size={18} className="text-brand-400 dark:text-brand-300" /> Nível e papel são coisas diferentes
         </h2>
         <p className="mt-1 max-w-2xl text-sm muted">
-          O acesso de cada pessoa nasce do cruzamento de dois eixos independentes. Assinar um plano
-          melhor não transforma alguém em Analista — e ser Analista não depende de assinatura.
+          O acesso de cada pessoa nasce do cruzamento de dois eixos independentes. Um nível de
+          leitura mais amplo não transforma alguém em Analista — e ser Analista não depende do
+          nível. Num projeto aberto o nível já vem completo para toda conta, então o que separa os
+          perfis, na prática, é o <strong>papel</strong>.
         </p>
 
         <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
