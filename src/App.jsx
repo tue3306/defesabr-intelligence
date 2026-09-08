@@ -22,6 +22,7 @@ const Landing = lazy(() => import('./pages/Landing'))
 const Home = lazy(() => import('./pages/Home'))
 const Plans = lazy(() => import('./pages/Plans'))
 const DailyClipping = lazy(() => import('./pages/DailyClipping'))
+const Correlations = lazy(() => import('./pages/Correlations'))
 const DataCharts = lazy(() => import('./pages/DataCharts'))
 const Economy = lazy(() => import('./pages/Economy'))
 const Archive = lazy(() => import('./pages/Archive'))
@@ -118,6 +119,7 @@ export default function App() {
           <Route path="/painel" element={<Guarded scope="Painel"><Home /></Guarded>} />
           <Route path="/busca" element={<Guarded scope="Busca global"><Search /></Guarded>} />
           <Route path="/clipping" element={<Guarded scope="Clipping Diário"><DailyClipping /></Guarded>} />
+          <Route path="/correlacoes" element={<Guarded scope="Correlações"><Correlations /></Guarded>} />
           <Route path="/dados" element={<Guarded scope="Dados & Gráficos"><DataCharts /></Guarded>} />
           <Route path="/economia" element={<Guarded scope="Economia & Defesa"><Economy /></Guarded>} />
           <Route path="/arquivo" element={<Guarded scope="Arquivo & Pasta"><Archive /></Guarded>} />

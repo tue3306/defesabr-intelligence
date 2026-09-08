@@ -393,6 +393,22 @@ export const PONTES = new Map([
     parametros: ({ hours = 48 } = {}) => ({ hours }),
   }],
 
+  // ── Correlacao centrada no Brasil ──
+  //
+  // Passam direto: a resposta do servidor ja tem a forma que a tela consome, e
+  // traduzir de um lado para o outro so criaria um ponto a mais onde o
+  // significado pode se perder — e aqui o significado E o produto.
+  ['GET /intel/correlacoes', {
+    caminho: '/intel/correlacoes',
+    parametros: ({ days = 60, minForca = 1, regra, alvoTipo, limit } = {}) =>
+      ({ days, minForca, regra, alvoTipo, limit }),
+  }],
+  ['GET /intel/brasil', {
+    caminho: '/intel/brasil',
+    parametros: ({ days = 60 } = {}) => ({ days }),
+  }],
+  ['GET /intel/metodo', { caminho: '/intel/metodo' }],
+
   // Resumo público (total e quantas responderam) — não exige sessão.
   ['GET /intel/sources/summary', { caminho: '/sources/summary' }],
 

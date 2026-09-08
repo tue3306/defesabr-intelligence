@@ -72,6 +72,18 @@ const COLUNAS_ADICIONADAS = [
   // desde ja para que a migracao para OAuth nao precise adivinhar quais
   // contas tem senha propria e quais delegam ao provedor.
   ['users', 'auth_provider', "TEXT NOT NULL DEFAULT 'local'"],
+
+  // INDICE DE RELEVANCIA PARA O BRASIL, de 0 a 100, e a explicacao dele.
+  //
+  // Mede densidade de vinculo do texto com o pais — orgaos, empresas,
+  // infraestrutura, UFs e setores brasileiros reconhecidos, mais as
+  // correlacoes diretas com o acervo. Nao e importancia editorial nem risco.
+  //
+  // `br_motivo` viaja junto por decisao, nao por conveniencia: um indice sem
+  // a explicacao ao lado e um numero que ninguem pode contestar, e portanto
+  // nao vale nada. Ver server/src/lib/correlacao.js.
+  ['articles', 'br_score', 'INTEGER'],
+  ['articles', 'br_motivo', 'TEXT'],
 ]
 
 /**
@@ -89,6 +101,7 @@ const INDICES_ADICIONADOS = [
   // Identificador de login unico. Parcial: contas antigas sem `username` nao
   // colidem entre si por serem todas NULL.
   'CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL',
+  'CREATE INDEX IF NOT EXISTS idx_articles_br ON articles(br_score DESC)',
 ]
 
 /** Aplica o esquema e as colunas incrementais. Idempotente — roda em toda subida. */

@@ -7,6 +7,7 @@ import noticias from './routes/news.js'
 import dados from './routes/data.js'
 import sistema from './routes/system.js'
 import autenticacao from './routes/auth.js'
+import inteligencia from './routes/intel.js'
 import { lerConta } from './lib/auth.js'
 
 // -----------------------------------------------------------------------------
@@ -102,6 +103,7 @@ export function criarApp() {
   app.use('/api', autenticacao)
   app.use('/api', noticias)
   app.use('/api', dados)
+  app.use('/api', inteligencia)
   app.use('/api', sistema)
 
   // ── Front compilado ──

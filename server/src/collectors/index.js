@@ -8,6 +8,7 @@ import { coletarRansomware } from './ransomware.js'
 import { coletarAtores } from './atores.js'
 import { coletarComex } from './comex.js'
 import { coletarBcb } from './bcb.js'
+import { calcularCorrelacoes } from './correlacoes.js'
 
 // -----------------------------------------------------------------------------
 // ORQUESTRAÇÃO DA COLETA
@@ -118,6 +119,17 @@ export async function coletarTudo(gatilho = 'agendado') {
   // de coleta e elimina a corrida.
   const atores = await registrar('atores', coletarAtores, gatilho)
 
+  // ── POR ULTIMO, O QUE DEPENDE DE TODOS ──
+  //
+  // A correlacao cruza artigos com vitimas e com perfis de ator. Precisa dos
+  // tres ja gravados, entao roda depois de todos — inclusive depois de
+  // `atores`, que e quem traz os CVEs.
+  //
+  // Nao busca nada fora: e derivacao pura sobre o que acabou de entrar. Por
+  // isso nao tem tratamento de rede nem retentativa, e por isso e barato o
+  // suficiente para rodar a cada ciclo.
+  const correlacoes = await registrar('correlacoes', calcularCorrelacoes, gatilho)
+
   // Depois, e só se a Câmara respondeu: enriquecer exige uma requisição por
   // proposição, então roda em lote pequeno e fora do caminho crítico.
   let situacoes = { atualizadas: 0, pendentes: 0 }
@@ -143,6 +155,7 @@ export async function coletarTudo(gatilho = 'agendado') {
     agregadores,
     ransomware,
     atores,
+    correlacoes,
   }
 }
 

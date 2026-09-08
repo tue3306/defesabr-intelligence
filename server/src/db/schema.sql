@@ -264,3 +264,68 @@ CREATE TABLE IF NOT EXISTS threat_actors (
   has_ransomnote INTEGER DEFAULT 0,
   fetched_at    TEXT
 );
+
+
+-- -----------------------------------------------------------------------------
+-- CORRELACAO CENTRADA NO BRASIL
+--
+-- Duas tabelas derivadas, recalculadas a partir do acervo. Nenhuma guarda fato
+-- novo: guardam o RESULTADO de aplicar as regras de server/src/lib/correlacao.js
+-- ao que ja esta em `articles`, `ransomware_victims` e `threat_actors`.
+--
+-- POR QUE MATERIALIZAR, E NAO CALCULAR NA HORA
+--
+-- Detectar entidades e rodar regex sobre o texto de cada artigo. Com o acervo
+-- em mil e poucas linhas isso custa dezenas de milissegundos, e daria para
+-- fazer por requisicao. So que `node:sqlite` e SINCRONO: esse tempo nao e
+-- espera, e event loop TRAVADO — enquanto uma tela de correlacoes calcula,
+-- o servidor inteiro para, inclusive o healthcheck que o Railway consulta.
+--
+-- O calculo acontece uma vez por coleta, que e quando o insumo muda.
+-- -----------------------------------------------------------------------------
+
+-- Entidades brasileiras mencionadas em cada artigo.
+--
+-- `termo` e a EVIDENCIA: o trecho exato que fez a entidade ser reconhecida.
+-- Sem ele a plataforma afirmaria que uma materia cita a Petrobras sem
+-- conseguir mostrar onde, e uma afirmacao que nao se pode conferir vale tanto
+-- quanto uma inventada.
+CREATE TABLE IF NOT EXISTS article_entities (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  article_id  INTEGER NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+  tipo        TEXT NOT NULL,   -- setor | orgao | empresa | infraestrutura | uf
+  entidade_id TEXT NOT NULL,
+  nome        TEXT NOT NULL,
+  termo       TEXT NOT NULL,
+  UNIQUE (article_id, tipo, entidade_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_ent_artigo ON article_entities(article_id);
+CREATE INDEX IF NOT EXISTS idx_ent_alvo   ON article_entities(tipo, entidade_id);
+
+-- Ligacoes entre um artigo e o que a plataforma sabe do Brasil.
+--
+-- `motivo`, `evidencia`, `contexto_br` e `impacto` viajam COM a linha, e nao
+-- sao decoracao: a interface exibe os quatro. Uma correlacao sem a explicacao
+-- do porque e indistinguivel de uma inventada, e este projeto ja removeu
+-- coisas demais por esse motivo para reintroduzir o problema numa tabela.
+CREATE TABLE IF NOT EXISTS correlations (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  article_id  INTEGER NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+  regra       TEXT NOT NULL,
+  alvo_tipo   TEXT NOT NULL,   -- vitima | ator | uf | setor | infraestrutura
+  alvo_id     TEXT NOT NULL,
+  alvo_rotulo TEXT,
+  motivo      TEXT NOT NULL,
+  evidencia   TEXT NOT NULL,
+  contexto_br TEXT,
+  impacto     TEXT,
+  -- 1 a 5: o quanto a LIGACAO e direta. Nao e probabilidade nem risco.
+  forca       INTEGER NOT NULL DEFAULT 1,
+  created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
+  UNIQUE (article_id, regra, alvo_tipo, alvo_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_corr_artigo ON correlations(article_id);
+CREATE INDEX IF NOT EXISTS idx_corr_forca  ON correlations(forca DESC);
+CREATE INDEX IF NOT EXISTS idx_corr_alvo   ON correlations(alvo_tipo, alvo_id);

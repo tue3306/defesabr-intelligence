@@ -27,19 +27,41 @@ O que ameaça o país, antes de virar notícia.
 
 ## Entre e veja
 
-A plataforma é navegável sem cadastro. Três contas de exemplo, uma por perfil,
-aparecem no próprio modal de **Entrar** — com a senha à vista, porque são contas
-públicas de um projeto acadêmico e escondê-las seria teatro.
+Projeto de **código aberto**. Quem clona precisa conseguir entrar e ver a
+plataforma funcionando sem configurar provedor de identidade nem esperar
+e-mail de confirmação — então a instalação nasce com duas contas:
 
-| E-mail | Senha | Perfil | O que enxerga |
+| Usuário | Senha | Papel | O que enxerga |
 |---|---|---|---|
-| `usuario@defesabr.com` | `usuario123` | Usuário | O acervo já filtrado: clipping, mapas, busca |
-| `analista@defesabr.com` | `analista123` | Analista | \+ saúde da coleta e auditoria do filtro |
-| `admin@defesabr.com` | `admin123` | Administrador | \+ console de governança da plataforma |
+| `usuario123` | `usuario123` | Usuário | O acervo já filtrado: clipping, **correlações**, mapas, ameaças cibernéticas, busca |
+| `admin123` | `admin123` | Administrador | \+ saúde da coleta, auditoria do filtro e console de governança |
 
-A diferença entre os três é **verificada no servidor**. Trocar o papel no
-`localStorage` não abre nada: ele vem de um token assinado, e cada rota
-protegida responde 401 sem sessão e 403 com papel insuficiente.
+Elas **não são contas de demonstração**, e a distinção não é de vocabulário:
+não existe modo demonstração nesta plataforma, nenhum dado é simulado, e o que
+essas contas mostram é o acervo real coletado das fontes públicas. São contas
+de verdade — senha em *scrypt* com sal por conta, token HMAC-SHA256, papel
+conferido no servidor a cada requisição.
+
+> **Vai hospedar isto em algum lugar? Troque as duas senhas.**
+> `AUTH_SEED_ADMIN_PASSWORD` e `AUTH_SEED_USER_PASSWORD` existem para isso. A
+> senha ser óbvia é uma decisão para o clone local funcionar de primeira, e um
+> deploy público com `admin123/admin123` é uma porta destrancada. A tela de
+> entrada só oferece o atalho enquanto a senha for a padrão — trocou, o atalho
+> some.
+
+O papel `analyst` continua no modelo de permissão e nas rotas; o
+Administrador o alcança por herança (`admin` > `analyst` > `user`), então
+nenhuma tela fica inacessível por não haver uma terceira conta.
+
+**Entrar com conta Google está previsto e ainda não existe.** A estrutura já
+está pronta para recebê-lo sem remodelar nada — `users.username` é o
+identificador local, `users.email` recebe o endereço do provedor e
+`users.auth_provider` diz quem responde pela identidade. O campo de entrada já
+aceita usuário **ou** e-mail, então o formulário não muda quando o provedor
+chegar. Ver [ROADMAP.md](ROADMAP.md).
+
+O **Cadastro** existe como estrutura e cria conta com papel `user`. Promover
+alguém é ato de governança, não de autoatendimento.
 
 ---
 
@@ -70,6 +92,94 @@ próprio número é a primeira coisa que um leitor confere.</sub>
 formas diferentes. O clipping agrupa o que é o mesmo evento e mostra quantos
 veículos o cobriram — corroboração é informação; três manchetes parecidas são
 ruído.
+
+---
+
+## O diferencial: correlação, não agregação
+
+Um leitor de RSS responde *o que aconteceu*. A pergunta que faltava é **o que
+isto tem a ver com o resto do que sabemos sobre o Brasil** — e é ela que separa
+um agregador de um produto de inteligência.
+
+A plataforma tinha duas metades que nunca se falavam: de um lado o acervo de
+notícias, do outro as organizações brasileiras com vazamento divulgado, os
+grupos criminosos e os CVEs que eles sabem explorar. A matéria sobre a
+Prefeitura de Arcos e o registro de `arcos.mg.gov.br` viviam em telas
+diferentes, e nada dizia que falavam do mesmo lugar.
+
+### Como funciona
+
+Cada texto coletado passa por um **catálogo de entidades brasileiras** —
+setores estratégicos, órgãos públicos, empresas, infraestrutura crítica
+nomeada e unidades da federação. O que for reconhecido vira insumo para sete
+regras determinísticas de correlação:
+
+| Regra | Força | O que ela liga |
+|---|---|---|
+| Organização citada consta como vítima (domínio) | 5 | Domínio da entidade **igual** ao registrado num vazamento |
+| Organização citada consta como vítima (nome) | 5 | Nome normalizado **idêntico** — continência não vale |
+| CVE citado é explorado por grupo com vítima brasileira | 5 | O identificador está no texto **e** no perfil do grupo |
+| Grupo citado tem vítima brasileira | 4 | Nome do grupo **+** contexto cibernético no mesmo texto |
+| A UF citada tem órgão com vazamento | 3 | Domínios `.<uf>.gov.br` identificam o estado sem inferência |
+| Infraestrutura crítica nomeada | 3 | Instalação específica do catálogo, não categoria genérica |
+| O setor tratado tem incidentes no período | 2 | Coincidência de setor — **situa** a leitura, não afirma o mesmo fato |
+
+### Três regras que governam tudo
+
+**Nenhuma relação é inferida.** Cada ligação nasce de correspondência literal:
+domínio igual a domínio, identificador de CVE presente no texto, sigla de UF
+dentro de um `.gov.br`. Não há similaridade semântica nem pontuação por
+afinidade.
+
+**Toda ligação carrega a própria prova.** A tela mostra quatro campos: o
+`motivo` (a regra, em português), a `evidência` (o trecho literal que a
+produziu), o `contexto no Brasil` e o `impacto possível`. Quem lê pode
+discordar olhando para o que a gerou.
+
+**Correlação não é causalidade, e a interface diz isso.** A *força* mede o
+quanto a ligação é direta — não o quanto ela é perigosa.
+
+### As guardas contra falso positivo
+
+Não são teóricas: cada uma nasceu de um erro que o motor cometeu contra o
+acervo real, e que só apareceu porque o resultado foi conferido antes de
+publicar.
+
+- **Endereço com caminho e sufixo público não casam domínio.** Sete órgãos têm
+  endereço de página dentro do portal único (`gov.br/anvisa`, `gov.br/mre`), e
+  reduzir isso a "domínio" devolvia `gov.br` para todos. Como o acervo tem
+  vítimas cujo website é literalmente `gov.br`, qualquer matéria que citasse a
+  ANVISA ganhava uma correlação de **força 5** com um vazamento
+  governamental — inclusive *"Como será viajar no jato da Embraer"*.
+- **Nome de grupo só conta com contexto cibernético.** Há grupos chamados
+  `global`, `nova`, `fog`, `maze` e `apos`. "Irã ameaça reagir a novos ataques
+  dos EUA" ganhava força 4 por conter a palavra "global"; `apos`, normalizado,
+  casa com "após".
+- **UF ambígua exige a forma acentuada.** *Pará* sem acento é `para`, a
+  preposição mais comum do português: o estado aparecia como a entidade mais
+  citada da plataforma, com 102 menções em 185 artigos, à frente do Ministério
+  da Defesa. Nenhuma era o estado.
+
+Uma correlação forte errada é pior que correlação nenhuma — é justamente a que
+o leitor não vai conferir, porque a força alta diz que não precisa.
+
+### Índice de vínculo com o Brasil
+
+Cada matéria recebe um índice de 0 a 100 que mede **densidade de vínculo com o
+país**: órgãos, empresas, infraestrutura, UFs e setores reconhecidos, mais as
+correlações diretas com o acervo. Não é importância editorial nem risco. A
+explicação viaja junto do número, sempre — um índice sem método declarado é um
+número que ninguém pode contestar, e portanto não vale nada.
+
+### Sem IA, de propósito
+
+Um modelo produziria muito mais ligações, e cada uma seria impossível de
+auditar — o que inverteria o argumento inteiro de uma plataforma que se
+apresenta como não inventando nada. O que existe aqui é a base determinística
+sobre a qual um modelo pode um dia **propor** candidatos, com estas regras
+**confirmando**. É a ordem que mantém a explicação verificável.
+
+O método inteiro é publicado em `GET /api/intel/metodo`.
 
 ---
 
@@ -148,7 +258,7 @@ São quatro perfis, e cada um responde a uma pergunta diferente:
 | **Analista** (Ana) | a coleta está saudável? | **Mesa de análise** + **Método & Coleta** | `/admin` |
 | **Administrador** (Rafael) | a plataforma está de pé? | **Console de governança** | — |
 
-As credenciais das três contas de exemplo estão em
+As credenciais das duas contas iniciais estão em
 [Entre e veja](#entre-e-veja), no topo. Os planos que acompanham cada uma são
 `explorar`, `profissional` e `institucional`, nessa ordem.
 
@@ -177,7 +287,7 @@ Confundi-los foi a causa de os perfis parecerem iguais, e vale registrar:
   filtros avançados e modo apresentação aparecem com cadeado para quem não
   assina, porque assinar realmente os libera.
 
-A conta de exemplo do Usuário tinha plano `profissional`, que liberava POR
+A conta do Usuário tinha plano `profissional`, que liberava POR
 PLANO exatamente o que o Analista tem POR PAPEL — era essa a razão de as duas
 visões serem indistinguíveis.
 
@@ -323,46 +433,82 @@ mostra a decisão item a item.
 
 ## Endpoints
 
-Todos sob `/api`. Nenhum exige autenticação.
+Todos sob `/api`. A coluna **Guarda** diz o papel mínimo: rota sem guarda é
+pública, `user` exige sessão, `analyst` e `admin` exigem o papel. A verificação
+é do SERVIDOR — 401 sem sessão, 403 com papel insuficiente —, e
+`npm run check:auth` percorre cada identidade contra cada rota protegida,
+inclusive as que MUDAM estado.
+
+### Inteligência correlacionada
+| Método | Rota | Guarda | O que faz |
+|---|---|---|---|
+| `GET` | `/intel/correlacoes` | `user` | As ligações encontradas, com motivo, evidência, contexto e impacto |
+| `GET` | `/intel/brasil` | `user` | Panorama do país: entidades citadas, setores sob pressão, estados, ligações fortes |
+| `GET` | `/intel/entidade/:tipo/:id` | `user` | Dossiê de uma entidade: matérias que a citam, correlações e vazamentos |
+| `GET` | `/intel/metodo` | — | **As sete regras, as guardas e o catálogo inteiro** |
 
 ### Notícias
-| Método | Rota | O que faz |
-|---|---|---|
-| `GET` | `/news` | Feed com filtros (`category`, `urgency`, `q`, `source`, `days`, `includeIrrelevant`) |
-| `GET` | `/news/clipping` | Seleção do período, com nível de alerta calculado |
-| `GET` | `/news/stats` | Agregações para os gráficos (por dia, categoria, urgência, fonte) |
-| `GET` | `/news/geo` | Menções a unidades da federação no acervo |
-| `GET` | `/news/:id` | Uma notícia, **com a explicação do filtro** |
+| Método | Rota | Guarda | O que faz |
+|---|---|---|---|
+| `GET` | `/news` | — | Feed com filtros (`category`, `urgency`, `q`, `source`, `days`) |
+| `GET` | `/news/clipping` | — | Seleção do período, com nível de alerta calculado |
+| `GET` | `/news/stats` | — | Agregações para os gráficos (dia, categoria, urgência, fonte) |
+| `GET` | `/news/eventos` | `user` | O mesmo fato coberto por vários veículos, consolidado |
+| `GET` | `/news/countries` | — | Menções a países no acervo |
+| `GET` | `/news/pais/:nome` | `user` | Dossiê de um país, cruzado com vítimas de ransomware |
+| `GET` | `/news/geo` | — | Menções a unidades da federação |
+| `GET` | `/news/:id` | — | Uma notícia, **com a explicação do filtro** |
+
+### Ameaças cibernéticas
+| Método | Rota | Guarda | O que faz |
+|---|---|---|---|
+| `GET` | `/cyber/ransomware` | — | Agregados públicos; a lista nominal exige sessão |
+| `GET` | `/cyber/atores` | `user` | Quem ataca o Brasil, com TTPs e ferramentas |
+| `GET` | `/cyber/ator/:nome` | `user` | Perfil completo de um grupo |
+| `GET` | `/cyber/cves` | `user` | Vulnerabilidades exploradas por quem ataca o Brasil |
+| `GET` | `/cyber/alertas` | `user` | Incidente crítico contra organização brasileira nas últimas N horas |
 
 ### Dados públicos
-| Método | Rota | O que faz |
-|---|---|---|
-| `GET` | `/legislative` | Proposições coletadas |
-| `POST` | `/legislative/:id/refresh` | Consulta a tramitação na Câmara, ao vivo |
-| `GET` | `/economy/indicators` | Séries do World Bank + câmbio |
-| `GET` | `/economy/comparison?code=` | Brasil × vizinhos no mesmo indicador |
-| `GET` | `/sources` | Fontes e sua saúde |
-| `PATCH` | `/sources/:id` | Habilita/desabilita uma fonte |
-| `GET` | `/search?q=` | Busca em notícias, proposições e fontes |
+| Método | Rota | Guarda | O que faz |
+|---|---|---|---|
+| `GET` | `/legislative` | — | Proposições coletadas |
+| `POST` | `/legislative/:id/refresh` | `analyst` | Consulta a tramitação na Câmara, ao vivo |
+| `GET` | `/economy/indicators` | — | Séries do World Bank + câmbio do Banco Central |
+| `GET` | `/economy/bcb` | — | Dólar, euro, IPCA, Selic e IGP-M — atualizados no dia |
+| `GET` | `/economy/exports` | — | Exportações de aeronaves e armamento (Comex Stat) |
+| `GET` | `/economy/comparison?code=` | — | Brasil × vizinhos no mesmo indicador |
+| `GET` | `/sources/summary` | — | Quantas fontes existem e quantas responderam |
+| `GET` | `/sources` | `analyst` | Fontes com telemetria: erro, confiabilidade, contagem |
+| `PATCH` | `/sources/:id` | `admin` | Habilita/desabilita uma fonte |
+| `GET` | `/search?q=` | — | Busca em notícias, proposições e fontes |
+
+### Contas
+| Método | Rota | Guarda | O que faz |
+|---|---|---|---|
+| `POST` | `/auth/login` | — | Aceita **usuário ou e-mail**; devolve token assinado |
+| `POST` | `/auth/register` | — | Cria conta com papel `user` |
+| `GET` | `/auth/me` | — | Quem é o portador deste token |
+| `GET` | `/auth/contas` | — | As contas iniciais — **sem a senha**, só se ela ainda é a padrão |
+| `GET` | `/users` | `admin` | As contas que existem no banco desta instalação |
 
 ### Sistema
-| Método | Rota | O que faz |
-|---|---|---|
-| `GET` | `/system/status` | Estado de cada capacidade, derivado do banco |
-| `GET` | `/system/runs` | Histórico de execuções da coleta |
-| `GET` | `/system/method` | Como o filtro decide, com amostra do que recusou |
-| `POST` | `/system/method/test` | **Testa a regra num texto qualquer** |
-| `POST` | `/system/collect` | Dispara a coleta completa |
-| `POST` | `/system/collect/:sourceId` | Coleta uma fonte só (diagnóstico) |
-| `GET` | `/health` | Sonda de saúde (usada pelo Railway) |
-| `GET` | `/meta` | Identidade, fontes e o que não é implementado |
+| Método | Rota | Guarda | O que faz |
+|---|---|---|---|
+| `GET` | `/system/status` | `admin` | Estado de cada capacidade, derivado do banco |
+| `GET` | `/system/runs` | `analyst` | Histórico de execuções da coleta |
+| `GET` | `/system/method` | `analyst` | Como o filtro decide, com amostra do que recusou |
+| `POST` | `/system/method/test` | `analyst` | **Testa a regra num texto qualquer** |
+| `POST` | `/system/collect` | `admin` | Dispara a coleta completa |
+| `POST` | `/system/collect/:sourceId` | `admin` | Coleta uma fonte só (diagnóstico) |
+| `GET` | `/health` | — | Sonda de saúde (usada pelo Railway) |
+| `GET` | `/meta` | — | Identidade, fontes e o que ainda não é implementado |
 
 ### Favoritos
-| Método | Rota | O que faz |
-|---|---|---|
-| `GET` | `/bookmarks` | Salvos deste navegador (via cabeçalho `X-Client-Id`) |
-| `POST` | `/bookmarks/:articleId` | Salva |
-| `DELETE` | `/bookmarks/:articleId` | Remove |
+| Método | Rota | Guarda | O que faz |
+|---|---|---|---|
+| `GET` | `/bookmarks` | — | Salvos da CONTA quando há sessão; do navegador quando não |
+| `POST` | `/bookmarks/:articleId` | — | Salva |
+| `DELETE` | `/bookmarks/:articleId` | — | Remove |
 
 ---
 
@@ -522,4 +668,4 @@ Deliberadamente fora desta versão, e com a arquitetura já preparada para receb
 
 MIT. Ver [LICENSE](LICENSE).
 
-Projeto acadêmico. Agrega fonte pública e cita a origem — confira sempre o original.
+Projeto de código aberto. Agrega fonte pública e cita a origem — confira sempre o original.

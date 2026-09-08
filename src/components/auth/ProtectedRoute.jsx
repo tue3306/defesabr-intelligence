@@ -71,10 +71,10 @@ export default function ProtectedRoute({ children, permission, capability }) {
         icon={Lock}
         chip={{ icon: ShieldCheck, text: 'Área restrita · requer login', tone: 'amber' }}
         title="Entre para acessar esta seção"
-        description="Escolha um perfil de acesso — instantâneo, sem cadastro."
+        description="Projeto de código aberto: entre com uma das contas iniciais, ou crie a sua."
         list={BENEFITS.map((b) => ({ icon: b.icon, text: b.text }))}
       >
-        <p className="mt-6 text-xs font-semibold uppercase tracking-wide muted">Entrar como</p>
+        <p className="mt-6 text-xs font-semibold uppercase tracking-wide muted">Contas iniciais</p>
         <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
           {contas.map((c, i) => (
             <button
@@ -87,7 +87,8 @@ export default function ProtectedRoute({ children, permission, capability }) {
           ))}
         </div>
         <p className="mt-3 text-xs muted">
-          Contas de exemplo, uma por perfil — cada uma alcança um recorte diferente da plataforma,
+          Contas reais deste projeto aberto — o acervo que elas mostram é o coletado das fontes
+          públicas. Cada papel alcança um recorte diferente da plataforma,
           e a diferença é verificada no servidor.
         </p>
       </Wall>

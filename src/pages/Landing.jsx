@@ -13,6 +13,7 @@ import { useNews } from '../hooks/useNews'
 import { useNewsVolume } from '../hooks/useNewsVolume'
 import { useGastoMilitar, useIndiceDeAlerta } from '../hooks/useDadosReais'
 import { useVitrine } from '../hooks/useVitrine'
+import { useContasIniciais } from '../auth/useContasIniciais'
 import { useVitrineReal } from '../hooks/useVitrineReal'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
@@ -24,11 +25,11 @@ import { alertMeta } from '../utils/textUtils'
 
 const FEATURE_ICONS = { Newspaper, Globe2, BarChart3, LineChart, GraduationCap, ShieldCheck }
 
-// Os 4 perfis do produto, com a persona de demonstração correspondente e a
+// Os 4 perfis do produto, com o papel correspondente e a
 // rota-âncora de cada um. Os rótulos vêm sempre de src/auth/permissions.js.
 const PROFILE_ENTRY = {
   visitor: {
-    persona: 'visitante', icon: Eye, to: '/planos', cta: 'Continuar explorando',
+    papel: null, icon: Eye, to: '/planos', cta: 'Continuar explorando',
     does: [
       'Lê o conteúdo público e as prévias das análises',
       'Acessa o Centro Educacional por completo',
@@ -36,7 +37,7 @@ const PROFILE_ENTRY = {
     ],
   },
   user: {
-    persona: 'usuario', icon: UserCircle, to: '/painel', cta: 'Ver como Usuário',
+    papel: 'user', icon: UserCircle, to: '/painel', cta: 'Entrar como Usuário',
     does: [
       'Acompanha o painel de situação e o clipping diário',
       'Explora programas, fronteiras e Amazônia Azul',
@@ -44,7 +45,7 @@ const PROFILE_ENTRY = {
     ],
   },
   analyst: {
-    persona: 'analista', icon: PenTool, to: '/painel', cta: 'Ver como Analista',
+    papel: 'analyst', icon: PenTool, to: '/painel', cta: 'Entrar como Analista',
     does: [
       'Acompanha o clipping e o radar legislativo por completo',
       'Consulta a confiabilidade medida de cada fonte',
@@ -52,7 +53,7 @@ const PROFILE_ENTRY = {
     ],
   },
   admin: {
-    persona: 'admin', icon: ShieldQuestion, to: '/admin', cta: 'Ver como Administrador',
+    papel: 'admin', icon: ShieldQuestion, to: '/admin', cta: 'Entrar como Administrador',
     does: [
       'Gere contas, papéis e planos da plataforma',
       'Configura fontes de coleta e integrações',
@@ -83,7 +84,7 @@ const Section = ({ children, className = '' }) => (
 export default function Landing() {
   const { news, loading } = useNews()
   const navigate = useNavigate()
-  const loginAsDemo = useAuthStore((s) => s.loginAsDemo)
+  const { contas, entrarComo } = useContasIniciais()
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const user = useAuthStore((s) => s.user)
 
@@ -362,19 +363,48 @@ export default function Landing() {
                     </li>
                   ))}
                 </ul>
-                <button
-                  onClick={() => { loginAsDemo(entry.persona); navigate(entry.to) }}
-                  className={`mt-4 w-full justify-center text-sm ${id === 'analyst' ? 'btn-primary' : 'btn-ghost'}`}
-                >
-                  {entry.cta} <ArrowRight size={14} />
-                </button>
+                {/* CLICAR AQUI FAZ LOGIN DE VERDADE.
+                  *
+                  * Chamava `loginAsDemo(entry.persona)`, e essa acao nao existe
+                  * mais no store — saiu junto com o modo demonstracao, em que
+                  * escolher uma persona escrevia `{ role: 'admin' }` no
+                  * localStorage e mais nada acontecia. O botao continuou na
+                  * tela chamando o que nao existe: os quatro derrubavam a
+                  * pagina com "loginAsDemo is not a function".
+                  *
+                  * Agora chama `entrarComo(papel)`, que faz POST /auth/login
+                  * com a conta inicial daquele papel. Sem conta para o papel —
+                  * o Analista nao tem, e uma instalacao que trocou as senhas
+                  * nao oferece nenhuma —, o botao vira link para a tela de
+                  * entrada em vez de prometer o que nao pode cumprir. */}
+                {entry.papel && contas.some((c) => c.role === entry.papel && c.senhaPadrao) ? (
+                  <button
+                    onClick={async () => {
+                      const r = await entrarComo(entry.papel)
+                      if (r.ok) navigate(entry.to)
+                    }}
+                    className={`mt-4 w-full justify-center text-sm ${id === 'analyst' ? 'btn-primary' : 'btn-ghost'}`}
+                  >
+                    {entry.cta} <ArrowRight size={14} />
+                  </button>
+                ) : (
+                  <Link
+                    to={entry.papel ? '/planos' : entry.to}
+                    className={`mt-4 w-full justify-center text-sm ${id === 'analyst' ? 'btn-primary' : 'btn-ghost'}`}
+                  >
+                    {entry.papel ? 'Ver o que este perfil alcança' : entry.cta} <ArrowRight size={14} />
+                  </Link>
+                )}
               </div>
             )
           })}
         </div>
 
         <p className="mt-3 text-center text-xs muted">
-          A troca de perfil é livre — também pelo menu do usuário, a qualquer momento.
+          O projeto é aberto e nasce com duas contas: Usuário e Administrador. Entrar por elas
+          é um login de verdade — a senha é conferida no servidor, e o papel vem de um token
+          assinado. O perfil Analista existe no modelo de permissão e é alcançado pelo
+          Administrador, que o herda.
         </p>
       </Section>
 

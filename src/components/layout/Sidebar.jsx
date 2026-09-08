@@ -4,12 +4,11 @@ import {
   Shield, Tv, Lock, GraduationCap, Home, Sparkles, DollarSign, X,
   Target, Waves, Scale, Factory, Layers, Radio, Landmark, CalendarDays, BadgeCheck,
   UserCircle, ShieldCheck, ShieldAlert, FileText, ClipboardList, Search, FlaskConical, Crosshair,
+  Link2,
 } from 'lucide-react'
 import Logo from '../ui/Logo'
 import { useAuthStore } from '../../store/authStore'
 import { useCan, useProfile, useProfileMeta } from '../../auth/useCan'
-import { PLAN_LABELS } from '../../auth/permissions'
-import { useSubscriptionStore } from '../../store/subscriptionStore'
 
 // -----------------------------------------------------------------------------
 // NAVEGAÇÃO DECLARATIVA — cada item pede uma CAPACIDADE (src/auth/permissions.js).
@@ -36,6 +35,7 @@ const NAV_SECTIONS = [
     title: 'Inteligência & Análise',
     items: [
       { to: '/clipping', label: 'Clipping Diário', icon: Newspaper, requiresAuth: true },
+      { to: '/correlacoes', label: 'Correlações', icon: Link2, requiresAuth: true },
       // `hideWithout` porque a capacidade agora vem do PAPEL: mostrar cadeado
       // sugeriria que existe um plano que a destrava, e não existe.
       { to: '/fontes', label: 'Confiabilidade das Fontes', icon: BadgeCheck, requiresAuth: true, capability: 'sources.reliability', hideWithout: true },
@@ -108,10 +108,10 @@ const BOTTOM_NAV = [
 
 export default function Sidebar({ open, onClose, collapsed }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const user = useAuthStore((s) => s.user)
   const can = useCan()
   const profile = useProfile()
   const profileMeta = useProfileMeta()
-  const plan = useSubscriptionStore((s) => s.plan)
 
   // Monta a navegação efetiva do perfil: remove seções e itens que não fazem
   // sentido oferecer, mantendo os que valem como upsell.
@@ -178,7 +178,11 @@ export default function Sidebar({ open, onClose, collapsed }) {
               <span className="h-2 w-2 rounded-full" style={{ background: profileMeta.color }} />
               {profileMeta.label}
             </p>
-            <p className="text-[11px] muted">Plano {PLAN_LABELS[plan] || plan}</p>
+            {/* O IDENTIFICADOR, e nao o "plano". Num projeto aberto nao ha
+              * cobranca, e "Plano institucional" sob o nome de quem entrou
+              * sugeria uma assinatura que nao existe. O papel ja esta na linha
+              * de cima; aqui vai quem esta logado, que e o que falta saber. */}
+            <p className="font-mono text-[11px] muted">{user?.username || '—'}</p>
           </div>
         )}
         {isAuthenticated && collapsed && (
