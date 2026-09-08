@@ -36,17 +36,18 @@ export default function AuthModal({ open, onClose, abaInicial = 'entrar' }) {
   const [erro, setErro] = useState(null)
   const [campoComErro, setCampoComErro] = useState(null)
 
-  const [form, setForm] = useState({ name: '', email: '', password: '' })
+  const [form, setForm] = useState({ name: '', username: '', email: '', password: '' })
 
   useEffect(() => { setAba(abaInicial) }, [abaInicial, open])
   useEffect(() => { setErro(null); setCampoComErro(null) }, [aba])
 
-  // As contas de exemplo vêm do servidor: se alguém as remover do banco, a tela
-  // deixa de oferecê-las em vez de mostrar credenciais que não funcionam.
+  // As contas iniciais vêm do servidor: se alguém as remover do banco, ou
+  // trocar a senha padrão, a tela deixa de oferecê-las em vez de mostrar
+  // credenciais que não funcionam.
   useEffect(() => {
     if (!open) return
     let vivo = true
-    fetch(`${API_BASE_URL}/api/auth/accounts`)
+    fetch(`${API_BASE_URL}/api/auth/contas`)
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => { if (vivo && d?.items) setContas(d.items) })
       .catch(() => {})
@@ -71,7 +72,8 @@ export default function AuthModal({ open, onClose, abaInicial = 'entrar' }) {
     setErro(null); setCampoComErro(null)
 
     if (aba === 'entrar') {
-      return entrarCom(form.email, form.password)
+      // O campo aceita nome de usuário OU e-mail: o servidor procura nos dois.
+      return entrarCom(form.username, form.password)
     }
 
     const r = await register(form)
@@ -117,10 +119,27 @@ export default function AuthModal({ open, onClose, abaInicial = 'entrar' }) {
           </div>
         )}
 
-        <div>
-          <label htmlFor="auth-email" className="mb-1 block text-sm font-medium">E-mail</label>
-          <input id="auth-email" type="email" autoComplete="email" required {...campo('email')} />
-        </div>
+        {aba === 'entrar' ? (
+          <div>
+            <label htmlFor="auth-usuario" className="mb-1 block text-sm font-medium">Usuário</label>
+            <input
+              id="auth-usuario"
+              type="text"
+              autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
+              placeholder="admin123"
+              required
+              {...campo('username')}
+            />
+            <p className="mt-1 text-xs muted">Nome de usuário ou e-mail.</p>
+          </div>
+        ) : (
+          <div>
+            <label htmlFor="auth-email" className="mb-1 block text-sm font-medium">E-mail</label>
+            <input id="auth-email" type="email" autoComplete="email" required {...campo('email')} />
+          </div>
+        )}
 
         <div>
           <label htmlFor="auth-senha" className="mb-1 block text-sm font-medium">Senha</label>
@@ -155,31 +174,42 @@ export default function AuthModal({ open, onClose, abaInicial = 'entrar' }) {
           <p className="text-center text-xs muted">
             Contas criadas aqui recebem o perfil <strong>Usuário</strong>. Analista e Administrador
             são atribuídos pela governança, não escolhidos no cadastro.
+            <br />
+            <span className="mt-1 inline-block">
+              A entrada por conta Google está prevista e ainda não existe — enquanto não
+              existir, o campo acima é o único caminho.
+            </span>
           </p>
         )}
       </form>
 
-      {/* Contas de exemplo — uma por perfil */}
-      {aba === 'entrar' && contas.length > 0 && (
+{/* Contas iniciais do projeto aberto.
+        *
+        * Só aparecem enquanto a senha for a documentada — o servidor devolve
+        * `senhaPadrao`, e numa instalação que a trocou o atalho some. Oferecer
+        * um botão com credencial que não funciona é pior que não oferecer. */}
+      {aba === 'entrar' && contas.some((c) => c.senhaPadrao) && (
         <div className="mt-6 border-t border-gray-200 pt-5 dark:border-white/10">
           <p className="mb-3 text-center text-xs font-bold uppercase tracking-wider muted">
-            ou entre com uma conta de exemplo
+            ou entre com uma das contas iniciais
           </p>
           <div className="space-y-2">
-            {contas.map((c) => {
+            {contas.filter((c) => c.senhaPadrao).map((c) => {
               const Icon = ICONE_PAPEL[c.role] || UserCircle
               return (
                 <button
-                  key={c.email}
+                  key={c.username}
                   type="button"
-                  onClick={() => entrarCom(c.email, c.senha)}
+                  onClick={() => entrarCom(c.username, c.username)}
                   disabled={carregando}
                   className="flex w-full items-center gap-3 rounded-lg border border-gray-200 px-3 py-2.5 text-left transition-colors hover:border-gold-500/40 hover:bg-gray-50 dark:border-white/10 dark:hover:bg-white/[0.04]"
                 >
                   <Icon size={18} className="shrink-0 text-brand-400 dark:text-brand-300" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-bold">{c.name}</span>
-                    <span className="block truncate text-xs muted">{c.email} · {c.senha}</span>
+                    <span className="block truncate font-mono text-xs muted">
+                      {c.username} · {c.username}
+                    </span>
                   </span>
                   <span className="chip shrink-0">{ROTULO_PAPEL[c.role] || c.role}</span>
                 </button>
@@ -187,8 +217,8 @@ export default function AuthModal({ open, onClose, abaInicial = 'entrar' }) {
             })}
           </div>
           <p className="mt-3 text-center text-[11px] muted">
-            Cada perfil vê um recorte diferente da plataforma — e a diferença é verificada no
-            servidor, não apenas na interface.
+            Projeto de código aberto: estas contas são reais e o acervo que elas mostram é o
+            coletado das fontes públicas. Quem hospedar a plataforma deve trocar as senhas.
           </p>
         </div>
       )}

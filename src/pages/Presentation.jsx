@@ -45,9 +45,13 @@ function PostureSlide() {
 
 
 // O slide de volume precisa de hook, e o array de slides é de módulo — daí o
-// componente. Mostra a série REAL de notícias coletadas por dia e categoria; se
-// a API estiver fora, cai na série de demonstração e o rodapé diz qual das duas
-// está em tela, porque numa apresentação essa distinção é a única que importa.
+// componente. Mostra a série REAL de notícias coletadas por dia e categoria.
+//
+// O rodapé dizia "Série de demonstração — servidor de coleta indisponível", e
+// isso era falso: não existe série de demonstração. `useNewsVolume` devolve
+// série VAZIA quando a API não responde, então o que aparecia em tela era um
+// gráfico sem barras com uma legenda afirmando haver dado de exemplo. Numa
+// apresentação, essa é exatamente a frase que não pode estar errada.
 function VolumeSlide({ height }) {
   const volume = useNewsVolume(14)
   return (
@@ -56,17 +60,17 @@ function VolumeSlide({ height }) {
       <p className="mt-2 text-center text-[11px] muted">
         {volume.aoVivo
           ? 'Notícias coletadas pelo servidor, agrupadas por dia e categoria.'
-          : 'Série de demonstração — servidor de coleta indisponível.'}
+          : 'Sem série: o servidor de coleta não respondeu.'}
       </p>
     </div>
   )
 }
 
 // Os slides abaixo dependem de hooks, e o array de slides é de módulo — daí
-// cada um virar componente. Todos seguem a mesma regra: usam a série real
-// quando o servidor responde, caem no acervo local quando não, e dizem no
-// rodapé qual das duas está em tela. Numa apresentação essa distinção é a
-// única que o público não pode deduzir sozinho.
+// cada um virar componente. Todos seguem a mesma regra: exibem a série real
+// quando o servidor responde e declaram a AUSÊNCIA quando não — nunca um
+// desenho plausível no lugar. Numa apresentação essa distinção é a única que o
+// público não pode deduzir sozinho.
 function GastoSlide({ height }) {
   const g = useGastoMilitar()
   return (
@@ -78,7 +82,7 @@ function GastoSlide({ height }) {
       <p className="mt-2 text-center text-[11px] muted">
         {g.aoVivo
           ? 'World Bank Open Data — gasto militar em US$ e % do PIB.'
-          : 'Série de demonstração — servidor indisponível.'}
+          : 'Sem série: o servidor não respondeu.'}
       </p>
     </div>
   )
@@ -92,7 +96,7 @@ function GlobalSlide({ height }) {
       <p className="mt-2 text-center text-[11px] muted">
         {g.aoVivo
           ? `World Bank Open Data · ${g.data[0]?.period || ''} — gasto militar em US$ bilhões.`
-          : 'Série de demonstração — servidor indisponível.'}
+          : 'Sem série: o servidor não respondeu.'}
       </p>
     </div>
   )
@@ -106,7 +110,7 @@ function ComparacaoSlide({ height }) {
       <p className="mt-2 text-center text-[11px] muted">
         {c.aoVivo
           ? `World Bank Open Data · ${c.data[0]?.period || ''} — % do PIB em defesa.`
-          : 'Série de demonstração — servidor indisponível.'}
+          : 'Sem série: o servidor não respondeu.'}
       </p>
     </div>
   )
@@ -120,7 +124,7 @@ function RadarSlide({ height }) {
       <p className="mt-2 text-center text-[11px] muted">
         {r.aoVivo
           ? 'Notícias coletadas, por categoria: últimos 30 dias contra os 30 anteriores.'
-          : 'Série de demonstração — servidor indisponível.'}
+          : 'Sem série: o servidor não respondeu.'}
       </p>
     </div>
   )
@@ -134,7 +138,7 @@ function AlertaSlide({ height }) {
       <p className="mt-2 text-center text-[11px] muted">
         {a.aoVivo && a.basis
           ? `Média ponderada das urgências — ${a.basis}.`
-          : 'Valor de demonstração — servidor indisponível.'}
+          : 'Sem valor: o servidor não respondeu.'}
       </p>
     </div>
   )

@@ -5,7 +5,6 @@ import {
   Palette, Star, Gauge, Stethoscope, Users, Sun, Moon, LogIn, ShieldCheck, CreditCard, BarChart3,
   Check, Lock, Server, Database, PlugZap, ShieldAlert,
 } from 'lucide-react'
-import toast from 'react-hot-toast'
 import { useSettingsStore } from '../store/settingsStore'
 import { useAuthStore } from '../store/authStore'
 import { useSubscriptionStore } from '../store/subscriptionStore'
@@ -125,8 +124,8 @@ export default function Settings() {
       {/* ADMIN: API key, usuários, diagnóstico */}
       {isAdmin && (
         <>
-          <Section icon={KeyRound} title="Chave da API (Anthropic)" badge="Admin">
-            <ApiKeyEditor s={s} />
+          <Section icon={KeyRound} title="Sintese por IA" badge="Admin">
+            <SinteseIA />
           </Section>
 
           <Section icon={Users} title="Usuários e governança" badge="Admin">
@@ -388,49 +387,39 @@ function SourcesEditor() {
   )
 }
 
-function ApiKeyEditor({ s }) {
-  const [showKey, setShowKey] = useState(false)
+// ─────────────────────────────────────────────────────────────────────────────
+// SINTESE POR IA — DECLARADA, NAO OFERECIDA
+//
+// Aqui havia um campo para colar a chave da Anthropic, guardada em texto puro
+// no localStorage, com um aviso em vermelho de que aquilo nao era seguro. O
+// aviso estava certo, e era exatamente o argumento contra o campo existir.
+//
+// Nada o consumia: `iaConfigurada()` devolve `false` sempre, e nenhuma tela
+// desta plataforma chama modelo de linguagem. O campo pedia um segredo real de
+// quem usa, para uma funcionalidade que nao existe, guardando-o onde qualquer
+// extensao do navegador o le. Num projeto de codigo aberto, o convite e ainda
+// pior: quem clona pode achar que basta colar a chave para ligar o recurso.
+//
+// O contrato para quando a sintese existir esta em ROADMAP.md, e a regra e
+// simples: a chave vive no SERVIDOR, e o front chama um endpoint proprio.
+// ─────────────────────────────────────────────────────────────────────────────
+function SinteseIA() {
   return (
     <>
-      <p className="mb-3 text-sm muted">
-        Opcional. Sobrescreve a variável de ambiente apenas neste navegador.{' '}
-        {iaConfigurada()
-          ? <span className="font-semibold text-emerald-800 dark:text-emerald-400">● IA configurada</span>
-          : <span className="font-semibold text-yellow-600 dark:text-yellow-400">● sem chave — nenhuma análise por IA é gerada</span>}
+      <p className="text-sm muted">
+        Nenhum texto desta plataforma foi escrito por maquina, e nenhuma tela chama modelo de
+        linguagem. Os campos de sintese ficam vazios com a nota explicando o motivo, em vez de
+        preenchidos com texto plausivel.
       </p>
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <input type={showKey ? 'text' : 'password'} value={s.apiKeyOverride}
-            onChange={(e) => s.setApiKeyOverride(e.target.value)} placeholder="sk-ant-..." className="input pr-10 font-mono"
-            aria-label="Chave da API da Anthropic" />
-          <button type="button" onClick={() => setShowKey((v) => !v)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900 dark:hover:text-white" aria-label="Mostrar/ocultar chave">
-            {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
-          </button>
-        </div>
-        <button onClick={() => { s.setApiKeyOverride(''); toast.success('Chave removida') }} className="btn-ghost shrink-0">Limpar</button>
-      </div>
-      <div className="mt-3 rounded-lg border border-military-red/40 bg-military-red/10 p-3">
-        <p className="flex items-center gap-1.5 text-sm font-bold text-red-700 dark:text-red-300">
-          <ShieldAlert size={15} /> Isto não é seguro em produção
+      <div className="mt-3 rounded-lg border border-gray-200 p-3 dark:border-white/10">
+        <p className="flex items-center gap-1.5 text-sm font-bold">
+          <ShieldAlert size={15} className="text-gray-400" /> Por que nao ha campo de chave aqui
         </p>
-        <ul className="mt-1.5 space-y-1 text-xs leading-relaxed text-gray-700 dark:text-gray-300">
-          <li>
-            A chave fica em <strong>texto puro no armazenamento deste navegador</strong> e é enviada
-            diretamente da máquina de quem usa — qualquer script na página, extensão ou pessoa com
-            acesso ao dispositivo consegue lê-la.
-          </li>
-          <li>
-            Toda chamada consome a <strong>sua cota</strong>, sem limite por usuário e sem trilha de
-            quem gastou o quê.
-          </li>
-          <li>
-            Em produção, a chave vive <strong>apenas no servidor</strong>: o front chama um endpoint
-            próprio, que autentica a pessoa e repassa a requisição.
-          </li>
-        </ul>
-        <p className="mt-2 text-[11px] muted">
-          Use este campo apenas com uma chave descartável, de teste, e remova-a ao terminar.
+        <p className="mt-1.5 text-xs leading-relaxed muted">
+          Havia um, e ele guardava a chave em texto puro no armazenamento deste navegador — onde
+          qualquer extensao a le. Quando a sintese existir, a chave vivera apenas no servidor e o
+          front chamara um endpoint proprio, que autentica quem pede e registra o consumo. O
+          contrato ja esta descrito em <code className="font-mono">ROADMAP.md</code>.
         </p>
       </div>
     </>

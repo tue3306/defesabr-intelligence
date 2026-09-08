@@ -118,7 +118,7 @@ export default function AdminDashboard() {
                 <span className="inline-flex items-center gap-1 rounded-full bg-gold-500/15 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-gold-600 dark:text-gold-400">
                   Administrador
                 </span>
-                <Badge type={apiViva ? 'live' : 'demo'} />
+                <Badge type={apiViva ? 'live' : 'sem-dado'} />
               </div>
               <h1 className="mt-3 text-2xl font-extrabold tracking-tight sm:text-3xl">
                 {greetingByHour()}, {firstName}.

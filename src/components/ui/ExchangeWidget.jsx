@@ -31,7 +31,7 @@ export default function ExchangeWidget() {
     <div className="card p-4">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-bold uppercase tracking-wide muted">Câmbio</h3>
-        <Badge type={aoVivo ? 'live' : 'demo'} />
+        <Badge type={aoVivo ? 'live' : 'sem-dado'} />
       </div>
 
       <div className="space-y-3">

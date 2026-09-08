@@ -1,5 +1,5 @@
 // Dispara uma coleta completa pela linha de comando, sem subir o servidor.
-// Útil para popular o banco antes de uma demonstração, e para ver o que cada
+// Útil para popular o banco logo depois de clonar, e para ver o que cada
 // fonte respondeu sem precisar abrir o painel.
 import { migrate } from '../src/db/index.js'
 import { semearFontes, coletarTudo } from '../src/collectors/index.js'

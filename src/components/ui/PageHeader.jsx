@@ -14,7 +14,7 @@ import InfoTooltip from './InfoTooltip'
 //     description="Percepção pública e detecção de campanhas coordenadas."
 //     help="FIMI = Foreign Information Manipulation and Interference."
 //     breadcrumb={[{ label: 'Inteligência' }, { label: 'Narrativas' }]}
-//     badges={<Badge type="demo" />}
+//     badges={<Badge type="sem-dado" />}
 //     actions={<button className="btn-primary">Exportar</button>}
 //   />
 // -----------------------------------------------------------------------------

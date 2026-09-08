@@ -84,7 +84,7 @@ export default function DefenseIndustry() {
                 Exportações em {dados.ano}
                 <InfoTooltip text={dados.nota} />
               </h2>
-              <Badge type={exp.aoVivo ? 'live' : 'demo'} />
+              <Badge type={exp.aoVivo ? 'live' : 'sem-dado'} />
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

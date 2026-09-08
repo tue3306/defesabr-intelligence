@@ -130,7 +130,7 @@ export async function exportClippingToPDF(clipping) {
     pdf.setFontSize(7)
     pdf.setTextColor(140, 140, 140)
     pdf.text(
-      'Documento demonstrativo — análise gerada por IA, não substitui análise humana especializada.',
+      'Gerado a partir do acervo coletado pela plataforma. Nenhum trecho foi escrito por modelo de linguagem.',
       M,
       H - 10
     )
@@ -238,7 +238,7 @@ export async function exportWeeklyToPDF(analysis, meta = {}) {
   const footer = () => {
     pdf.setFontSize(7)
     pdf.setTextColor(140, 140, 140)
-    pdf.text('Documento demonstrativo — análise gerada por IA, não substitui análise humana especializada.', M, H - 10)
+    pdf.text('Gerado a partir do acervo coletado pela plataforma. Nenhum trecho escrito por maquina.', M, H - 10)
     pdf.text('DefesaBR Intelligence', W - M, H - 10, { align: 'right' })
   }
 

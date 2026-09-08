@@ -1,7 +1,7 @@
 // Teste de fumaça da API: percorre TODOS os endpoints e valida a forma da
 // resposta, não só o código HTTP. Um 200 com corpo vazio passaria num teste
 // que só olha status — e é exatamente o tipo de falha que aparece na
-// demonstração e não no desenvolvimento.
+// produção e não no desenvolvimento.
 //
 //   node scripts/check.js [http://localhost:3001]
 
@@ -26,7 +26,7 @@ async function autenticar() {
     const r = await fetch(`${BASE}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'admin@defesabr.com', password: 'admin123' }),
+      body: JSON.stringify({ username: 'admin123', password: 'admin123' }),
     })
     if (r.ok) TOKEN = (await r.json()).token
   } catch {

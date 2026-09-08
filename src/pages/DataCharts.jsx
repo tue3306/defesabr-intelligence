@@ -96,7 +96,7 @@ function ExportCSVButton({ rows, filename, label }) {
  * ErrorBoundary para que uma falha de gráfico não derrube a aba inteira.
  */
 function ChartPanel({
-  title, subtitle, method, badge = 'demo', rows, filename, controls, footnote, className = '', children,
+  title, subtitle, method, badge = 'sem-dado', rows, filename, controls, footnote, className = '', children,
 }) {
   return (
     <motion.section
@@ -219,7 +219,7 @@ export default function DataCharts() {
         description="As séries que sustentam a leitura de conjuntura: volume noticioso, esforço orçamentário e exposição a risco. Cada gráfico declara o que mostra e de onde vem."
         help="Cada painel declara a sua fonte e o que ela mede. Quando o servidor não responde, o painel mostra a ausência — nenhuma série é substituída por valores de exemplo."
         breadcrumb={[{ label: 'Painel', to: '/painel' }, { label: 'Dados & Gráficos' }]}
-        badges={<Badge type={gasto.aoVivo ? 'live' : 'demo'} />}
+        badges={<Badge type={gasto.aoVivo ? 'live' : 'sem-dado'} />}
         meta={[
           { label: 'Origem', value: gasto.aoVivo ? 'World Bank, via servidor' : 'indisponível' },
         ]}
@@ -255,7 +255,7 @@ export default function DataCharts() {
 
 
           <ChartPanel
-            badge={radar.aoVivo ? 'live' : 'demo'}
+            badge={radar.aoVivo ? 'live' : 'sem-dado'}
             title="Volume por categoria — 30 dias"
             subtitle="Compara o tema desta semana com a anterior; o descolamento indica o que está esquentando."
             method="Radar com a contagem semanal por categoria. A área 'atual' cobrindo a 'anterior' indica aumento de cobertura no tema."
@@ -266,7 +266,7 @@ export default function DataCharts() {
           </ChartPanel>
 
           <ChartPanel
-            badge={regioes.aoVivo ? 'live' : 'demo'}
+            badge={regioes.aoVivo ? 'live' : 'sem-dado'}
             title="Regiões estratégicas mais citadas"
             subtitle="Quantas notícias coletadas citam cada região estratégica no período."
             method="Contagem de MENÇÕES a cada região no texto das notícias coletadas — não de eventos. Dez matérias sobre a mesma operação são dez menções e um evento; o número mede cobertura, não ocorrência."
@@ -307,7 +307,7 @@ export default function DataCharts() {
             title="Evolução do gasto militar — Brasil"
             subtitle="Quanto o país destinou à defesa ao longo dos anos, em dólares e proporção do PIB."
             method="Série histórica de despesa militar do Brasil, indicadores MS.MIL.XPND.CD (US$ correntes) e MS.MIL.XPND.GD.ZS (% do PIB) do World Bank, coletados pelo servidor. Não há série em reais: o World Bank não a publica, e convertê-la pelo câmbio de hoje inventaria um número."
-            badge={gasto.aoVivo ? 'live' : 'demo'}
+            badge={gasto.aoVivo ? 'live' : 'sem-dado'}
             rows={gasto.data}
             filename="gasto-militar-brasil.csv"
             controls={
@@ -337,7 +337,7 @@ export default function DataCharts() {
           <ChartPanel
             title="Gasto militar global"
             subtitle="Como os maiores orçamentos do mundo se distribuem, em US$ bilhões."
-            badge={gastoGlobal.aoVivo ? 'live' : 'demo'}
+            badge={gastoGlobal.aoVivo ? 'live' : 'sem-dado'}
             method="Treemap dos maiores orçamentos militares no último ano publicado. Indicador MS.MIL.XPND.CD do World Bank, coletado pelo servidor; a área de cada bloco é proporcional ao gasto absoluto."
             rows={gastoGlobal.data}
             filename="gasto-militar-global.csv"
@@ -352,7 +352,7 @@ export default function DataCharts() {
       {tab === 'internacional' && (
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           <ChartPanel
-            badge={comparacao.aoVivo ? 'live' : 'demo'}
+            badge={comparacao.aoVivo ? 'live' : 'sem-dado'}
             title="América do Sul — % do PIB em defesa"
             subtitle="O esforço de defesa dos vizinhos na única métrica que permite comparar economias de tamanhos diferentes."
             method="Despesa militar dividida pelo PIB de cada país no ano de referência. O Brasil aparece destacado para leitura imediata da posição relativa."
@@ -363,7 +363,7 @@ export default function DataCharts() {
           </ChartPanel>
 
           <ChartPanel
-            badge={potencias.aoVivo ? 'live' : 'demo'}
+            badge={potencias.aoVivo ? 'live' : 'sem-dado'}
             title="Potências militares — % do PIB"
             subtitle="Onde o Brasil se posiciona diante das maiores forças armadas do mundo."
             method="Mesma métrica (% do PIB) aplicada às sete maiores referências acompanhadas. A meta da OTAN, de 2% do PIB, é o parâmetro internacional mais citado."
@@ -376,7 +376,7 @@ export default function DataCharts() {
 
           <ChartPanel
             className="xl:col-span-2"
-            badge={internationalRows.length ? 'live' : 'demo'}
+            badge={internationalRows.length ? 'live' : 'sem-dado'}
             title="Esforço relativo x gasto absoluto"
             subtitle="Duas leituras do mesmo país: a fatia do PIB dedicada à defesa e o volume de recursos que isso representa."
             method="Cruzamento do indicador de % do PIB com o gasto absoluto em US$ bilhões. Um país pode ter esforço relativo alto e volume baixo — e o inverso também ocorre."
@@ -425,7 +425,7 @@ export default function DataCharts() {
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           <ChartPanel
             className="xl:col-span-2"
-            badge={paises.data?.items?.length ? 'live' : 'demo'}
+            badge={paises.data?.items?.length ? 'live' : 'sem-dado'}
             title="Cobertura por país"
             subtitle="Quantas notícias coletadas mencionam cada país — foco nas Américas."
             method="Quantas notícias coletadas mencionam cada país, normalizado de 0 a 100 pelo país mais citado. Mede volume de cobertura, não risco. Passe o cursor sobre um país para ver as manchetes."
@@ -436,7 +436,7 @@ export default function DataCharts() {
           </ChartPanel>
 
           <ChartPanel
-            badge={alerta.aoVivo ? 'live' : 'demo'}
+            badge={alerta.aoVivo ? 'live' : 'sem-dado'}
             title="Índice de alerta nacional"
             subtitle="Resumo de 0 a 100 da tensão de segurança do Brasil no momento."
             method="Combina o volume de eventos, a gravidade atribuída e a concentração geográfica das ocorrências das últimas duas semanas. É um resumo, não um veredito."

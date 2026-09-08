@@ -73,17 +73,19 @@ export const useAuthStore = create(
       carregando: false,
 
       /**
-       * Entra com e-mail e senha.
+       * Entra com IDENTIFICADOR e senha.
        *
-       * O plano vem do servidor junto do papel, e é sincronizado com o store de
-       * assinatura: os dois eixos (papel e plano) governam o que a interface
-       * libera, e deixá-los divergir foi a causa de Usuário e Analista
-       * parecerem iguais.
+       * O parametro deixou de se chamar `email` porque deixou de ser um
+       * e-mail: as contas do projeto aberto entram por nome de usuario
+       * (`admin123`), e o servidor aceita nome de usuario OU endereco no mesmo
+       * campo. Manter o nome `email` aqui faria a proxima pessoa acreditar que
+       * so endereco funciona — e e justamente esse campo que vai receber o
+       * e-mail do Google quando o provedor externo entrar.
        */
-      login: async (email, password) => {
+      login: async (identificador, password) => {
         set({ carregando: true })
         try {
-          const { user, token } = await postar('/auth/login', { email, password })
+          const { user, token } = await postar('/auth/login', { username: identificador, password })
           useSubscriptionStore.getState().setPlan(user.plan)
           set({ user, token, isAuthenticated: true, carregando: false })
           sincronizarPasta()

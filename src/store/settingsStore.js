@@ -5,15 +5,15 @@ export const useSettingsStore = create(
   persist(
     (set, get) => ({
       theme: 'light', // 'dark' | 'light' — padrão CLARO (visual)
-      // Fontes ao vivo DESLIGADAS por padrão: este é um demo 100% front-end
-      // (sem backend/proxy). Buscar RSS de terceiros direto do browser falha por
-      // CORS/limite e polui o console — sem agregar dado real. O app carrega com
-      // conteúdo demonstrativo coerente e o usuário pode ativar fontes ao vivo em
-      // Configurações (a coleta real deve viver atrás de um backend — ver roadmap).
-      // `rssSources` vivia aqui: 15 fontes escritas a mao com `status`
-      // literal, e acoes de ativar, adicionar e remover que nao chegavam a
-      // lugar nenhum — a coleta roda no servidor e nunca leu esta lista.
-      // As fontes de verdade vem de /api/sources/summary (useFontesReais).
+      // `rssSources` vivia aqui: 15 fontes escritas a mao com `status` literal,
+      // e acoes de ativar, adicionar e remover que nao chegavam a lugar nenhum.
+      // A coleta roda no servidor e nunca leu esta lista. As fontes de verdade
+      // vem de /api/sources/summary (useFontesReais).
+      //
+      // O comentario que ficava aqui descrevia a plataforma como "um demo 100%
+      // front-end (sem backend/proxy)" e explicava por que as fontes ao vivo
+      // vinham desligadas. Ha um backend desde entao, ele coleta de 50 fontes
+      // a cada 30 minutos, e o texto so servia para desorientar quem chegasse.
       newsPerClipping: 5, // 3-10
       focusArea: 'empresarial',
       notificationsEnabled: true,
@@ -21,8 +21,6 @@ export const useSettingsStore = create(
       interestAreas: [],
       // Onboarding (tour de boas-vindas) — exibido apenas na 1ª visita
       onboardingDone: false,
-      // Override local opcional da chave da Anthropic (além do .env)
-      apiKeyOverride: '',
 
       toggleTheme: () => {
         const next = get().theme === 'dark' ? 'light' : 'dark'
@@ -45,11 +43,10 @@ export const useSettingsStore = create(
             : [...get().interestAreas, area],
         }),
       toggleNotifications: () => set({ notificationsEnabled: !get().notificationsEnabled }),
-      setApiKeyOverride: (apiKeyOverride) => set({ apiKeyOverride }),
       completeOnboarding: () => set({ onboardingDone: true }),
     }),
-    // [ALTERADO] chave nova (v3): descarta o estado antigo que trazia as fontes
-    // RSS habilitadas por padrão (origem dos erros 422 no console do demo).
+    // Chave v3: descarta o estado antigo, que trazia as fontes RSS habilitadas
+    // por padrao e era a origem dos erros 422 no console.
     { name: 'defesabr-settings-v3' }
   )
 )

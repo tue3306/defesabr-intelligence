@@ -1,27 +1,26 @@
 // -----------------------------------------------------------------------------
-// PLANOS DE ASSINATURA — Explorar · Profissional · Institucional.
+// NIVEIS DE ACESSO
 //
-// Os PREÇOS são demonstrativos e nenhuma cobrança acontece. Os RECURSOS, não:
-// cada linha desta tabela precisa corresponder a algo que a plataforma faz.
+// Isto NAO e uma tabela de precos. O projeto e de codigo aberto, nao ha
+// cobranca e toda conta recebe a profundidade completa de leitura.
 //
-// Ela vendia "Gerar clipping/análise com IA", "Dossiês completos e Monitor de
-// Narrativas" e "Análise semanal + cenários". Nenhum dos três existe — a IA
-// nunca foi ligada e as telas de produção editorial foram removidas por
-// exibirem texto escrito à mão. Prometer numa página de preço o que não se
-// entrega é a única coisa aqui que seria indefensável numa apresentação.
+// Os campos de preco sairam daqui — `monthly`, `annualMonthly`, `priceLabel`,
+// `period`. Enquanto existiram, a tela mostrava "R$ 89/mes" ao lado de um
+// botao que nao cobrava nada, e a pagina de conta desenhava fatura em PDF com
+// numero de cartao terminado em 4242. Era a mesma fabricacao que o projeto
+// removeu de todo o resto, so que com cifrao.
 //
-// Quem mexer nisto: antes de acrescentar uma linha, abra a tela que a cumpre.
+// O que sobra e o que continua sendo verdade: o nome de cada nivel, o que ele
+// destrava e a comparacao entre eles. Serve para tornar o modelo de permissao
+// inspecionavel — ver src/auth/permissions.js, que e quem decide de fato.
 // -----------------------------------------------------------------------------
+
 
 export const PLANS = [
   {
     id: 'explorar',
     name: 'Explorar',
     icon: 'Compass',
-    monthly: 0,
-    annualMonthly: 0,
-    priceLabel: 'R$ 0',
-    period: 'para sempre',
     tagline: 'Conheça o cenário de defesa do Brasil.',
     cta: 'Começar grátis',
     features: [
@@ -36,10 +35,6 @@ export const PLANS = [
     name: 'Profissional',
     icon: 'Crosshair',
     recommended: true,
-    monthly: 89,
-    annualMonthly: 74, // ~17% de economia no plano anual
-    priceLabel: 'R$ 89',
-    period: '/mês',
     tagline: 'Inteligência completa para quem decide.',
     cta: 'Assinar agora',
     features: [
@@ -56,8 +51,6 @@ export const PLANS = [
     name: 'Institucional',
     icon: 'Building2',
     contact: true,
-    priceLabel: 'Sob consulta',
-    period: 'equipes e órgãos',
     tagline: 'Para equipes, empresas e órgãos públicos.',
     cta: 'Falar com especialistas',
     features: [
@@ -110,11 +103,11 @@ export const PLAN_COMPARISON = [
 ]
 
 export const PLAN_FAQ = [
-  { q: 'Posso trocar de plano quando quiser?', a: 'Sim. Upgrade e downgrade são imediatos. Nesta demonstração, a troca apenas simula o acesso na interface.' },
-  { q: 'Existe fidelidade ou multa?', a: 'Não. Cancele quando quiser, sem fidelidade. (Demonstração: nenhuma cobrança é realizada.)' },
+  { q: 'Posso trocar de nível quando quiser?', a: 'Sim. O projeto é de código aberto e toda conta recebe o nível completo de leitura; trocar aqui serve para ver a plataforma pelos olhos de quem tem menos acesso.' },
+  { q: 'Quanto custa?', a: 'Nada. Não existe cobrança, assinatura nem plano pago: o código é aberto e qualquer pessoa pode hospedar a própria instância.' },
   { q: 'Qual a diferença entre papel e plano?', a: 'Papel é o que você pode FAZER: Usuário consulta, Analista monitora a coleta e audita o filtro, Administrador governa a plataforma. Plano é o quanto você pode VER (Explorar, Profissional, Institucional). Os eixos são independentes, e o papel é verificado no servidor — não é o menu escondido que protege as áreas restritas.' },
   { q: 'O plano anual compensa?', a: 'Sim: no anual o mês sai por ~R$ 74 — cerca de 17% de economia frente ao mensal.' },
-  { q: 'Os números exibidos são reais?', a: 'Sim. As notícias são coletadas de feeds públicos oficiais pelo servidor; os indicadores econômicos vêm do Banco Central (SGS), do World Bank e do Comex Stat; as proposições, dos Dados Abertos da Câmara. Cada painel declara a origem da sua série e, quando a fonte não responde, mostra a ausência em vez de um valor plausível. Os PREÇOS desta página é que são demonstrativos: não há cobrança.' },
+  { q: 'Os números exibidos são reais?', a: 'Sim. As notícias são coletadas de feeds públicos oficiais pelo servidor; os indicadores econômicos vêm do Banco Central (SGS), do World Bank e do Comex Stat; as proposições, dos Dados Abertos da Câmara. Cada painel declara a origem da sua série e, quando a fonte não responde, mostra a ausência em vez de um valor plausível.' },
 ]
 
 // Áreas temáticas (perspectivas de análise) — todas liberadas no plano pago.

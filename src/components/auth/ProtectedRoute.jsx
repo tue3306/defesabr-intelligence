@@ -5,7 +5,7 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../../store/authStore'
-import { useContasDemo, ROTULO_PAPEL } from '../../auth/useContasDemo'
+import { useContasIniciais, ROTULO_PAPEL } from '../../auth/useContasIniciais'
 import { useGate } from '../../auth/useCan'
 import { CAPABILITIES, PLAN_LABELS, PROFILES } from '../../auth/permissions'
 
@@ -52,7 +52,7 @@ const ROLE_WALL = {
 // governança) — e sempre oferece o caminho de saída.
 export default function ProtectedRoute({ children, permission, capability }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  const { contas, entrarComo } = useContasDemo()
+  const { contas, entrarComo } = useContasIniciais()
   // `capability` é o nome novo; `permission` fica por compatibilidade.
   const required = capability || permission
   const gate = useGate(required)

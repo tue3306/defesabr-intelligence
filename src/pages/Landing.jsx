@@ -326,7 +326,7 @@ export default function Landing() {
         </div>
       </Section>
 
-      {/* PARA CADA PERFIL — o coração da demonstração */}
+      {/* PARA CADA PERFIL — o que cada um enxerga */}
       <Section>
         <h2 className="text-center text-2xl font-bold tracking-tight">Uma plataforma, quatro experiências</h2>
         <p className="mx-auto mt-2 max-w-2xl text-center text-sm muted">
@@ -382,7 +382,7 @@ export default function Landing() {
       <Section className="card p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-bold tracking-tight">O que já está monitorado agora</h2>
-          <Badge type={vitrine.aoVivo ? 'live' : 'demo'} />
+          <Badge type={vitrine.aoVivo ? 'live' : 'sem-dado'} />
         </div>
         <p className="mt-1 text-sm muted">
           Contagens lidas do acervo neste instante — o que a coleta trouxe, não texto de vitrine.
@@ -422,7 +422,7 @@ export default function Landing() {
       <Section className="card p-5 sm:p-6">
         <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-bold tracking-tight">Cobertura por país</h2>
-          <Badge type={vitrine.aoVivo ? 'live' : 'demo'} />
+          <Badge type={vitrine.aoVivo ? 'live' : 'sem-dado'} />
         </div>
         {/* "Panorama global de risco" prometia uma medida de risco que ninguém
             faz. O mapa conta menções em notícia coletada — que é útil, e é

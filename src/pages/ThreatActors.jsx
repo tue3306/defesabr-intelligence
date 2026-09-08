@@ -55,7 +55,7 @@ export default function ThreatActors() {
         description="Quem ataca organizações brasileiras, com as técnicas MITRE ATT&CK, as ferramentas e as vulnerabilidades que cada grupo sabe explorar."
         help="Os perfis vêm do ransomware.live e cobrem apenas os grupos com vítima brasileira registrada no acervo."
         breadcrumb={[{ label: 'Inteligência' }, { label: 'Atores & Vulnerabilidades' }]}
-        badges={<Badge type={lista.length ? 'live' : 'demo'} />}
+        badges={<Badge type={lista.length ? 'live' : 'sem-dado'} />}
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

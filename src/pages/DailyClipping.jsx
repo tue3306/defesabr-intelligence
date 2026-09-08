@@ -156,7 +156,7 @@ export default function DailyClipping() {
             {/* O selo segue a ORIGEM da edição em tela. Uma edição montada
                 pelo servidor a partir de coleta real é dado ao vivo, mesmo sem
                 resumo executivo — que é análise, não coleta. */}
-            <Badge type={result?.source === 'live' ? 'live' : 'demo'} />
+            <Badge type={result?.source === 'live' ? 'live' : 'sem-dado'} />
           </>
         }
         meta={[

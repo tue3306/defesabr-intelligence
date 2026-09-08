@@ -39,28 +39,36 @@ export default function Plans() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const role = useAuthStore((s) => s.user?.role)
   const plan = useSubscriptionStore((s) => s.plan)
-  const billing = useSubscriptionStore((s) => s.billing)
   const setPlan = useSubscriptionStore((s) => s.setPlan)
-  const setBilling = useSubscriptionStore((s) => s.setBilling)
-  const annual = billing === 'anual'
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // NÃO HÁ COBRANÇA, ENTÃO NÃO HÁ COMPRA.
+  //
+  // Esta página simulava comércio: escolher um nível abria uma confirmação e
+  // um aviso de "plano ativado (demonstração — sem cobrança real)", havia
+  // alternância entre mensal e anual com desconto de 17%, e um botão de
+  // contato que dizia "nossa equipe entraria em contato". Nada disso existia:
+  // não há cobrança, não há equipe comercial e não há assinatura.
+  //
+  // O projeto é de código aberto e toda conta recebe a profundidade completa
+  // de leitura. O que ainda separa os perfis é o PAPEL, que é verificado no
+  // servidor — e é isso que a página passa a documentar.
+  //
+  // A seleção continua existindo porque ela é útil de verdade: permite ver a
+  // plataforma pelos olhos de quem tem menos acesso, o que é a única forma de
+  // conferir se um bloqueio explica o motivo em vez de mostrar tela vazia.
+  // ─────────────────────────────────────────────────────────────────────────
   const choose = (p) => {
-    if (p.contact) {
-      // DEMO: em produção abriria um formulário/CRM ligado ao backend comercial.
-      toast.success('Interesse registrado — nossa equipe entraria em contato (demonstração).')
-      return
-    }
     if (p.id === plan) {
-      toast('Este já é o seu plano atual.', { icon: 'ℹ️' })
+      toast('Este já é o nível atual.', { icon: 'ℹ️' })
       return
     }
-    // Trocar de plano muda o que a pessoa enxerga em toda a plataforma: pede confirmação.
     setConfirm(p)
   }
 
   const applyPlan = (p) => {
     setPlan(p.id)
-    toast.success(`Plano ${p.name} ativado (demonstração — sem cobrança real)`)
+    toast.success(`Visualizando como ${p.name}`)
   }
 
   return (
@@ -68,39 +76,26 @@ export default function Plans() {
       {/* CABEÇALHO */}
       <div className="text-center">
         <span className="inline-flex items-center gap-2 rounded-full bg-brand-500/15 px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-300">
-          <Sparkles size={14} /> Planos
+          <Sparkles size={14} /> Níveis de acesso
         </span>
-        <h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Escolha seu nível de acesso</h1>
+        <h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">O que cada nível enxerga</h1>
         <p className="mx-auto mt-2 max-w-xl text-sm muted">
-          Comece grátis e evolua quando precisar. Cancele quando quiser.
+          Projeto de código aberto: não há cobrança e toda conta recebe a profundidade completa
+          de leitura. Trocar o nível aqui serve para ver a plataforma pelos olhos de quem tem
+          menos acesso.
         </p>
 
-        {/* Toggle Mensal / Anual */}
-        <div className="mt-6 inline-flex items-center rounded-full border border-gray-200 bg-white p-1 text-sm font-semibold dark:border-white/10 dark:bg-white/5">
-          <button
-            onClick={() => setBilling('mensal')}
-            className={`rounded-full px-4 py-1.5 transition-colors ${!annual ? 'bg-brand-500/15 text-brand-300' : 'muted'}`}
-            aria-pressed={!annual}
-          >
-            Mensal
-          </button>
-          <button
-            onClick={() => setBilling('anual')}
-            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 transition-colors ${annual ? 'bg-brand-500/15 text-brand-300' : 'muted'}`}
-            aria-pressed={annual}
-          >
-            Anual
-            <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800 dark:text-emerald-300">−17%</span>
-          </button>
-        </div>
       </div>
 
       {/* PAPEL × PLANO (explícito) */}
       <div className="card flex items-start gap-3 p-4">
         <Info size={18} className="mt-0.5 shrink-0 text-brand-400 dark:text-brand-300" />
         <p className="text-sm muted">
-          <strong className="text-gray-900 dark:text-gray-100">Papel</strong> é o que você pode <em>fazer</em> (Usuário ou Administrador).{' '}
-          <strong className="text-gray-900 dark:text-gray-100">Plano</strong> é o quanto você pode <em>ver e produzir</em>. Esta página define o seu plano.
+          <strong className="text-gray-900 dark:text-gray-100">Papel</strong> é o que você pode <em>fazer</em> — Usuário ou
+          Administrador —, vem no token assinado e é conferido no servidor a cada requisição.{' '}
+          <strong className="text-gray-900 dark:text-gray-100">Nível</strong> é o quanto você
+          pode <em>ver</em>. Num projeto aberto ele já vem completo; esta página o expõe para
+          que o modelo de permissão seja inspecionável.
         </p>
       </div>
 
@@ -109,9 +104,11 @@ export default function Plans() {
         {PLANS.map((p) => {
           const Icon = PLAN_ICONS[p.icon] || Compass
           const active = plan === p.id
-          const price =
-            p.contact ? p.priceLabel : p.monthly === 0 ? 'R$ 0' : `R$ ${annual ? p.annualMonthly : p.monthly}`
-          const period = p.contact ? p.period : p.monthly === 0 ? p.period : annual ? '/mês · anual' : '/mês'
+          // Sem preço: não há cobrança. Exibir "R$ 89/mês" ao lado de um botão
+          // que não cobra nada é a mesma fabricação que o projeto removeu de
+          // todo o resto.
+          const price = 'Aberto'
+          const period = 'sem cobrança'
           return (
             <div
               key={p.id}
@@ -135,11 +132,6 @@ export default function Plans() {
                 <span className="text-3xl font-extrabold tracking-tight">{price}</span>
                 <span className="mb-1 text-xs muted">{period}</span>
               </div>
-              {!p.contact && p.monthly > 0 && (
-                <p className="mt-1 text-xs muted">
-                  {annual ? `R$ ${p.annualMonthly * 12}/ano · ~R$ ${(p.annualMonthly / 30).toFixed(0)}/dia` : 'ou R$ 890/ano (2 meses grátis)'}
-                </p>
-              )}
 
               <ul className="mt-5 flex-1 space-y-2 text-sm">
                 {p.features.map((f) => (
@@ -280,9 +272,9 @@ export default function Plans() {
         onClose={() => setConfirm(null)}
         onConfirm={() => applyPlan(confirm)}
         tone="default"
-        title={confirm ? `Ativar o plano ${confirm.name}?` : ''}
-        description="Isto muda o que você enxerga em toda a plataforma. Nenhuma cobrança é feita: este é um ambiente de demonstração."
-        confirmLabel="Ativar plano"
+        title={confirm ? `Visualizar como ${confirm.name}?` : ''}
+        description="Isto muda o que a interface exibe para você, e serve para conferir como a plataforma se comporta com menos acesso. Nenhuma cobrança existe neste projeto."
+        confirmLabel="Visualizar assim"
       />
     </div>
   )

@@ -81,7 +81,7 @@ export function criarApp() {
   }))
 
   // Log de uma linha por requisição. Suficiente para ver a integração
-  // funcionando ao vivo numa demonstração, sem dependência de logger.
+  // funcionando ao vivo, sem dependência de logger.
   if (config.ambiente !== 'test') {
     app.use((req, res, next) => {
       const t = Date.now()

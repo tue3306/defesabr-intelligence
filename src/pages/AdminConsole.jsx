@@ -77,7 +77,7 @@ export default function AdminConsole() {
         // O selo segue o estado observado da API, e não um valor fixo. Um
         // console de governança que se descreve errado é a última tela do
         // produto que pode fazer isso.
-        badges={<Badge type={apiViva ? 'live' : 'demo'} />}
+        badges={<Badge type={apiViva ? 'live' : 'sem-dado'} />}
         accent="red"
       >
         <div className="flex flex-wrap gap-2">
@@ -926,7 +926,7 @@ function IntegracoesSection() {
           Nenhuma credencial de provedor deve viver no front-end: tudo que o navegador carrega é
           legível por quem abre o inspetor. O caminho correto é o servidor guardar a chave e expor
           um endpoint autenticado — o front chama o seu backend, nunca o provedor diretamente.
-          A chave de IA que existe em Configurações é um recurso de demonstração local, válido
+          A chave de IA foi removida de Configurações: ela guardava um segredo no navegador para um recurso que não existe. O contrato está em ROADMAP.md, e vale
           apenas neste navegador e nunca em produção.
         </p>
       </Section>
@@ -1155,7 +1155,7 @@ function SaudeSection() {
         >
           <div className="space-y-5">
             <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <Fact label="Modo de dados" value={d?.mode === 'api' ? 'API real' : 'Demonstração (mock)'} />
+              <Fact label="Modo de dados" value={d?.mode === 'api' ? 'API real' : 'API sem resposta'} />
               <Fact label="URL da API" value={d?.apiBaseUrl || 'não configurada'} />
               <Fact label="Versão" value={d?.version || '—'} />
             </dl>

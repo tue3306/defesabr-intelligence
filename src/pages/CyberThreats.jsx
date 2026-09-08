@@ -58,7 +58,7 @@ export default function CyberThreats() {
         description="Organizações brasileiras divulgadas por grupos de ransomware, com o Estado em primeiro plano e o quadro global como referência."
         help="Os registros vêm dos sites de extorsão dos próprios grupos, indexados pelo ransomware.live. Aparecer aqui é reivindicação de ataque, não confirmação da vítima."
         breadcrumb={[{ label: 'Inteligência' }, { label: 'Ameaças Cibernéticas' }]}
-        badges={<Badge type={d?.acervo ? 'live' : 'demo'} />}
+        badges={<Badge type={d?.acervo ? 'live' : 'sem-dado'} />}
         actions={
           <div className="flex gap-1 rounded-lg border border-gray-300 p-0.5 dark:border-white/15">
             {JANELAS.map((j) => (

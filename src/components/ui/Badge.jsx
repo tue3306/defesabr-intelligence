@@ -1,6 +1,6 @@
 import { urgencyMeta, alertMeta, categoryColor } from '../../utils/textUtils'
 
-// Badge generico. type: 'urgency' | 'alert' | 'category' | 'live' | 'demo' | 'plain'
+// Badge generico. type: 'urgency' | 'alert' | 'category' | 'live' | 'sem-dado' | 'plain'
 export default function Badge({ type = 'plain', value, children, className = '' }) {
   if (type === 'urgency') {
     const m = urgencyMeta[value] || urgencyMeta.BAIXO
@@ -42,10 +42,17 @@ export default function Badge({ type = 'plain', value, children, className = '' 
       </Pill>
     )
   }
-  // A variante 'demo' foi removida junto com o modo que ela anunciava. Chamadas
-  // remanescentes caem no selo neutro em vez de escrever "Modo demonstração"
-  // sobre dado que veio de uma API.
-  if (type === 'demo') {
+  // AUSENCIA DE DADO, e nao "modo demonstracao".
+  //
+  // A variante se chamava 'demo' e vinha do tempo em que a plataforma tinha um
+  // acervo escrito a mao para cair quando a API nao respondesse. Esse acervo
+  // saiu; o selo continuou com o nome antigo, entao cada `badge={ok ? 'live' :
+  // 'demo'}` espalhado pelas telas dizia que existia um modo de demonstracao
+  // por tras — quando o que existe do outro lado e simplesmente nada.
+  //
+  // O nome agora diz o que o selo significa: a fonte nao respondeu, e o painel
+  // mostra ausencia em vez de um numero plausivel.
+  if (type === 'sem-dado') {
     return (
       <Pill className={`border-gray-400/50 bg-gray-500/10 text-gray-700 dark:text-gray-300 ${className}`}>
         Sem dado

@@ -49,7 +49,7 @@ export default function Economy() {
         description="Indicadores do Banco Central atualizados no dia e o comparativo de gasto em defesa entre países, do World Bank."
         help="Orçamento de defesa é decisão política, mas sua execução real depende de câmbio, inflação e espaço fiscal — por isso estes indicadores aparecem aqui."
         breadcrumb={[{ label: 'Dados & Relatórios' }, { label: 'Economia & Defesa' }]}
-        badges={<Badge type={vizinhanca.aoVivo ? 'live' : 'demo'} />}
+        badges={<Badge type={vizinhanca.aoVivo ? 'live' : 'sem-dado'} />}
       />
 
       {/* INDICADORES BRASIL — Banco Central, atualizados no dia */}
@@ -117,7 +117,7 @@ export default function Economy() {
         <div className="card p-5">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-base font-bold tracking-tight">Gasto militar (% do PIB)</h2>
-            <Badge type={vizinhanca.aoVivo ? 'live' : 'demo'} />
+            <Badge type={vizinhanca.aoVivo ? 'live' : 'sem-dado'} />
           </div>
           <ErrorBoundary variant="inline" scope="Comparativo regional de gasto militar">
             <ComparisonBarChart data={pctGdpData} highlightCode="BR" height={300} />
@@ -127,7 +127,7 @@ export default function Economy() {
         <div className="card p-5">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-base font-bold tracking-tight">Orçamento de defesa (US$ bi)</h2>
-            <Badge type={gastoGlobal.aoVivo ? 'live' : 'demo'} />
+            <Badge type={gastoGlobal.aoVivo ? 'live' : 'sem-dado'} />
           </div>
           <div className="space-y-2.5">
             {orcamento.map((d) => (

@@ -72,7 +72,7 @@ export default function Collection() {
         description="A regra que decide o que entra no acervo, aplicável a qualquer texto, e o histórico das execuções dos coletores."
         help="Esta área é do perfil Analista. Os endpoints por trás dela exigem esse papel no servidor — não é o menu que a protege."
         breadcrumb={[{ label: 'Produção' }, { label: 'Método & Coleta' }]}
-        badges={<Badge type={metodo.meta?.source === 'live' ? 'live' : 'demo'} />}
+        badges={<Badge type={metodo.meta?.source === 'live' ? 'live' : 'sem-dado'} />}
       />
 
       {/* ── O MÉTODO ── */}

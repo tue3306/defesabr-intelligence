@@ -48,7 +48,7 @@ const servidor = app.listen(config.port, config.host, async () => {
   console.log(`  Node          ${process.version}`)
   console.log(`  Banco         ${config.dbPath}`)
   if (fontesCriadas) console.log(`  Fontes        ${fontesCriadas} cadastradas`)
-  if (contasCriadas) console.log(`  Contas        ${contasCriadas} de demonstração criadas`)
+  if (contasCriadas) console.log(`  Contas        ${contasCriadas} conta(s) inicial(is) criada(s)`)
   if (config.auth.segredoFraco) {
     // Em amarelo, não em cinza: quem definiu a variável acredita ter
     // configurado a sessão, e precisa saber que ela foi RECUSADA.

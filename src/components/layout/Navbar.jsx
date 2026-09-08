@@ -9,7 +9,7 @@ import SearchBar from '../ui/SearchBar'
 import Badge from '../ui/Badge'
 import AuthModal from '../auth/AuthModal'
 import { useAuthStore } from '../../store/authStore'
-import { useContasDemo, ROTULO_PAPEL } from '../../auth/useContasDemo'
+import { useContasIniciais, ROTULO_PAPEL } from '../../auth/useContasIniciais'
 import { useNewsStore } from '../../store/newsStore'
 import { useSubscriptionStore } from '../../store/subscriptionStore'
 import { useCan, useProfileMeta } from '../../auth/useCan'
@@ -32,7 +32,7 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
   const navigate = useNavigate()
   const { isDark, toggleTheme } = useTheme()
   const { user, isAuthenticated, logout } = useAuthStore()
-  const { contas, entrarComo } = useContasDemo()
+  const { contas, entrarComo } = useContasIniciais()
   const plan = useSubscriptionStore((s) => s.plan)
   const can = useCan()
   const profileMeta = useProfileMeta()
@@ -278,14 +278,14 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
                 {contas.length > 0 && (
                   <div className="mt-1 border-t border-gray-200 pt-2 dark:border-gray-700/40">
                     <p className="flex items-center gap-1.5 px-2 pb-1 text-[10px] font-bold uppercase tracking-wide muted">
-                      <Repeat size={11} /> Entrar como
+                      <Repeat size={11} /> Entrar com outra conta
                     </p>
                     <div className="space-y-1">
                       {contas.map((c) => {
                         const atual = user?.role === c.role
                         return (
                           <button
-                            key={c.email}
+                            key={c.username}
                             onClick={() => trocarPerfil(c.role)}
                             className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors ${
                               atual ? 'bg-gold-500/10' : 'hover:bg-gray-100 dark:hover:bg-white/10'

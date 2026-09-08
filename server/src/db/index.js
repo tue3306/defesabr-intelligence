@@ -8,7 +8,7 @@ import config from '../config.js'
 // BANCO — SQLite pelo módulo nativo do Node.
 //
 // `node:sqlite` (Node 22.5+) evita `better-sqlite3`, que precisa compilar
-// binário nativo. Numa demonstração acadêmica isso importa: `npm install`
+// binário nativo. Num projeto aberto isso importa: `npm install`
 // funciona na primeira tentativa em qualquer máquina, sem toolchain de C++.
 // No Railway, evita builds longos e falhas de compilação por imagem base.
 // -----------------------------------------------------------------------------
@@ -53,6 +53,25 @@ const COLUNAS_ADICIONADAS = [
   // perfil — e o join sensivel a caixa nunca casava, entao esses atores eram
   // rebuscados a cada ciclo, para sempre.
   ['threat_actors', 'name_key', 'TEXT'],
+
+  // IDENTIFICADOR DE LOGIN, separado do e-mail.
+  //
+  // O projeto e aberto e nasce com duas contas cujo identificador e um nome de
+  // usuario simples (`admin123`, `usuario123`), nao um endereco de e-mail.
+  // Forcar isso na coluna `email` funcionaria, mas apagaria a distincao que a
+  // proxima etapa vai precisar: quando entrar autenticacao por Google, o
+  // e-mail passa a vir do provedor e precisa ser um endereco de verdade,
+  // enquanto o identificador local continua sendo o que a pessoa digita.
+  //
+  // Coluna nova em vez de trocar o significado da existente: `email` e NOT
+  // NULL UNIQUE, e mudar isso no SQLite exige reconstruir a tabela — risco
+  // desnecessario num banco que pode estar em volume montado.
+  ['users', 'username', 'TEXT'],
+
+  // De onde veio a conta: 'local' (senha) ou, no futuro, 'google'. Existe
+  // desde ja para que a migracao para OAuth nao precise adivinhar quais
+  // contas tem senha propria e quais delegam ao provedor.
+  ['users', 'auth_provider', "TEXT NOT NULL DEFAULT 'local'"],
 ]
 
 /**
@@ -67,6 +86,9 @@ const INDICES_ADICIONADOS = [
   'CREATE INDEX IF NOT EXISTS idx_articles_title_key ON articles(title_key)',
   'CREATE INDEX IF NOT EXISTS idx_rw_crit ON ransomware_victims(criticality)',
   'CREATE UNIQUE INDEX IF NOT EXISTS idx_actor_key ON threat_actors(name_key)',
+  // Identificador de login unico. Parcial: contas antigas sem `username` nao
+  // colidem entre si por serem todas NULL.
+  'CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL',
 ]
 
 /** Aplica o esquema e as colunas incrementais. Idempotente — roda em toda subida. */

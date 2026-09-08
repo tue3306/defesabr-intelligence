@@ -33,6 +33,13 @@
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PERFIS
+//
+// Estes sao ARQUETIPOS — a descricao do que cada papel enxerga —, nao contas.
+// Cada um trazia um campo `email` com nome de pessoa inventada
+// (`marina.duarte@`, `ana.lima@`, `governanca@`), resto de quando o console de
+// governanca listava perfis no lugar de contas. As contas de verdade vivem no
+// banco e sao servidas por `GET /api/users`; um arquetipo nao tem endereco
+// porque nao e alguem.
 // ─────────────────────────────────────────────────────────────────────────────
 export const PROFILES = {
   visitor: {
@@ -42,7 +49,6 @@ export const PROFILES = {
     tagline: 'Conteúdo público — sem login',
     description:
       'Conhece a plataforma e lê o conteúdo aberto. Para acompanhar o dia a dia é preciso entrar.',
-    email: null,
     role: 'visitor',
     plan: 'explorar',
     color: '#64748b',
@@ -54,7 +60,6 @@ export const PROFILES = {
     tagline: 'Consulta e acompanhamento',
     description:
       'Acompanha o painel de situação, o clipping diário e os módulos de dados. Salva conteúdos na sua pasta.',
-    email: 'marina.duarte@defesabr.com',
     role: 'user',
     plan: 'profissional',
     color: '#2e7d46',
@@ -66,7 +71,6 @@ export const PROFILES = {
     tagline: 'Produção de inteligência',
     description:
       'Acompanha o produto por completo: clipping, radar legislativo, confiabilidade das fontes e exportação das séries.',
-    email: 'ana.lima@defesabr.com',
     role: 'analyst',
     plan: 'institucional',
     color: '#caa733',
@@ -78,7 +82,6 @@ export const PROFILES = {
     tagline: 'Governança da plataforma',
     description:
       'Governa a plataforma: fontes de coleta, trilha de auditoria, saúde dos serviços e configuração.',
-    email: 'governanca@defesabr.com',
     role: 'admin',
     plan: 'institucional',
     color: '#c0392b',

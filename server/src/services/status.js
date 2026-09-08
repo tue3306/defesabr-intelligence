@@ -38,7 +38,7 @@ function caminhoRelativo(absoluto) {
 //
 // "Não implementado" não é falha: é um recurso que esta instalação não oferece.
 // Dizer isso é mais útil que exibir verde que não corresponde a nada — e é o
-// que impede a demonstração de prometer o que não entrega.
+// que impede a plataforma de prometer o que não entrega.
 // -----------------------------------------------------------------------------
 
 const contar = (sql, params = []) => get(sql, params)?.n ?? 0
@@ -251,7 +251,7 @@ export function capacidades() {
     //
     // Declarado com a mesma seriedade do que existe. Um sistema que não
     // publica seus limites convida quem o usa a atribuir-lhe capacidades que
-    // ele não tem — e numa demonstração isso é a diferença entre honestidade
+    // ele não tem — e isso é a diferença entre honestidade
     // técnica e propaganda.
     {
       id: 'ia-analise',

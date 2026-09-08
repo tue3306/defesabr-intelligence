@@ -169,7 +169,7 @@ export default function UserDashboard() {
                 <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-gray-300">
                   Plano {PLAN_LABELS[plan] || PLAN_LABELS.explorar}
                 </span>
-                <Badge type={source === 'live' ? 'live' : 'demo'} />
+                <Badge type={source === 'live' ? 'live' : 'sem-dado'} />
                 <span className="inline-flex items-center gap-1 text-xs text-gray-400">
                   <Clock size={12} /> Atualizado às {formatTime()}
                 </span>
@@ -507,7 +507,7 @@ export default function UserDashboard() {
           <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
             <Newspaper size={18} className="text-brand-400 dark:text-brand-300" /> Notícias recentes
           </h2>
-          <Badge type={source === 'live' ? 'live' : 'demo'} />
+          <Badge type={source === 'live' ? 'live' : 'sem-dado'} />
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {loading

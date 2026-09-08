@@ -15,10 +15,9 @@
 const BASE = (process.argv[2] || process.env.API_URL || 'http://localhost:3001').replace(/\/$/, '')
 
 const CONTAS = [
-  { rotulo: 'sem sessão', email: null, senha: null, papel: null },
-  { rotulo: 'usuário', email: 'usuario@defesabr.com', senha: 'usuario123', papel: 'user' },
-  { rotulo: 'analista', email: 'analista@defesabr.com', senha: 'analista123', papel: 'analyst' },
-  { rotulo: 'admin', email: 'admin@defesabr.com', senha: 'admin123', papel: 'admin' },
+  { rotulo: 'sem sessão', usuario: null, senha: null, papel: null },
+  { rotulo: 'usuário', usuario: 'usuario123', senha: 'usuario123', papel: 'user' },
+  { rotulo: 'admin', usuario: 'admin123', senha: 'admin123', papel: 'admin' },
 ]
 
 // Para cada rota, o papel mínimo. `null` = pública.
@@ -94,11 +93,11 @@ const ROTAS = [
 const NIVEL = { user: 1, analyst: 2, admin: 3 }
 
 async function entrar(conta) {
-  if (!conta.email) return null
+  if (!conta.usuario) return null
   const r = await fetch(`${BASE}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: conta.email, password: conta.senha }),
+    body: JSON.stringify({ username: conta.usuario, password: conta.senha }),
   })
   if (!r.ok) throw new Error(`login de ${conta.rotulo} falhou: HTTP ${r.status}`)
   return (await r.json()).token

@@ -1,11 +1,8 @@
 import { useState, useRef } from 'react'
-import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import jsPDF from 'jspdf'
 import {
-  User, Shield, CreditCard, SlidersHorizontal, Camera, Check, KeyRound,
-  Smartphone, Monitor, LogOut, QrCode, Copy, FileDown, Sun, Moon, Star,
-  BadgeCheck, ArrowUpRight, Bell, KeySquare, Lock, Info,
+  User, Shield, SlidersHorizontal, Camera, Check,
+  LogOut, Sun, Moon, Star, Bell, KeySquare, Lock, Info,
 } from 'lucide-react'
 import { useAuthStore, ROLES } from '../store/authStore'
 import { useProfileMeta, useCapabilities } from '../auth/useCan'
@@ -13,14 +10,12 @@ import { CAPABILITIES, PROFILES, PROFILE_ORDER, PLAN_LABELS } from '../auth/perm
 import { useSubscriptionStore } from '../store/subscriptionStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { useTheme } from '../hooks/useTheme'
-import { PLANS, PLAN_LABEL } from '../data/plansData'
 import { CATEGORIES } from '../data/mockData'
 import { categoryColor } from '../utils/textUtils'
 
 const TABS = [
   { id: 'perfil', label: 'Perfil', icon: User },
   { id: 'seguranca', label: 'Segurança', icon: Shield },
-  { id: 'assinatura', label: 'Assinatura', icon: CreditCard },
   { id: 'permissoes', label: 'Permissões', icon: KeySquare },
   { id: 'preferencias', label: 'Preferências', icon: SlidersHorizontal },
 ]
@@ -40,7 +35,6 @@ const TIER_HINT = {
 export default function Account() {
   const [tab, setTab] = useState('perfil')
   const user = useAuthStore((s) => s.user)
-  const plan = useSubscriptionStore((s) => s.plan)
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -51,7 +45,7 @@ export default function Account() {
         </span>
         <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight">Minha conta</h1>
-          <p className="text-sm muted">{user?.name} · plano {PLAN_LABEL[plan] || plan}</p>
+          <p className="text-sm muted">{user?.username} · {ROLES[user?.role]?.label || user?.role}</p>
         </div>
       </div>
 
@@ -74,7 +68,6 @@ export default function Account() {
 
       {tab === 'perfil' && <ProfileTab />}
       {tab === 'seguranca' && <SecurityTab />}
-      {tab === 'assinatura' && <SubscriptionTab />}
       {tab === 'permissoes' && <PermissionsTab />}
       {tab === 'preferencias' && <PreferencesTab />}
 
@@ -106,11 +99,14 @@ function ProfileTab() {
     const f = e.target.files?.[0]
     if (!f) return
     const reader = new FileReader()
-    reader.onload = () => { updateProfile({ avatar: reader.result }); toast.success('Foto atualizada') } // DEMO: dataURL no localStorage
+    // A foto fica como dataURL no armazenamento deste navegador: nao ha
+    // servico de arquivos, e inventar um endereco de CDN seria pior.
+    reader.onload = () => { updateProfile({ avatar: reader.result }); toast.success('Foto atualizada') }
     reader.readAsDataURL(f)
   }
 
-  // DEMO: persiste no navegador. Com backend, esta chamada vira services/authService.updateProfile.
+  // Persiste no navegador. Quando houver endpoint de perfil, esta chamada
+  // passa a falar com ele — o formato do objeto ja e o mesmo.
   const save = () => { updateProfile({ name, email }); toast.success('Perfil salvo') }
 
   return (
@@ -146,196 +142,97 @@ function ProfileTab() {
 }
 
 // ──────────────────────── SEGURANÇA ───────────────────────
-const SEED_SESSIONS = [
-  { id: 's1', device: 'Windows · Chrome', where: 'São Paulo, BR', when: 'agora', current: true, icon: Monitor },
-  { id: 's2', device: 'Android · App', where: 'Rio de Janeiro, BR', when: 'há 2 dias', icon: Smartphone },
-  { id: 's3', device: 'macOS · Safari', where: 'Brasília, BR', when: 'há 6 dias', icon: Monitor },
-]
-
+//
+// ESTA ABA ERA INTEIRAMENTE FICÇÃO, e num produto de segurança isso é pior do
+// que em qualquer outro lugar. Ela mostrava:
+//
+//   • três "sessões ativas" — Windows em São Paulo, Android no Rio, macOS em
+//     Brasília — com botão de encerrar. Nenhuma existia. A pessoa podia
+//     "encerrar" um acesso que nunca houve e sair achando que tinha revogado
+//     algo;
+//   • quatro códigos de backup de 2FA escritos à mão, copiáveis para a área
+//     de transferência, que não destravam nada;
+//   • um formulário de troca de senha que não trocava senha nenhuma.
+//
+// Inventar informação de segurança é o defeito mais grave possível numa
+// plataforma cujo argumento é não inventar dado. Quem lê "nenhum acesso
+// suspeito" e acredita toma decisão com base nisso.
+//
+// O que ficou é o que a plataforma sabe de verdade sobre a sessão de quem
+// está lendo — e a lista honesta do que ela ainda não faz.
 function SecurityTab() {
-  const [twoFA, setTwoFA] = useState(false)
-  const [sessions, setSessions] = useState(SEED_SESSIONS)
-  const backupCodes = ['8F2K-9QX1', '4D7M-2WZ8', 'A1C5-7YH3', 'KP90-3RT6'] // DEMO
+  const user = useAuthStore((s) => s.user)
+  const token = useAuthStore((s) => s.token)
+  const logout = useAuthStore((s) => s.logout)
 
-  // DEMO: nenhuma senha e realmente trocada — o fluxo existe para demonstrar a tela.
-  const changePassword = (e) => { e.preventDefault(); toast('Troca de senha exige servidor de identidade, que esta versão não tem.', { icon: 'ℹ️' }) }
-  const revoke = (id) => { setSessions((s) => s.filter((x) => x.id !== id)); toast.success('Sessão encerrada') }
-  const revokeAll = () => { setSessions((s) => s.filter((x) => x.current)); toast.success('Outras sessões encerradas') }
+  // O token é um payload em base64url seguido da assinatura. Ler o payload no
+  // cliente não é furo: ele não guarda segredo — só id, papel e vencimento —,
+  // e o que impede forjá-lo é a assinatura, conferida no servidor.
+  let expiraEm = null
+  try {
+    const corpo = token ? JSON.parse(atob(token.split('.')[0].replace(/-/g, '+').replace(/_/g, '/'))) : null
+    expiraEm = corpo?.exp ? new Date(corpo.exp) : null
+  } catch { /* token ilegível: a tela mostra ausência */ }
+
+  const NAO_EXISTE = [
+    ['Troca de senha', 'Exige um fluxo de reautenticação e um endpoint que ainda não existe.'],
+    ['Recuperação por e-mail', 'Depende de envio de mensagem, que a plataforma não faz.'],
+    ['Verificação em duas etapas', 'Exige servidor de identidade e segredo por conta.'],
+    ['Lista de dispositivos conectados', 'O token é sem estado: o servidor não guarda sessão, então não há o que listar.'],
+    ['Entrar com conta Google', 'Previsto. A coluna `auth_provider` já existe para receber isso.'],
+  ]
 
   return (
     <div className="space-y-6">
-      <Card title="Senha" desc="Use uma senha forte e única.">
-        <form onSubmit={changePassword} className="grid grid-cols-1 gap-3 sm:max-w-md">
-          <input type="password" className="input" placeholder="Senha atual" autoComplete="current-password" aria-label="Senha atual" />
-          <input type="password" className="input" placeholder="Nova senha" autoComplete="new-password" aria-label="Nova senha" />
-          <input type="password" className="input" placeholder="Confirmar nova senha" autoComplete="new-password" aria-label="Confirmar nova senha" />
-          <button type="submit" className="btn-primary w-fit"><KeyRound size={15} /> Alterar senha</button>
-        </form>
+      <Card title="Esta sessão" desc="O que a plataforma sabe sobre o seu acesso agora.">
+        <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Info2 termo="Usuário" valor={user?.username || '—'} />
+          <Info2 termo="Papel" valor={ROLES[user?.role]?.label || user?.role || '—'} />
+          <Info2 termo="Origem da identidade" valor={user?.authProvider === 'local' ? 'Senha local (scrypt)' : user?.authProvider || '—'} />
+          <Info2
+            termo="Sessão expira em"
+            valor={expiraEm ? expiraEm.toLocaleString('pt-BR') : '—'}
+          />
+          <Info2 termo="Último acesso" valor={user?.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString('pt-BR') : '—'} />
+          <Info2 termo="Conta criada em" valor={user?.createdAt ? new Date(user.createdAt).toLocaleString('pt-BR') : '—'} />
+        </dl>
+
+        <p className="mt-4 flex items-start gap-2 rounded-lg bg-brand-500/10 p-3 text-xs leading-relaxed">
+          <Info size={14} className="mt-0.5 shrink-0 text-brand-500 dark:text-brand-300" />
+          <span className="text-gray-700 dark:text-gray-300">
+            O papel acima não é decorativo: cada rota protegida o confere no servidor a cada
+            requisição, e responde 401 sem sessão ou 403 com papel insuficiente. Alterá-lo no
+            armazenamento do navegador muda o que a interface desenha e não abre nenhuma rota.
+          </span>
+        </p>
+
+        <button onClick={logout} className="btn-ghost mt-4 text-sm">
+          <LogOut size={15} /> Encerrar esta sessão
+        </button>
       </Card>
 
-      <Card title="Verificação em duas etapas (2FA)" desc="Camada extra de segurança no login.">
-        <div className="flex items-center justify-between">
-          <span className="text-sm">{twoFA ? 'Ativada' : 'Desativada'}</span>
-          <button
-            onClick={() => { setTwoFA((v) => !v); toast('Autenticação em dois fatores exige servidor de identidade.', { icon: 'ℹ️' }) }}
-            role="switch" aria-checked={twoFA} aria-label="Verificação em duas etapas (2FA)"
-            className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${twoFA ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'}`}
-          >
-            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${twoFA ? 'translate-x-6' : 'translate-x-1'}`} />
-          </button>
-        </div>
-        {twoFA && (
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="rounded-lg border border-gray-200 p-4 text-center dark:border-white/10">
-              <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-lg bg-gray-100 text-gray-400 dark:bg-white/5">
-                <QrCode size={64} />
-              </div>
-              <p className="mt-2 text-xs muted">Exemplo de fluxo — não há servidor que valide o código.</p>
-            </div>
-            <div className="rounded-lg border border-gray-200 p-4 dark:border-white/10">
-              <p className="text-xs font-semibold uppercase muted">Códigos de backup</p>
-              <ul className="mt-2 grid grid-cols-2 gap-1 font-mono text-sm">
-                {backupCodes.map((c) => <li key={c}>{c}</li>)}
-              </ul>
-              <button onClick={() => { navigator.clipboard?.writeText(backupCodes.join('\n')); toast.success('Códigos copiados') }} className="btn-ghost mt-3 text-xs">
-                <Copy size={13} /> Copiar
-              </button>
-            </div>
-          </div>
-        )}
-      </Card>
-
-      <Card title="Sessões ativas" desc="Dispositivos conectados à sua conta.">
-        <ul className="space-y-2">
-          {sessions.map((s) => (
-            <li key={s.id} className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 p-3 dark:border-white/10">
-              <span className="flex min-w-0 items-center gap-3">
-                <s.icon size={18} className="shrink-0 text-brand-400 dark:text-brand-300" />
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-medium">
-                    {s.device} {s.current && <span className="ml-1 rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800 dark:text-emerald-300">este dispositivo</span>}
-                  </span>
-                  <span className="text-xs muted">{s.where} · {s.when}</span>
-                </span>
+      <Card title="O que ainda não existe" desc="Declarado em vez de simulado.">
+        <ul className="space-y-2.5">
+          {NAO_EXISTE.map(([titulo, porque]) => (
+            <li key={titulo} className="flex items-start gap-2.5 rounded-lg border border-gray-200 p-3 dark:border-white/10">
+              <Lock size={15} className="mt-0.5 shrink-0 text-gray-400" />
+              <span>
+                <span className="block text-sm font-semibold">{titulo}</span>
+                <span className="block text-xs leading-relaxed muted">{porque}</span>
               </span>
-              {!s.current && (
-                <button onClick={() => revoke(s.id)} className="btn-ghost px-2.5 py-1 text-xs text-red-500 dark:text-red-400">Encerrar</button>
-              )}
             </li>
           ))}
         </ul>
-        {sessions.length > 1 && (
-          <button onClick={revokeAll} className="btn-ghost mt-3 text-sm"><LogOut size={15} /> Encerrar todas as outras</button>
-        )}
       </Card>
     </div>
   )
 }
 
-// ──────────────────────── ASSINATURA ──────────────────────
-function SubscriptionTab() {
-  const plan = useSubscriptionStore((s) => s.plan)
-  const billing = useSubscriptionStore((s) => s.billing)
-  const setPlan = useSubscriptionStore((s) => s.setPlan)
-  const invoices = useSubscriptionStore((s) => s.invoices)
-  const addInvoice = useSubscriptionStore((s) => s.addInvoice)
-  const current = PLANS.find((p) => p.id === plan) || PLANS[0]
-
-  // DEMO: faturas-semente quando há um plano pago e ainda não há histórico.
-  const history = invoices.length
-    ? invoices
-    : plan !== 'explorar'
-      ? [
-          { id: 'INV-2026-06', date: '01/06/2026', amount: billing === 'anual' ? 'R$ 890,00' : 'R$ 89,00', status: 'Pago' },
-          { id: 'INV-2026-05', date: '01/05/2026', amount: 'R$ 89,00', status: 'Pago' },
-        ]
-      : []
-
-  const downloadInvoice = (inv) => {
-    // DEMO: a fatura e desenhada no cliente com jsPDF. Com backend, viria pronta do servico de cobranca.
-    const pdf = new jsPDF('p', 'mm', 'a4')
-    pdf.setFillColor(28, 31, 36); pdf.rect(0, 0, 210, 26, 'F')
-    pdf.setTextColor(255, 255, 255); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(16)
-    pdf.text('DefesaBR Intelligence', 15, 14)
-    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9); pdf.setTextColor(202, 167, 51)
-    pdf.text('Fatura (demonstrativa)', 15, 20)
-    pdf.setTextColor(30, 30, 30); pdf.setFontSize(11)
-    pdf.text(`Fatura: ${inv.id}`, 15, 40)
-    pdf.text(`Data: ${inv.date}`, 15, 48)
-    pdf.text(`Plano: ${current.name}`, 15, 56)
-    pdf.text(`Valor: ${inv.amount}`, 15, 64)
-    pdf.text(`Status: ${inv.status}`, 15, 72)
-    pdf.setFontSize(8); pdf.setTextColor(140, 140, 140)
-    pdf.text('Documento demonstrativo — nenhuma cobrança foi realizada.', 15, 285)
-    pdf.save(`fatura-${inv.id}.pdf`)
-    addInvoice(inv)
-  }
-
+function Info2({ termo, valor }) {
   return (
-    <div className="space-y-6">
-      <Card title="Plano atual">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="flex items-center gap-2 text-lg font-bold">
-              {current.name}
-              {plan !== 'explorar' && <BadgeCheck size={18} className="text-emerald-500 dark:text-emerald-400" />}
-            </p>
-            <p className="text-sm muted">{current.tagline} · cobrança {billing}</p>
-          </div>
-          <Link to="/planos" className="btn-primary shrink-0"><ArrowUpRight size={16} /> {plan === 'explorar' ? 'Fazer upgrade' : 'Trocar plano'}</Link>
-        </div>
-        {plan !== 'explorar' && (
-          <div className="mt-4 flex flex-wrap gap-2 border-t border-gray-200 pt-4 dark:border-white/10">
-            <button onClick={() => { setPlan('explorar'); toast('Plano cancelado — você está no Explorar', { icon: '↧' }) }} className="btn-ghost text-sm">
-              Cancelar assinatura
-            </button>
-            <button onClick={() => toast.success('Renovação automática mantida (demonstração)')} className="btn-ghost text-sm">
-              Renovar
-            </button>
-          </div>
-        )}
-      </Card>
-
-      <Card title="Forma de pagamento">
-        <div className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 p-3 dark:border-white/10">
-          <span className="flex items-center gap-3 text-sm">
-            <CreditCard size={18} className="text-brand-400 dark:text-brand-300" />
-            <span className="font-mono">•••• •••• •••• 4242</span>
-            <span className="muted">exp. 08/29</span>
-          </span>
-          <button onClick={() => toast('Atualização de cartão (demonstração)')} className="btn-ghost px-2.5 py-1 text-xs">Atualizar</button>
-        </div>
-      </Card>
-
-      <Card title="Histórico de pagamentos">
-        {history.length === 0 ? (
-          <p className="text-sm muted">Nenhuma fatura ainda. Assine um plano para começar.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 text-left text-xs uppercase muted dark:border-white/10">
-                  <th className="py-2 pr-4">Fatura</th><th className="py-2 pr-4">Data</th>
-                  <th className="py-2 pr-4">Valor</th><th className="py-2 pr-4">Status</th><th className="py-2"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {history.map((inv) => (
-                  <tr key={inv.id} className="border-b border-gray-100 dark:border-white/[0.05]">
-                    <td className="py-2.5 pr-4 font-mono">{inv.id}</td>
-                    <td className="py-2.5 pr-4">{inv.date}</td>
-                    <td className="py-2.5 pr-4 font-semibold">{inv.amount}</td>
-                    <td className="py-2.5 pr-4"><span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-800 dark:text-emerald-300">{inv.status}</span></td>
-                    <td className="py-2.5 text-right">
-                      <button onClick={() => downloadInvoice(inv)} className="btn-ghost px-2.5 py-1 text-xs"><FileDown size={13} /> PDF</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
+    <div className="rounded-lg border border-gray-200 p-3 dark:border-white/10">
+      <dt className="text-[10px] font-bold uppercase tracking-wider muted">{termo}</dt>
+      <dd className="mt-0.5 truncate text-sm font-semibold">{valor}</dd>
     </div>
   )
 }
@@ -485,8 +382,9 @@ function PermissionsTab() {
         <p className="mt-4 flex items-start gap-2 rounded-lg bg-brand-500/10 p-3 text-xs leading-relaxed">
           <Info size={14} className="mt-0.5 shrink-0 text-brand-500 dark:text-brand-300" />
           <span className="text-gray-700 dark:text-gray-300">
-            No modo demonstração você troca de perfil livremente pelo menu do usuário, no topo da tela.
-            Em produção, o papel é definido pela governança e o plano, pela assinatura.
+            O projeto é de código aberto e nasce com duas contas — uma de Administrador e uma de
+            Usuário. Trocar entre elas pelo menu do topo faz um login de verdade, com a senha
+            conferida no servidor; não é uma troca de perfil no navegador.
           </span>
         </p>
       </Card>
