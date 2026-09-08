@@ -187,6 +187,7 @@ O método inteiro é publicado em `GET /api/intel/metodo`.
 
 | | |
 |---|---|
+| **Correlações com o Brasil** | Cada matéria cruzada com as organizações atacadas, os grupos e os CVEs do acervo — com o motivo, a evidência literal e o impacto possível de cada ligação |
 | **Clipping consolidado** | Matérias de 50 fontes agrupadas por evento, com selo de quantos veículos cobriram cada fato e as fontes originais visíveis |
 | **Ameaças cibernéticas** | Organizações brasileiras divulgadas por grupos de ransomware, com criticidade derivada de domínio e setor, e o recorte do Estado em primeiro plano |
 | **Atores & vulnerabilidades** | Perfil de cada grupo com técnicas mapeadas ao MITRE ATT&CK, ferramentas e CVEs — e a lista de correção com prioridade real |

@@ -195,20 +195,36 @@ function AppearanceSection() {
   )
 }
 
-// Plano atual (resumo). Gestão completa fica em Minha conta › Assinatura.
+// NIVEL DE ACESSO — nao "plano atual".
+//
+// Este bloco exibia `{current.price} {current.period}` e um botao "Gerenciar
+// assinatura" apontando para uma aba de Minha conta que nao existe mais. Os
+// dois campos sairam do catalogo junto com o comercio simulado, entao a linha
+// renderizava `undefined undefined` ao lado do nome do nivel — o defeito que
+// denuncia que o bloco descrevia um produto que nao existe.
+//
+// Nao ha cobranca: o projeto e aberto e toda conta recebe a profundidade
+// completa de leitura. O que resta dizer e o que o nivel destrava, e para onde
+// ir para ver o modelo inteiro.
 function PlanSection() {
   const plan = useSubscriptionStore((st) => st.plan)
   const current = PLANS.find((p) => p.id === plan) || PLANS[0]
 
   return (
-    <Section icon={CreditCard} title="Plano atual">
+    <Section icon={CreditCard} title="Nível de acesso">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-lg font-bold">{current.name} <span className="text-sm font-normal muted">· {current.price} {current.period}</span></p>
+          <p className="text-lg font-bold">
+            {current.name} <span className="chip ml-1 align-middle text-[10px]">sem cobrança</span>
+          </p>
           <p className="mt-0.5 text-sm muted">{current.tagline}</p>
         </div>
-        <Link to="/conta" className="btn-ghost shrink-0">Gerenciar assinatura</Link>
+        <Link to="/planos" className="btn-ghost shrink-0">Ver todos os níveis</Link>
       </div>
+      <p className="mt-3 text-xs leading-relaxed muted">
+        Projeto de código aberto: não há assinatura. O que de fato muda o que você alcança é o
+        <strong> papel</strong>, conferido no servidor a cada requisição.
+      </p>
     </Section>
   )
 }

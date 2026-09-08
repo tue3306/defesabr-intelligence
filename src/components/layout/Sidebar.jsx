@@ -100,7 +100,7 @@ const NAV_SECTIONS = [
 ]
 
 const BOTTOM_NAV = [
-  { to: '/planos', label: 'Planos', icon: Sparkles },
+  { to: '/planos', label: 'Níveis de acesso', icon: Sparkles },
   { to: '/conta', label: 'Minha conta', icon: UserCircle, requiresAuth: true },
   { to: '/configuracoes', label: 'Configurações', icon: Settings, requiresAuth: true },
   { to: '/sobre', label: 'Sobre', icon: HelpCircle },

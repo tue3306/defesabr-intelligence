@@ -58,7 +58,7 @@ export default function Footer() {
         <span className="text-gray-600">·</span>
         <Link to="/sobre" className="hover:text-brand-400 dark:text-brand-300">Política de Privacidade</Link>
         <span className="text-gray-600">·</span>
-        <Link to="/planos" className="hover:text-brand-400 dark:text-brand-300">Planos</Link>
+        <Link to="/planos" className="hover:text-brand-400 dark:text-brand-300">Níveis de acesso</Link>
         {isAuthenticated && (
           <>
             <span className="text-gray-600">·</span>

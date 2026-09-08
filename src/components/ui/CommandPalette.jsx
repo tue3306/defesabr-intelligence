@@ -40,7 +40,7 @@ export default function CommandPalette() {
       // Navegação
       { id: 'inicio', group: 'Navegação', label: 'Ir para o Início', icon: Home, run: go('/') },
       { id: 'painel', group: 'Navegação', label: 'Abrir Painel', icon: LayoutDashboard, run: go('/painel'), auth: true },
-      { id: 'planos', group: 'Navegação', label: 'Ver planos de assinatura', icon: Sparkles, run: go('/planos') },
+      { id: 'planos', group: 'Navegação', label: 'Ver níveis de acesso', icon: Sparkles, run: go('/planos') },
       { id: 'aprender', group: 'Navegação', label: 'Abrir Centro Educacional', icon: GraduationCap, run: go('/aprender') },
       { id: 'sobre', group: 'Navegação', label: 'Sobre o projeto', icon: HelpCircle, run: go('/sobre') },
 

@@ -121,8 +121,14 @@ export const SUBSCRIPTION_AREAS = [
 
 // "Por que usar este site?" — diferenciais exibidos na landing.
 export const LANDING_FEATURES = [
-  { icon: 'Newspaper', title: 'Clipping diário', text: 'Notícias coletadas de feeds oficiais, filtradas por relevância e classificadas por urgência — sem IA e sem redação humana no meio.' },
-  { icon: 'Globe2', title: 'Panorama global de risco', text: 'Mapa de calor com a intensidade de eventos por país e a relação de cada um com o Brasil.' },
+  // A CORRELACAO VEM PRIMEIRO porque e o que a plataforma tem e um leitor de
+  // RSS nao tem. Ela ficou de fora desta lista quando foi construida, e a
+  // vitrine seguiu anunciando o produto anterior: clipping, mapa e graficos —
+  // tudo verdade, e nada que explique por que alguem usaria isto em vez de
+  // acompanhar as fontes direto.
+  { icon: 'Link2', title: 'Correlação com o Brasil', text: 'Cada matéria é cruzada com as organizações brasileiras atacadas, os grupos e os CVEs do acervo. Sete regras determinísticas, e cada ligação mostra o motivo, a evidência literal e o impacto possível.' },
+  { icon: 'Newspaper', title: 'Clipping consolidado', text: 'O mesmo fato coberto por vários veículos vira uma linha, com o selo de quantos o corroboraram e as fontes originais visíveis.' },
+  { icon: 'Globe2', title: 'Mapa navegável', text: 'Cada país abre um dossiê: cobertura noticiosa com tendência, categorias e as vítimas de ransomware do território, cruzadas pelo código ISO.' },
   { icon: 'BarChart3', title: 'Método auditável', text: 'A regra que decide o que entra no acervo é publicada e pode ser aplicada a qualquer texto, com os termos que casaram.' },
   { icon: 'LineChart', title: 'Dados militares e econômicos', text: 'Gastos de defesa, câmbio e indicadores setoriais em gráficos atualizados.' },
   { icon: 'GraduationCap', title: 'Centro educacional', text: 'Glossário e quiz para quem está começando em defesa, geopolítica e cibersegurança.' },

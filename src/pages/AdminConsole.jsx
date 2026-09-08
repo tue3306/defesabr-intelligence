@@ -114,10 +114,15 @@ export default function AdminConsole() {
       {active === 'auditoria' && <AuditoriaSection />}
       {active === 'saude' && <SaudeSection />}
 
+      {/* A NOTA DIZIA QUE AS CONTAS ERAM ILUSTRATIVAS. Deixou de ser verdade
+        * quando `GET /api/users` passou a servir as contas do banco: a tabela
+        * mostrava quatro arquetipos de perfil com e-mail de pessoa inventada, e
+        * agora mostra quem existe de fato nesta instalacao. */}
       <p className="text-center text-xs muted">
-        Fontes, coleta, saúde e diagnóstico vêm da API e são o estado real do servidor.
-        Contas, papéis e planos são ilustrativos, e as alterações valem só para esta sessão
-        do navegador — não há servidor de identidade nem persistência compartilhada.
+        Fontes, coleta, saúde, diagnóstico e <strong>contas</strong> vêm da API e são o estado
+        real do servidor — as contas saem do banco desta instalação, e a rota exige papel de
+        administrador. Criar e promover conta pela interface ainda não existe: promover é ato de
+        governança e está no roadmap.
       </p>
     </div>
   )
@@ -161,14 +166,13 @@ function ContasSection() {
   const [page, setPage] = useState(1)
   const [inviteOpen, setInviteOpen] = useState(false)
   const [confirm, setConfirm] = useState(null) // { kind, account }
-  const newAccountSeq = useRef(0)
 
   useEffect(() => { setPage(1) }, [q, role, plan, status])
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase()
     return accounts.filter((a) => {
-      const matchQ = !needle || `${a.name} ${a.email} ${a.unit || ''}`.toLowerCase().includes(needle)
+      const matchQ = !needle || `${a.name} ${a.username || ''} ${a.email || ''}`.toLowerCase().includes(needle)
       return matchQ
         && (role === 'todos' || a.role === role)
         && (plan === 'todos' || a.plan === plan)
@@ -209,7 +213,7 @@ function ContasSection() {
       filtered.map((a) => ({
         Nome: a.name,
         'E-mail': a.email,
-        Unidade: a.unit || '—',
+        Usuário: a.username || '—',
         Papel: ROLES[a.role]?.label || a.role,
         Plano: PLAN_LABELS[a.plan] || a.plan,
         Situação: USER_STATUS[a.status]?.label || a.status,
@@ -220,21 +224,27 @@ function ContasSection() {
     toast.success(`${filtered.length} conta(s) exportada(s) em CSV.`)
   }
 
+  // O CONVITE NAO CONVIDAVA NINGUEM.
+  //
+  // Esta funcao montava uma linha no estado local — `id: 'convite-1'`, status
+  // "inativo", unidade "Convite pendente" — e anunciava "Convite registrado
+  // para fulano@...". Nada saia do navegador: nenhuma conta era criada, nenhum
+  // e-mail era enviado, e a linha sumia no primeiro recarregamento. Um
+  // administrador podia "convidar" dez pessoas e concluir que a governanca de
+  // acesso funcionava.
+  //
+  // Criar conta pela governanca depende de duas coisas que nao existem: um
+  // endpoint que a crie com papel escolhido, e envio de e-mail para o primeiro
+  // acesso. Enquanto nao existirem, o formulario continua aqui como ESTRUTURA
+  // — o desenho do fluxo esta pronto para receber a chamada —, mas diz o que
+  // acontece de verdade em vez de encenar sucesso.
   const criarConta = (form) => {
-    newAccountSeq.current += 1
-    const novo = {
-      id: `convite-${newAccountSeq.current}`,
-      name: form.name,
-      email: form.email,
-      role: form.role,
-      plan: form.plan,
-      status: 'inativo', // convite pendente de primeiro acesso
-      unit: 'Convite pendente',
-      lastAccess: null,
-    }
-    setAccounts((list) => [novo, ...list])
     setInviteOpen(false)
-    toast.success(`Convite registrado para ${form.email}.`)
+    toast(
+      `Criar conta pela governança ainda não existe. ${form.email} não foi convidado, e nada foi `
+      + 'gravado. Hoje as contas nascem pelo cadastro, sempre com papel Usuário.',
+      { icon: 'ℹ️', duration: 7000 },
+    )
   }
 
   return (
@@ -263,8 +273,8 @@ function ContasSection() {
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Nome, e-mail ou unidade…"
-              aria-label="Buscar contas por nome, e-mail ou unidade"
+              placeholder="Nome, usuário ou e-mail…"
+              aria-label="Buscar contas por nome, usuário ou e-mail"
               className="input pl-9"
             />
           </div>
@@ -308,7 +318,7 @@ function ContasSection() {
                   <thead>
                     <tr className="border-b border-gray-200 text-left text-xs uppercase muted dark:border-white/10">
                       <th className="py-2 pr-4 font-semibold">Conta</th>
-                      <th className="py-2 pr-4 font-semibold">Unidade</th>
+                      <th className="py-2 pr-4 font-semibold">Usuário</th>
                       <th className="py-2 pr-4 font-semibold">Papel</th>
                       <th className="py-2 pr-4 font-semibold">Plano</th>
                       <th className="py-2 pr-4 font-semibold">Situação</th>
@@ -395,7 +405,7 @@ function AccountRow({ account, isSelf, onRole, onPlan, onToggleStatus, onRemove 
         </span>
         <span className="text-xs muted">{account.email}</span>
       </td>
-      <td className="py-2.5 pr-4 text-xs muted">{account.unit || '—'}</td>
+      <td className="py-2.5 pr-4 font-mono text-xs muted">{account.username || '—'}</td>
       <td className="py-2.5 pr-4">
         <Can
           do="admin.users"
