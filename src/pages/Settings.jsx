@@ -123,7 +123,7 @@ export default function Settings() {
       {/* ADMIN: API key, usuários, diagnóstico */}
       {isAdmin && (
         <>
-          <Section icon={KeyRound} title="Sintese por IA" badge="Admin">
+          <Section icon={KeyRound} title="Síntese por IA" badge="Admin">
             <SinteseIA />
           </Section>
 
@@ -257,7 +257,7 @@ function Analytics() {
     return () => { vivo = false }
   }, [])
 
-  if (erro) return <p className="text-sm muted">O servidor nao respondeu — sem numeros a mostrar.</p>
+  if (erro) return <p className="text-sm muted">O servidor não respondeu — sem números a mostrar.</p>
   if (!d) return <p className="text-sm muted">Consultando o servidor…</p>
 
   const m = d.metrics || {}
@@ -427,19 +427,19 @@ function SinteseIA() {
   return (
     <>
       <p className="text-sm muted">
-        Nenhum texto desta plataforma foi escrito por maquina, e nenhuma tela chama modelo de
-        linguagem. Os campos de sintese ficam vazios com a nota explicando o motivo, em vez de
-        preenchidos com texto plausivel.
+        Nenhum texto desta plataforma foi escrito por máquina, e nenhuma tela chama modelo de
+        linguagem. Os campos de síntese ficam vazios com a nota explicando o motivo, em vez de
+        preenchidos com texto plausível.
       </p>
       <div className="mt-3 rounded-lg border border-gray-200 p-3 dark:border-white/10">
         <p className="flex items-center gap-1.5 text-sm font-bold">
-          <ShieldAlert size={15} className="text-gray-400" /> Por que nao ha campo de chave aqui
+          <ShieldAlert size={15} className="text-gray-400" /> Por que não há campo de chave aqui
         </p>
         <p className="mt-1.5 text-xs leading-relaxed muted">
           Havia um, e ele guardava a chave em texto puro no armazenamento deste navegador — onde
-          qualquer extensao a le. Quando a sintese existir, a chave vivera apenas no servidor e o
-          front chamara um endpoint proprio, que autentica quem pede e registra o consumo. O
-          contrato ja esta descrito em <code className="font-mono">ROADMAP.md</code>.
+          qualquer extensão a lê. Quando a síntese existir, a chave viverá apenas no servidor e o
+          front chamará um endpoint próprio, que autentica quem pede e registra o consumo. O
+          contrato já está descrito em <code className="font-mono">ROADMAP.md</code>.
         </p>
       </div>
     </>
