@@ -5,7 +5,7 @@
 // produto vira um leitor de RSS qualquer — e pior: passa a exibir notícia
 // eleitoral ou judicial como se fosse monitoramento de defesa.
 //
-// TRÊS ARMADILHAS, todas encontradas testando contra o acervo real e não em
+// QUATRO ARMADILHAS, todas encontradas testando contra o acervo real e não em
 // teoria. Estão documentadas porque cada uma parece boba depois de resolvida,
 // e todas voltariam na próxima refatoração sem esta explicação:
 //
@@ -24,6 +24,17 @@
 //     "Forças Armadas" uma vez, no nono parágrafo, ao listar quem responde por
 //     crime de responsabilidade. O termo é inequívoco e está lá de verdade,
 //     mas não é o assunto. Por isso a POSIÇÃO conta.
+//
+//  4. O NOME DO VEÍCULO DENTRO DO TEXTO AVALIADO. 113 dos 1.136 resumos do
+//     acervo terminavam com a assinatura do WordPress — "O post <título>
+//     apareceu primeiro em DefesaNet ." Como o nome do veículo entrava no
+//     texto avaliado, "Poder Naval" no rodapé QUALIFICAVA a matéria: o termo é
+//     forte e estava lá por ser a assinatura, não o assunto. Ver `RX_RODAPE`.
+//
+//     A correção expôs a armadilha gêmea: os termos de meios estavam só no
+//     SINGULAR, e a fronteira de palavra não perdoa — `fragata` não casa em
+//     "fragatas". Dezoito matérias legítimas só passavam pelo nome do veículo
+//     no rodapé; sem os plurais, cortar o rodapé teria derrubado as dezoito.
 // -----------------------------------------------------------------------------
 
 /** Remove acentos e baixa a caixa, preservando as fronteiras de palavra. */
@@ -65,12 +76,46 @@ const FORTES = [
   // Geografia estratégica brasileira
   'amazonia azul', 'zona economica exclusiva', 'plataforma continental',
   'faixa de fronteira', 'triplice fronteira', 'atlantico sul',
+  // Dois pontos de disputa que a imprensa brasileira só cita em contexto de
+  // segurança: o Estreito de Ormuz (passagem de um quinto do petróleo mundial)
+  // e as Malvinas, que são Atlântico Sul — o mesmo teatro que já qualifica.
+  'ormuz', 'malvinas',
   // Operações e atividades militares
   'exercicio militar', 'operacao militar', 'operacao agata',
   'patrulha naval', 'operacao interagencias', 'missao de paz',
-  // Meios
-  'submarino', 'fragata', 'corveta', 'porta-avioes', 'caca militar',
-  'blindado', 'blindados', 'veiculo blindado', 'helicoptero militar',
+  // ── Meios ──
+  //
+  // O PLURAL FALTAVA, e a fronteira de palavra não perdoa: o lookaround
+  // `(?![\p{L}\p{N}])` faz `fragata` NÃO casar em "fragatas". "Suécia assina
+  // contrato com Naval Group para quatro fragatas FDI" ficava de fora do acervo
+  // de defesa — e a imprensa escreve no plural o tempo todo, porque encomenda
+  // de meio militar vem em lote.
+  //
+  // Só `blindado` tinha as duas formas, o que denuncia a origem: a lista foi
+  // escrita à mão, item a item, e o plural entrou onde alguém lembrou.
+  'submarino', 'submarinos', 'fragata', 'fragatas', 'corveta', 'corvetas',
+  'porta-avioes', 'caca militar', 'cacas militares',
+  'blindado', 'blindados', 'veiculo blindado',
+  'helicoptero militar', 'helicopteros militares',
+  'destroier', 'destroieres', 'contratorpedeiro', 'contratorpedeiros',
+  'navio de guerra', 'navios de guerra',
+
+  // ── Armamento ──
+  //
+  // "Míssil" não tem uso corrente fora do domínio em português — não há míssil
+  // figurado. Media contra o acervo, o termo trouxe nove matérias que estavam
+  // FORA e são inequivocamente de defesa, entre elas "Marinha fecha contrato de
+  // R$ 13 milhões para desenvolver míssil nacional", e não trouxe nenhum falso.
+  'missil', 'misseis', 'antinavio', 'antiaerea',
+
+  // ── Marinhas estrangeiras ──
+  //
+  // A regra da preposição resolvia a Marinha brasileira ("da Marinha", "na
+  // Marinha") e deixava as outras de fora: "Marinha dos EUA testa Harpoon"
+  // começa o título, então não há preposição antes. As 18 ocorrências de
+  // "marinha dos" no acervo são todas institucionais — o sentido biológico põe
+  // o adjetivo DEPOIS do substantivo ("fauna marinha"), nunca antes de "dos".
+  'marinha dos', 'marinha norte-americana', 'marinha real', 'marinha russa',
   // Ameaças específicas do domínio
   'narcotrafico', 'garimpo ilegal', 'trafico de armas',
   'ciberdefesa', 'ciberataque', 'ciberseguranca', 'guerra hibrida',
@@ -138,13 +183,62 @@ const RX_FORTES = FORTES.map((t) => ({ termo: t, rx: fronteira(normalizar(t)) })
 const RX_FRACOS = FRACOS.map((t) => ({ termo: t, rx: fronteira(normalizar(t)) }))
 const RX_EXCLUSOES = EXCLUSOES.map((t) => ({ termo: t, rx: fronteira(normalizar(t)) }))
 
-// Os feeds das agências anexam ao resumo um rodapé "Notícias relacionadas:"
-// com manchetes de OUTRAS matérias. Isso polui o resumo exibido no cartão e —
-// pior — faz a classificação graduar a matéria errada.
+// -----------------------------------------------------------------------------
+// O RODAPÉ QUE O VEÍCULO ANEXA AO RESUMO
+//
+// Os feeds anexam ao fim do resumo um bloco que não pertence à matéria: ora
+// manchetes de OUTRAS matérias ("Notícias relacionadas:", "Leia também:"), ora
+// a assinatura que o WordPress carimba em todo item exportado.
+//
+// Isso custa duas coisas. A primeira é de leitura: o cartão mostra duas linhas
+// de resumo, e num item com rodapé a segunda é gasta repetindo o título. A
+// segunda é pior — o texto de outra matéria entra na avaliação de relevância e
+// gradua ESTA errado.
+//
+// ─────────────────────────────────────────────────────────────────────────────
+// A ASSINATURA DO WORDPRESS ESTAVA EM 106 DOS 1.136 ITENS DO ACERVO — 9%
+//
+//   "… Para referência acesse o formato em PDF publicado abaixo
+//    O post IDE0060/2026 – Informativo de Declaração de Exclusividade …
+//    apareceu primeiro em DefesaNet ."
+//
+// Ela repete o título inteiro e acrescenta o nome do veículo, que o cartão já
+// exibe ao lado. É a definição de ruído: nenhuma palavra dela informa algo que
+// não esteja na tela.
+//
+// O corte é ancorado: "O post" só é tratado como rodapé quando "apareceu
+// primeiro em" vem depois, dentro de 400 caracteres. Sem essa âncora, uma
+// matéria que começasse com "O post do ministro no X…" perderia o corpo inteiro.
+//
+// ─────────────────────────────────────────────────────────────────────────────
+// O QUE DELIBERADAMENTE NÃO É CORTADO
+//
+// O Estadão encerra as traduções com "Este conteúdo foi traduzido com o auxílio
+// de ferramentas de Inteligência Artificial e revisado por nossa equipe
+// editorial." É tentador tratar como rodapé — é uma frase fixa no fim do texto,
+// e polui igual.
+//
+// Mas ela não é chrome de navegação: é uma DECLARAÇÃO sobre como aquele texto
+// foi produzido. Esta plataforma afirma, em toda tela, que nenhum texto DELA foi
+// escrito por máquina; apagar a declaração de um veículo de que o dele foi
+// tornaria essa afirmação enganosa por omissão, no exato ponto em que ela mais
+// importa. Fica.
 //
 // O acento importa: esta função trabalha sobre o texto CRU, porque o resultado
 // vai ser exibido. Normalizar aqui destruiria o texto.
-const RX_RODAPE = /not[ií]cias?\s+relacionad[ao]s?\s*:/i
+// -----------------------------------------------------------------------------
+const RX_RODAPE = new RegExp(
+  [
+    // Manchetes de outras matérias.
+    'not[ií]cias?\\s+relacionad[ao]s?\\s*:',
+    'leia\\s+tamb[ée]m\\s*:',
+    'veja\\s+tamb[ée]m\\s*:',
+    // Assinatura do WordPress, só quando a âncora confirma que é ela.
+    'O\\s+post\\b(?=[\\s\\S]{0,400}?apareceu\\s+primeiro\\s+em\\b)',
+    'The\\s+post\\b(?=[\\s\\S]{0,400}?appeared\\s+first\\s+on\\b)',
+  ].join('|'),
+  'i',
+)
 
 export function limparRodape(texto) {
   const plano = String(texto || '').replace(/\s+/g, ' ').trim()
