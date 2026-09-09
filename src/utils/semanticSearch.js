@@ -7,6 +7,19 @@
 
 // Remove acentos e baixa caixa para casar "tática" com "tatica".
 export function normalize(str = '') {
+  // O PARÂMETRO PADRÃO NÃO COBRE `null`, SÓ `undefined`.
+  //
+  // `normalize(null)` chegava em `null.toString()` e lançava. Passou anos sem
+  // aparecer porque todo campo que chega aqui era montado por concatenação e
+  // portanto sempre string — inclusive quando o valor não existia, caso em que
+  // a string era o literal "undefined". Corrigir a origem (a prévia do arquivo,
+  // que agora é `null` quando não há resumo) expôs o buraco: a primeira busca
+  // no Arquivo quebraria a página.
+  //
+  // A guarda fica aqui, e não em cada chamador, porque um normalizador que só
+  // aceita um dos dois valores vazios da linguagem é uma armadilha para o
+  // próximo campo opcional que alguém indexar.
+  if (str === null || str === undefined) return ''
   return str
     .toString()
     .toLowerCase()

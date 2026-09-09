@@ -19,7 +19,7 @@ import Can from '../auth/Can'
 import { useNewsStore } from '../store/newsStore'
 import { CATEGORIES, ALERT_LEVELS } from '../data/mockData'
 import { categoryColor, alertMeta } from '../utils/textUtils'
-import { formatDateBR, formatDateTimeBR } from '../utils/dateUtils'
+import { formatDateBR } from '../utils/dateUtils'
 import { exportClippingToPDF } from '../utils/exportUtils'
 import { rankItems } from '../utils/semanticSearch'
 
@@ -139,7 +139,7 @@ export default function Archive() {
         icon={ArchiveIcon}
         title="Arquivo & Minha Pasta"
         description="Reveja clippings publicados, consulte o que você salvou e acompanhe os relatórios emitidos."
-        breadcrumb={[{ label: 'Inteligência' }, { label: 'Arquivo & Pasta' }]}
+        breadcrumb={[{ label: 'Tático' }, { label: 'Arquivo & Pasta' }]}
         meta={[
           { label: 'Clippings', value: String(clippings.length) },
           { label: 'Na pasta', value: String(favorites.length) },
@@ -388,7 +388,19 @@ export default function Archive() {
                 </button>
               </Can>
             </div>
-            <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">{openItem.data.summary_executive}</p>
+            {/* A edição arquivada abria com um `<p>` vazio: `summary_executive`
+              * é sempre nulo nesta versão, e um parágrafo em branco sob o
+              * cabeçalho lê-se como conteúdo que não carregou. A nota do
+              * servidor diz o que é — e a prévia guardada no arquivo (as três
+              * primeiras manchetes) dá ao leitor de que edição se trata. */}
+            {openItem.data.summary_executive ? (
+              <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">{openItem.data.summary_executive}</p>
+            ) : (
+              <p className="rounded-lg border border-dashed border-gray-300 p-3 text-xs leading-relaxed muted dark:border-white/15">
+                {openItem.data.summary_note
+                  || 'Sem síntese por IA: nenhum texto desta edição foi escrito por máquina.'}
+              </p>
+            )}
             {openItem.data.news?.map((n, i) => <NewsCard key={i} news={n} variant="full" />)}
           </div>
         )}

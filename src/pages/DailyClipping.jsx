@@ -37,14 +37,14 @@ import { newsService } from '../services/newsService'
 import { useFontesReais } from '../hooks/useFontesReais'
 import EventosConsolidados from '../components/clipping/EventosConsolidados'
 import { useNewsStore } from '../store/newsStore'
-import { useSettingsStore } from '../store/settingsStore'
 import { URGENCY_LEVELS } from '../data/mockData'
 import { alertMeta, categoryColor, clipboard, urgencyMeta } from '../utils/textUtils'
 import { formatDateBR, formatDateTimeBR, formatFullDate } from '../utils/dateUtils'
 import { exportClippingToPDF } from '../utils/exportUtils'
 
-// Quem assina a edição publicada. O produto é demonstrativo: creditamos a mesa
-// editorial, não uma pessoa real, para não apresentar dado inventado como oficial.
+// Quem assina a edição publicada. Creditamos a mesa editorial, e não uma pessoa
+// nomeada, porque não há redação por trás: a seleção é do filtro de relevância,
+// e atribuí-la a alguém seria inventar autoria.
 const EDITORIAL_DESK = 'Mesa de Análise · DefesaBR Intelligence'
 
 export default function DailyClipping() {
@@ -89,7 +89,10 @@ export default function DailyClipping() {
   const [cats, setCats] = useState([])
   const [urgency, setUrgency] = useState('')
 
-  const allNews = result?.news || []
+  // Memoizado porque esta lista entra nas dependências de um `useMemo` abaixo:
+  // `result?.news || []` devolveria um array novo a cada render, o que invalidaria o memo
+  // em todo render e o tornaria pior que nenhum.
+  const allNews = useMemo(() => result?.news || [], [result])
   const hasFilters = Boolean(query.trim() || cats.length || urgency)
 
   // As categorias disponíveis vêm da própria edição: nada de chip que não filtra nada.
@@ -145,7 +148,9 @@ export default function DailyClipping() {
     }
   }
 
-  const alert = alertMeta[result?.alert_level] || alertMeta.NORMAL
+  // Sem nível calculável, NENHUM default. `|| alertMeta.NORMAL` pintava a
+  // borda de verde e o selo de "NORMAL" sobre um período do qual nada se sabe.
+  const alert = alertMeta[result?.alert_level] || null
   const publishedAt = result?.generatedAt || result?.date
 
   return (
@@ -155,7 +160,7 @@ export default function DailyClipping() {
         title="Clipping Diário"
         description="O que a coleta trouxe em segurança e defesa no período, filtrado por relevância, classificado por categoria e urgência, com o nível de alerta do dia."
         help="O nível de alerta resume a intensidade dos eventos do dia: NORMAL, ATENÇÃO, ALERTA ou CRÍTICO."
-        breadcrumb={[{ label: 'Inteligência' }, { label: 'Clipping Diário' }]}
+        breadcrumb={[{ label: 'Tático' }, { label: 'Clipping Diário' }]}
         badges={
           <>
             <Badge type="alert" value={result?.alert_level} />
@@ -205,7 +210,7 @@ export default function DailyClipping() {
           <Can
             do="reports.export"
             fallback={
-              <Link to="/planos" className="btn-ghost" title="Exportar PDF faz parte do plano Profissional">
+              <Link to="/planos" className="btn-ghost" title="A exportação está acima do nível de leitura selecionado — ajuste em Níveis de acesso">
                 <Lock size={14} /> Exportar PDF
               </Link>
             }
@@ -281,12 +286,30 @@ export default function DailyClipping() {
         >
           {/* Resumo executivo */}
           <section
-            className={`card border-l-4 p-5 sm:p-6 ${alert.classes.split(' ').find((c) => c.startsWith('border')) || ''}`}
+            className={`card border-l-4 p-5 sm:p-6 ${alert?.classes.split(' ').find((c) => c.startsWith('border')) || 'border-gray-300 dark:border-white/15'}`}
           >
             <div className="mb-3 flex flex-wrap items-center gap-3">
               <h2 className="text-lg font-bold tracking-tight">Resumo executivo</h2>
               <Badge type="alert" value={result.alert_level} />
             </div>
+
+            {/* O NÍVEL DE ALERTA MOSTRA A CONTA QUE O PRODUZ.
+              *
+              * Antes era um selo e um número: "CRÍTICO · 100/100". Um índice sem
+              * a distribuição por trás não pode ser contestado por quem lê — e
+              * foi justamente essa opacidade que deixou o indicador marcar
+              * CRÍTICO 100/100 todo dia sem ninguém notar que a amostra vinha
+              * ordenada por urgência e cortada em LIMIT 20.
+              *
+              * Com a distribuição visível, o mesmo erro seria óbvio no primeiro
+              * olhar: "20 de 20 críticos" não é o retrato de um país, é o
+              * retrato de uma consulta. */}
+            <NivelDeAlerta
+              level={result.alert_level}
+              score={result.alert_score}
+              basis={result.alert_basis}
+              distribuicao={result.alert_distribution}
+            />
             {result.summary_executive
               ? result.summary_executive.split('\n').filter(Boolean).map((p, i) => (
                 <p key={i} className="mb-2 text-sm leading-relaxed text-gray-700 dark:text-gray-300">{p}</p>
@@ -660,5 +683,83 @@ function RelevantesParaOBrasil() {
         </ul>
       </DataState>
     </section>
+  )
+}
+
+/**
+ * O nível de alerta com a conta aberta.
+ *
+ * A barra é a DISTRIBUIÇÃO das ocorrências por urgência — não o score. São duas
+ * coisas diferentes, e mostrar as duas juntas é o que permite discordar: o score
+ * é a média ponderada, a barra é a população sobre a qual a média foi tirada.
+ *
+ * Sem nível calculável não desenha barra nem inventa "NORMAL": diz que não houve
+ * ocorrência no período, que é o fato.
+ */
+function NivelDeAlerta({ level, score, basis, distribuicao }) {
+  const ORDEM = ['CRITICO', 'ALTO', 'MEDIO', 'BAIXO']
+  const COR = {
+    CRITICO: '#c0392b',
+    ALTO: '#d4841a',
+    MEDIO: '#bea01e',
+    BAIXO: '#2e7d46',
+  }
+  const total = ORDEM.reduce((soma, k) => soma + (distribuicao?.[k] || 0), 0)
+
+  if (!level || !total) {
+    return (
+      <p className="mb-4 text-xs leading-relaxed muted">
+        Sem ocorrência relevante nesta janela — o nível de alerta não é calculável.
+        Ausência de ocorrência não é calma: é ausência, e a plataforma indica acima em que
+        janela há material.
+      </p>
+    )
+  }
+
+  return (
+    <div className="mb-4">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <span className="font-mono text-2xl font-extrabold tabular-nums leading-none">
+          {score}
+          <span className="text-sm font-bold muted">/100</span>
+        </span>
+        <span className="text-xs muted">{basis}</span>
+      </div>
+
+      {/* A barra empilhada: cada faixa é uma urgência, e a largura é a
+        * proporção real das ocorrências. */}
+      <div
+        className="mt-2 flex h-2.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-white/10"
+        role="img"
+        aria-label={`Distribuição por urgência: ${ORDEM.filter((k) => distribuicao[k]).map((k) => `${urgencyMeta[k].label} ${distribuicao[k]}`).join(', ')}`}
+      >
+        {ORDEM.filter((k) => distribuicao[k]).map((k) => (
+          <span
+            key={k}
+            title={`${urgencyMeta[k].label}: ${distribuicao[k]} de ${total}`}
+            style={{ width: `${(distribuicao[k] / total) * 100}%`, backgroundColor: COR[k] }}
+          />
+        ))}
+      </div>
+
+      <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+        {ORDEM.filter((k) => distribuicao[k]).map((k) => (
+          <li key={k} className="flex items-center gap-1.5">
+            <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: COR[k] }} />
+            <span className="font-semibold">{urgencyMeta[k].label}</span>
+            <span className="font-mono tabular-nums muted">
+              {distribuicao[k]} · {Math.round((distribuicao[k] / total) * 100)}%
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <p className="mt-2 text-xs leading-relaxed muted">
+        Pesos: CRÍTICO 100, ALTO 70, MÉDIO 40, BAIXO 15. A média corre sobre <strong>todas</strong> as
+        {' '}{total} ocorrências da janela, e não sobre a seleção listada abaixo — que vem ordenada por
+        urgência e cortada, e por isso é sempre mais grave que o período. Medir a seleção em vez da
+        janela era o que fazia este indicador marcar CRÍTICO 100/100 todos os dias.
+      </p>
+    </div>
   )
 }

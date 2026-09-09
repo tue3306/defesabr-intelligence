@@ -7,7 +7,23 @@ export default function Badge({ type = 'plain', value, children, className = '' 
     return <Pill className={`${m.classes} ${className}`}>{m.label}</Pill>
   }
   if (type === 'alert') {
-    const m = alertMeta[value] || alertMeta.NORMAL
+    // SEM NÍVEL, O SELO DIZIA "NORMAL".
+    //
+    // O servidor devolve `level: null` quando a janela não tem nenhuma
+    // ocorrência relevante, e o fallback `|| alertMeta.NORMAL` transformava
+    // esse null numa afirmação tranquilizadora. Ausência de ocorrência não é
+    // calma: é ausência, e o selo passa a dizer isso.
+    if (!value || !alertMeta[value]) {
+      return (
+        <Pill
+          className={`border-gray-300 bg-gray-100 text-gray-600 dark:border-white/15 dark:bg-white/5 dark:text-gray-400 ${className}`}
+          title="Sem ocorrência relevante no período — o nível de alerta não é calculável"
+        >
+          SEM DADO
+        </Pill>
+      )
+    }
+    const m = alertMeta[value]
     return <Pill className={`${m.classes} ${className}`}>{m.label}</Pill>
   }
   if (type === 'category') {

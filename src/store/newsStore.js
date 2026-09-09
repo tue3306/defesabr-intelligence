@@ -51,8 +51,21 @@ export const useNewsStore = create(
           date: clipping.date?.split('/').reverse().join('-') || new Date().toISOString().slice(0, 10),
           title: `Clipping Diário — ${clipping.date}`,
           newsCount: clipping.news?.length || 0,
-          alert_level: clipping.alert_level || 'NORMAL',
-          preview: clipping.summary_executive?.slice(0, 140) + '…',
+          // Nem nível inventado, nem prévia inventada.
+          //
+          // `clipping.alert_level || 'NORMAL'` gravava NORMAL no arquivo quando
+          // o período não tinha ocorrência — congelando no histórico uma
+          // afirmação que ninguém fez.
+          //
+          // E `summary_executive?.slice(0, 140) + '…'` era pior: nesta versão o
+          // resumo executivo é SEMPRE nulo, então o encadeamento opcional
+          // devolvia `undefined`, a concatenação o transformava na string
+          // "undefined…", e era isso que aparecia como prévia de toda edição
+          // arquivada. Sem resumo, a prévia sai das próprias manchetes.
+          alert_level: clipping.alert_level || null,
+          preview: clipping.summary_executive
+            ? `${clipping.summary_executive.slice(0, 140)}…`
+            : (clipping.news || []).slice(0, 3).map((n) => n.title).join(' · ') || null,
           categories: [...new Set((clipping.news || []).map((n) => n.category))],
           data: clipping,
         }

@@ -214,9 +214,32 @@ export const PONTES = new Map([
       // "ainda não gerado" e "esta versão não gera isto".
       summary_executive: d.summaryExecutive,
       summary_note: d.summaryNote,
-      alert_level: d.alert?.level || 'NORMAL',
-      alert_score: d.alert?.score,
+      // ─────────────────────────────────────────────────────────────────
+      // AUSÊNCIA DE OCORRÊNCIA NÃO É CALMA
+      //
+      // Isto era `d.alert?.level || 'NORMAL'`. O servidor devolve `level: null`
+      // de propósito quando a janela não tem nenhuma ocorrência relevante — e o
+      // `|| 'NORMAL'` transformava esse null numa AFIRMAÇÃO: a tela e o PDF
+      // diziam "nível NORMAL" sobre um período do qual nada se sabe.
+      //
+      // É o mesmo erro que o projeto combate em todo lugar, na sua forma mais
+      // discreta: um default plausível ocupando o lugar do dado que falta. Num
+      // painel de alerta, é o default mais perigoso possível — quem lê conclui
+      // que está tudo em ordem quando o que houve foi silêncio na coleta.
+      //
+      // Passa o null adiante. Quem exibe decide como dizer "não sei".
+      // ─────────────────────────────────────────────────────────────────
+      alert_level: d.alert?.level ?? null,
+      alert_score: d.alert?.score ?? null,
       alert_basis: d.alert?.basis,
+      // A DISTRIBUIÇÃO É O QUE PERMITE DISCORDAR DO ÍNDICE.
+      //
+      // O servidor passou a devolvê-la junto (foi ela que denunciou o viés de
+      // "CRÍTICO 100/100 todo dia": 20 de 20 críticos numa amostra ordenada por
+      // urgência). Ficava aqui, descartada pela ponte, e nem a tela nem o PDF
+      // conseguiam mostrar o que sustenta o número.
+      alert_distribution: d.alert?.distribuicao ?? null,
+      by_urgency: d.byUrgency,
       news: (d.news || []).map(paraNoticia),
       by_category: d.byCategory,
       period_days: d.periodDays,
