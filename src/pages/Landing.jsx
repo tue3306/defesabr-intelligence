@@ -582,7 +582,7 @@ export default function Landing() {
               ))}
             </div>
             <p className="mt-3 text-sm muted">
-              Glossário completo no <Link to="/planos" className="font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300">plano Profissional</Link>{' '}
+              Glossário completo no <Link to="/aprender" className="font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300">Centro Educacional</Link>{' '}
               · ou explore o <Link to="/aprender" className="font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300">Centro Educacional</Link>.
             </p>
           </div>

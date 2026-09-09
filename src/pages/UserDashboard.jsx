@@ -29,7 +29,7 @@ import { useSubscriptionStore } from '../store/subscriptionStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { glossary } from '../data/learnData'
 import { alertMeta, categoryColor } from '../utils/textUtils'
-import { formatTime, timeAgo, formatDateBR } from '../utils/dateUtils'
+import { formatTime, timeAgo } from '../utils/dateUtils'
 
 const Section = ({ children, className = '' }) => (
   <motion.section
@@ -58,17 +58,21 @@ const DISCOVERY_MODULES = [
   { to: '/legislativo', icon: Landmark, label: 'Radar legislativo', hint: 'Proposições da Câmara sobre defesa' },
   { to: '/industria', icon: Factory, label: 'Indústria & Exportações', hint: 'Comex Stat: o que o Brasil exportou' },
   { to: '/economia', icon: DollarSign, label: 'Economia & Defesa', hint: 'Banco Central e World Bank' },
-  { to: '/dados', icon: BarChart3, label: 'Dados & Gráficos', hint: 'Séries do acervo e comparativos' },
+  { to: '/dados', icon: BarChart3, label: 'Séries e indicadores', hint: 'Séries do acervo e comparativos' },
   { to: '/fontes', icon: Database, label: 'Confiabilidade das fontes', hint: 'Disponibilidade medida de cada fonte' },
 ]
 
-// O que o plano Profissional acrescenta.
+// O QUE O NÍVEL COMPLETO DE LEITURA ALCANÇA.
 //
-// Prometia "matriz de riscos, cenários e monitor de narrativas (FIMI)" e
-// "assistente de IA" — nada disso existe: as telas saíram por exibirem texto
-// redigido e a IA nunca foi ligada. Upsell honesto é o que o pagamento de fato
-// destrava, e nenhum item a mais.
-const PRO_FEATURES = [
+// A lista prometia "matriz de riscos, cenários e monitor de narrativas (FIMI)"
+// e "assistente de IA" — nada disso existe: as telas saíram por exibirem texto
+// redigido, e a IA nunca foi ligada.
+//
+// Agora ela também deixou de ser um argumento de venda. Não há cobrança neste
+// projeto e toda conta nasce com o nível completo; este bloco só aparece para
+// quem rebaixou o próprio nível na página de Níveis de acesso, e serve para
+// dizer o que aquele degrau esconde — não para oferecer uma compra.
+const NIVEL_COMPLETO = [
   { icon: Activity, text: 'Radar legislativo: proposições de defesa na Câmara' },
   { icon: Radar, text: 'Séries econômicas e industriais completas, com comparativos' },
   { icon: Sparkles, text: 'Exportação em PDF e CSV, filtros avançados e modo apresentação' },
@@ -79,7 +83,7 @@ const PRO_FEATURES = [
 // Um único painel que se adapta ao PLANO: o núcleo de leitura (situação, mapa,
 // notícias, agenda, pasta e alertas) é sempre entregue; a profundidade
 // analítica aparece sob a capacidade `analysis.full`, e na sua ausência o
-// espaço vira descoberta + educação + convite honesto ao plano Profissional.
+// espaço explica o que aquele degrau de leitura deixa de fora.
 // -----------------------------------------------------------------------------
 export default function UserDashboard() {
   const { news, source, loading } = useNews()
@@ -109,14 +113,14 @@ export default function UserDashboard() {
   const execLine = full
     ? latest?.summary_executive?.split('\n').filter(Boolean)[0]
       || 'Sem eventos de ruptura no período. Monitoramento em curso.'
-    : 'Acompanhe as ocorrências de Segurança & Defesa do Brasil, explore o mapa de risco e conheça os programas estratégicos. As análises completas ficam no plano Profissional.'
+    : 'Acompanhe as ocorrências de Segurança & Defesa do Brasil, explore o mapa estratégico e o clipping do período. O nível de leitura selecionado esconde parte das séries.'
 
 
   // Este painel lia `brazilIndicators`, seis cartões escritos à mão:
   // "Câmbio R$ 5,42", "Selic 9,75%", "IPCA 4,1%", "Risco-país 218 pts".
   //
   // O dólar real coletado do Banco Central no mesmo dia era R$ 5,13. Ou seja:
-  // um assinante do plano Profissional via, no painel dele, uma cotação errada
+  // quem abrisse o painel via uma cotação errada
   // por trinta centavos — apresentada com duas casas decimais e uma seta de
   // variação, que é o que faz um número parecer apurado.
   //
@@ -264,11 +268,11 @@ export default function UserDashboard() {
                 links ficaram, levando a 404 a partir do painel principal.
                 Estes três levam a lugares que abrem. */}
             <Link to="/legislativo" className="btn-ghost text-sm"><FileText size={15} /> Radar legislativo</Link>
-            <Link to="/dados" className="btn-ghost text-sm"><Radar size={15} /> Dados &amp; gráficos</Link>
+            <Link to="/dados" className="btn-ghost text-sm"><Radar size={15} /> Séries e indicadores</Link>
             <Link to="/busca" className="btn-ghost text-sm"><Newspaper size={15} /> Buscar no acervo</Link>
             <Can not do="analysis.full">
               <Link to="/planos" className="btn-primary text-sm">
-                <Sparkles size={15} /> Conhecer o plano Profissional
+                <Sparkles size={15} /> Voltar ao nível completo
               </Link>
             </Can>
           </div>
@@ -301,7 +305,7 @@ export default function UserDashboard() {
           {/* Aqui ficava <TensionBoard />, sob a capacidade `analysis.full`.
               O componente não existe mais: sumiu com a loja de tensão, cujos
               níveis por região eram escritos à mão. O nome ficou, e teria
-              derrubado este painel para todo assinante do plano Profissional —
+              derrubado este painel para toda conta com o nível completo —
               o mesmo erro que já derrubou a produção uma vez.
 
               O que sobra abaixo é medido: cobertura por país conta menções em
@@ -360,16 +364,22 @@ export default function UserDashboard() {
 
         {/* ───────────── TRILHO LATERAL ───────────── */}
         <div className="space-y-6">
-          {/* Convite ao plano Profissional — primeiro no trilho de quem não tem análise */}
+          {/* O QUE O NÍVEL SELECIONADO ESCONDE — e não um convite de compra.
+            * Este cartão vendia o "Plano Profissional" com botão dourado e
+            * lista de benefícios. Num projeto de código aberto sem cobrança,
+            * isso é encenação: não há o que comprar, e toda conta já nasce com
+            * o nível completo. Ele só é alcançável por quem rebaixou o próprio
+            * nível de propósito, e passa a servir a essa pessoa: dizer o que
+            * ficou de fora e como voltar. */}
           <Can not do="analysis.full">
             <Section className="card overflow-hidden">
               <div className="bg-gradient-to-br from-gold-500/15 to-transparent p-5">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-gold-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-gold-600 dark:text-gold-400">
-                  <Sparkles size={12} /> Plano Profissional
+                  <Sparkles size={12} /> Nível de leitura reduzido
                 </span>
-                <h2 className="mt-2 text-base font-bold tracking-tight">Análise completa de inteligência</h2>
+                <h2 className="mt-2 text-base font-bold tracking-tight">O que o nível completo alcança</h2>
                 <ul className="mt-3 space-y-2">
-                  {PRO_FEATURES.map(({ icon: Icon, text }) => (
+                  {NIVEL_COMPLETO.map(({ icon: Icon, text }) => (
                     <li key={text} className="flex items-start gap-2 text-sm muted">
                       <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-brand-500/15 text-brand-300">
                         <Icon size={13} />
@@ -379,16 +389,17 @@ export default function UserDashboard() {
                   ))}
                 </ul>
                 <Link to="/planos" className="btn-primary mt-4 w-full justify-center text-sm">
-                  Ver planos <ArrowRight size={15} />
+                  Voltar ao nível completo <ArrowRight size={15} />
                 </Link>
                 <p className="mt-2 text-center text-[11px] muted">
-                  Clipping, mapa de risco e agenda continuam no seu plano atual.
+                  Não há cobrança: toda conta nasce com o nível completo. Este cartão só aparece
+                  porque o nível foi reduzido para conferir a plataforma por outro ângulo.
                 </p>
               </div>
             </Section>
           </Can>
 
-          {/* Câmbio e indicadores — leitura econômica do plano pago */}
+          {/* Câmbio e indicadores — parte da profundidade do nível completo */}
           <Can do="analysis.full">
             <ExchangeWidget />
           </Can>

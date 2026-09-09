@@ -12,7 +12,7 @@ const SHORTCUTS = {
   visitor: [
     { to: '/', icon: Home, label: 'Início', hint: 'Conheça a plataforma' },
     { to: '/aprender', icon: GraduationCap, label: 'Centro Educacional', hint: 'Trilhas e glossário' },
-    { to: '/planos', icon: Sparkles, label: 'Planos', hint: 'Compare os níveis de acesso' },
+    { to: '/mapa', icon: Sparkles, label: 'Mapa estratégico', hint: 'Cobertura por país cruzada com incidentes' },
   ],
   user: [
     { to: '/painel', icon: LayoutDashboard, label: 'Painel', hint: 'Situação do dia' },

@@ -16,7 +16,7 @@ import { CAPABILITIES, PLAN_LABELS, PROFILES } from '../../auth/permissions'
 const BENEFITS = [
   { icon: Bot, text: 'Painel de situação, cobertura por país e clipping diário' },
   { icon: Sparkles, text: 'Busca no acervo, arquivo pessoal e séries econômicas' },
-  { icon: FileDown, text: 'Exportação em PDF e CSV, conforme o plano' },
+  { icon: FileDown, text: 'Exportação do clipping em PDF e das séries em CSV' },
 ]
 
 // Textos do bloqueio por PAPEL, por perfil exigido.
@@ -127,14 +127,19 @@ export default function ProtectedRoute({ children, permission, capability }) {
               : `Esta seção faz parte da profundidade analítica do plano ${planLabel}.`
           }
           list={[
-            { text: 'Todas as áreas de análise, cenários e riscos' },
-            { text: 'Assistente de IA, relatórios e exportação (PDF/CSV)' },
+            { text: 'Radar legislativo e séries econômicas completas' },
+            { text: 'Exportação do clipping em PDF e das séries em CSV' },
             { text: 'Filtros avançados, alertas e modo apresentação' },
           ]}
         >
+          {/* NÃO HÁ O QUE COMPRAR, ENTÃO NÃO HÁ "VER PLANOS".
+            * Toda conta nasce com o nível de leitura completo. Chegar a este
+            * muro significa que o nível foi REBAIXADO de propósito na página
+            * de Níveis de acesso, para ver a plataforma pelos olhos de quem
+            * alcança menos — e o caminho de volta é o mesmo lugar. */}
           <div className="mt-6 flex flex-wrap justify-center gap-2">
             <Link to="/planos" className="btn-primary">
-              Ver planos <ArrowRight size={15} />
+              Voltar ao nível completo <ArrowRight size={15} />
             </Link>
             <button onClick={() => entrar('analyst')} className="btn-ghost">
               Entrar como Analista

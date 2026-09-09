@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import Logo from '../ui/Logo'
 import { useAuthStore } from '../../store/authStore'
-import { useCan, useProfile, useProfileMeta } from '../../auth/useCan'
+import { useCan, useProfileMeta } from '../../auth/useCan'
 
 // -----------------------------------------------------------------------------
 // NAVEGAÇÃO DECLARATIVA — cada item pede uma CAPACIDADE (src/auth/permissions.js).
@@ -154,7 +154,6 @@ export default function Sidebar({ open, onClose, collapsed }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const user = useAuthStore((s) => s.user)
   const can = useCan()
-  const profile = useProfile()
   const profileMeta = useProfileMeta()
 
   // Monta a navegação efetiva do perfil: remove seções e itens que não fazem
@@ -254,7 +253,7 @@ export default function Sidebar({ open, onClose, collapsed }) {
 
 function Item({ item, collapsed, onClick, locked, restricted }) {
   const { to, label, icon: Icon, badge, end } = item
-  const hint = locked ? `${label} (requer login)` : restricted ? `${label} (recurso do plano Profissional)` : label
+  const hint = locked ? `${label} (requer login)` : restricted ? `${label} (acima do nível de leitura atual)` : label
 
   return (
     <NavLink
@@ -282,13 +281,17 @@ function Item({ item, collapsed, onClick, locked, restricted }) {
           <Lock size={10} />
         </span>
       )}
-      {/* Item disponível em um plano superior (upsell honesto) */}
+      {/* ACIMA DO NÍVEL DE LEITURA ATUAL — e não "PRO".
+        * O selo dizia PRO, que num produto de código aberto sem cobrança
+        * anuncia uma compra inexistente. Toda conta nasce com o nível
+        * completo; este selo só aparece para quem rebaixou o próprio nível
+        * na página de Níveis de acesso, e é isso que ele passa a dizer. */}
       {!collapsed && !locked && restricted && (
         <span
           className="inline-flex items-center gap-1 rounded-full bg-gold-500/15 px-1.5 py-0.5 text-[9px] font-bold text-gold-600 dark:text-gold-400"
-          title="Recurso do plano Profissional"
+          title="Acima do nível de leitura selecionado — ajuste em Níveis de acesso"
         >
-          <Lock size={9} /> PRO
+          <Lock size={9} /> NÍVEL
         </span>
       )}
       {!collapsed && !locked && !restricted && badge && (

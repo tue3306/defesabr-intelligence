@@ -35,7 +35,7 @@ function Section({ icon: Icon, title, badge, children }) {
 
 export default function Settings() {
   const s = useSettingsStore()
-  const { user, isAuthenticated } = useAuthStore()
+  const { isAuthenticated } = useAuthStore()
   const plan = useSubscriptionStore((st) => st.plan)
   const can = useCan()
   const profileMeta = useProfileMeta()
@@ -76,8 +76,7 @@ export default function Settings() {
             Entre na plataforma para configurar áreas de interesse, notificações e mais.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Link to="/planos" className="btn-primary">Ver planos</Link>
-            <Link to="/" className="btn-ghost">Voltar ao início</Link>
+            <Link to="/" className="btn-primary">Voltar ao início</Link>
           </div>
         </Section>
       )}
@@ -91,7 +90,7 @@ export default function Settings() {
       {/* NOTIFICAÇÕES — logados */}
       {isAuthenticated && <NotificationsSection enabled={s.notificationsEnabled} onToggle={s.toggleNotifications} />}
 
-      {/* PRODUÇÃO (plano Profissional+): análise, tensão, fontes */}
+      {/* PRODUÇÃO — é PAPEL (Analista), não nível de leitura. */}
       {canProduce && (
         <>
           <Section icon={SlidersHorizontal} title="Preferências de análise" badge="Produção">
@@ -152,17 +151,22 @@ export default function Settings() {
         </>
       )}
 
-      {/* Sem ferramentas de operação/sistema para este acesso */}
+      {/* ISTO É PAPEL, NÃO NÍVEL DE LEITURA — e a tela dizia o contrário.
+        * `tension.edit` é capacidade de ANALISTA (`reason: 'role'`). O texto
+        * anterior a atribuía ao "plano Profissional" e oferecia "Ver planos"
+        * como saída: um caminho que não leva a lugar nenhum, porque nível de
+        * leitura nenhum transforma um leitor em analista. Era exatamente a
+        * confusão de eixos que fazia os perfis parecerem iguais. */}
       {isAuthenticated && !canProduce && !isAdmin && (
-        <Section icon={Lock} title="Sem ferramentas de operação neste plano">
+        <Section icon={Lock} title="Sem ferramentas de produção neste papel">
           <p className="text-sm muted">
-            As ferramentas de produção (análise, tensão, fontes) fazem parte do plano{' '}
-            <strong>Profissional</strong>. Suas opções pessoais ficam em{' '}
+            Avaliar tensão, classificar fontes e auditar o filtro são atribuições do papel{' '}
+            <strong>Analista</strong> — atribuídas pela governança, não escolhidas por quem usa.
+            Suas opções pessoais ficam em{' '}
             <Link to="/conta" className="font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300">Minha conta</Link>.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Link to="/planos" className="btn-primary">Ver planos</Link>
-            <Link to="/conta" className="btn-ghost">Ir para Minha conta</Link>
+            <Link to="/conta" className="btn-primary">Ir para Minha conta</Link>
           </div>
         </Section>
       )}
