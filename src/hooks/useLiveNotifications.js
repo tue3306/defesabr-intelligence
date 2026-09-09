@@ -1,9 +1,10 @@
 import { useEffect, useRef } from 'react'
 import toast from 'react-hot-toast'
 import { createElement } from 'react'
-import { Bell } from 'lucide-react'
+import { Bell, Landmark } from 'lucide-react'
 import { useNewsStore } from '../store/newsStore'
 import { useAuthStore } from '../store/authStore'
+import { useSettingsStore } from '../store/settingsStore'
 import { viaPonte, apiOnline } from '../services/apiBridge'
 
 // -----------------------------------------------------------------------------
@@ -35,6 +36,23 @@ const URGENCIAS_QUE_NOTIFICAM = new Set(['ALTO', 'CRITICO', 'CRÍTICO'])
 export function useLiveNotifications() {
   const addNotification = useNewsStore((s) => s.addNotification)
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // O AJUSTE DE SILENCIAR EXISTIA E ERA IGNORADO
+  //
+  // `notificationsEnabled` estava no store de ajustes, com interruptor na tela
+  // de Configuracoes, desde antes deste hook existir. O hook nunca o leu: quem
+  // desligava os avisos continuava recebendo torrada a cada cinco minutos, e
+  // nao havia como descobrir o porque — o interruptor mostrava "desligado".
+  //
+  // Um controle que nao controla e pior que a ausencia dele: a pessoa desiste
+  // de procurar a opcao certa porque ja usou a que parecia ser.
+  //
+  // O que o silencio NAO faz: parar de registrar. Os avisos continuam entrando
+  // na central de Notificacoes, para serem lidos quando a pessoa quiser.
+  // Silenciar e sobre INTERRUPCAO, nao sobre coleta.
+  // ───────────────────────────────────────────────────────────────────────────
+  const avisosLigados = useSettingsStore((s) => s.notificationsEnabled)
 
   // Guids já anunciados. Sem isto, cada consulta reanunciaria as mesmas
   // matérias e o resultado seria o mesmo teatro de antes, com dado real.
@@ -71,10 +89,21 @@ export function useLiveNotifications() {
           source: n.source,
         }))
 
+        // O ATAQUE AO ESTADO BRASILEIRO E OUTRA COISA, e o aviso diz isso.
+        //
+        // Todos vinham como "Ransomware — <vitima>", nivel CRITICO, no mesmo
+        // tom. Mas uma prefeitura invadida e um escritorio de contabilidade
+        // invadido nao pedem a mesma reacao de quem acompanha seguranca do
+        // Estado, e a fonte ja distingue os dois: `nature === 'estado'` sai do
+        // dominio da vitima (.gov.br, .jus.br, .mil.br), que e fato e nao
+        // suposicao.
         const doCiber = (alertas?.items || []).map((v) => ({
           chave: `rw-${v.external_id}`,
-          title: `Ransomware — ${v.victim}`,
+          title: v.nature === 'estado'
+            ? `Estado brasileiro — ${v.victim}`
+            : `Ransomware — ${v.victim}`,
           level: 'CRITICO',
+          estado: v.nature === 'estado',
           source: `${v.group} · ${v.criticality_reason}`,
         }))
 
@@ -89,10 +118,21 @@ export function useLiveNotifications() {
         // No máximo três por rodada: se a coleta trouxer quinze de uma vez, o
         // usuário não precisa de quinze torradas empilhadas.
         for (const n of novos.slice(0, 3)) {
+          // REGISTRAR sempre; INTERROMPER so com o aviso ligado.
           addNotification({ title: n.title, level: n.level, url: n.url, source: n.source })
+          if (!avisosLigados) continue
+
+          // Ataque ao Estado fica mais tempo na tela e usa outro icone: e o
+          // aviso que esta plataforma existe para dar, e empilha-lo com os
+          // demais no mesmo tom desperdiça a distincao que a fonte entrega.
           toast(n.title, {
-            icon: createElement(Bell, { size: 16, className: 'text-brand-400 dark:text-brand-300' }),
-            duration: 5000,
+            icon: createElement(n.estado ? Landmark : Bell, {
+              size: 16,
+              className: n.estado
+                ? 'text-red-600 dark:text-red-400'
+                : 'text-brand-400 dark:text-brand-300',
+            }),
+            duration: n.estado ? 9000 : 5000,
           })
         }
       } catch {
@@ -104,7 +144,7 @@ export function useLiveNotifications() {
     consultar()
     const id = setInterval(consultar, INTERVALO_MS)
     return () => { vivo = false; clearInterval(id) }
-  }, [addNotification, isAuthenticated])
+  }, [addNotification, isAuthenticated, avisosLigados])
 }
 
 export default useLiveNotifications

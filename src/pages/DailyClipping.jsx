@@ -17,11 +17,17 @@ import {
   Save,
   ShieldCheck,
   SlidersHorizontal,
+  Sparkles,
+  Flag,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
+import DataState from '../components/ui/DataState'
+import InfoTooltip from '../components/ui/InfoTooltip'
+import { useResource } from '../hooks/useResource'
+import { request } from '../services/client'
 
 import Badge from '../components/ui/Badge'
 import SearchBar from '../components/ui/SearchBar'
@@ -34,7 +40,7 @@ import { useNewsStore } from '../store/newsStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { URGENCY_LEVELS } from '../data/mockData'
 import { alertMeta, categoryColor, clipboard, urgencyMeta } from '../utils/textUtils'
-import { formatDateTimeBR, formatFullDate } from '../utils/dateUtils'
+import { formatDateBR, formatDateTimeBR, formatFullDate } from '../utils/dateUtils'
 import { exportClippingToPDF } from '../utils/exportUtils'
 
 // Quem assina a edição publicada. O produto é demonstrativo: creditamos a mesa
@@ -250,6 +256,20 @@ export default function DailyClipping() {
           edicao do dia e o documento. Quem abre o clipping quer saber o que
           aconteceu, e "tres veiculos cobriram isto" responde melhor que uma
           lista de manchetes parecidas. */}
+      {/* O QUE MAIS TOCA O BRASIL VEM ANTES DA EDICAO.
+        *
+        * O indice `br_score` era calculado a cada coleta e nao aparecia em
+        * tela nenhuma: media a densidade de vinculo de cada materia com o pais
+        * — orgaos, empresas, infraestrutura, UFs e setores reconhecidos — e
+        * ficava so no banco.
+        *
+        * E a resposta para "noticia de fora que importa aqui". Uma materia
+        * sobre a Russia que cita a Embraer e o Ministerio da Defesa pontua
+        * alto; uma sobre a Russia que nao cita nada brasileiro, zero. Sem
+        * nenhum julgamento editorial no meio: o motivo do indice viaja junto
+        * do numero, e a tela o mostra. */}
+      <RelevantesParaOBrasil />
+
       <EventosConsolidados />
 
       {result && (
@@ -272,13 +292,40 @@ export default function DailyClipping() {
                 <p key={i} className="mb-2 text-sm leading-relaxed text-gray-700 dark:text-gray-300">{p}</p>
               ))
               : (
-                // Cabeçalho sem texto embaixo deixa o leitor supondo que algo
-                // falhou ao carregar. A nota do servidor diz a verdade: não é
-                // falha, é recurso que esta versão não tem.
-                <p className="text-sm italic leading-relaxed muted">
-                  {result.summary_note
-                    || 'Resumo executivo automático não é gerado nesta versão — exigiria um modelo de linguagem.'}
-                </p>
+                // ─────────────────────────────────────────────────────────
+                // A ÁREA DA SÍNTESE POR IA, RESERVADA E DESCRITA
+                //
+                // Era uma linha em itálico e cinza. Tecnicamente honesta, e
+                // fácil de ler como "falhou ao carregar" — porque é assim que
+                // texto cinza sob um cabeçalho costuma se comportar.
+                //
+                // Aqui ela vira um espaço RESERVADO: diz que o lugar existe,
+                // o que vai ocupá-lo, e por que está vazio. A diferença
+                // importa num produto cujo argumento é não preencher o que
+                // não sabe — a ausência precisa parecer decisão, não defeito.
+                //
+                // O contrato já está fechado: no dia em que `summaryExecutive`
+                // vier preenchido pela API, esta tela o exibe sem alteração
+                // nenhuma. Ver ROADMAP.md, seção 1.
+                // ─────────────────────────────────────────────────────────
+                <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50/60 p-4 dark:border-white/15 dark:bg-white/[0.02]">
+                  <p className="flex items-center gap-2 text-sm font-semibold">
+                    <Sparkles size={15} className="text-gray-400" />
+                    Espaço reservado para a síntese por IA
+                  </p>
+                  <p className="mt-1.5 text-xs leading-relaxed muted">
+                    {result.summary_note
+                      || 'Resumo executivo automático não é gerado nesta versão — exigiria um modelo de linguagem.'}
+                  </p>
+                  <p className="mt-2 text-xs leading-relaxed muted">
+                    Quando existir, um modelo lerá as matérias aprovadas desta edição e escreverá
+                    aqui o parágrafo de abertura — <strong>marcado como escrito por máquina</strong>,
+                    porque a diferença entre &quot;a mesa de análise avaliou&quot; e &quot;um modelo
+                    resumiu&quot; é a diferença entre um produto de inteligência e um gerador de
+                    texto. Até lá o campo fica vazio: preenchê-lo com texto plausível seria a única
+                    coisa que esta plataforma não faz.
+                  </p>
+                </div>
               )}
             {result.editor_note && (
               <blockquote className="editorial-quote mt-4">
@@ -556,6 +603,62 @@ function SourcesPanel({ open, onToggle }) {
           ))}
         </div>
       )}
+    </section>
+  )
+}
+
+/**
+ * As matérias com maior vínculo medido com o Brasil.
+ *
+ * Não é "as mais importantes" — importância é juízo. É densidade de vínculo:
+ * quantas entidades brasileiras concretas o texto menciona, e quantas ligações
+ * diretas ele tem com o acervo. O motivo aparece ao lado do número, sempre,
+ * porque um índice sem método declarado é um número que ninguém pode
+ * contestar — e portanto não vale nada.
+ */
+function RelevantesParaOBrasil() {
+  const r = useResource(() => request('GET /intel/brasil', { params: { days: 30 } }), [])
+  const itens = r.data?.maisBrasileiras || []
+
+  return (
+    <section className="card p-5">
+      <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
+        <Flag size={18} className="text-gold-500" />
+        Mais relevantes para o Brasil
+        <InfoTooltip text="Índice de 0 a 100 que mede densidade de vínculo com o país: órgãos, empresas, infraestrutura crítica, unidades da federação e setores brasileiros reconhecidos no texto, mais as correlações diretas com o acervo. Não é importância editorial nem risco." />
+      </h2>
+      <p className="mt-1 text-sm muted">
+        Inclui matéria estrangeira: o que conta é o quanto o texto toca coisas brasileiras
+        concretas, não de onde ele veio.
+      </p>
+
+      <DataState
+        loading={r.loading}
+        error={r.error}
+        empty={!itens.length}
+        onRetry={r.refetch}
+        emptyProps={{ icon: Flag, title: 'Sem matérias pontuadas no período', hint: 'O índice é calculado a cada coleta.' }}
+      >
+        <ul className="mt-4 space-y-2">
+          {itens.slice(0, 6).map((m) => (
+            <li key={m.id} className="flex items-start gap-3 rounded-lg border border-gray-200 p-3 dark:border-white/10">
+              <span
+                className="mt-0.5 shrink-0 rounded-md bg-gold-500/15 px-2 py-1 font-mono text-sm font-bold tabular-nums text-gold-700 dark:text-gold-300"
+                title="Índice de vínculo com o Brasil, de 0 a 100"
+              >
+                {m.br_score}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold leading-snug">{m.title}</span>
+                <span className="mt-0.5 block text-xs leading-relaxed muted">{m.br_motivo}</span>
+                <span className="mt-1 block text-[11px] muted">
+                  {m.fonte || 'Fonte'}{m.published_at ? ` · ${formatDateBR(m.published_at)}` : ''}
+                </span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </DataState>
     </section>
   )
 }
