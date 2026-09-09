@@ -22,6 +22,21 @@ export default function PageHeader({
   icon: Icon,
   title,
   description,
+  // ───────────────────────────────────────────────────────────────────────────
+  // `subtitle` É ALIAS DE `description`, E O ALIAS EXISTE POR UM MOTIVO
+  //
+  // O componente irmão `ChartPanel` chama esta mesma coisa de `subtitle`. A
+  // divergência já custou caro: o Mapa estratégico — a tela que abre o nível
+  // estratégico e é o centro do produto — e a de Correlações passavam
+  // `subtitle` aqui, e o React descartava a prop em silêncio. As duas telas
+  // apareciam com o título nu, sem uma linha dizendo o que mostram, e nada
+  // avisava: prop desconhecida não é erro, é nada.
+  //
+  // Renomear `ChartPanel` custaria dez pontos de chamada e a próxima pessoa
+  // erraria de novo, no sentido contrário. Aceitar os dois nomes fecha a
+  // armadilha de vez, e a linha abaixo é o preço inteiro.
+  // ───────────────────────────────────────────────────────────────────────────
+  subtitle,
   help,
   breadcrumb,
   badges,
@@ -71,8 +86,8 @@ export default function PageHeader({
               {help && <InfoTooltip text={help} />}
               {badges}
             </div>
-            {description && (
-              <p className="mt-1 max-w-2xl text-sm leading-relaxed muted">{description}</p>
+            {(description || subtitle) && (
+              <p className="mt-1 max-w-2xl text-sm leading-relaxed muted">{description || subtitle}</p>
             )}
             {meta?.length > 0 && (
               <dl className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs">

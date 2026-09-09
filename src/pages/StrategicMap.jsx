@@ -42,7 +42,7 @@ export default function StrategicMap() {
       <PageHeader
         icon={Globe2}
         title="Mapa estratégico"
-        subtitle="Que países o acervo está mencionando, e o que cada um tem a ver com o Brasil. Cobertura noticiosa cruzada com as vítimas de ransomware do território, pelo código ISO."
+        description="Que países o acervo está mencionando, e o que cada um tem a ver com o Brasil. Cobertura noticiosa cruzada com as vítimas de ransomware do território, pelo código ISO."
         breadcrumb={[{ label: 'Estratégico' }, { label: 'Mapa' }]}
       />
 
