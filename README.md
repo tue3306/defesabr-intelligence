@@ -79,9 +79,11 @@ coleta — a contagem exata do momento está na tela de Ameaças Cibernéticas.
 
 **O alerta genérico não ajuda.** Um boletim de vulnerabilidades lista as
 centenas de CVEs críticos do mês. Aqui a lista é cruzada: apenas as
-vulnerabilidades que grupos **com vítima brasileira registrada** sabem
-explorar — algumas dezenas, com o CVSS, o produto afetado e quem as usa. A
-priorização sai do cruzamento, não de um juízo sobre gravidade.
+vulnerabilidades que grupos **com vítima brasileira registrada** sabem explorar.
+A priorização sai do cruzamento, não de um juízo sobre gravidade — e ela aparece
+no perfil de cada grupo, respondendo *como este grupo entra*, em vez de como
+tabela solta de identificadores (ver [o que saiu da tela de
+grupos](#o-que-saiu-da-tela-de-grupos-e-por-quê)).
 
 <sub>Aqui não há número fixo de propósito. Esta linha já disse "hoje 36"
 enquanto a plataforma servia 72: um número escrito à mão sobre um acervo que a
@@ -192,20 +194,107 @@ O método inteiro é publicado em `GET /api/intel/metodo`.
 
 ---
 
+## Três altitudes: estratégico, tático, operacional
+
+A navegação era agrupada por tipo de artefato — "Inteligência & Análise",
+"Dados & Relatórios" —, e isso punha lado a lado coisas que não se parecem em
+uso. O Clipping Diário e a tela de incidentes cibernéticos ficavam na mesma
+seção, e respondem perguntas de altitude completamente diferente: um dá o
+panorama do país, o outro nomeia a prefeitura invadida na terça.
+
+O menu passou a seguir os três níveis que a doutrina de inteligência já separa,
+porque a separação corresponde a **quem pergunta** e a **que decisão** a
+resposta serve.
+
+| Nível | Horizonte | A pergunta | Telas |
+|---|---|---|---|
+| **Estratégico** | longo, agregado, sem nome próprio | *Como está o Brasil?* | **Mapa estratégico** · Economia & Defesa · Base Industrial · Radar Legislativo · Séries |
+| **Tático** | médio, por setor ou recorte | *O que acontece nesta área?* | Clipping Diário · Correlações · Confiabilidade das Fontes · Arquivo |
+| **Operacional** | curto, com nome e data | *O que aconteceu, com quem, quando?* | Incidentes no Brasil · Grupos contra o Brasil |
+
+A mesma matéria pode aparecer nos três, em profundidades diferentes: um ataque a
+uma secretaria estadual é um incidente no operacional, entra na contagem do
+setor no tático e move o mapa do estado no estratégico. Não é taxonomia de
+conteúdo — é uma escada, e o menu passou a dizer em que degrau cada tela está.
+
+### O mapa é o centro do nível estratégico
+
+Ele vivia dentro de uma aba de "Dados & Gráficos", entre um gráfico de barras e
+um comparativo de PIB, enterrado como se fosse mais um gráfico. É a peça que
+melhor responde à pergunta estratégica, e a única tela que cruza **duas fontes
+independentes** pelo código ISO: a cobertura noticiosa que a coleta produz e as
+vítimas de ransomware que os próprios grupos divulgam. Nenhuma das duas sabe da
+outra; o cruzamento é o produto.
+
+Agora tem página própria em **`/mapa`**, com o recorte brasileiro do período ao
+lado — setores sob pressão, estados com órgão atacado, entidades mais citadas.
+O Brasil sai da escala de cor e ganha a cor da marca com o selo *âncora*: ele é
+citado em quase toda matéria do acervo, e usá-lo como teto pintaria o resto do
+mundo de cinza — a Venezuela com seis menções viraria 3% do Brasil com
+duzentas, e o mapa deixaria de distinguir qualquer coisa.
+
+### Notícia de fora que importa aqui
+
+Cada matéria recebe um **índice de vínculo com o Brasil**, de 0 a 100, que mede
+densidade de vínculo e não importância: órgãos, empresas, infraestrutura
+crítica, unidades da federação e setores brasileiros reconhecidos no texto, mais
+as correlações diretas com o acervo.
+
+É o que resolve a pergunta do noticiário estrangeiro. Uma matéria sobre a Rússia
+que cita a Embraer e o Ministério da Defesa pontua alto; uma sobre a Rússia que
+não toca nada brasileiro, zero. Sem julgamento editorial no meio — e o motivo do
+índice viaja ao lado do número na tela, porque índice sem método declarado é
+número que ninguém pode contestar.
+
+### O que saiu da tela de grupos, e por quê
+
+Ela se chamava "Atores & Vulnerabilidades", e uma tabela de CVEs — identificador,
+CVSS, fabricante, produto — ocupava o primeiro terço da página. Estava
+tecnicamente correta e no lugar errado, por duas razões.
+
+**De público.** Um identificador de CVE só significa algo para quem opera a
+infraestrutura do alvo e vai aplicar a correção. Para quem acompanha segurança e
+defesa do Brasil, é ruído com aparência de rigor.
+
+**De proporção.** Colocada em primeiro lugar, empurrava para baixo o dado que
+só esta plataforma tem: **quais grupos atacaram o Estado brasileiro** — prefeitura,
+câmara municipal, secretaria estadual —, com nome e data, identificados pelo
+domínio da vítima (`.gov.br`, `.jus.br`, `.mil.br`), que é fato e não suposição.
+
+As vulnerabilidades **não sumiram — mudaram de altitude.** Continuam no perfil de
+cada grupo, onde respondem à pergunta certa (*como este grupo entra*), e o
+agregado continua no cartão. No lugar da tabela entrou a leitura brasileira, com
+frases derivadas de contagem: *"11 dos 25 grupos com atividade no Brasil já
+divulgaram dados de órgão público, judiciário ou militar"*.
+
+---
+
 ## O que ela entrega
 
 | | |
 |---|---|
 | **Correlações com o Brasil** | Cada matéria cruzada com as organizações atacadas, os grupos e os CVEs do acervo — com o motivo, a evidência literal e o impacto possível de cada ligação |
 | **Clipping consolidado** | Matérias de 50 fontes agrupadas por evento, com selo de quantos veículos cobriram cada fato e as fontes originais visíveis |
-| **Ameaças cibernéticas** | Organizações brasileiras divulgadas por grupos de ransomware, com criticidade derivada de domínio e setor, e o recorte do Estado em primeiro plano |
-| **Atores & vulnerabilidades** | Perfil de cada grupo com técnicas mapeadas ao MITRE ATT&CK, ferramentas e CVEs — e a lista de correção com prioridade real |
-| **Mapa navegável** | Cada país abre um dossiê: cobertura noticiosa com tendência, categorias, e as vítimas de ransomware do território |
+| **Clipping em PDF** | Documento agrupado por categoria, com o painel de alerta e sua distribuição, e cada matéria trazendo fonte, data, endereço original e os termos que a aprovaram |
+| **Incidentes no Brasil** | Organizações brasileiras divulgadas por grupos de ransomware, com criticidade derivada de domínio e setor, e o recorte do Estado em primeiro plano |
+| **Grupos contra o Brasil** | Quem ataca, quantas organizações brasileiras já expôs e se atingiu o Estado — com técnicas MITRE ATT&CK, ferramentas e as vulnerabilidades de cada grupo no perfil dele |
+| **Mapa estratégico** | Página própria no nível estratégico. Cada país abre um dossiê: cobertura noticiosa com tendência, categorias e as vítimas de ransomware do território |
 | **Radar legislativo** | Proposições de defesa em tramitação, dos Dados Abertos da Câmara |
 | **Séries econômicas** | Gasto militar (World Bank), câmbio e juros (Banco Central), exportações da indústria de defesa (Comex Stat) |
 
 Todo painel declara a origem da sua série. Quando uma fonte não responde, a
 tela mostra a ausência — nunca um número plausível no lugar.
+
+> **O nível de alerta marcava CRÍTICO 100/100 todo dia, e o erro não era na
+> fórmula.** A média ponderada estava certa; a **população** estava errada. Ele
+> era calculado sobre a lista que o clipping já havia montado — e essa lista sai
+> ordenada por urgência e cortada em `LIMIT 20`. Os vinte itens que chegavam ao
+> cálculo eram, por construção, os vinte mais urgentes do período: havendo vinte
+> críticos no acervo, a média de vinte pesos 100 dá exatamente 100. Um indicador
+> que nunca varia não informa nada, e gasta o degrau mais alto da escala em
+> rotina. Passou a medir a janela inteira e a devolver a distribuição junto —
+> hoje, **ATENÇÃO 40/100** sobre 120 ocorrências (`{BAIXO: 64, MÉDIO: 23,
+> CRÍTICO: 21, ALTO: 12}`).
 
 ---
 
@@ -259,47 +348,52 @@ Não há chave de API a configurar. Não há arquivo `.env` obrigatório.
 
 ### Os quatro perfis
 
-São quatro perfis, e cada um responde a uma pergunta diferente:
+São quatro, e cada um responde a uma pergunta diferente:
 
 | Perfil | A pergunta dele | Tela própria | Barrado em |
 |---|---|---|---|
-| **Visitante** | vale a pena entrar? | landing, planos, centro educacional | todo o resto |
-| **Usuário** (Marina) | o que aconteceu? | painel de situação, clipping, mapas, busca | `/coleta` e `/fontes` (papel) · legislativo (plano) |
-| **Analista** (Ana) | a coleta está saudável? | **Mesa de análise** + **Método & Coleta** | `/admin` |
-| **Administrador** (Rafael) | a plataforma está de pé? | **Console de governança** | — |
+| **Visitante** | vale a pena entrar? | apresentação, níveis de acesso, centro educacional | todo o resto |
+| **Usuário** | o que aconteceu? | os três níveis de inteligência, mapa, clipping, busca | `/coleta`, `/fontes` e `/admin` |
+| **Analista** | a coleta está saudável? | **Mesa de análise** + **Método & Coleta** | `/admin` |
+| **Administrador** | a plataforma está de pé? | **Console de governança** | — |
 
 As credenciais das duas contas iniciais estão em
-[Entre e veja](#entre-e-veja), no topo. Os planos que acompanham cada uma são
-`explorar`, `profissional` e `institucional`, nessa ordem.
+[Entre e veja](#entre-e-veja), no topo. Visitante e Analista são **arquétipos**,
+não contas: descrevem o que cada papel enxerga. O Administrador alcança o
+Analista por herança (`admin` > `analyst` > `user`), então nenhuma tela fica
+inacessível por não existir uma terceira conta.
 
-O **Cadastro** também funciona e cria conta de verdade: senha guardada como
-hash *scrypt* com sal por conta. Toda conta nova nasce com papel `user` —
-promover alguém é ato de governança, não de autoformulário.
+O **Cadastro** cria conta de verdade: senha guardada como hash *scrypt* com sal
+por conta. Toda conta nova nasce com papel `user` — promover alguém é ato de
+governança, não de autoformulário.
 
 > **A verificação acontece no SERVIDOR.** O login devolve um token HMAC-SHA256
 > com papel e validade; cada rota protegida passa por `exigirPapel()`, que
 > responde **401** sem sessão e **403** com papel insuficiente. Trocar o papel
 > no `localStorage` não abre nada — ele vem do token assinado, não do cliente.
-> `npm run check:auth` percorre quatro identidades contra cada rota protegida e confere
-> o código de cada resposta — inclusive nas rotas que MUDAM estado, que é
-> onde a ausência de guarda custa caro.
+> `npm run check:auth` percorre quatro identidades contra cada rota protegida e
+> confere o código de cada resposta — inclusive nas rotas que MUDAM estado, que
+> é onde a ausência de guarda custa caro.
 
-#### Os dois eixos de permissão
+#### Não há plano, porque não há cobrança
 
-Confundi-los foi a causa de os perfis parecerem iguais, e vale registrar:
+O modelo de permissão nasceu com **dois eixos** — PAPEL (o que a pessoa faz) e
+PLANO (o quanto ela vê) —, e o segundo existia para sustentar uma assinatura
+que nunca existiu: preços em três colunas, desconto anual de 17%, faturas
+desenhadas no navegador com cartão terminado em 4242.
 
-- **PAPEL** governa *ferramenta de trabalho*. Auditar o filtro e monitorar a
-  coleta são do Analista; o console de governança é do Administrador. Nenhuma
-  assinatura os destrava, e por isso esses itens **somem** do menu em vez de
-  aparecerem com cadeado — oferecer com cadeado o que dinheiro nenhum abre é
-  upsell falso.
-- **PLANO** governa *profundidade de leitura*. Radar legislativo, exportação,
-  filtros avançados e modo apresentação aparecem com cadeado para quem não
-  assina, porque assinar realmente os libera.
+Sendo o projeto de código aberto, **toda conta nasce com o nível de leitura
+completo** (`institucional`), e o que separa os perfis é só o papel. O eixo do
+plano permanece no código por dois motivos concretos, nenhum deles comercial:
 
-A conta do Usuário tinha plano `profissional`, que liberava POR
-PLANO exatamente o que o Analista tem POR PAPEL — era essa a razão de as duas
-visões serem indistinguíveis.
+- o servidor devolve a coluna `plan` no login, e ela viaja no token;
+- a página **Níveis de acesso** (`/planos`) usa esse eixo para **ver a
+  plataforma pelos olhos de quem tem menos acesso** — que é a única forma de
+  conferir se uma tela bloqueada explica o motivo em vez de aparecer vazia.
+
+A conta do Usuário tinha nível `profissional`, que liberava POR PLANO
+exatamente o que o Analista tem POR PAPEL. Era essa a razão de as duas visões
+parecerem idênticas, e foi ela que motivou separar os eixos em vez de somá-los.
 
 ### Outros comandos
 
@@ -414,7 +508,7 @@ A regra está em [`server/src/lib/relevance.js`](server/src/lib/relevance.js),
 filtro cujo critério não se pode inspecionar é indistinguível de uma escolha
 editorial não declarada.
 
-**Três armadilhas, todas encontradas testando contra o acervo real:**
+**Quatro armadilhas, todas encontradas testando contra o acervo real:**
 
 1. **Substring sem fronteira** — procurar `abin` casava dentro de `gabinete`;
    `zee` casava com dezenas de palavras. Todo termo passou a ser testado com
@@ -430,6 +524,27 @@ editorial não declarada.
    Armadas" uma vez, no nono parágrafo. O termo é inequívoco e está lá de
    verdade, mas não é o assunto. Por isso a **posição** conta: termo forte
    sozinho precisa estar nos primeiros 420 caracteres.
+
+4. **O rodapé do veículo, e o singular.** Duas descobertas do mesmo lote, e as
+   duas com número medido no acervo:
+
+   - **9% dos resumos terminavam com a assinatura do WordPress** — *"O post
+     &lt;título inteiro&gt; apareceu primeiro em DefesaNet ."* — 113 de 1.136.
+     Ela repete o título e acrescenta o nome do veículo que o cartão já mostra,
+     gastando a segunda linha do resumo com nada. Pior: como o nome do veículo
+     entrava no texto avaliado, **"Poder Naval" no rodapé qualificava a matéria**
+     — o termo é forte, e estava lá por ser a assinatura, não o assunto.
+   - **Os termos de meios estavam só no singular**, e a fronteira de palavra não
+     perdoa: `fragata` não casa em *"fragatas"*. Encomenda de meio militar vem em
+     lote, então a imprensa escreve no plural — *"Suécia assina contrato para
+     quatro fragatas FDI"* ficava de fora.
+
+   Corrigir os dois juntos era obrigatório: sozinho, o corte do rodapé teria
+   derrubado 18 matérias legítimas que só passavam pelo nome do veículo. Com os
+   plurais e os termos que faltavam (`míssil`, `destróier`, `navios de guerra`,
+   `Ormuz`, `Malvinas`, marinhas estrangeiras), o saldo medido foi **+9 matérias
+   corretamente admitidas e −2 removidas** — uma delas *"Star Trek 60 anos: a
+   evolução do cruzador estelar USS Enterprise"*, que nunca deveria ter entrado.
 
 A proporção aprovada fica em torno de um terço do coletado — as fontes são
 generalistas, e a maior parte do que elas publicam não é defesa. O número
@@ -670,18 +785,26 @@ Todas as variáveis disponíveis estão em [`.env.example`](.env.example).
 
 ## Próxima etapa
 
-Deliberadamente fora desta versão, e com a arquitetura já preparada para recebê-las:
+Deliberadamente fora desta versão, e com a arquitetura já preparada para
+recebê-las:
 
-- **Integração com OpenAI** — resumo executivo, síntese de período e
-  classificação semântica. O campo `summaryExecutive` já existe na API,
-  devolvendo `null` com a nota explicando por quê.
-- **Autenticação no servidor** — os perfis, o mapa de permissões e as telas que
-  se adaptam a cada um já existem; falta a metade de trás. O esquema já isola o
-  que seria por usuário (os favoritos usam um identificador de navegador), então
-  acrescentar sessão e checagem por rota não exige remodelar o banco.
-- **Conteúdo analítico** — dossiês, matriz de risco e narrativas foram
-  removidos por não terem fonte. Voltam quando houver fluxo de redação com
-  autoria registrada, o que depende do item acima.
+- **Síntese por IA no clipping** — o espaço já está reservado na tela, descrito e
+  vazio; o campo `summaryExecutive` já existe na API devolvendo `null` com a nota
+  que explica por quê. Quando o modelo entrar, a tela o exibe sem alteração
+  nenhuma — e o texto vem **marcado como escrito por máquina**, porque a
+  diferença entre "a mesa de análise avaliou" e "um modelo resumiu" é a diferença
+  entre um produto de inteligência e um gerador de texto.
+- **Entrar com conta Google** — `users.auth_provider`, `users.email` e o campo de
+  entrada que aceita usuário **ou** e-mail já existem. Falta o provedor; nada no
+  banco precisa mudar para recebê-lo.
+- **Ciclo de vida da conta** — recuperação de senha e confirmação de e-mail. A
+  autenticação em si é real (scrypt, token assinado, papel conferido por rota),
+  mas quem esquecer a senha ainda não tem por onde redefini-la.
+- **Conteúdo analítico** — dossiês, matriz de risco e narrativas foram removidos
+  por não terem fonte. Voltam quando houver fluxo de redação com autoria
+  registrada.
+
+Ver [ROADMAP.md](ROADMAP.md) para o detalhe de cada um e onde encaixa.
 
 ---
 
