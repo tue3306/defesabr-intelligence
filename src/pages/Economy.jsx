@@ -48,7 +48,7 @@ export default function Economy() {
         title="Economia & Defesa"
         description="Indicadores do Banco Central atualizados no dia e o comparativo de gasto em defesa entre países, do World Bank."
         help="Orçamento de defesa é decisão política, mas sua execução real depende de câmbio, inflação e espaço fiscal — por isso estes indicadores aparecem aqui."
-        breadcrumb={[{ label: 'Dados & Relatórios' }, { label: 'Economia & Defesa' }]}
+        breadcrumb={[{ label: 'Estratégico' }, { label: 'Economia & Defesa' }]}
         badges={<Badge type={vizinhanca.aoVivo ? 'live' : 'sem-dado'} />}
       />
 

@@ -1,4 +1,3 @@
-import { textoSobre } from '../utils/textUtils'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
@@ -218,10 +217,10 @@ export default function DataCharts() {
     <div className="space-y-6">
       <PageHeader
         icon={BarChart3}
-        title="Dados & Gráficos"
+        title="Séries e indicadores"
         description="As séries que sustentam a leitura de conjuntura: volume noticioso, esforço orçamentário e exposição a risco. Cada gráfico declara o que mostra e de onde vem."
         help="Cada painel declara a sua fonte e o que ela mede. Quando o servidor não responde, o painel mostra a ausência — nenhuma série é substituída por valores de exemplo."
-        breadcrumb={[{ label: 'Painel', to: '/painel' }, { label: 'Dados & Gráficos' }]}
+        breadcrumb={[{ label: 'Estratégico' }, { label: 'Séries e indicadores' }]}
         badges={<Badge type={gasto.aoVivo ? 'live' : 'sem-dado'} />}
         meta={[
           { label: 'Origem', value: gasto.aoVivo ? 'World Bank, via servidor' : 'indisponível' },

@@ -122,7 +122,7 @@ export default function App() {
           <Route path="/clipping" element={<Guarded scope="Clipping Diário"><DailyClipping /></Guarded>} />
           <Route path="/correlacoes" element={<Guarded scope="Correlações"><Correlations /></Guarded>} />
           <Route path="/mapa" element={<Guarded scope="Mapa estratégico"><StrategicMap /></Guarded>} />
-          <Route path="/dados" element={<Guarded scope="Dados & Gráficos"><DataCharts /></Guarded>} />
+          <Route path="/dados" element={<Guarded scope="Séries e indicadores"><DataCharts /></Guarded>} />
           <Route path="/economia" element={<Guarded scope="Economia & Defesa"><Economy /></Guarded>} />
           <Route path="/arquivo" element={<Guarded scope="Arquivo & Pasta"><Archive /></Guarded>} />
           <Route path="/notificacoes" element={<Guarded scope="Notificações"><Notifications /></Guarded>} />
@@ -147,7 +147,7 @@ export default function App() {
           {/* ── ADMINISTRADOR — governança ── */}
           <Route
             path="/ciberameacas"
-            element={<Guarded scope="Ameaças Cibernéticas"><CyberThreats /></Guarded>}
+            element={<Guarded scope="Incidentes no Brasil"><CyberThreats /></Guarded>}
           />
           <Route
             path="/atores"

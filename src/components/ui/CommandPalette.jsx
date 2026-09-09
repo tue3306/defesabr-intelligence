@@ -6,7 +6,7 @@ import {
   Tv, GraduationCap, Settings, HelpCircle, Bell, Moon, Sun, CornerDownLeft, Home,
   Sparkles, DollarSign, Target, Waves, Shield, Scale, Factory, Layers, Radio,
   Landmark, CalendarDays, BadgeCheck, Compass, ShieldAlert, FileText, ClipboardList,
-  ShieldCheck, UserCircle, Lock,
+  ShieldCheck, UserCircle, Lock, Globe2, Link2, Crosshair,
 } from 'lucide-react'
 import { useTheme } from '../../hooks/useTheme'
 import { useAuthStore } from '../../store/authStore'
@@ -21,7 +21,19 @@ import { normalize } from '../../utils/semanticSearch'
 // em vez de sumir sem explicação ou levar a uma tela de bloqueio surpresa.
 // -----------------------------------------------------------------------------
 
-const GROUPS = ['Navegação', 'Inteligência', 'Brasil Estratégico', 'Produção', 'Conta', 'Ações']
+// ─────────────────────────────────────────────────────────────────────────────
+// OS GRUPOS SÃO OS TRÊS NÍVEIS, NA ORDEM DA ESCADA
+//
+// Eram "Inteligência" e "Brasil Estratégico" — dois rótulos que não existem em
+// lugar nenhum do menu, herdados da organização por tipo de artefato. Pior: a
+// paleta é o caminho mais rápido para qualquer tela e NÃO ALCANÇAVA quatro
+// delas — o Mapa estratégico (que é o centro do produto), as Correlações, os
+// Incidentes no Brasil e os Grupos contra o Brasil. Quem usasse Ctrl+K para
+// navegar concluiria que não existem.
+//
+// A ordem é a da altitude: do quadro do país ao incidente com nome e data.
+// ─────────────────────────────────────────────────────────────────────────────
+const GROUPS = ['Navegação', 'Estratégico', 'Tático', 'Operacional', 'Produção', 'Conta', 'Ações']
 
 export default function CommandPalette() {
   const navigate = useNavigate()
@@ -40,21 +52,27 @@ export default function CommandPalette() {
       // Navegação
       { id: 'inicio', group: 'Navegação', label: 'Ir para o Início', icon: Home, run: go('/') },
       { id: 'painel', group: 'Navegação', label: 'Abrir Painel', icon: LayoutDashboard, run: go('/painel'), auth: true },
+      { id: 'busca', group: 'Navegação', label: 'Abrir Busca global', icon: Search, run: go('/busca'), auth: true },
       { id: 'planos', group: 'Navegação', label: 'Ver níveis de acesso', icon: Sparkles, run: go('/planos') },
       { id: 'aprender', group: 'Navegação', label: 'Abrir Centro Educacional', icon: GraduationCap, run: go('/aprender') },
       { id: 'sobre', group: 'Navegação', label: 'Sobre o projeto', icon: HelpCircle, run: go('/sobre') },
 
-      // Inteligência
-      { id: 'clipping', group: 'Inteligência', label: 'Abrir Clipping Diário', icon: Newspaper, run: go('/clipping'), auth: true },
-      { id: 'fontes', group: 'Inteligência', label: 'Abrir Confiabilidade das Fontes', icon: BadgeCheck, run: go('/fontes'), auth: true, cap: 'sources.reliability' },
-      { id: 'arquivo', group: 'Inteligência', label: 'Abrir Arquivo & Pasta', icon: ArchiveIcon, run: go('/arquivo'), auth: true },
-      { id: 'busca', group: 'Navegação', label: 'Abrir Busca global', icon: Search, run: go('/busca'), auth: true },
+      // Estratégico — o quadro do país. O mapa vem primeiro porque é o centro.
+      { id: 'mapa', group: 'Estratégico', label: 'Abrir Mapa estratégico', icon: Globe2, run: go('/mapa'), auth: true },
+      { id: 'economia', group: 'Estratégico', label: 'Abrir Economia & Defesa', icon: DollarSign, run: go('/economia'), auth: true },
+      { id: 'industria', group: 'Estratégico', label: 'Abrir Base Industrial (BID)', icon: Factory, run: go('/industria'), auth: true },
+      { id: 'legislativo', group: 'Estratégico', label: 'Abrir Radar Legislativo', icon: Landmark, run: go('/legislativo'), auth: true, cap: 'legislative.access' },
+      { id: 'dados', group: 'Estratégico', label: 'Abrir Séries e indicadores', icon: LineChart, run: go('/dados'), auth: true },
 
-      // Brasil Estratégico
-      { id: 'industria', group: 'Brasil Estratégico', label: 'Abrir Base Industrial (BID)', icon: Factory, run: go('/industria'), auth: true },
-      { id: 'legislativo', group: 'Brasil Estratégico', label: 'Abrir Radar Legislativo', icon: Landmark, run: go('/legislativo'), auth: true, cap: 'legislative.access' },
-      { id: 'dados', group: 'Brasil Estratégico', label: 'Abrir Dados & Gráficos', icon: LineChart, run: go('/dados'), auth: true },
-      { id: 'economia', group: 'Brasil Estratégico', label: 'Abrir Economia & Defesa', icon: DollarSign, run: go('/economia'), auth: true },
+      // Tático — setores e correlação.
+      { id: 'clipping', group: 'Tático', label: 'Abrir Clipping Diário', icon: Newspaper, run: go('/clipping'), auth: true },
+      { id: 'correlacoes', group: 'Tático', label: 'Abrir Correlações', icon: Link2, run: go('/correlacoes'), auth: true },
+      { id: 'fontes', group: 'Tático', label: 'Abrir Confiabilidade das Fontes', icon: BadgeCheck, run: go('/fontes'), auth: true, cap: 'sources.reliability' },
+      { id: 'arquivo', group: 'Tático', label: 'Abrir Arquivo & Pasta', icon: ArchiveIcon, run: go('/arquivo'), auth: true },
+
+      // Operacional — o incidente, com nome e data.
+      { id: 'ciberameacas', group: 'Operacional', label: 'Abrir Incidentes no Brasil', icon: ShieldAlert, run: go('/ciberameacas'), auth: true },
+      { id: 'atores', group: 'Operacional', label: 'Abrir Grupos contra o Brasil', icon: Crosshair, run: go('/atores'), auth: true },
 
       // Produção
       { id: 'apresentacao', group: 'Produção', label: 'Iniciar modo apresentação', icon: Tv, run: go('/apresentacao'), auth: true, cap: 'presentation.mode' },

@@ -119,7 +119,7 @@ export default function SourceReliability() {
           ? 'Disponibilidade medida de cada fonte: quantas vezes respondeu quando o coletor a procurou, e quanto do que entregou passou pelo filtro de relevância.'
           : 'Quanta verificação adicional cada fonte exige antes de virar análise — por proximidade da informação original, histórico e transparência de método.'}
         help="Com o servidor no ar, a pontuação é DISPONIBILIDADE medida: a proporção de vezes em que a fonte respondeu quando o coletor a procurou, mais o que ela entregou. Não julga a qualidade do jornalismo — uma fonte excelente que sai do ar pontua baixo, e isso é o que o número quer dizer. Sem servidor, cai para a avaliação editorial do acervo local."
-        breadcrumb={[{ label: 'Inteligência' }, { label: 'Confiabilidade das Fontes' }]}
+        breadcrumb={[{ label: 'Tático' }, { label: 'Confiabilidade das Fontes' }]}
         badges={<Badge type={aoVivo ? 'live' : 'sem-dado'} />}
         actions={
           <Can do="reports.export">

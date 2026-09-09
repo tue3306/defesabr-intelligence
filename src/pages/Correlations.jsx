@@ -107,6 +107,7 @@ export default function Correlations() {
         icon={Link2}
         title="Correlações"
         subtitle="O que cada notícia tem a ver com o resto do que a plataforma sabe sobre o Brasil — com a evidência de cada ligação à vista."
+        breadcrumb={[{ label: 'Tático' }, { label: 'Correlações' }]}
       />
 
       {/* ── O PANORAMA DO PAÍS ── */}

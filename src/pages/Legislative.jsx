@@ -62,7 +62,10 @@ export default function Legislative() {
   const [sort, setSort] = useState('stage')
   const [open, setOpen] = useState(null)
 
-  const items = data?.items || []
+  // Memoizado porque esta lista entra nas dependências de um `useMemo` abaixo:
+  // `data?.items || []` devolveria um array novo a cada render, o que invalidaria o memo
+  // em todo render e o tornaria pior que nenhum.
+  const items = useMemo(() => data?.items || [], [data])
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase()
@@ -118,7 +121,7 @@ export default function Legislative() {
         title="Radar Legislativo"
         description="Proposições em tramitação no Congresso Nacional que alteram capacidade, orçamento ou regras de emprego das Forças Armadas."
         help="As proposições vêm da API de Dados Abertos da Câmara dos Deputados, buscadas por 13 palavras-chave de defesa. O estágio de tramitação é derivado do texto oficial de situação. A RELEVÂNCIA para a defesa não é preenchida: classificá-la exige ler a proposição e decidir o que ela significa, e o servidor não faz esse juízo."
-        breadcrumb={[{ label: 'Brasil Estratégico' }, { label: 'Radar Legislativo' }]}
+        breadcrumb={[{ label: 'Estratégico' }, { label: 'Radar Legislativo' }]}
         badges={<Badge type={meta?.source === 'live' ? 'live' : 'sem-dado'} />}
         actions={
           <Can do="reports.export">

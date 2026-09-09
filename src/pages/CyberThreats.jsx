@@ -54,10 +54,10 @@ export default function CyberThreats() {
     <div className="space-y-6">
       <PageHeader
         icon={ShieldAlert}
-        title="Ameaças Cibernéticas"
-        description="Organizações brasileiras divulgadas por grupos de ransomware, com o Estado em primeiro plano e o quadro global como referência."
+        title="Incidentes no Brasil"
+        description="Organizações brasileiras divulgadas por grupos de ransomware, com o Estado em primeiro plano e o quadro global como referência. Nível operacional: cada linha tem nome e data."
         help="Os registros vêm dos sites de extorsão dos próprios grupos, indexados pelo ransomware.live. Aparecer aqui é reivindicação de ataque, não confirmação da vítima."
-        breadcrumb={[{ label: 'Inteligência' }, { label: 'Ameaças Cibernéticas' }]}
+        breadcrumb={[{ label: 'Operacional' }, { label: 'Incidentes no Brasil' }]}
         badges={<Badge type={d?.acervo ? 'live' : 'sem-dado'} />}
         actions={
           <div className="flex gap-1 rounded-lg border border-gray-300 p-0.5 dark:border-white/15">
