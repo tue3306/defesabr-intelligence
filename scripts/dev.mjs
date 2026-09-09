@@ -45,7 +45,12 @@ const filhos = []
  */
 function ambientePara(nome) {
   if (nome !== 'web') return process.env
-  const { PORT, ...resto } = process.env
+  // O filho precisa herdar o ambiente SEM a porta do pai, senão o Vite tenta
+  // subir na porta da API. Copiar e apagar diz isso diretamente; o
+  // destructuring com resto exigia nomear uma variável só para descartá-la, e
+  // uma variável que existe para não ser usada é sempre um enigma para quem lê.
+  const resto = { ...process.env }
+  delete resto.PORT
   return resto
 }
 

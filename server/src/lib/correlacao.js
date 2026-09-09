@@ -1,6 +1,6 @@
 import { all, get } from '../db/index.js'
 import { normalizar } from './relevance.js'
-import { detectarEntidades, setorEquivalente, SETORES } from './entidades.js'
+import { detectarEntidades, SETORES } from './entidades.js'
 import { UFS } from './geo.js'
 
 // -----------------------------------------------------------------------------

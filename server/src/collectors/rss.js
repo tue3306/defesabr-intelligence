@@ -1,4 +1,4 @@
-import { all, get, run, insert, agora, transacao } from '../db/index.js'
+import { all, get, run, agora, transacao } from '../db/index.js'
 import { buscarTexto } from '../lib/fetcher.js'
 import { parseFeed } from '../lib/feedParser.js'
 import { urlSegura } from '../lib/saneamento.js'

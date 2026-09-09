@@ -1,4 +1,4 @@
-import { run, get, transacao, agora } from '../db/index.js'
+import { run, get, transacao } from '../db/index.js'
 import { buscarJson } from '../lib/fetcher.js'
 
 // -----------------------------------------------------------------------------

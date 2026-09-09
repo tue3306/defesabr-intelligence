@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Shield, Cpu, Database, AlertTriangle, Github, Send, Star, GitFork, ExternalLink, Code2, Compass, Radar, Cog, Brain, Share2, Layers, PlugZap } from 'lucide-react'
 import { APP_VERSION } from '../services/config'

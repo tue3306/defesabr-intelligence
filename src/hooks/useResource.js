@@ -55,7 +55,18 @@ export function useResource(fetcher, deps = [], options = {}) {
 
   useEffect(() => {
     run()
-    return () => { requestId.current++ } // invalida em caso de desmontagem
+    // A REGRA `exhaustive-deps` ESTÁ ERRADA AQUI, e o silêncio é deliberado.
+    //
+    // Ela avisa que `requestId.current` "provavelmente terá mudado" quando a
+    // limpeza rodar, e pede que o valor seja copiado para uma variável dentro
+    // do efeito. Esse conselho vale quando o efeito quer o valor da MONTAGEM
+    // (um nó do DOM, por exemplo). Aqui é o oposto: o contador tem de ser
+    // incrementado a partir do valor ATUAL no instante da desmontagem — é
+    // exatamente assim que a resposta em voo é invalidada e não escreve estado
+    // num componente que já saiu. Congelar o valor reabriria a corrida que
+    // este ref existe para fechar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => { requestId.current++ }
   }, [run])
 
   return useMemo(

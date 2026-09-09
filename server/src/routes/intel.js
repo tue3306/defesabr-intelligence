@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { all, get } from '../db/index.js'
+import { all } from '../db/index.js'
 import { exigirPapel } from '../lib/auth.js'
 import { dias, limite } from '../lib/parametros.js'
 import { METODO_CORRELACAO } from '../lib/correlacao.js'

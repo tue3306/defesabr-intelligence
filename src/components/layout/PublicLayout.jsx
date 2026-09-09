@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Link, NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { LogIn, Menu, X, Sun, Moon, ArrowRight, UserPlus } from 'lucide-react'
 import Footer from './Footer'
 import Logo from '../ui/Logo'
 import AuthModal from '../auth/AuthModal'
 import ErrorBoundary from '../system/ErrorBoundary'
 import { useTheme } from '../../hooks/useTheme'
-import { useAuthStore } from '../../store/authStore'
 
 // -----------------------------------------------------------------------------
 // LAYOUT PÚBLICO — o que o VISITANTE vê. Sem menu lateral: só um cabeçalho
@@ -28,7 +27,6 @@ export default function PublicLayout() {
   const abrirAuth = (aba) => { setAuthAba(aba); setAuthAberto(true) }
   const [menuOpen, setMenuOpen] = useState(false)
   const { isDark, toggleTheme } = useTheme()
-  const navigate = useNavigate()
   const { pathname } = useLocation()
 
   // Fecha o menu ao navegar (evita menu preso aberto no mobile).

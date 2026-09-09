@@ -52,7 +52,10 @@ export default function AdminDashboard() {
   const usuarios = useResource(() => adminService.users(), [])
 
   // Contas por plano, contadas do que o servidor devolve.
-  const contas = usuarios.data?.items || []
+  // Memoizado porque esta lista entra nas dependências de um `useMemo` abaixo:
+  // `usuarios.data?.items || []` devolveria um array novo a cada render, o que invalidaria o memo
+  // em todo render e o tornaria pior que nenhum.
+  const contas = useMemo(() => usuarios.data?.items || [], [usuarios.data])
   const contasPorPlano = useMemo(() => {
     const conta = {}
     for (const u of contas) conta[u.plan || 'sem plano'] = (conta[u.plan || 'sem plano'] || 0) + 1
@@ -70,7 +73,10 @@ export default function AdminDashboard() {
 
   const servicos = saude.data?.services || []
   const operacionais = servicos.filter((x) => x.status === 'operational').length
-  const listaFontes = fontes.data?.items || []
+  // Memoizado porque esta lista entra nas dependências de um `useMemo` abaixo:
+  // `fontes.data?.items || []` devolveria um array novo a cada render, o que invalidaria o memo
+  // em todo render e o tornaria pior que nenhum.
+  const listaFontes = useMemo(() => fontes.data?.items || [], [fontes.data])
   const fontesOk = listaFontes.filter((f) => f.last_status === 'ok').length
 
   const user = useAuthStore((s) => s.user)

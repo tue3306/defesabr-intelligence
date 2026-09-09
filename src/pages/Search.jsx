@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Link, useSearchParams, useNavigate } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   Search as SearchIcon, Newspaper, Layers, ShieldAlert, Target, Radio,
   BadgeCheck, CalendarDays, Landmark, Archive, BookOpen, Compass,
@@ -59,7 +59,6 @@ function Highlight({ text = '', query = '' }) {
 // -----------------------------------------------------------------------------
 export default function Search() {
   const [params, setParams] = useSearchParams()
-  const navigate = useNavigate()
   const can = useCan()
 
   const urlQuery = params.get('q') || ''
@@ -87,7 +86,10 @@ export default function Search() {
 
   const suggestions = useResource(() => searchService.suggestions(), [])
 
-  const items = data?.items || []
+  // Memoizado porque esta lista entra nas dependências de um `useMemo` abaixo:
+  // `data?.items || []` devolveria um array novo a cada render, o que invalidaria o memo
+  // em todo render e o tornaria pior que nenhum.
+  const items = useMemo(() => data?.items || [], [data])
   const groups = data?.groups || []
 
   // Agrupa por tipo preservando a ordem canônica de SEARCH_TYPES.

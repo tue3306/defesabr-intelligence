@@ -949,7 +949,10 @@ function IntegracoesSection() {
 // =============================================================================
 function AuditoriaSection() {
   const { data, loading, error, refetch } = useResource(() => adminService.audit(), [])
-  const events = data?.items || []
+  // Memoizado porque esta lista entra nas dependências de um `useMemo` abaixo:
+  // `data?.items || []` devolveria um array novo a cada render, o que invalidaria o memo
+  // em todo render e o tornaria pior que nenhum.
+  const events = useMemo(() => data?.items || [], [data])
 
   const [level, setLevel] = useState('todos')
   const [actor, setActor] = useState('todos')
