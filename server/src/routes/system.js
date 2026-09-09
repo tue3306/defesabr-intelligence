@@ -105,12 +105,16 @@ router.post('/system/method/test', exigirPapel('analyst'), (req, res) => {
 })
 
 // GET /api/health — sonda de saúde (Railway)
+//
+// `deploy` responde a pergunta que `ok: true` não responde: não se o processo
+// está de pé, mas se é o processo CERTO. Ver a nota em `config.js`.
 router.get('/health', (req, res) => {
   res.json({
     ok: true,
     uptime: Math.round(process.uptime()),
     ambiente: config.ambiente,
     versao: config.versao,
+    deploy: config.deploy,
   })
 })
 
@@ -121,6 +125,7 @@ router.get('/meta', (req, res) => {
     versao: config.versao,
     node: process.version,
     ambiente: config.ambiente,
+    deploy: config.deploy,
     agendador: estadoDoAgendador(),
     fontes: [
       { nome: 'Ministério da Defesa', tipo: 'RSS', url: 'https://www.gov.br/defesa' },

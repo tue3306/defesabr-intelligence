@@ -749,6 +749,41 @@ Para subir a sua, basta conectar o repositório:
    do momento; e fixar `nodejs_22` deixaria a sorte decidir para qual 22.x o
    nixpkgs resolveria — parte dessa linha não tem `node:sqlite` sem flag
 
+### Qual commit está no ar
+
+`/api/health` responde com a identidade do deploy:
+
+```bash
+curl -s https://defesabr-intelligence-production-4693.up.railway.app/api/health
+```
+
+```json
+{ "ok": true, "uptime": 412, "ambiente": "production", "versao": "2.0.0",
+  "deploy": { "commit": "b977887", "branch": "main",
+              "deploymentId": "…", "subiuEm": "2026-09-09T23:54:47.554Z" } }
+```
+
+Compare `deploy.commit` com `git rev-parse --short origin/main`. Iguais, o que
+está no ar é o último push; diferentes, o Railway não rebuildou.
+
+**Isto existe porque a falta dele custou caro.** O serviço passou mais de uma
+hora servindo código antigo enquanto o repositório já tinha nove commits novos,
+e `/api/health` respondia `ok: true` o tempo inteiro — corretamente, porque o
+processo estava mesmo de pé. Ele só não era o processo que se esperava. *Está no
+ar* e *está atualizado* são perguntas diferentes, e uma sonda que só responde a
+primeira deixa a segunda sem dono.
+
+Localmente `deploy` é `null`: `npm start` na sua máquina não é um deploy e não
+tem commit associado. Os campos vêm de `RAILWAY_GIT_COMMIT_SHA`,
+`RAILWAY_GIT_BRANCH` e `RAILWAY_DEPLOYMENT_ID`, que o Railway injeta sozinho em
+todo deploy vindo do GitHub — não há nada a configurar.
+
+**Se os commits divergirem**, o push chegou ao GitHub e não virou deploy. Em
+*Settings → Source* do serviço, confira que o repositório está conectado, que a
+branch observada é `main` e que *Wait for CI* não está segurando a fila; em
+*Deployments*, um build vermelho aparece ali com o log. `Deploy` no canto
+superior direito força um a partir da `main` atual.
+
 **Por que `--include=dev` aparece duas vezes** (no `railway.json` e numa fase
 `[phases.install]` do `nixpacks.toml`): o Nixpacks roda a própria instalação
 **antes** do `buildCommand`, e com `NODE_ENV=production` no ambiente o npm pula
@@ -765,11 +800,15 @@ Nenhuma é obrigatória — o Railway injeta `PORT` e o servidor escuta em
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-Sem ela o servidor gera um segredo aleatório a cada boot, e toda sessão aberta
-cai no reinício — quem estava logado é deslogado a cada deploy. O padrão é
-esse de propósito: um segredo fixo no código seria público, porque este
-repositório é aberto, e qualquer pessoa poderia assinar um token de
-administrador. O servidor avisa no log quando está usando um segredo efêmero.
+Sem ela o servidor gera um segredo e o **guarda no banco**, então a sessão
+sobrevive a um reinício do processo. O que ela não sobrevive é um deploy: o
+disco do Railway é efêmero, o banco nasce vazio e o segredo é outro — quem
+estava logado cai. Definir `AUTH_SECRET` no painel resolve os dois casos de uma
+vez, e é a única coisa que resolve o segundo.
+
+Um segredo fixo no código não é alternativa: este repositório é aberto, e
+qualquer pessoa poderia assinar um token de administrador. O servidor diz no
+log de onde veio o segredo que está usando — ambiente, banco ou memória.
 
 **Sobre persistência:** o disco do Railway é efêmero. Sem um volume montado, o
 acervo é recoletado a cada deploy — o que leva ~5 segundos e não quebra nada.

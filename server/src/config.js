@@ -148,6 +148,42 @@ export const config = {
   },
 
   versao: process.env.npm_package_version || '2.0.0',
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // QUAL COMMIT ESTÁ NO AR
+  //
+  // Faltava a resposta mais básica que se pede a um serviço em produção, e a
+  // falta custou caro: o deploy passou mais de uma hora servindo código de
+  // versões anteriores enquanto o repositório já tinha nove commits novos, e
+  // não havia como perceber. `/api/health` respondia `ok: true` — porque o
+  // processo estava mesmo de pé; ele só não era o processo que se esperava.
+  //
+  // "Está no ar" e "está atualizado" são perguntas diferentes, e uma sonda que
+  // só responde a primeira deixa a segunda sem dono.
+  //
+  // O Railway injeta estas variáveis em todo deploy originado do GitHub, sem
+  // configuração nenhuma. Localmente elas não existem e o bloco vira `null` —
+  // que é a resposta correta: `npm start` na máquina de quem clona não é um
+  // deploy e não tem commit associado.
+  //
+  // Só o SHA curto sai na resposta. O SHA completo não acrescenta nada a quem
+  // compara com `git log`, e a mensagem de commit pode conter qualquer coisa
+  // que alguém escreveu — não é campo para servir em rota pública.
+  // ───────────────────────────────────────────────────────────────────────────
+  deploy: (() => {
+    const sha = process.env.RAILWAY_GIT_COMMIT_SHA || ''
+    const branch = process.env.RAILWAY_GIT_BRANCH || ''
+    const id = process.env.RAILWAY_DEPLOYMENT_ID || ''
+    if (!sha && !branch && !id) return null
+    return {
+      commit: sha ? sha.slice(0, 7) : null,
+      branch: branch || null,
+      deploymentId: id || null,
+      // Quando ESTE processo subiu. Junto do commit, responde "o deploy de
+      // agora é o do último push?" sem abrir o painel.
+      subiuEm: new Date(Date.now() - Math.round(process.uptime() * 1000)).toISOString(),
+    }
+  })(),
 }
 
 export default config
