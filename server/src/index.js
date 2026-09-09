@@ -18,6 +18,7 @@ function fecharBanco() {
   try { db.close() } catch { /* já fechado */ }
 }
 import { semearContas } from './routes/auth.js'
+import { segredoDaSessao } from './lib/auth.js'
 
 // -----------------------------------------------------------------------------
 // PONTO DE ENTRADA
@@ -49,13 +50,21 @@ const servidor = app.listen(config.port, config.host, async () => {
   console.log(`  Banco         ${config.dbPath}`)
   if (fontesCriadas) console.log(`  Fontes        ${fontesCriadas} cadastradas`)
   if (contasCriadas) console.log(`  Contas        ${contasCriadas} conta(s) inicial(is) criada(s)`)
+  // De onde veio o segredo que assina as sessoes. Quem hospeda precisa saber:
+  // 'banco' sobrevive a reinicio; 'memoria' nao.
+  const seg = segredoDaSessao()
+  if (seg.origem === 'banco-novo') {
+    console.log('  [2mSessões       segredo gerado e guardado no banco desta instalação[0m')
+  } else if (seg.origem === 'banco') {
+    console.log('  [2mSessões       segredo do banco — sobrevivem ao reinício[0m')
+  } else if (seg.origem === 'memoria') {
+    console.log('  [33mSessões       segredo em memória: caem a cada reinício (banco não gravável)[0m')
+  }
   if (config.auth.segredoFraco) {
     // Em amarelo, não em cinza: quem definiu a variável acredita ter
     // configurado a sessão, e precisa saber que ela foi RECUSADA.
     console.log('  [33mSessões       AUTH_SECRET tem menos de 16 caracteres e foi ignorado[0m')
     console.log('  [2m              Use uma string aleatoria longa; ha um gerador no README[0m')
-  } else if (!config.auth.segredoFixado) {
-    console.log('  [2mSessões       AUTH_SECRET não definido — expiram a cada reinício[0m')
   }
 
   // O front compilado existe?

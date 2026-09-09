@@ -34,20 +34,54 @@ const SELECT_BASE = `
 /**
  * Nível de alerta do período.
  *
- * Média ponderada das urgências, normalizada. A regra é exposta junto do
- * número porque um índice sem método declarado é um número que ninguém pode
- * contestar — e portanto não vale nada.
+ * ─────────────────────────────────────────────────────────────────────────
+ * ELE MARCAVA "CRÍTICO 100/100" SEMPRE, E A CULPA ERA DA AMOSTRA
+ *
+ * A função recebia `artigos` — a lista que o clipping já tinha montado. Só
+ * que essa lista é ordenada por urgência (`CASE urgency WHEN 'CRITICO' THEN 1
+ * …`) e cortada em `LIMIT 20`. Ou seja: os vinte itens que chegavam aqui eram,
+ * por construção, os vinte MAIS URGENTES do período. Havendo vinte críticos no
+ * acervo — e há —, a média de vinte pesos 100 dá exatamente 100.
+ *
+ * O painel exibia então "nível de alerta CRÍTICO · 100/100" todos os dias,
+ * independentemente do que estivesse acontecendo no país. Um indicador que
+ * nunca varia não informa nada; pior, gasta o degrau mais alto da escala em
+ * rotina, e quem o vê todo dia para de olhar — que é o oposto do que um
+ * alerta existe para fazer.
+ *
+ * Não era erro de fórmula: a média ponderada está certa. Era erro de
+ * POPULAÇÃO. A correção é medir sobre TODAS as ocorrências relevantes da
+ * janela, que é o universo sobre o qual a afirmação é feita.
+ * ─────────────────────────────────────────────────────────────────────────
+ *
+ * A regra é exposta junto do número porque um índice sem método declarado é um
+ * número que ninguém pode contestar — e portanto não vale nada.
  *
  * Sem ocorrências devolve `null`, não "NORMAL": ausência de dado não é calma.
+ *
+ * @param {Array} artigos  TODAS as ocorrências do período, não uma seleção
+ *   ordenada por urgência. Passar a lista já cortada reintroduz o viés.
  */
 export function nivelDeAlerta(artigos) {
   if (!artigos.length) {
-    return { level: null, score: null, basis: 'sem ocorrências no período' }
+    return { level: null, score: null, basis: 'sem ocorrências no período', distribuicao: null }
   }
   const peso = { CRITICO: 100, ALTO: 70, MEDIO: 40, BAIXO: 15 }
   const score = Math.round(artigos.reduce((s, a) => s + (peso[a.urgency] ?? 15), 0) / artigos.length)
   const level = score >= 80 ? 'CRITICO' : score >= 60 ? 'ALERTA' : score >= 35 ? 'ATENCAO' : 'NORMAL'
-  return { level, score, basis: `média ponderada de ${artigos.length} ocorrência(s) do período` }
+
+  // A distribuição viaja com o índice. Um número só não deixa ninguém
+  // discordar dele; "100 porque 20 de 20 eram críticos" deixa — e teria
+  // denunciado o viés no primeiro olhar, sem precisar ler o SQL.
+  const distribuicao = {}
+  for (const a of artigos) distribuicao[a.urgency || 'BAIXO'] = (distribuicao[a.urgency || 'BAIXO'] || 0) + 1
+
+  return {
+    level,
+    score,
+    basis: `média ponderada de ${artigos.length} ocorrência(s) relevante(s) do período`,
+    distribuicao,
+  }
 }
 
 // GET /api/news — feed com filtros
@@ -133,7 +167,13 @@ router.get('/news/clipping', (req, res) => {
   res.json({
     periodDays: days,
     generatedAt: new Date().toISOString(),
-    alert: nivelDeAlerta(artigos),
+    // ALERTA SOBRE A JANELA INTEIRA, e não sobre `artigos` — que vem
+    // ordenado por urgência e cortado em LIMIT. Ver `nivelDeAlerta`.
+    alert: nivelDeAlerta(all(
+      `SELECT urgency FROM articles
+        WHERE relevant = 1
+          AND published_at >= strftime('%Y-%m-%dT%H:%M:%SZ','now', '-${days} days')`
+    )),
     news: artigos.map(mapear),
     byCategory: porCategoria,
     byUrgency: porUrgencia,

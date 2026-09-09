@@ -1,6 +1,7 @@
 import { randomBytes, scrypt, timingSafeEqual, createHmac } from 'node:crypto'
 import { promisify } from 'node:util'
 import config from '../config.js'
+import { resolverSegredo } from './segredo.js'
 
 // -----------------------------------------------------------------------------
 // AUTENTICAÇÃO
@@ -64,8 +65,18 @@ export async function senhaConfere(senha, sal, hashEsperado) {
 
 const base64url = (buf) => Buffer.from(buf).toString('base64url')
 
+// O segredo e resolvido UMA VEZ, na primeira assinatura, e nao na carga do
+// modulo: `resolverSegredo()` toca o banco, e o banco so existe depois de
+// `migrate()`. Resolver no topo do arquivo criaria uma ordem de importacao
+// fragil — o tipo de dependencia implicita que este projeto ja pagou caro.
+let cache = null
+export function segredoDaSessao() {
+  if (!cache) cache = resolverSegredo()
+  return cache
+}
+
 function assinar(payloadB64) {
-  return createHmac('sha256', config.auth.segredo).update(payloadB64).digest('base64url')
+  return createHmac('sha256', segredoDaSessao().segredo).update(payloadB64).digest('base64url')
 }
 
 /**

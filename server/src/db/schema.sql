@@ -329,3 +329,19 @@ CREATE TABLE IF NOT EXISTS correlations (
 CREATE INDEX IF NOT EXISTS idx_corr_artigo ON correlations(article_id);
 CREATE INDEX IF NOT EXISTS idx_corr_forca  ON correlations(forca DESC);
 CREATE INDEX IF NOT EXISTS idx_corr_alvo   ON correlations(alvo_tipo, alvo_id);
+
+
+-- -----------------------------------------------------------------------------
+-- CONFIGURACAO PERSISTIDA
+--
+-- Pares chave/valor que precisam sobreviver ao reinicio do processo e que NAO
+-- fazem sentido como variavel de ambiente porque sao GERADOS pela propria
+-- instalacao — hoje, o segredo que assina os tokens de sessao.
+--
+-- Ver server/src/lib/segredo.js para o porque.
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS app_config (
+  chave      TEXT PRIMARY KEY,
+  valor      TEXT NOT NULL,
+  criado_em  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+);

@@ -8,11 +8,11 @@
 
 O que ameaça o país, antes de virar notícia.
 
-### [→ Ver a plataforma funcionando](https://defesabr-intelligence-production.up.railway.app/)
+### [→ Ver a plataforma funcionando](https://defesabr-intelligence-production-4693.up.railway.app/)
 
 <sub>No ar, com dado real, coletado nos últimos 30 minutos.</sub>
 
-[![Ver ao vivo](https://img.shields.io/badge/ver%20ao%20vivo-defesabr--intelligence-caa733?style=for-the-badge)](https://defesabr-intelligence-production.up.railway.app/)
+[![Ver ao vivo](https://img.shields.io/badge/ver%20ao%20vivo-defesabr--intelligence-caa733?style=for-the-badge)](https://defesabr-intelligence-production-4693.up.railway.app/)
 
 [![React 18](https://img.shields.io/badge/React-18-149eca?logo=react&logoColor=white)](https://react.dev/)
 [![Vite 5](https://img.shields.io/badge/Vite-5-646cff?logo=vite&logoColor=white)](https://vitejs.dev/)
@@ -622,7 +622,7 @@ desenho, não depois.
 ## Deploy no Railway
 
 Esta instância está no ar em
-**[defesabr-intelligence-production.up.railway.app](https://defesabr-intelligence-production.up.railway.app/)**,
+**[defesabr-intelligence-production-4693.up.railway.app](https://defesabr-intelligence-production-4693.up.railway.app/)**,
 publicada a cada push na `main`.
 
 Para subir a sua, basta conectar o repositório:

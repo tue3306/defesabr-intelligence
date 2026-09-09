@@ -12,22 +12,41 @@ import { request } from '../services/client'
 import { formatDateBR } from '../utils/dateUtils'
 
 // -----------------------------------------------------------------------------
-// ATORES E VULNERABILIDADES
+// GRUPOS CONTRA O BRASIL
 //
-// A tela de Ameaças respondia "o que foi atacado no Brasil". Esta responde a
-// outra metade, que é a que serve para defender: QUEM ATACA E COMO.
+// A tela de Incidentes responde "o que foi atacado no Brasil". Esta responde a
+// outra metade, que é a que serve para defender: QUEM ATACA, e o que já fez
+// aqui.
 //
-// A diferença é prática, não conceitual. Saber que o `akira` tem 19 vítimas
-// brasileiras é interessante. Saber que ele entra por credencial de VPN válida
-// (MITRE T1078) e explora CVE-2023-48788 no FortiClient, CVSS 9.8, é uma
-// tarefa para amanhã de manhã.
+// ─────────────────────────────────────────────────────────────────────────────
+// A LISTA DE CVEs SAIU DO CENTRO DA TELA
 //
-// A LISTA DE CVEs É O PRODUTO
+// Ela ocupava o primeiro terço da página: uma tabela de identificadores
+// (CVE-2023-48788), CVSS, fabricante e produto. Era tecnicamente correta e
+// estava no lugar errado, por duas razões.
 //
-// Não é "as vulnerabilidades críticas do mês" — isso qualquer boletim publica.
-// É o recorte cruzado: vulnerabilidades que grupos COM VÍTIMA BRASILEIRA
-// REGISTRADA sabem explorar. A priorização sai do cruzamento, não de uma
-// opinião sobre gravidade.
+// A PRIMEIRA é de público. Um identificador de CVE só significa alguma coisa
+// para quem opera infraestrutura e vai aplicar a correção. Esta plataforma é
+// sobre segurança e defesa do Brasil, e quem a lê quer saber quem está
+// atacando o país — não a numeração NVD de uma falha no FortiClient. Para o
+// leitor errado, a tabela é ruído com aparência de rigor.
+//
+// A SEGUNDA é de proporção. Colocada em primeiro lugar, ela empurrava para
+// baixo o dado que realmente distingue esta plataforma: QUAIS GRUPOS
+// ATACARAM O ESTADO BRASILEIRO. Prefeitura, câmara municipal, secretaria
+// estadual de saúde — órgãos públicos com vazamento divulgado, com nome e
+// data. Isso não existe pronto em lugar nenhum, e estava em segundo plano
+// atrás de uma lista que qualquer boletim de vulnerabilidade publica.
+//
+// AS VULNERABILIDADES NÃO SUMIRAM — mudaram de altitude. Continuam no perfil
+// de cada grupo, onde respondem a pergunta certa ("como este grupo entra"), e
+// o número agregado continua no cartão. O que saiu foi a tabela como
+// protagonista.
+//
+// O contexto brasileiro passou a vir junto: quantos grupos atacaram órgãos do
+// Estado, quantas organizações brasileiras cada um já expôs, e o que a
+// presença de uma vulnerabilidade conhecida significa para quem defende esses
+// alvos.
 // -----------------------------------------------------------------------------
 
 const SEV = {
@@ -45,91 +64,77 @@ export default function ThreatActors() {
   const lista = atores.data?.items || []
   const listaCves = cves.data?.items || []
   const comPerfil = lista.filter((a) => a.temPerfil).length
-  const criticos = listaCves.filter((c) => c.severidade === 'CRITICAL').length
+  const contraEstado = lista.filter((a) => a.contraEstado > 0).length
+  const totalVitimas = lista.reduce((soma, a) => soma + (a.vitimasBr || 0), 0)
 
   return (
     <div className="space-y-6">
       <PageHeader
         icon={Crosshair}
-        title="Atores & Vulnerabilidades"
-        description="Quem ataca organizações brasileiras, com as técnicas MITRE ATT&CK, as ferramentas e as vulnerabilidades que cada grupo sabe explorar."
+        title="Grupos contra o Brasil"
+        description="Quem ataca organizações brasileiras: quantas já expôs, se atingiu o Estado, e como entra — técnicas MITRE ATT&CK, ferramentas e vulnerabilidades conhecidas."
         help="Os perfis vêm do ransomware.live e cobrem apenas os grupos com vítima brasileira registrada no acervo."
-        breadcrumb={[{ label: 'Inteligência' }, { label: 'Atores & Vulnerabilidades' }]}
+        breadcrumb={[{ label: 'Operacional' }, { label: 'Grupos contra o Brasil' }]}
         badges={<Badge type={lista.length ? 'live' : 'sem-dado'} />}
       />
 
+      {/* A ORDEM DOS CARTOES MUDOU, e a ordem e o argumento.
+        *
+        * Vinha "Grupos · Vulnerabilidades · CVEs criticos · Estado". Os dois do
+        * meio eram contagem de CVE, o dado menos especifico desta plataforma —
+        * e empurravam para a ponta aquele que so ela tem: quantos grupos
+        * atingiram o Estado brasileiro. */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard icon={Crosshair} label="Grupos contra o Brasil" value={lista.length || '—'}
           hint={`${comPerfil} com perfil detalhado`} accent="amber" />
-        <MetricCard icon={Bug} label="Vulnerabilidades" value={listaCves.length || '—'}
-          hint="exploradas por esses grupos" accent={listaCves.length ? 'red' : 'green'} />
-        <MetricCard icon={ShieldAlert} label="CVEs críticos" value={criticos || '—'}
-          hint="severidade CRITICAL" accent={criticos ? 'red' : 'green'} />
-        <MetricCard icon={Landmark} label="Grupos que atacaram o Estado"
-          value={lista.filter((a) => a.contraEstado > 0).length || '—'}
+        <MetricCard icon={Landmark} label="Atacaram o Estado brasileiro"
+          value={contraEstado || '—'}
           hint="órgão público, judiciário ou militar" accent="red" />
+        <MetricCard icon={ShieldAlert} label="Organizações expostas" value={totalVitimas || '—'}
+          hint="somadas por estes grupos, no Brasil" accent="red" />
+        <MetricCard icon={Bug} label="Vulnerabilidades conhecidas" value={listaCves.length || '—'}
+          hint="que estes grupos sabem explorar" accent={listaCves.length ? 'amber' : 'green'} />
       </div>
 
-      {/* ── A LISTA DE CORREÇÃO ── */}
+      {/* ── O QUE ISSO SIGNIFICA PARA QUEM DEFENDE ──
+        *
+        * No lugar da tabela de CVEs, a leitura que ela nao dava: o que a
+        * presenca destes grupos significa para o alvo brasileiro. Cada frase
+        * abaixo e derivada de contagem do acervo, nao de opiniao. */}
       <section className="card p-5">
         <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-          <Bug size={18} className="text-red-600 dark:text-red-400" />
-          Vulnerabilidades a corrigir primeiro
-          <InfoTooltip text="Não é a lista de CVEs críticos do mês — é o cruzamento entre vulnerabilidades conhecidas e os grupos que têm vítima brasileira registrada. A prioridade sai do cruzamento, não de um juízo sobre gravidade." />
+          <Landmark size={18} className="text-red-600 dark:text-red-400" />
+          O que isto significa para o Brasil
+          <InfoTooltip text="Derivado do acervo desta plataforma: os grupos listados são os que têm vítima brasileira registrada, e as contagens saem dessas vítimas." />
         </h2>
-        <p className="mt-1 text-sm muted">
-          Ordenadas por quantos grupos as exploram e, em seguida, pelo CVSS. Um CVE que dois
-          grupos ativos no Brasil sabem usar vale mais atenção que um CVSS maior que ninguém aqui usa.
-        </p>
 
-        <DataState
-          loading={cves.loading}
-          error={cves.error}
-          empty={!listaCves.length}
-          onRetry={cves.refetch}
-          emptyProps={{ icon: Bug, title: 'Sem vulnerabilidades mapeadas', hint: 'Os perfis de ator ainda não foram coletados.' }}
-        >
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 text-left text-xs uppercase muted dark:border-white/10">
-                  <th className="py-2 pr-3 font-semibold">CVE</th>
-                  <th className="py-2 pr-3 font-semibold">CVSS</th>
-                  <th className="py-2 pr-3 font-semibold">Severidade</th>
-                  <th className="py-2 pr-3 font-semibold">Produto</th>
-                  <th className="py-2 font-semibold">Grupos que exploram</th>
-                </tr>
-              </thead>
-              <tbody>
-                {listaCves.map((c) => (
-                  <tr key={c.cve} className="border-b border-gray-100 dark:border-white/[0.06]">
-                    <td className="py-2 pr-3">
-                      <a
-                        href={`https://nvd.nist.gov/vuln/detail/${encodeURIComponent(String(c.cve).split(' ')[0])}`}
-                        target="_blank" rel="noopener noreferrer nofollow"
-                        className="inline-flex items-center gap-1 font-mono text-xs font-semibold text-brand-600 hover:underline dark:text-brand-300"
-                      >
-                        {String(c.cve).split(' ')[0]} <ExternalLink size={10} />
-                      </a>
-                    </td>
-                    <td className="py-2 pr-3 font-mono tabular-nums">{c.cvss ?? '—'}</td>
-                    <td className="py-2 pr-3">
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${SEV[c.severidade] || SEV.LOW}`}>
-                        {c.severidade || '—'}
-                      </span>
-                    </td>
-                    <td className="py-2 pr-3 text-xs">
-                      <strong>{c.fabricante || '—'}</strong>
-                      {c.produto ? ` · ${c.produto}` : ''}
-                    </td>
-                    <td className="py-2 text-xs muted">{c.grupos.join(', ')}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p className="mt-3 text-xs muted">{cves.data?.nota}</p>
-        </DataState>
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+          <Leitura
+            titulo="O Estado é alvo, não espectador"
+            corpo={contraEstado > 0
+              ? `${contraEstado} dos ${lista.length} grupos com atividade no Brasil já divulgaram dados de órgão público, judiciário ou militar — identificados pelo domínio (.gov.br, .jus.br, .mil.br), não por suposição.`
+              : 'Nenhum dos grupos listados tem, no acervo, vítima com domínio de órgão público brasileiro.'}
+          />
+          <Leitura
+            titulo="A exposição é acumulada"
+            corpo={totalVitimas > 0
+              ? `Somadas, estas organizações expuseram ${totalVitimas} vítimas brasileiras desde que a fonte começou a registrar. Não é uma campanha: é atividade contínua, ano após ano.`
+              : 'Ainda sem vítimas brasileiras somadas para os grupos listados.'}
+          />
+          <Leitura
+            titulo="A entrada é conhecida"
+            corpo={listaCves.length > 0
+              ? `Estes grupos exploram ${listaCves.length} vulnerabilidades já catalogadas e corrigíveis. O caminho de entrada não é secreto — o que falta, no alvo, é a correção aplicada.`
+              : 'Os perfis ainda não trouxeram vulnerabilidades associadas a estes grupos.'}
+          />
+        </div>
+
+        <p className="mt-4 text-xs leading-relaxed muted">
+          A lista completa de identificadores CVE saiu desta tela: ela é útil para quem opera a
+          infraestrutura do alvo, e ruído para quem acompanha segurança e defesa. As
+          vulnerabilidades de cada grupo continuam no perfil dele, abaixo, onde respondem à
+          pergunta que importa aqui — <strong>como este grupo entra</strong>.
+        </p>
       </section>
 
       {/* ── PERFIS ── */}
@@ -286,6 +291,16 @@ function Ator({ a, aberto, onToggle }) {
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+/** Um parágrafo de leitura derivada. Sem número solto: sempre com a frase. */
+function Leitura({ titulo, corpo }) {
+  return (
+    <div className="rounded-lg border border-gray-200 p-3.5 dark:border-white/10">
+      <p className="text-sm font-bold">{titulo}</p>
+      <p className="mt-1 text-xs leading-relaxed muted">{corpo}</p>
     </div>
   )
 }

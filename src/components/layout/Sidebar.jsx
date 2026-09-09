@@ -5,6 +5,7 @@ import {
   Target, Waves, Scale, Factory, Layers, Radio, Landmark, CalendarDays, BadgeCheck,
   UserCircle, ShieldCheck, ShieldAlert, FileText, ClipboardList, Search, FlaskConical, Crosshair,
   Link2,
+  Globe2,
 } from 'lucide-react'
 import Logo from '../ui/Logo'
 import { useAuthStore } from '../../store/authStore'
@@ -22,6 +23,37 @@ import { useCan, useProfile, useProfileMeta } from '../../auth/useCan'
 //
 // Seções inteiras também podem exigir capacidade (`sectionCapability`).
 // -----------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// OS TRES NIVEIS DE INTELIGENCIA
+//
+// As secoes eram organizadas por TIPO DE ARTEFATO — "Inteligencia & Analise",
+// "Dados & Relatorios", "Brasil Estrategico" — e isso agrupava coisas que nao
+// se parecem em uso. O Clipping Diario e a tela de Ameacas Ciberneticas
+// estavam lado a lado, mas respondem perguntas de altitude completamente
+// diferente: um da o panorama do pais, o outro nomeia uma prefeitura invadida.
+//
+// A doutrina de inteligencia ja separa isso ha decadas, e a separacao e util
+// porque corresponde a QUEM PERGUNTA e a QUE DECISAO a resposta serve:
+//
+//   ESTRATEGICO   O quadro do pais. Horizonte longo, agregado, sem nome
+//                 proprio. Responde "como esta o Brasil" — cobertura por
+//                 pais, gasto de defesa, base industrial, legislacao em
+//                 tramitacao. Serve a quem decide postura, orcamento, politica.
+//
+//   TATICO        Setores e areas. Horizonte medio. Responde "o que esta
+//                 acontecendo NESTE setor, NESTA regiao" — o clipping
+//                 consolidado, as correlacoes, a procedencia das fontes.
+//                 Serve a quem acompanha um recorte.
+//
+//   OPERACIONAL   O incidente. Horizonte curto, com nome proprio e data.
+//                 Responde "o que aconteceu, com quem, quando" — a
+//                 organizacao brasileira invadida, o grupo que reivindicou,
+//                 o orgao do Estado exposto. Serve a quem age hoje.
+//
+// A mesma materia pode aparecer nos tres, em profundidades diferentes. Nao e
+// uma taxonomia de conteudo: e uma escada de altitude, e a navegacao passou a
+// dizer em que degrau cada tela esta.
+// ─────────────────────────────────────────────────────────────────────────────
 const NAV_SECTIONS = [
   {
     title: 'Visão geral',
@@ -32,39 +64,52 @@ const NAV_SECTIONS = [
     ],
   },
   {
-    title: 'Inteligência & Análise',
+    title: 'Estratégico · o quadro do país',
+    nivel: 'estrategico',
+    items: [
+      // O MAPA GANHOU PAGINA PROPRIA e abre o nivel estrategico.
+      //
+      // Ele vivia dentro de uma aba de "Dados & Graficos", entre um grafico de
+      // barras e um comparativo de PIB — enterrado como se fosse mais um
+      // grafico. E a peca que melhor responde a pergunta estrategica ("o que o
+      // mundo esta dizendo, e o que isso tem a ver com o Brasil"), e a unica
+      // que cruza duas fontes independentes pelo codigo ISO.
+      { to: '/mapa', label: 'Mapa estratégico', icon: Globe2, requiresAuth: true },
+      { to: '/economia', label: 'Economia & Defesa', icon: DollarSign, requiresAuth: true },
+      { to: '/industria', label: 'Base Industrial (BID)', icon: Factory, requiresAuth: true },
+      { to: '/legislativo', label: 'Radar Legislativo', icon: Landmark, requiresAuth: true, capability: 'legislative.access' },
+      { to: '/dados', label: 'Séries e indicadores', icon: LineChart, requiresAuth: true },
+    ],
+  },
+  {
+    title: 'Tático · setores e correlação',
+    nivel: 'tatico',
     items: [
       { to: '/clipping', label: 'Clipping Diário', icon: Newspaper, requiresAuth: true },
       { to: '/correlacoes', label: 'Correlações', icon: Link2, requiresAuth: true },
-      // `hideWithout` porque a capacidade agora vem do PAPEL: mostrar cadeado
-      // sugeriria que existe um plano que a destrava, e não existe.
+      // `hideWithout` porque a capacidade vem do PAPEL: mostrar cadeado
+      // sugeriria que existe um nível que a destrava, e não existe.
       { to: '/fontes', label: 'Confiabilidade das Fontes', icon: BadgeCheck, requiresAuth: true, capability: 'sources.reliability', hideWithout: true },
-      {
-        // Cibersegurança era a categoria mais magra do acervo — dois artigos —
-        // porque incidente cibernético raramente vira manchete. Esta tela não
-        // depende da imprensa: lê o que os próprios grupos de extorsão publicam.
-        to: '/ciberameacas', label: 'Ameaças Cibernéticas', icon: ShieldAlert, requiresAuth: true,
-      },
-      {
-        // A outra metade: quem ataca e como. Uma coisa é saber que o grupo tem
-        // 19 vítimas aqui; outra é saber que ele explora CVE-2023-48788.
-        to: '/atores', label: 'Atores & Vulnerabilidades', icon: Crosshair, requiresAuth: true,
-      },
       { to: '/arquivo', label: 'Arquivo & Pasta', icon: Archive, requiresAuth: true },
     ],
   },
   {
-    title: 'Brasil Estratégico',
+    title: 'Operacional · incidentes',
+    nivel: 'operacional',
     items: [
-      { to: '/industria', label: 'Base Industrial (BID)', icon: Factory, requiresAuth: true },
-      { to: '/legislativo', label: 'Radar Legislativo', icon: Landmark, requiresAuth: true, capability: 'legislative.access' },
-    ],
-  },
-  {
-    title: 'Dados & Relatórios',
-    items: [
-      { to: '/dados', label: 'Dados & Gráficos', icon: LineChart, requiresAuth: true },
-      { to: '/economia', label: 'Economia & Defesa', icon: DollarSign, requiresAuth: true },
+      {
+        // Cibersegurança era a categoria mais magra do acervo — dois artigos —
+        // porque incidente cibernético raramente vira manchete. Esta tela não
+        // depende da imprensa: lê o que os próprios grupos de extorsão publicam.
+        to: '/ciberameacas', label: 'Incidentes no Brasil', icon: ShieldAlert, requiresAuth: true,
+      },
+      {
+        // Era "Atores & Vulnerabilidades", e a metade das vulnerabilidades
+        // dominava a tela com uma lista de CVEs. Ver a nota em ThreatActors:
+        // o produto aqui é QUEM ataca o Estado brasileiro, não o catálogo de
+        // falhas técnicas.
+        to: '/atores', label: 'Grupos contra o Brasil', icon: Crosshair, requiresAuth: true,
+      },
     ],
   },
   {
@@ -100,7 +145,6 @@ const NAV_SECTIONS = [
 ]
 
 const BOTTOM_NAV = [
-  { to: '/planos', label: 'Níveis de acesso', icon: Sparkles },
   { to: '/conta', label: 'Minha conta', icon: UserCircle, requiresAuth: true },
   { to: '/configuracoes', label: 'Configurações', icon: Settings, requiresAuth: true },
   { to: '/sobre', label: 'Sobre', icon: HelpCircle },

@@ -15,7 +15,6 @@ import { useAuthStore } from '../../store/authStore'
 // -----------------------------------------------------------------------------
 const PUBLIC_NAV = [
   { to: '/', label: 'Início', end: true },
-  { to: '/planos', label: 'Níveis de acesso' },
   { to: '/aprender', label: 'Centro Educacional' },
   { to: '/sobre', label: 'Sobre' },
 ]
