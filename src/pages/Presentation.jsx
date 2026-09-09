@@ -12,7 +12,7 @@ import SentimentChart from '../components/charts/SentimentChart'
 import { useNewsVolume } from '../hooks/useNewsVolume'
 import {
   useGastoMilitar, useComparacaoSulAmericana, useGastoGlobal,
-  useRadarCategorias, useIndiceDeAlerta,
+  useVolumePorCategoria, useIndiceDeAlerta,
 } from '../hooks/useDadosReais'
 import { alertMeta } from '../utils/textUtils'
 import { formatTime, formatFullDate } from '../utils/dateUtils'
@@ -116,8 +116,8 @@ function ComparacaoSlide({ height }) {
   )
 }
 
-function RadarSlide({ height }) {
-  const r = useRadarCategorias(30)
+function VolumePorCategoriaSlide({ height }) {
+  const r = useVolumePorCategoria(30)
   return (
     <div className="flex h-full flex-col">
       <SentimentChart data={r.data} height={height} />
@@ -150,7 +150,7 @@ const SLIDES = [
   { title: 'Gastos militares globais (US$ bi)', render: (h) => <GlobalSlide height={h} /> },
   { title: 'América do Sul — % do PIB em defesa', render: (h) => <ComparacaoSlide height={h} /> },
   { title: 'Volume de notícias — 14 dias', render: (h) => <VolumeSlide height={h} /> },
-  { title: 'Volume por categoria — 30 dias', render: (h) => <RadarSlide height={h} /> },
+  { title: 'Volume por categoria — 30 dias', render: (h) => <VolumePorCategoriaSlide height={h} /> },
   { title: 'Índice de alerta nacional', render: (h) => <AlertaSlide height={h} /> },
   { title: 'Cobertura noticiosa por país — o Brasil como âncora', render: (h) => <GlobalHeatmap height={h} withNews={false} /> },
 ]

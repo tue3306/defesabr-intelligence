@@ -154,7 +154,7 @@ export function useGastoGlobal() {
  * Aqui as duas séries saem do acervo: conta-se a janela recente e a janela
  * imediatamente anterior, para o gráfico mostrar movimento real de pauta.
  */
-export function useRadarCategorias(dias = 30) {
+export function useVolumePorCategoria(dias = 30) {
   const { dados, aoVivo, carregando } = useDaApi(async () => {
     const [atual, dobro] = await Promise.all([
       viaPonte('GET /news/volume', { days: dias }),

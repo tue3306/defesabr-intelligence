@@ -21,7 +21,7 @@ import GaugeChart from '../components/charts/GaugeChart'
 import GlobalHeatmap from '../components/charts/GlobalHeatmap'
 import { useNewsVolume } from '../hooks/useNewsVolume'
 import {
-  useGastoMilitar, useComparacaoPIB, useGastoGlobal, useRadarCategorias,
+  useGastoMilitar, useComparacaoPIB, useGastoGlobal, useVolumePorCategoria,
   useIndiceDeAlerta, useRegioesEstrategicas,
 } from '../hooks/useDadosReais'
 import { useResource } from '../hooks/useResource'
@@ -182,7 +182,7 @@ export default function DataCharts() {
   const comparacao = useComparacaoPIB('vizinhanca')
   const potencias = useComparacaoPIB('potencias')
   const gastoGlobal = useGastoGlobal()
-  const radar = useRadarCategorias(30)
+  const volumeCategoria = useVolumePorCategoria(30)
   const alerta = useIndiceDeAlerta(7)
   const regioes = useRegioesEstrategicas(180)
   // A mesma consulta que o <GlobalHeatmap /> faz internamente, para que o CSV
@@ -257,14 +257,14 @@ export default function DataCharts() {
 
 
           <ChartPanel
-            badge={radar.aoVivo ? 'live' : 'sem-dado'}
+            badge={volumeCategoria.aoVivo ? 'live' : 'sem-dado'}
             title="Volume por categoria — 30 dias"
-            subtitle="Compara o tema desta semana com a anterior; o descolamento indica o que está esquentando."
-            method="Radar com a contagem semanal por categoria. A área 'atual' cobrindo a 'anterior' indica aumento de cobertura no tema."
-            rows={radar.data}
+            subtitle="Quanto de cada tema o acervo trouxe, e mais ou menos que nos 30 dias anteriores. A barra fina é o período anterior."
+            method="Contagem de matérias por categoria em duas janelas de 30 dias, ordenada por volume. O período anterior é a diferença entre a janela de 60 dias e a de 30 — a contagem, não uma estimativa. Mede COBERTURA, não ocorrência: dez matérias sobre a mesma operação são dez."
+            rows={volumeCategoria.data}
             filename="volume-por-categoria.csv"
           >
-            <SentimentChart data={radar.data} height={320} />
+            <SentimentChart data={volumeCategoria.data} height={320} />
           </ChartPanel>
 
           <ChartPanel

@@ -12,7 +12,7 @@ import DataState from '../components/ui/DataState'
 import Badge from '../components/ui/Badge'
 import { useResource } from '../hooks/useResource'
 import { request } from '../services/client'
-import { useRadarCategorias } from '../hooks/useDadosReais'
+import { useVolumePorCategoria } from '../hooks/useDadosReais'
 import { useAuthStore } from '../store/authStore'
 import { formatDateTimeBR, timeAgo } from '../utils/dateUtils'
 
@@ -36,7 +36,7 @@ export default function AnalystDashboard() {
   const execucoes = useResource(() => request('GET /system/runs', { params: { limit: 40 } }), [])
   const fontes = useResource(() => request('GET /intel/sources'), [])
   const volume = useResource(() => request('GET /news/volume', { params: { days: 30 } }), [])
-  const radar = useRadarCategorias(30)
+  const volumeCategoria = useVolumePorCategoria(30)
 
   const runs = execucoes.data?.items || []
   const porColetor = execucoes.data?.porColetor || []
@@ -190,13 +190,13 @@ export default function AnalystDashboard() {
           </p>
 
           <DataState
-            loading={radar.carregando}
-            empty={!radar.data?.length}
+            loading={volumeCategoria.carregando}
+            empty={!volumeCategoria.data?.length}
             emptyProps={{ icon: Filter, title: 'Sem material classificado', hint: 'Aguardando a primeira coleta.' }}
           >
             <div className="mt-4 h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={radar.data} layout="vertical" margin={{ left: 8, right: 16 }}>
+                <BarChart data={volumeCategoria.data} layout="vertical" margin={{ left: 8, right: 16 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-gray-300 dark:text-white/10" />
                   <XAxis type="number" tick={{ fontSize: 11 }} stroke="currentColor" className="muted" />
                   <YAxis
@@ -208,7 +208,7 @@ export default function AnalystDashboard() {
                     formatter={(v) => [`${v} matérias`, 'Período']}
                   />
                   <Bar dataKey="atual" radius={[0, 4, 4, 0]}>
-                    {radar.data.map((_, i) => (
+                    {volumeCategoria.data.map((_, i) => (
                       <Cell key={i} fill={i % 2 ? '#1e5f4a' : '#c9a227'} />
                     ))}
                   </Bar>
