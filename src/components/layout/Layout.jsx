@@ -5,6 +5,7 @@ import Navbar from './Navbar'
 import Footer from './Footer'
 import Ticker from './Ticker'
 import StatusFAB from './StatusFAB'
+import AssistenteGuia from '../guia/AssistenteGuia'
 import OnboardingModal from '../ui/OnboardingModal'
 import CommandPalette from '../ui/CommandPalette'
 import ErrorBoundary from '../system/ErrorBoundary'
@@ -73,6 +74,11 @@ export default function Layout() {
       </div>
 
       <StatusFAB />
+      {/* A visita guiada fica à ESQUERDA, e o diagnóstico do admin à direita.
+        * Os dois nunca aparecem juntos — um é só de conta de usuário, o outro
+        * só de quem tem `admin.health` —, mas separá-los evita que um cubra o
+        * outro no dia em que alguém mudar essa regra. */}
+      <AssistenteGuia />
       <OnboardingModal />
       <CommandPalette />
     </div>

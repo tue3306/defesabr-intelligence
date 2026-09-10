@@ -68,6 +68,17 @@ export async function gerarRelatorioSemanal({ forcar = false } = {}) {
   return data
 }
 
+/**
+ * Pergunta livre sobre COMO USAR a plataforma.
+ *
+ * O material é o guia da própria plataforma e mais nada — o modelo não consulta
+ * o acervo nem a internet, e é instruído a dizer quando o guia não cobre.
+ */
+export async function perguntarAoGuia(pergunta) {
+  const { data } = await request('POST /ia/guia', { body: { pergunta } })
+  return data
+}
+
 /** Guarda a chave DA PRÓPRIA CONTA, cifrada no servidor. Qualquer sessão. */
 export async function salvarMinhaChave(chave) {
   const { data } = await request('PUT /ia/minha-chave', { body: { chave } })
@@ -116,7 +127,7 @@ export const MOTIVO_SEM_IA =
 
 export default {
   estadoIa, gerarSintese, perguntarAoAcervo, lerCorrelacaoComIa,
-  analisarMaterias, gerarRelatorioSemanal,
+  analisarMaterias, gerarRelatorioSemanal, perguntarAoGuia,
   salvarMinhaChave, removerMinhaChave, salvarMeuModelo,
   salvarChaveIa, removerChaveIa, salvarModeloIa, MOTIVO_SEM_IA,
 }

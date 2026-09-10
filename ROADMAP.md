@@ -47,6 +47,8 @@ desenho:
 | `GET /ia/candidatas` | `user` | As matérias que se pode escolher para a análise assistida |
 | `POST /ia/analise` | `user` | Contexto e impacto de até 15 matérias escolhidas, **com a citação conferida** |
 | `POST /ia/semanal` | `user` | O relatório da semana em quatro blocos fixos |
+| `GET /ia/guia` | `user` | O guia da plataforma — **funciona sem chave nenhuma** |
+| `POST /ia/guia` | `user` | Pergunta livre sobre como usar, respondida só a partir do guia |
 
 ### As quatro decisões que valem explicação
 
@@ -73,6 +75,34 @@ sem que a tela gaste.
 material. Se o front pudesse mandar o contexto, daria para pedir ao modelo que
 comentasse um texto qualquer e a resposta sairia com a mesma aparência de uma
 apurada no acervo.
+
+### A visita guiada, e por que o guia vem antes do modelo
+
+`server/src/lib/guia.js` descreve a plataforma — as telas, os três níveis, os
+conceitos e, principalmente, **o que ela não faz**. É a fonte única, com dois
+consumidores.
+
+A tentação era fazer o assistente só com modelo: um chat que explica a
+plataforma. Não funciona, e o motivo é prático antes de ser de princípio — quem
+precisa de uma visita guiada é quem acabou de chegar, e quem acabou de chegar é
+exatamente quem **ainda não configurou chave nenhuma**. Um assistente que só
+respondesse com IA estaria quebrado para a única pessoa que existe para atender.
+
+Então há dois estados, e os dois servem:
+
+| | |
+|---|---|
+| **Sem chave** | Os tópicos do guia, navegáveis — por onde começar, as telas por nível, os conceitos, os limites |
+| **Com chave** | Os mesmos tópicos, mais pergunta livre. O modelo responde **somente** a partir do guia |
+
+A seção `NAO_FAZ` é a mais importante do arquivo. Sem ela, uma pergunta sobre
+exportar para Excel receberia um caminho inventado — e quem acabou de chegar não
+teria como perceber, porque ainda não conhece a tela. Com ela, recebe "isso não
+existe, e aqui está o que existe no lugar".
+
+O assistente aparece **só para conta de usuário**: quem administra a instalação
+a subiu e leu o README, e uma bolha de ajuda permanente sobre essa pessoa é
+ruído sobre quem menos precisa dela.
 
 ### A conferência contra alucinação
 

@@ -118,6 +118,18 @@ const ROTAS = [
   },
   { metodo: 'GET', caminho: '/api/ia/estado', minimo: 'user' },
   { metodo: 'GET', caminho: '/api/ia/candidatas', minimo: 'user' },
+  // O guia da plataforma. Funciona SEM chave — a visita guiada existe para quem
+  // acabou de chegar, e quem acabou de chegar nao configurou chave nenhuma.
+  { metodo: 'GET', caminho: '/api/ia/guia', minimo: 'user' },
+  // A pergunta livre sobre o guia. Sem chave devolve 409; com cota gasta, 429.
+  {
+    metodo: 'POST',
+    caminho: '/api/ia/guia',
+    minimo: 'user',
+    corpo: { pergunta: 'onde vejo os incidentes?' },
+    autorizado: [200, 409, 429],
+    muta: true,
+  },
   // Analise em lote. Lista vazia de proposito: 400 prova que a guarda passou,
   // sem gastar chamada de modelo nem depender de haver chave configurada.
   {

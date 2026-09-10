@@ -10,8 +10,9 @@ import {
 } from '../lib/chaveIa.js'
 import {
   sintetizarClipping, perguntarSobreAcervo, lerCorrelacao,
-  analisarLote, relatorioSemanal,
+  analisarLote, relatorioSemanal, responderSobreAPlataforma,
 } from '../services/ia.js'
+import { TELAS, NIVEIS, CONCEITOS, NAO_FAZ, PRIMEIROS_PASSOS, guiaComoTexto } from '../lib/guia.js'
 import { detectarEntidades } from '../lib/entidades.js'
 import { sinteseGuardada, guardarSintese } from '../lib/sinteseCache.js'
 import { nivelDeAlerta } from './news.js'
@@ -504,6 +505,69 @@ router.post('/ia/semanal', exigirPapel('user'), limitar({ max: 8, janelaMs: 60 *
   }
   guardarSintese('semanal', carga, req.conta?.sub)
   res.json({ ...carga, doCache: false })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/ia/guia — o guia da plataforma
+//
+// FUNCIONA SEM CHAVE NENHUMA, e essa é a decisão central deste recurso.
+//
+// Uma visita guiada existe para quem acabou de chegar — e quem acabou de chegar
+// é exatamente quem ainda não configurou chave de modelo. Um assistente que só
+// funcionasse com IA estaria quebrado para a única pessoa que ele precisa
+// atender.
+//
+// Então o guia escrito é a base, sempre disponível, navegável por tópicos. O
+// modelo é a camada de cima: com chave, o mesmo conteúdo passa a responder
+// pergunta livre. Sem chave, continua sendo um guia — que já é útil.
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/ia/guia', exigirPapel('user'), (req, res) => {
+  const { configurada } = configIa(req.conta?.sub)
+  res.json({
+    telas: TELAS,
+    niveis: NIVEIS,
+    conceitos: CONCEITOS,
+    naoFaz: NAO_FAZ,
+    primeirosPassos: PRIMEIROS_PASSOS,
+    // Diz à tela se ela deve oferecer o campo de pergunta ou só os tópicos.
+    perguntaDisponivel: configurada,
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/ia/guia — pergunta livre sobre COMO USAR a plataforma
+//
+// O material é o guia e mais nada. Não é "contexto adicional": é a fronteira.
+// Um modelo perguntado sobre um produto que ele não conhece descreve um menu
+// que não existe, e quem acabou de chegar não tem como perceber.
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/ia/guia', exigirPapel('user'), limitar({ max: 30, janelaMs: 60 * 60_000, porConta: true }), async (req, res) => {
+  const pergunta = String(req.body?.pergunta || '').trim()
+  if (pergunta.length < 3) return res.status(400).json({ error: 'Escreva a pergunta.' })
+  if (pergunta.length > 300) return res.status(400).json({ error: 'Pergunta longa demais (máximo 300 caracteres).' })
+
+  const { configurada } = configIa(req.conta?.sub)
+  if (!configurada) {
+    return res.status(409).json({
+      error: 'Sem chave de modelo, o assistente responde pelos tópicos do guia.',
+      code: 'SEM_CHAVE',
+    })
+  }
+
+  const r = await responderSobreAPlataforma({
+    pergunta,
+    guia: guiaComoTexto(),
+    userId: req.conta?.sub,
+  })
+  if (!r.ok) return res.status(502).json({ error: r.erro, code: r.codigo })
+
+  res.json({
+    pergunta,
+    texto: r.texto,
+    origem: 'modelo',
+    modelo: r.modelo,
+    geradoEm: new Date().toISOString(),
+  })
 })
 
 export default router

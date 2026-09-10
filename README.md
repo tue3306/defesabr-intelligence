@@ -337,6 +337,7 @@ chave, paga o próprio consumo, e o projeto não intermedeia nada.
 | **O que esta ligação significa** | A leitura de uma correlação — o salto que a regra não pode dar sem inventar |
 | **Análise assistida** | Você escolhe até 15 matérias; o modelo escreve o *contexto no Brasil* e o *impacto possível* de cada uma |
 | **Resumão da semana** | Sete dias em quatro blocos fixos: o que dominou, o que toca o Brasil, o que mudou de estado, o que acompanhar |
+| **Visita guiada** | Um assistente que explica as telas, os conceitos e o que a plataforma **não** faz — e responde pergunta livre quando há chave |
 | **Onde se liga** | Minha conta → *Segurança*, em qualquer conta |
 
 ### O índice de vínculo é contado, não escrito

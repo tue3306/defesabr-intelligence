@@ -27,6 +27,9 @@ import { configIa } from '../lib/chaveIa.js'
 //    saída é texto exibido, e nada nela dispara ação na plataforma.
 // -----------------------------------------------------------------------------
 
+/** Quebra de linha, nomeada para não se perder em escape dentro de gerador. */
+const QUEBRA = String.fromCharCode(10)
+
 const ENDPOINT = 'https://api.anthropic.com/v1/messages'
 const VERSAO_API = '2023-06-01'
 
@@ -503,7 +506,51 @@ export async function relatorioSemanal({ materias, alerta, panorama, userId = nu
   return conversar({ prompt, maxTokens: 2200, temperatura: 0.15, userId })
 }
 
+/**
+ * A VISITA GUIADA — responder sobre a própria plataforma.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * O GUIA É A FRONTEIRA, NÃO UM CONTEXTO A MAIS
+ *
+ * Um modelo perguntado sobre um produto que ele não conhece inventa uma
+ * resposta plausível: descreve um menu que não existe, uma exportação que nunca
+ * foi feita, um filtro que ninguém programou. E quem acabou de chegar não tem
+ * como saber que a resposta é falsa — essa pessoa ainda não conhece a tela.
+ *
+ * É a pior combinação de alucinação que este produto pode produzir: confiança
+ * alta de quem lê, capacidade zero de conferir.
+ *
+ * Por isso o material é `guiaComoTexto()` e mais nada. "Não sei" e "isso não
+ * existe" são respostas exigidas pelo prompt, não toleradas por ele.
+ *
+ * O `temperatura: 0` é deliberado: a mesma pergunta deve produzir a mesma
+ * resposta. Uma visita guiada que varia a cada vez não é uma visita guiada.
+ */
+export async function responderSobreAPlataforma({ pergunta, guia, userId = null }) {
+  const prompt = [
+    'Você está ajudando alguém a usar a DefesaBR Intelligence. Responda à pergunta abaixo',
+    'usando SOMENTE o guia que vem depois dela.',
+    '',
+    `PERGUNTA: ${pergunta}`,
+    '',
+    'REGRAS:',
+    '- Se a resposta não estiver no guia, diga: "O guia não cobre isso." e sugira a tela mais',
+    '  próxima do assunto. NUNCA descreva um botão, menu ou recurso que não esteja no guia.',
+    '- Se a pessoa pedir algo que está na lista "O QUE A PLATAFORMA NÃO FAZ", diga claramente',
+    '  que não existe, e diga o que existe no lugar.',
+    '- Duas a quatro frases. Direto, sem introdução do tipo "claro!" nem entusiasmo.',
+    '- Quando citar uma tela, escreva o nome dela e o caminho entre parênteses, como no guia.',
+    '- Fale em português do Brasil, na segunda pessoa ("você abre", "você encontra").',
+    '',
+    '--- GUIA DA PLATAFORMA ---',
+    guia,
+  ].join(QUEBRA)
+
+  return conversar({ prompt, maxTokens: 500, temperatura: 0, userId })
+}
+
 export default {
   sintetizarClipping, perguntarSobreAcervo, lerCorrelacao,
   analisarLote, relatorioSemanal, conferirCitacoes,
+  responderSobreAPlataforma,
 }
