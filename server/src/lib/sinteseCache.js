@@ -24,9 +24,18 @@ import { get, run } from '../db/index.js'
 // menos que pode falhar num deploy.
 // -----------------------------------------------------------------------------
 
-/** Um resumo por período e por dia — `ia_sintese:7:2026-09-10`. */
-export const chaveSintese = (periodoDias) =>
-  `ia_sintese:${periodoDias}:${new Date().toISOString().slice(0, 10)}`
+/**
+ * Um resumo por CONTA, período e dia — `ia_sintese:5:7:2026-09-10`.
+ *
+ * A conta entra na chave porque a chave de API é dela. O cache era por
+ * instalação, e nesse desenho a primeira pessoa a pedir a síntese pagava a
+ * leitura de todas as outras — sem saber, e sem que ninguém pudesse notar.
+ *
+ * Compartilhar o cache economizaria chamadas, e é exatamente por isso que não
+ * serve: a economia sairia da fatura de alguém que não escolheu pagá-la.
+ */
+export const chaveSintese = (periodoDias, userId = 0) =>
+  `ia_sintese:${userId || 0}:${periodoDias}:${new Date().toISOString().slice(0, 10)}`
 
 /**
  * A síntese guardada do período, ou `null`.
@@ -35,9 +44,9 @@ export const chaveSintese = (periodoDias) =>
  * banco pode não estar migrado no primeiro boot, e o JSON pode ter sido
  * gravado por uma versão anterior com outro formato.
  */
-export function sinteseGuardada(periodoDias) {
+export function sinteseGuardada(periodoDias, userId = 0) {
   try {
-    const linha = get('SELECT valor FROM app_config WHERE chave = ?', [chaveSintese(periodoDias)])
+    const linha = get('SELECT valor FROM app_config WHERE chave = ?', [chaveSintese(periodoDias, userId)])
     return linha ? JSON.parse(linha.valor) : null
   } catch {
     return null
@@ -45,10 +54,10 @@ export function sinteseGuardada(periodoDias) {
 }
 
 /** Grava a síntese do período. */
-export function guardarSintese(periodoDias, carga) {
+export function guardarSintese(periodoDias, carga, userId = 0) {
   run(
     'INSERT OR REPLACE INTO app_config (chave, valor) VALUES (?, ?)',
-    [chaveSintese(periodoDias), JSON.stringify(carga)],
+    [chaveSintese(periodoDias, userId), JSON.stringify(carga)],
   )
 }
 

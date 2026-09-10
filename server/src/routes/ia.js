@@ -3,7 +3,11 @@ import { all } from '../db/index.js'
 import { exigirPapel } from '../lib/auth.js'
 import { limitar } from '../lib/limite.js'
 import { dias } from '../lib/parametros.js'
-import { configIa, salvarChave, removerChave, salvarModelo, MODELO_PADRAO } from '../lib/chaveIa.js'
+import {
+  configIa, salvarChave, removerChave, salvarModelo,
+  salvarChaveDaConta, removerChaveDaConta, salvarModeloDaConta,
+  MODELO_PADRAO,
+} from '../lib/chaveIa.js'
 import { sintetizarClipping, perguntarSobreAcervo } from '../services/ia.js'
 import { sinteseGuardada, guardarSintese } from '../lib/sinteseCache.js'
 import { nivelDeAlerta } from './news.js'
@@ -49,21 +53,56 @@ const SELECT_MATERIAS = `
 // caracteres, que é o suficiente para conferir qual está em uso.
 // ─────────────────────────────────────────────────────────────────────────────
 router.get('/ia/estado', exigirPapel('user'), (req, res) => {
-  const { configurada, origem, modelo, finalDaChave } = configIa()
+  const e = configIa(req.conta?.sub)
   res.json({
-    configurada,
-    origem,
-    modelo,
+    configurada: e.configurada,
+    origem: e.origem,
+    modelo: e.modelo,
     modeloPadrao: MODELO_PADRAO,
-    finalDaChave,
-    // Quem pode configurar. A tela usa isto para decidir entre "peça ao
-    // administrador" e "configure aqui".
-    podeConfigurar: req.conta?.role === 'admin',
+    finalDaChave: e.finalDaChave,
+    // Está usando a chave de outra pessoa? Isso muda quem paga a conta, e
+    // quem usa merece saber antes de gastar.
+    daInstalacao: e.daInstalacao,
+    instalacaoTemChave: e.instalacaoTemChave,
+    // Configurar a chave DA INSTALAÇÃO é do administrador. Configurar a
+    // própria é de qualquer conta — é a chave dela.
+    podeConfigurarInstalacao: req.conta?.role === 'admin',
     fixadoPorAmbiente: !!process.env.ANTHROPIC_API_KEY,
-    nota: configurada
+    nota: e.configurada
       ? 'Textos gerados por modelo aparecem sempre marcados como escritos por máquina.'
       : 'Nenhum modelo conectado. Os campos de síntese ficam vazios em vez de preenchidos com texto plausível.',
   })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// A CHAVE DA PRÓPRIA CONTA
+//
+// Qualquer sessão pode configurar a sua — é a chave dela, e o consumo é
+// cobrado na fatura dela. Não há papel a exigir além de estar autenticado:
+// pedir permissão de administrador para alguém usar a própria chave seria
+// governar o dinheiro dos outros.
+//
+// A gravação é cifrada (ver lib/segredoGuardado.js) e nada aqui devolve o
+// valor: a resposta traz só os quatro últimos caracteres.
+// ─────────────────────────────────────────────────────────────────────────────
+router.put('/ia/minha-chave', exigirPapel('user'), limitar({ max: 10, janelaMs: 60_000 }), (req, res) => {
+  const r = salvarChaveDaConta(req.conta.sub, req.body?.chave)
+  if (!r.ok) return res.status(400).json({ error: r.erro })
+  const e = configIa(req.conta.sub)
+  res.json({ ok: true, configurada: true, origem: e.origem, modelo: e.modelo, finalDaChave: e.finalDaChave })
+})
+
+router.delete('/ia/minha-chave', exigirPapel('user'), (req, res) => {
+  removerChaveDaConta(req.conta.sub)
+  const e = configIa(req.conta.sub)
+  res.json({ ok: true, configurada: e.configurada, origem: e.origem, daInstalacao: e.daInstalacao })
+})
+
+router.put('/ia/meu-modelo', exigirPapel('user'), (req, res) => {
+  const r = salvarModeloDaConta(req.conta.sub, req.body?.modelo)
+  if (!r.ok) return res.status(400).json({ error: r.erro })
+  const e = configIa(req.conta.sub)
+  res.json({ ok: true, modelo: e.modelo })
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -98,16 +137,16 @@ router.post('/ia/sintese', exigirPapel('user'), limitar({ max: 6, janelaMs: 60 *
   const periodoDias = dias(req.body?.days, 7)
 
   // Já existe hoje? Devolve sem gastar.
-  const guardada = sinteseGuardada(periodoDias)
+  const guardada = sinteseGuardada(periodoDias, req.conta?.sub)
   if (guardada && !req.body?.forcar) {
     return res.json({ ...guardada, doCache: true })
   }
 
-  const { configurada } = configIa()
+  const { configurada } = configIa(req.conta?.sub)
   if (!configurada) {
     // 409 e não 500: não é falha, é recurso não configurado.
     return res.status(409).json({
-      error: 'Nenhum modelo está configurado nesta instalação.',
+      error: 'Nenhuma chave de modelo configurada para esta conta nem para esta instalação.',
       code: 'SEM_CHAVE',
     })
   }
@@ -120,7 +159,7 @@ router.post('/ia/sintese', exigirPapel('user'), limitar({ max: 6, janelaMs: 60 *
     [`-${periodoDias} days`],
   ))
 
-  const r = await sintetizarClipping({ materias, periodoDias, alerta })
+  const r = await sintetizarClipping({ materias, periodoDias, alerta, userId: req.conta?.sub })
   if (!r.ok) {
     const status = r.codigo === 'SEM_MATERIA' ? 422 : 502
     return res.status(status).json({ error: r.erro, code: r.codigo })
@@ -137,7 +176,7 @@ router.post('/ia/sintese', exigirPapel('user'), limitar({ max: 6, janelaMs: 60 *
     geradoEm: new Date().toISOString(),
     uso: r.uso,
   }
-  guardarSintese(periodoDias, carga)
+  guardarSintese(periodoDias, carga, req.conta?.sub)
 
   res.json({ ...carga, doCache: false })
 })
@@ -155,9 +194,9 @@ router.post('/ia/perguntar', exigirPapel('user'), limitar({ max: 20, janelaMs: 6
   if (pergunta.length < 5) return res.status(400).json({ error: 'Escreva a pergunta.' })
   if (pergunta.length > 500) return res.status(400).json({ error: 'Pergunta longa demais (máximo 500 caracteres).' })
 
-  const { configurada } = configIa()
+  const { configurada } = configIa(req.conta?.sub)
   if (!configurada) {
-    return res.status(409).json({ error: 'Nenhum modelo está configurado nesta instalação.', code: 'SEM_CHAVE' })
+    return res.status(409).json({ error: 'Nenhuma chave de modelo configurada para esta conta nem para esta instalação.', code: 'SEM_CHAVE' })
   }
 
   const periodoDias = dias(req.body?.days, 30)
@@ -180,7 +219,7 @@ router.post('/ia/perguntar', exigirPapel('user'), limitar({ max: 20, janelaMs: 6
     ? linhas.map((l) => `${l.alvo}: ${l.total} ligação(ões) pela regra "${l.regra}"`).join('\n')
     : null
 
-  const r = await perguntarSobreAcervo({ pergunta, materias, panorama })
+  const r = await perguntarSobreAcervo({ pergunta, materias, panorama, userId: req.conta?.sub })
   if (!r.ok) return res.status(502).json({ error: r.erro, code: r.codigo })
 
   res.json({

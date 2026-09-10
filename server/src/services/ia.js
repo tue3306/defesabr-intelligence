@@ -71,8 +71,9 @@ const SISTEMA = [
  * @returns {{ ok: true, texto: string, modelo: string, uso: object }}
  *        | {{ ok: false, erro: string, codigo: string }}
  */
-async function conversar({ prompt, maxTokens = 1200, temperatura = 0.2 }) {
-  const { chave, modelo, configurada } = configIa()
+async function conversar({ prompt, maxTokens = 1200, temperatura = 0.2, userId = null }) {
+  // A chave é resolvida por QUEM PEDE: a da conta vem antes da instalação.
+  const { chave, modelo, configurada } = configIa(userId)
   if (!configurada) {
     return { ok: false, codigo: 'SEM_CHAVE', erro: 'Nenhum modelo está configurado nesta instalação.' }
   }
@@ -167,7 +168,7 @@ function materiasParaTexto(materias, limiteCaracteres = 700) {
  * diretamente, e o que merece acompanhamento. O formato é pedido no prompt
  * porque um resumo sem forma fixa fica impossível de comparar entre edições.
  */
-export async function sintetizarClipping({ materias, periodoDias, alerta }) {
+export async function sintetizarClipping({ materias, periodoDias, alerta, userId = null }) {
   if (!materias?.length) {
     return { ok: false, codigo: 'SEM_MATERIA', erro: 'Não há matéria aprovada no período para resumir.' }
   }
@@ -192,7 +193,7 @@ export async function sintetizarClipping({ materias, periodoDias, alerta }) {
     materiasParaTexto(materias),
   ].join('\n')
 
-  return conversar({ prompt, maxTokens: 1000 })
+  return conversar({ prompt, maxTokens: 1000, userId })
 }
 
 /**
@@ -201,7 +202,7 @@ export async function sintetizarClipping({ materias, periodoDias, alerta }) {
  * O contexto vem montado por quem chama — a rota decide o recorte, porque é
  * ela que conhece a sessão e os limites. Aqui só se monta o pedido.
  */
-export async function perguntarSobreAcervo({ pergunta, materias, panorama }) {
+export async function perguntarSobreAcervo({ pergunta, materias, panorama, userId = null }) {
   const blocos = [
     'Responda à pergunta do usuário usando SOMENTE o material abaixo.',
     '',
@@ -214,7 +215,7 @@ export async function perguntarSobreAcervo({ pergunta, materias, panorama }) {
   }
   blocos.push('--- MATÉRIAS ---', materiasParaTexto(materias, 500))
 
-  return conversar({ prompt: blocos.join('\n'), maxTokens: 1400, temperatura: 0.1 })
+  return conversar({ prompt: blocos.join('\n'), maxTokens: 1400, temperatura: 0.1, userId })
 }
 
 export default { sintetizarClipping, perguntarSobreAcervo }

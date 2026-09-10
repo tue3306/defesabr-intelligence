@@ -73,6 +73,21 @@ const COLUNAS_ADICIONADAS = [
   // contas tem senha propria e quais delegam ao provedor.
   ['users', 'auth_provider', "TEXT NOT NULL DEFAULT 'local'"],
 
+  // A CHAVE DE MODELO DE LINGUAGEM DA PROPRIA PESSOA, cifrada.
+  //
+  // Cada conta pode trazer a sua: quem usa a plataforma paga o proprio
+  // consumo, e o dono da instalacao nao precisa bancar o de todo mundo. Quando
+  // a conta nao tem uma, vale a da instalacao (variavel de ambiente ou a
+  // gravada pelo administrador) — ver server/src/lib/chaveIa.js.
+  //
+  // Guardada por AES-256-GCM, nunca em texto puro: um backup do banco nao pode
+  // entregar a chave de ninguem. Ver server/src/lib/segredoGuardado.js, que
+  // tambem explica o que essa cifra NAO protege.
+  ['users', 'ia_api_key', 'TEXT'],
+  // O modelo que a pessoa escolheu, se escolheu. Nao e segredo, entao fica em
+  // texto puro.
+  ['users', 'ia_modelo', 'TEXT'],
+
   // INDICE DE RELEVANCIA PARA O BRASIL, de 0 a 100, e a explicacao dele.
   //
   // Mede densidade de vinculo do texto com o pais — orgaos, empresas,

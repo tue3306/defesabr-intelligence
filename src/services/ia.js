@@ -37,7 +37,25 @@ export async function perguntarAoAcervo({ pergunta, days = 30 }) {
   return data
 }
 
-/** Guarda a chave no servidor desta instalação. Só administrador. */
+/** Guarda a chave DA PRÓPRIA CONTA, cifrada no servidor. Qualquer sessão. */
+export async function salvarMinhaChave(chave) {
+  const { data } = await request('PUT /ia/minha-chave', { body: { chave } })
+  return data
+}
+
+/** Remove a chave da conta. A da instalação, se houver, volta a valer. */
+export async function removerMinhaChave() {
+  const { data } = await request('DELETE /ia/minha-chave')
+  return data
+}
+
+/** Modelo escolhido pela conta. Vazio volta a herdar o da instalação. */
+export async function salvarMeuModelo(modelo) {
+  const { data } = await request('PUT /ia/meu-modelo', { body: { modelo } })
+  return data
+}
+
+/** Guarda a chave DA INSTALAÇÃO. Só administrador. */
 export async function salvarChaveIa(chave) {
   const { data } = await request('PUT /ia/chave', { body: { chave } })
   return data
@@ -67,5 +85,6 @@ export const MOTIVO_SEM_IA =
 
 export default {
   estadoIa, gerarSintese, perguntarAoAcervo,
+  salvarMinhaChave, removerMinhaChave, salvarMeuModelo,
   salvarChaveIa, removerChaveIa, salvarModeloIa, MOTIVO_SEM_IA,
 }

@@ -167,7 +167,7 @@ router.get('/news/clipping', (req, res) => {
   }))
 
   // A síntese guardada do período, se alguém já a pediu hoje. Ver routes/ia.js.
-  const sintese = sinteseGuardada(days)
+  const sintese = sinteseGuardada(days, req.conta?.sub)
 
   res.json({
     periodDays: days,

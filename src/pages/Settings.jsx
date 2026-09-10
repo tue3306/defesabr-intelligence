@@ -31,7 +31,10 @@ import { useCan, useProfileMeta } from '../auth/useCan'
 import { useTheme } from '../hooks/useTheme'
 import { FOCUS_AREAS, CATEGORIES } from '../data/mockData'
 import { PLANS, PLAN_LABEL } from '../data/plansData'
-import { salvarChaveIa, removerChaveIa, salvarModeloIa } from '../services/ia'
+import {
+  salvarMinhaChave, removerMinhaChave, salvarMeuModelo,
+  salvarChaveIa, removerChaveIa, salvarModeloIa,
+} from '../services/ia'
 import { useIa } from '../hooks/useIa'
 import { request } from '../services/client'
 import { useFontesReais } from '../hooks/useFontesReais'
@@ -140,13 +143,22 @@ export default function Settings() {
         </>
       )}
 
-      {/* ADMIN: API key, usuários, diagnóstico */}
+      {/* ASSISTENTE POR IA — DE QUALQUER CONTA, NÃO SÓ DO ADMINISTRADOR.
+        *
+        * Estava dentro do bloco `isAdmin`, de quando a chave era única e da
+        * instalação. Com a chave passando a ser de cada conta, esconder a seção
+        * de quem não administra escondia justamente de quem vai colar a chave e
+        * pagar por ela. A parte da instalação continua restrita, dentro do
+        * próprio componente. */}
+      {isAuthenticated && (
+        <Section icon={KeyRound} title="Assistente por IA">
+          <SinteseIA />
+        </Section>
+      )}
+
+      {/* ADMIN: usuários e diagnóstico */}
       {isAdmin && (
         <>
-          <Section icon={KeyRound} title="Síntese por IA" badge="Admin">
-            <SinteseIA />
-          </Section>
-
           <Section icon={Users} title="Usuários e governança" badge="Admin">
             <p className="text-sm muted">
               A gestão de usuários, perfis, fontes, integrações e auditoria fica no{' '}
@@ -428,75 +440,58 @@ function SourcesEditor() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SÍNTESE POR IA — A CHAVE VIVE NO SERVIDOR
+// ASSISTENTE POR IA — A CHAVE É DE QUEM USA, E VIVE NO SERVIDOR
 //
-// Esta seção passou por três estados, e a ordem explica o desenho de agora.
+// Esta seção passou por quatro estados, e a ordem explica o desenho de agora.
 //
 // PRIMEIRO houve um campo que colava a chave da Anthropic no `localStorage`,
 // com um aviso em vermelho de que aquilo não era seguro. O aviso estava certo,
 // e era o argumento contra o campo existir: `localStorage` é lido por qualquer
-// extensão do navegador, e a chamada saía do navegador direto ao provedor, onde
-// qualquer DevTools aberto a mostra.
+// extensão do navegador, e a chamada saía do navegador direto ao provedor.
 //
 // DEPOIS o campo foi removido e a seção passou a explicar por que não havia um,
-// deixando escrito o contrato para quando a síntese existisse: "a chave viverá
-// apenas no servidor e o front chamará um endpoint próprio, que autentica quem
-// pede".
+// deixando escrito o contrato: "a chave viverá apenas no servidor e o front
+// chamará um endpoint próprio, que autentica quem pede".
 //
-// AGORA a síntese existe, e o contrato foi cumprido à risca. O campo voltou —
-// mas o que ele faz é `PUT /api/ia/chave`, uma rota de administrador que grava
-// a chave no banco DA INSTALAÇÃO. O navegador nunca a guarda, nunca a lê de
-// volta e nunca fala com o provedor: `GET /api/ia/estado` devolve se existe, de
-// onde veio e os quatro últimos caracteres — o bastante para conferir qual está
-// em uso, e insuficiente para usá-la.
+// ENTÃO a síntese passou a existir, e o campo voltou — mas só para o
+// administrador, gravando uma chave única da instalação.
 //
-// A VARIÁVEL DE AMBIENTE TEM PRECEDÊNCIA. Quem publica no Railway define
-// `ANTHROPIC_API_KEY` e a chave nunca toca o disco da aplicação. Nesse caso o
-// campo aparece desabilitado dizendo isso, em vez de aceitar um valor que o
-// servidor ignoraria — uma configuração que a tela mostra e o servidor descarta
-// é o pior tipo de divergência, porque é silenciosa.
+// AGORA a chave é DE CADA CONTA. Quem usa a plataforma traz a própria e paga o
+// próprio consumo. A da instalação continua existindo como reserva, para quem
+// hospeda querer oferecer o recurso a quem não tem chave — e a tela diz, com
+// todas as letras, quando é a chave de outra pessoa que está sendo gasta.
+//
+// A PRECEDÊNCIA é da mais específica para a mais geral: conta → ambiente →
+// banco da instalação. Quem colou a própria chave espera vê-la em uso, e
+// espera o gasto na própria fatura.
+//
+// EM NENHUM CASO a chave chega ao navegador. Ela é gravada cifrada
+// (AES-256-GCM, ver `server/src/lib/segredoGuardado.js`) e a API devolve apenas
+// se existe, de onde veio e os quatro últimos caracteres.
 // ─────────────────────────────────────────────────────────────────────────────
 function SinteseIA() {
   const ia = useIa()
   const [chave, setChave] = useState('')
   const [modelo, setModelo] = useState('')
   const [salvando, setSalvando] = useState(false)
+  const [abrirInstalacao, setAbrirInstalacao] = useState(false)
 
   useEffect(() => { setModelo(ia.modelo || '') }, [ia.modelo])
 
-  const guardar = async () => {
+  const comAviso = async (fn, sucesso) => {
     setSalvando(true)
     try {
-      await salvarChaveIa(chave.trim())
-      setChave('')
+      await fn()
       await ia.recarregar()
-      toast.success('Chave guardada no servidor desta instalação.')
+      toast.success(sucesso)
     } catch (e) {
-      toast.error(e?.message || 'Não foi possível guardar a chave.')
+      toast.error(e?.message || 'Não foi possível concluir.')
     } finally {
       setSalvando(false)
     }
   }
 
-  const apagar = async () => {
-    try {
-      await removerChaveIa()
-      await ia.recarregar()
-      toast.success('Chave removida.')
-    } catch (e) {
-      toast.error(e?.message || 'Não foi possível remover a chave.')
-    }
-  }
-
-  const trocarModelo = async () => {
-    try {
-      const r = await salvarModeloIa(modelo.trim())
-      await ia.recarregar()
-      toast.success(`Modelo: ${r.modelo}`)
-    } catch (e) {
-      toast.error(e?.message || 'Não foi possível trocar o modelo.')
-    }
-  }
+  const usaPropria = ia.origem === 'conta'
 
   return (
     <>
@@ -507,79 +502,158 @@ function SinteseIA() {
             : 'bg-gray-100 text-gray-600 dark:bg-white/5 dark:text-gray-400'
         }`}
         >
-          <Sparkles size={13} /> {ia.configurada ? 'Modelo conectado' : 'Nenhum modelo conectado'}
+          <Sparkles size={13} /> {ia.configurada ? 'Assistente ligado' : 'Assistente desligado'}
         </span>
         {ia.configurada && (
           <span className="chip font-mono text-[11px]">
-            {ia.modelo} · chave {ia.finalDaChave} · {ia.origem === 'ambiente' ? 'do ambiente' : 'desta instalação'}
+            {ia.modelo} · chave {ia.finalDaChave}
+          </span>
+        )}
+        {ia.configurada && (
+          <span className={`chip text-[11px] ${usaPropria ? '' : 'bg-amber-500/15 text-amber-700 dark:text-amber-300'}`}>
+            {usaPropria ? 'sua chave' : 'chave da instalação'}
           </span>
         )}
       </div>
 
+      {/* QUEM PAGA A CONTA É INFORMAÇÃO, NÃO DETALHE.
+        * Usar a chave da instalação significa gastar o crédito de outra pessoa.
+        * Quem faz isso sem saber não pôde escolher. */}
+      {ia.daInstalacao && (
+        <p className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs leading-relaxed">
+          Você está usando a chave <strong>desta instalação</strong> — o consumo é cobrado de quem
+          a hospeda. Para gastar o seu próprio crédito, configure a sua chave abaixo.
+        </p>
+      )}
+
       <p className="mt-3 text-sm muted">
         {ia.configurada
-          ? 'A síntese do clipping e as perguntas ao acervo estão disponíveis. Todo texto gerado aparece marcado como escrito por máquina — nenhuma tela o apresenta como apuração.'
-          : 'Sem chave, os campos de síntese ficam vazios com a nota explicando o motivo, em vez de preenchidos com texto plausível. Nada na plataforma deixa de funcionar por isso.'}
+          ? 'O resumo do período no Clipping e as perguntas ao acervo estão disponíveis. Todo texto gerado aparece marcado como escrito por máquina — nenhuma tela o apresenta como apuração da plataforma.'
+          : 'Cole a sua chave da Anthropic para ligar o resumo do período e as perguntas ao acervo. Sem ela, os campos de síntese ficam vazios com a nota explicando o motivo, e nada mais na plataforma muda.'}
       </p>
 
-      {!ia.podeConfigurar ? (
-        <p className="mt-3 rounded-lg border border-dashed border-gray-300 p-3 text-xs leading-relaxed muted dark:border-white/15">
-          A chave é configurada por quem administra esta instalação.
-        </p>
-      ) : ia.fixadoPorAmbiente ? (
-        <p className="mt-3 rounded-lg border border-dashed border-gray-300 p-3 text-xs leading-relaxed muted dark:border-white/15">
-          A chave vem da variável de ambiente <code className="font-mono">ANTHROPIC_API_KEY</code> e tem
-          precedência sobre qualquer valor gravado aqui — é assim que se configura em produção, e
-          nesse caminho ela nunca toca o disco da aplicação. Para configurá-la por esta tela, remova
-          a variável do ambiente.
-        </p>
-      ) : (
-        <div className="mt-4 space-y-4">
-          <div>
-            <label htmlFor="ia-chave" className="mb-1 block text-sm font-medium">
-              Chave da API (Anthropic)
-            </label>
-            <div className="flex flex-wrap gap-2">
-              <input
-                id="ia-chave"
-                type="password"
-                autoComplete="off"
-                spellCheck={false}
-                placeholder={ia.configurada ? `configurada (${ia.finalDaChave}) — cole outra para substituir` : 'sk-ant-…'}
-                value={chave}
-                onChange={(e) => setChave(e.target.value)}
-                className="min-w-[16rem] flex-1"
-              />
-              <button onClick={guardar} disabled={salvando || chave.trim().length < 12} className="btn-primary">
-                {salvando ? 'Guardando…' : 'Guardar'}
+      {/* ── A CHAVE DA PRÓPRIA CONTA ── */}
+      <div className="mt-4 space-y-4">
+        <div>
+          <label htmlFor="ia-chave" className="mb-1 block text-sm font-medium">
+            Sua chave da API (Anthropic)
+          </label>
+          <div className="flex flex-wrap gap-2">
+            <input
+              id="ia-chave"
+              type="password"
+              autoComplete="off"
+              spellCheck={false}
+              placeholder={usaPropria ? `configurada (${ia.finalDaChave}) — cole outra para substituir` : 'sk-ant-…'}
+              value={chave}
+              onChange={(e) => setChave(e.target.value)}
+              className="min-w-[16rem] flex-1"
+            />
+            <button
+              onClick={() => comAviso(async () => {
+                await salvarMinhaChave(chave.trim())
+                setChave('')
+              }, 'Chave guardada, cifrada, no servidor.')}
+              disabled={salvando || chave.trim().length < 12}
+              className="btn-primary"
+            >
+              {salvando ? 'Guardando…' : 'Guardar'}
+            </button>
+            {usaPropria && (
+              <button
+                onClick={() => comAviso(removerMinhaChave, 'Sua chave foi removida.')}
+                className="btn-ghost"
+              >
+                Remover
               </button>
-              {ia.configurada && ia.origem === 'banco' && (
-                <button onClick={apagar} className="btn-ghost">Remover</button>
+            )}
+          </div>
+          <p className="mt-1.5 text-xs leading-relaxed muted">
+            Vai para o servidor e não volta: o navegador nunca a guarda nem a lê. Obtenha a sua em{' '}
+            <code className="font-mono">console.anthropic.com</code> — o consumo é cobrado na sua conta lá.
+          </p>
+        </div>
+
+        <div>
+          <label htmlFor="ia-modelo" className="mb-1 block text-sm font-medium">Modelo</label>
+          <div className="flex flex-wrap gap-2">
+            <input
+              id="ia-modelo"
+              type="text"
+              spellCheck={false}
+              placeholder={ia.modeloPadrao}
+              value={modelo}
+              onChange={(e) => setModelo(e.target.value)}
+              className="min-w-[14rem] flex-1"
+            />
+            <button onClick={() => comAviso(() => salvarMeuModelo(modelo.trim()), 'Modelo atualizado.')} className="btn-ghost">
+              Aplicar
+            </button>
+          </div>
+          <p className="mt-1.5 text-xs muted">Vazio herda o padrão ({ia.modeloPadrao}).</p>
+        </div>
+      </div>
+
+      {/* ── A CHAVE DA INSTALAÇÃO, SÓ PARA QUEM ADMINISTRA ── */}
+      {ia.podeConfigurarInstalacao && (
+        <div className="mt-5 rounded-lg border border-gray-200 dark:border-white/10">
+          <button
+            onClick={() => setAbrirInstalacao((v) => !v)}
+            className="flex w-full items-center justify-between gap-2 p-3 text-left text-sm font-bold"
+          >
+            <span className="flex items-center gap-1.5">
+              <Server size={15} className="text-gray-400" />
+              Chave da instalação
+              <span className="chip text-[10px]">admin</span>
+            </span>
+            <span className="text-xs muted">{ia.instalacaoTemChave ? 'configurada' : 'não configurada'}</span>
+          </button>
+
+          {abrirInstalacao && (
+            <div className="border-t border-gray-200 p-3 dark:border-white/10">
+              <p className="text-xs leading-relaxed muted">
+                Uma chave de reserva para quem não configurou a própria. Quem usar essa reserva
+                gasta o crédito de quem hospeda — a tela avisa a pessoa quando isso acontece.
+              </p>
+              {ia.fixadoPorAmbiente ? (
+                <p className="mt-3 text-xs leading-relaxed muted">
+                  Vem de <code className="font-mono">ANTHROPIC_API_KEY</code> e tem precedência sobre
+                  qualquer valor gravado aqui — é assim que se configura em produção, e nesse caminho
+                  a chave nunca toca o disco da aplicação.
+                </p>
+              ) : (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <input
+                    type="password"
+                    autoComplete="off"
+                    spellCheck={false}
+                    placeholder="sk-ant-… (reserva da instalação)"
+                    aria-label="Chave da instalação"
+                    onChange={(e) => setChave(e.target.value)}
+                    className="min-w-[15rem] flex-1"
+                  />
+                  <button
+                    onClick={() => comAviso(async () => {
+                      await salvarChaveIa(chave.trim())
+                      setChave('')
+                    }, 'Chave da instalação guardada.')}
+                    disabled={salvando || chave.trim().length < 12}
+                    className="btn-ghost"
+                  >
+                    Guardar
+                  </button>
+                  {ia.instalacaoTemChave && (
+                    <button onClick={() => comAviso(removerChaveIa, 'Chave da instalação removida.')} className="btn-ghost">
+                      Remover
+                    </button>
+                  )}
+                  <button onClick={() => comAviso(() => salvarModeloIa(modelo.trim()), 'Modelo da instalação atualizado.')} className="btn-ghost">
+                    Definir modelo padrão
+                  </button>
+                </div>
               )}
             </div>
-            <p className="mt-1.5 text-xs leading-relaxed muted">
-              Vai para o servidor desta instalação e não volta: o navegador nunca a guarda nem a lê.
-              Obtenha a sua em <code className="font-mono">console.anthropic.com</code>. O consumo é
-              cobrado na conta de quem hospeda.
-            </p>
-          </div>
-
-          <div>
-            <label htmlFor="ia-modelo" className="mb-1 block text-sm font-medium">Modelo</label>
-            <div className="flex flex-wrap gap-2">
-              <input
-                id="ia-modelo"
-                type="text"
-                spellCheck={false}
-                placeholder={ia.modeloPadrao}
-                value={modelo}
-                onChange={(e) => setModelo(e.target.value)}
-                className="min-w-[14rem] flex-1"
-              />
-              <button onClick={trocarModelo} className="btn-ghost">Aplicar</button>
-            </div>
-            <p className="mt-1.5 text-xs muted">Vazio volta ao padrão ({ia.modeloPadrao}).</p>
-          </div>
+          )}
         </div>
       )}
 
@@ -588,10 +662,10 @@ function SinteseIA() {
           <ShieldAlert size={15} className="text-gray-400" /> Como a chave é tratada
         </p>
         <ul className="mt-1.5 space-y-1 text-xs leading-relaxed muted">
-          <li>— Guardada no servidor desta instalação, nunca no navegador.</li>
+          <li>— Guardada <strong>cifrada</strong> (AES-256-GCM) no servidor desta instalação, nunca no navegador.</li>
           <li>— Não é devolvida por rota nenhuma: a tela vê só os quatro últimos caracteres.</li>
           <li>— Quem chama o provedor é o servidor, autenticando a sessão antes.</li>
-          <li>— <code className="font-mono">ANTHROPIC_API_KEY</code> no ambiente tem precedência e é o caminho recomendado em produção.</li>
+          <li>— A cifra protege contra o banco vazar sozinho, não contra quem já tem o servidor. Um selo que promete mais que isso seria o mesmo tipo de mentira que esta plataforma recusa nos dados.</li>
         </ul>
       </div>
     </>

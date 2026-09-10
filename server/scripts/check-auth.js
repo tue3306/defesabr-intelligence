@@ -117,6 +117,26 @@ const ROTAS = [
     muta: true,
   },
   { metodo: 'GET', caminho: '/api/ia/estado', minimo: 'user' },
+
+  // A CHAVE DA PROPRIA CONTA. Qualquer sessao configura a sua — e ninguem sem
+  // sessao configura a de ninguem. Corpo invalido de proposito: o teste quer
+  // saber quem passa da GUARDA, e passar com corpo invalido devolve 400 sem
+  // sobrescrever a chave de quem estiver rodando a suite.
+  {
+    metodo: 'PUT',
+    caminho: '/api/ia/minha-chave',
+    minimo: 'user',
+    corpo: { chave: 'formato-invalido-de-proposito' },
+    autorizado: 400,
+    muta: true,
+  },
+  {
+    metodo: 'PUT',
+    caminho: '/api/ia/meu-modelo',
+    minimo: 'user',
+    corpo: { modelo: '' },
+    muta: true,
+  },
   // Sem chave configurada a rota responde 409 (recurso nao ligado), que e
   // exatamente o estado de uma instalacao recem-clonada. O que se testa aqui e
   // a guarda: 401 sem sessao, e passar dela com sessao.
