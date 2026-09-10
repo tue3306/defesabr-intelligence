@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Sparkles, Check, Flag, AlertTriangle, ExternalLink, ListChecks } from 'lucide-react'
+import { Sparkles, Check, Flag, AlertTriangle, ExternalLink, ListChecks, Search, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useIa } from '../../hooks/useIa'
 import { useResource } from '../../hooks/useResource'
 import { request } from '../../services/client'
 import { analisarMaterias } from '../../services/ia'
 import { formatDateBR } from '../../utils/dateUtils'
+import { normalize } from '../../utils/semanticSearch'
 import { categoryColor } from '../../utils/textUtils'
 import DataState from '../ui/DataState'
 import InfoTooltip from '../ui/InfoTooltip'
@@ -51,6 +52,7 @@ export default function AnaliseAssistida() {
   const [selecao, setSelecao] = useState([])
   const [resultado, setResultado] = useState(null)
   const [analisando, setAnalisando] = useState(false)
+  const [busca, setBusca] = useState('')
 
   const candidatas = useResource(
     () => request('GET /ia/candidatas', { params: { days: 14 } }),
@@ -64,6 +66,32 @@ export default function AnaliseAssistida() {
   if (!ia.configurada) return null
 
   const itens = candidatas.data?.items || []
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // A BUSCA, E POR QUE ELA NÃO ESCONDE O QUE JÁ FOI ESCOLHIDO
+  //
+  // Escolher à mão numa lista de sessenta funciona enquanto se quer "as mais
+  // relevantes". Não funciona quando se quer um ASSUNTO — submarino, fronteira,
+  // ransomware —, e é justamente aí que a análise assistida vale mais: um
+  // conjunto sobre um tema diz algo que a mesma quantidade de matérias soltas
+  // não diz.
+  //
+  // O filtro casa sem acento e sem caixa, contra título, fonte e categoria. Sem
+  // ele, procurar "análise" não encontraria "analise" e vice-versa.
+  //
+  // O QUE JÁ ESTÁ SELECIONADO NUNCA SOME. Sem essa regra, montar um conjunto de
+  // dois temas seria impossível: ao buscar o segundo assunto, as escolhas do
+  // primeiro sumiriam da tela e a pessoa perderia a noção do que já tem. Elas
+  // ficam, marcadas, e a contagem no rodapé continua batendo com o que se vê.
+  // ───────────────────────────────────────────────────────────────────────────
+  const termo = normalize(busca.trim())
+  const visiveis = termo
+    ? itens.filter((m) => (
+      selecao.includes(m.id)
+      || normalize(`${m.titulo} ${m.fonte || ''} ${m.categoria || ''}`).includes(termo)
+    ))
+    : itens
+
   const alternar = (id) => setSelecao((s) => (
     s.includes(id) ? s.filter((x) => x !== id) : (s.length >= MAXIMO ? s : [...s, id])
   ))
@@ -93,6 +121,40 @@ export default function AnaliseAssistida() {
         O <strong>índice de vínculo</strong> continua vindo da contagem de entidades — não do modelo.
       </p>
 
+      {/* A busca fica FORA do DataState: some junto com a lista quando não há
+        * matéria nenhuma, mas continua visível quando a busca não encontrou
+        * nada — que é exatamente quando alguém precisa dela para corrigir o
+        * termo. */}
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <div className="relative min-w-[15rem] flex-1">
+          <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <label htmlFor="busca-analise" className="sr-only">Buscar matéria por assunto, fonte ou categoria</label>
+          <input
+            id="busca-analise"
+            type="search"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar por assunto, fonte ou categoria — submarino, fronteira, ransomware…"
+            className="w-full pl-9"
+          />
+          {busca && (
+            <button
+              onClick={() => setBusca('')}
+              aria-label="Limpar busca"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-gray-400 hover:text-gray-900 dark:hover:text-white"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+        {termo && (
+          <span className="text-xs muted">
+            {visiveis.length} de {itens.length}
+            {selecao.length > 0 && ' · selecionadas sempre visíveis'}
+          </span>
+        )}
+      </div>
+
       <DataState
         loading={candidatas.loading}
         error={candidatas.error}
@@ -100,9 +162,15 @@ export default function AnaliseAssistida() {
         onRetry={candidatas.refetch}
         emptyProps={{ icon: Flag, title: 'Sem matérias no período', hint: 'A coleta roda a cada 30 minutos.' }}
       >
-        <div className="mt-4 max-h-80 overflow-y-auto rounded-lg border border-gray-200 dark:border-white/10">
+        <div className="mt-3 max-h-80 overflow-y-auto rounded-lg border border-gray-200 dark:border-white/10">
+          {visiveis.length === 0 ? (
+            <p className="p-4 text-sm muted">
+              Nenhuma matéria com <strong>{busca}</strong> nos últimos 14 dias. O acervo cobre o que
+              a coleta trouxe — se o assunto não apareceu na imprensa monitorada, ele não está aqui.
+            </p>
+          ) : (
           <ul className="divide-y divide-gray-200 dark:divide-white/10">
-            {itens.map((m) => {
+            {visiveis.map((m) => {
               const marcada = selecao.includes(m.id)
               const cheio = selecao.length >= MAXIMO && !marcada
               return (
@@ -144,6 +212,7 @@ export default function AnaliseAssistida() {
               )
             })}
           </ul>
+          )}
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-3">

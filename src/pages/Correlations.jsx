@@ -292,9 +292,38 @@ function Correlacao({ c, aberto, onToggle }) {
       {aberto && (
         <div className="mt-3 space-y-2.5 border-t border-gray-200 pt-3 dark:border-white/10">
           <Campo rotulo="Evidência" texto={c.evidencia} mono />
-          {c.contextoBrasil && <Campo rotulo="Contexto no Brasil" texto={c.contextoBrasil} />}
-          {c.impacto && <Campo rotulo="Impacto possível" texto={c.impacto} />}
-          {c.artigo?.brMotivo && <Campo rotulo="Índice de vínculo com o Brasil" texto={c.artigo.brMotivo} />}
+
+          {/* ─────────────────────────────────────────────────────────────
+            * SAÍRAM DAQUI: "CONTEXTO NO BRASIL", "IMPACTO POSSÍVEL" E O
+            * "ÍNDICE DE VÍNCULO"
+            *
+            * Os três apareciam como se fossem a leitura daquela correlação
+            * específica. Não eram.
+            *
+            * "Impacto possível" é uma STRING FIXA POR REGRA, escrita uma vez
+            * em `lib/correlacao.js` e repetida em toda correlação daquele
+            * tipo. Todo vazamento de órgão do Estado recebia, palavra por
+            * palavra, "eventual exposição de dados de cidadãos e interrupção
+            * de serviço público. A notificação cabe ao CTIR Gov." — verdadeiro
+            * como descrição da CLASSE, e vazio como análise do CASO.
+            *
+            * "Contexto no Brasil" era o mesmo padrão: setor e data de
+            * divulgação montados por gabarito.
+            *
+            * E o "Índice de vínculo" já aparece no cabeçalho do cartão, com a
+            * unidade à vista. Repeti-lo aberto, em prosa, era dizer duas vezes
+            * a mesma coisa.
+            *
+            * Texto de gabarito com rótulo de análise é pior que ausência de
+            * análise: ocupa o lugar dela e passa por ela. O que fica é o que a
+            * regra REALMENTE prova — a evidência literal — e, logo abaixo, a
+            * leitura por modelo, que é interpretação e vem rotulada como tal.
+            *
+            * Os campos continuam no banco e continuam sendo enviados ao modelo
+            * como INSUMO: setor e data de divulgação são fatos úteis para
+            * quem escreve a leitura. O que saiu foi exibi-los como se alguém
+            * os tivesse escrito para aquele caso.
+            * ───────────────────────────────────────────────────────────── */}
 
           {/* ─────────────────────────────────────────────────────────────
             * O QUE A REGRA NÃO CONSEGUE DIZER
