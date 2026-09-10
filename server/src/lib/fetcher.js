@@ -162,9 +162,74 @@ async function buscar(url, opcoes = {}) {
   }
 }
 
+// -----------------------------------------------------------------------------
+// A CODIFICAÇÃO DO FEED
+//
+// `Response.text()` decodifica SEMPRE como UTF-8. Está no padrão do fetch, e é
+// o comportamento certo para a web moderna — mas não para RSS, onde formato de
+// 2001 e servidor legado ainda são comuns.
+//
+// A Folha publica os feeds em `rss091.xml` com `encoding="ISO-8859-1"`, e a
+// resposta HTTP não traz charset nenhum: só `Content-Type: text/xml`. Cada
+// acento é um byte único que não forma UTF-8 válido, e o decodificador o troca
+// pelo caractere de substituição:
+//
+//   "Irã sinaliza disposição"   ->   "Ir� sinaliza disposi��o"
+//   "Rússia"                    ->   "R�ssia"
+//   "eleição"                   ->   "elei��o"
+//
+// Vinte e um artigos do acervo estavam assim, e o estrago era duplo. O visível:
+// manchete ilegível no cartão e no PDF. O invisível, e pior: o filtro de
+// relevância e o detector de entidades trabalham sobre esse texto — "eleição"
+// corrompida não casa com termo nenhum, então a matéria era avaliada por um
+// texto que ninguém escreveu.
+//
+// A ORDEM DE PRECEDÊNCIA é a que o próprio XML manda seguir:
+//
+//   1. `charset=` no cabeçalho HTTP — quem serve tem a palavra final;
+//   2. `encoding=` na declaração XML — o que a Folha usa, e o único sinal que
+//      existe quando o cabeçalho é omisso;
+//   3. UTF-8, que é o padrão do XML quando nada é declarado.
+//
+// A declaração é lida em ASCII sobre os primeiros bytes, o que é seguro:
+// qualquer codificação que o XML aceita representa `<?xml ... ?>` com os mesmos
+// bytes de ASCII.
+// -----------------------------------------------------------------------------
+
+/** `<?xml version="1.0" encoding="ISO-8859-1" ?>` → `iso-8859-1`. */
+const RX_DECLARACAO = /<\?xml[^>]*\bencoding\s*=\s*["']([\w-]+)["']/i
+
+/** `text/xml; charset=ISO-8859-1` → `iso-8859-1`. */
+const RX_CABECALHO = /charset\s*=\s*["']?([\w-]+)/i
+
+function decodificar(bytes, contentType) {
+  const doCabecalho = RX_CABECALHO.exec(contentType || '')?.[1]
+
+  // A declaração vive nos primeiros bytes. 512 cobre com folga qualquer
+  // `<?xml ... ?>` real, e evita transcodificar o feed inteiro só para achá-la.
+  const inicio = new TextDecoder('utf-8', { fatal: false }).decode(bytes.subarray(0, 512))
+  const daDeclaracao = RX_DECLARACAO.exec(inicio)?.[1]
+
+  const nome = (doCabecalho || daDeclaracao || 'utf-8').toLowerCase()
+
+  try {
+    // `latin1` e `iso-8859-1` são tratados como `windows-1252` pelo padrão de
+    // codificação da web, e é o certo: quem declara ISO-8859-1 quase sempre
+    // serve windows-1252, que acrescenta aspas curvas e travessões na faixa
+    // 0x80–0x9F. Decodificar como latin-1 estrito transformaria essas em
+    // caracteres de controle invisíveis.
+    return new TextDecoder(nome).decode(bytes)
+  } catch {
+    // Codificação que este Node não conhece. UTF-8 com substituição perde os
+    // acentos, mas devolve texto legível — melhor que derrubar a fonte inteira.
+    return new TextDecoder('utf-8').decode(bytes)
+  }
+}
+
 export async function buscarTexto(url, opcoes = {}) {
   const r = await buscar(url, { aceita: 'application/rss+xml, application/xml, text/xml, */*', ...opcoes })
-  return r.text()
+  const bytes = new Uint8Array(await r.arrayBuffer())
+  return decodificar(bytes, r.headers.get('content-type'))
 }
 
 export async function buscarJson(url, opcoes = {}) {

@@ -240,8 +240,87 @@ const RX_RODAPE = new RegExp(
   'i',
 )
 
+// -----------------------------------------------------------------------------
+// A CHAMADA DE ENGAJAMENTO, NO MEIO DO TEXTO
+//
+// O rodapé acima é cortado porque vem NO FIM. Estas não vêm — o G1 as insere
+// entre parágrafos, e o resumo continua depois delas:
+//
+//   "…ações que deixaram dezenas de feridos. ✅ Siga o canal de notícias
+//    internacionais do g1 no WhatsApp  "Aviões sauditas executaram 32 ataques
+//    aéreos contra diversas áreas das províncias de Marib…"
+//
+// Cortar no primeiro achado jogaria fora metade da matéria. Estas são REMOVIDAS
+// no lugar, e o texto ao redor se junta.
+//
+// ─────────────────────────────────────────────────────────────────────────────
+// O CUSTO ERA MAIOR QUE UMA LINHA FEIA
+//
+// Vinte e oito resumos do acervo traziam "✅", e mais uma dezena traziam 📱,
+// 👉 ou 🗒️. As fontes padrão do jsPDF são WinAnsi e não têm glifo para nada
+// disso: no PDF do clipping a linha inteira se desfazia em letras separadas —
+//
+//   "d e i x a r a m   d e z e n a s   d e   f e r i d o s ."
+//
+// — o que parecia defeito do gerador de PDF e era, na origem, um emoji de
+// campanha do veículo.
+//
+// E o texto também entrava na avaliação de relevância. "Siga o canal de
+// notícias internacionais" não descreve a matéria, mas soma palavras a ela.
+// -----------------------------------------------------------------------------
+//
+// CADA PADRÃO PRECISA DE UM FIM EXPLÍCITO.
+//
+// A primeira versão terminava em `[^.!?]{0,80}[.!?]?` — "até 80 caracteres que
+// não sejam pontuação". Parecia razoável e comia a frase seguinte, porque a
+// chamada do veículo não vem pontuada:
+//
+//   "O equipamento chegou ontem. 📱Favorite o g1 no Google e acompanhe as
+//    principais notícias do dia O exército confirmou."
+//                              └── sem ponto aqui ──┘
+//
+// O `{0,80}` atravessava "do dia" e levava "O exército confirmou" junto. Cada
+// padrão passou a terminar na palavra que fecha a chamada — "no WhatsApp",
+// "do dia", "de graça" —, com quantificador preguiçoso.
+const RX_CHAMADAS = [
+  // A família "…no WhatsApp", em todas as formas que o acervo trouxe:
+  //   "✅ Siga o canal de notícias internacionais do g1 no WhatsApp"
+  //   "✅ Clique aqui para seguir o canal do g1 RR no WhatsApp"
+  //   "Quer ler mais notícias de Mundo? Acompanhe o canal no WhatsApp"
+  //
+  // Todas terminam em "no WhatsApp", que é a âncora segura. A pergunta que às
+  // vezes abre a chamada ("Quer mais notícias de Mundo?") entra como prefixo
+  // opcional — sem ela, a interrogação ficava órfã no meio do resumo.
+  /[^\S\n]*[^\w\s]{0,3}\s*(?:quer\s+(?:ler\s+)?mais not[íi]cias[^.!?]{0,40}?\?\s*)?(?:siga|acompanhe|clique aqui para seguir)\b[^.!?]{0,80}?\bno whatsapp\b[.!?]?/gi,
+  // "📱Favorite o g1 no Google e acompanhe as principais notícias do dia"
+  /[^\S\n]*[^\w\s]{0,3}\s*favorite o g1\b(?:[^.!?]{0,70}?\bdo dia\b)?[.!?]?/gi,
+  // "📱Baixe o app do g1 para ver notícias em tempo real e de graça"
+  /[^\S\n]*[^\w\s]{0,3}\s*baixe o (?:app|aplicativo) do g1\b(?:[^.!?]{0,70}?\bde gra[çc]a\b)?[.!?]?/gi,
+  // "🗒️Tem alguma sugestão de reportagem? Mande para o g1"
+  /[^\S\n]*[^\w\s]{0,3}\s*tem alguma sugest[ãa]o de reportagem\?(?:\s*(?:mande|envie)\s+para o g1\b)?/gi,
+  // "Este conteúdo foi traduzido…" NÃO entra: é declaração sobre como o texto
+  // foi produzido, e apagá-la seria enganoso por omissão. Ver RX_RODAPE.
+]
+
+/** Remove as chamadas do veículo e junta o texto ao redor. */
+function removerChamadas(texto) {
+  let saida = texto
+  for (const rx of RX_CHAMADAS) saida = saida.replace(rx, ' ')
+  return saida
+}
+
+/**
+ * Espaços que a fonte deixa e que não são espaço.
+ *
+ * O zero-width space (U+200B) aparece em seis resumos do acervo: invisível na
+ * tela, mas parte uma palavra ao meio para qualquer regex de fronteira — e
+ * "for\u200Bças armadas" não casa com "forças armadas".
+ */
+const RX_INVISIVEIS = /[\u200B-\u200D\uFEFF\u00AD]/g
+
 export function limparRodape(texto) {
-  const plano = String(texto || '').replace(/\s+/g, ' ').trim()
+  const semInvisiveis = String(texto || '').replace(RX_INVISIVEIS, '')
+  const plano = removerChamadas(semInvisiveis).replace(/\s+/g, ' ').trim()
   const corte = plano.search(RX_RODAPE)
   return corte > 0 ? plano.slice(0, corte).trim() : plano
 }

@@ -10,12 +10,6 @@ async function loadJsPDF() {
   return jsPDFModule
 }
 
-let html2canvasModule = null
-async function loadHtml2Canvas() {
-  if (!html2canvasModule) html2canvasModule = (await import('html2canvas')).default
-  return html2canvasModule
-}
-
 // Download generico de blob
 function download(blob, filename) {
   const url = URL.createObjectURL(blob)
@@ -43,33 +37,21 @@ export function exportCSV(rows = [], filename = 'export.csv') {
   download(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }), filename)
 }
 
-// Captura um elemento do DOM e gera PDF (paginado)
-export async function exportElementToPDF(element, filename = 'documento.pdf') {
-  if (!element) return
-  const [jsPDF, html2canvas] = await Promise.all([loadJsPDF(), loadHtml2Canvas()])
-  const canvas = await html2canvas(element, {
-    scale: 2,
-    backgroundColor: '#141c28',
-    useCORS: true,
-    logging: false,
-  })
-  const img = canvas.toDataURL('image/png')
-  const pdf = new jsPDF('p', 'mm', 'a4')
-  const pageW = pdf.internal.pageSize.getWidth()
-  const pageH = pdf.internal.pageSize.getHeight()
-  const imgH = (canvas.height * pageW) / canvas.width
-  let heightLeft = imgH
-  let position = 0
-  pdf.addImage(img, 'PNG', 0, position, pageW, imgH)
-  heightLeft -= pageH
-  while (heightLeft > 0) {
-    position -= pageH
-    pdf.addPage()
-    pdf.addImage(img, 'PNG', 0, position, pageW, imgH)
-    heightLeft -= pageH
-  }
-  pdf.save(filename)
-}
+// -----------------------------------------------------------------------------
+// AQUI HAVIA `exportElementToPDF` E, MAIS ABAIXO, `exportWeeklyToPDF`
+//
+// A primeira fotografava um elemento do DOM com html2canvas e colava a imagem
+// num PDF. A segunda montava o PDF da "Análise Semanal de Cenários" — tela que
+// foi removida quando o conteúdo redigido à mão saiu do produto.
+//
+// Nenhuma das duas era importada por arquivo nenhum. Juntas carregavam o
+// html2canvas (~200 kB) no grafo de dependências de um módulo que toda tela com
+// exportação importa.
+//
+// Um PDF por captura de tela também é o formato errado para este produto: gera
+// imagem, e imagem não tem texto selecionável, não tem link clicável e não é
+// pesquisável. O PDF do clipping é montado com texto de verdade, logo abaixo.
+// -----------------------------------------------------------------------------
 
 // -----------------------------------------------------------------------------
 // O PDF DO CLIPPING
@@ -133,6 +115,62 @@ const COR_URGENCIA = {
 const ROTULO_URGENCIA = { CRITICO: 'CRÍTICO', ALTO: 'ALTO', MEDIO: 'MÉDIO', BAIXO: 'BAIXO' }
 const ROTULO_ALERTA = { CRITICO: 'CRÍTICO', ALERTA: 'ALERTA', ATENCAO: 'ATENÇÃO', NORMAL: 'NORMAL' }
 
+// -----------------------------------------------------------------------------
+// O QUE A FONTE DO PDF CONSEGUE ESCREVER
+//
+// As fontes embutidas do jsPDF (Helvetica, Times, Courier) são WinAnsi: cobrem
+// latin-1 mais um punhado de sinais tipográficos, e nada além. Qualquer
+// caractere fora disso não é ignorado — ele desalinha a codificação do texto, e
+// a LINHA INTEIRA sai desmontada:
+//
+//   "d e i x a r a m   d e z e n a s   d e   f e r i d o s ."
+//
+// A causa, no acervo real, era um emoji de campanha do G1 ("✅ Siga o canal…")
+// no meio do resumo. Quarenta e sete das 496 matérias relevantes tinham algum
+// caractere assim.
+//
+// A origem já é tratada na coleta (ver `removerChamadas` em relevance.js), e
+// isto aqui é a rede embaixo: o acervo recebe texto de cinquenta fontes que
+// ninguém controla, e a próxima campanha vai usar outro emoji. Um PDF ilegível
+// é pior que um PDF sem um caractere.
+//
+// A ORDEM IMPORTA. Primeiro decompõe e tira o acento combinante — assim "ń"
+// (U+0144, fora do WinAnsi) vira "n" em vez de sumir. Só depois se descarta o
+// que sobrou fora da faixa, que a essa altura é emoji e pictograma, para os
+// quais não existe transliteração honesta.
+// -----------------------------------------------------------------------------
+
+/** Sinais tipográficos que o WinAnsi tem, apesar de ficarem acima de U+00FF. */
+const EXTRAS_WINANSI = new Set([
+  0x20AC, 0x201A, 0x0192, 0x201E, 0x2026, 0x2020, 0x2021, 0x02C6, 0x2030,
+  0x0160, 0x2039, 0x0152, 0x017D, 0x2018, 0x2019, 0x201C, 0x201D, 0x2022,
+  0x2013, 0x2014, 0x02DC, 0x2122, 0x0161, 0x203A, 0x0153, 0x017E, 0x0178,
+])
+
+/** Texto que a fonte do PDF consegue desenhar, sem desmontar a linha. */
+function paraWinAnsi(texto) {
+  const bruto = String(texto ?? '')
+  let saida = ''
+
+  // NFD separa "ń" em "n" + acento combinante; o acento é descartado abaixo por
+  // estar fora da faixa. Caracteres que JÁ existem em latin-1 (á, ç, õ) são
+  // recompostos no fim para não perderem o acento.
+  for (const c of bruto.normalize('NFD')) {
+    const cp = c.codePointAt(0)
+    // Marcas combinantes: mantidas para a recomposição seguinte.
+    if (cp >= 0x0300 && cp <= 0x036F) { saida += c; continue }
+    if (cp <= 0xFF || EXTRAS_WINANSI.has(cp)) { saida += c; continue }
+    // Emoji e pictograma: não há transliteração honesta. Saem.
+  }
+
+  return saida
+    .normalize('NFC')
+    // O que a recomposição não reuniu (acento sem base em WinAnsi) sai agora.
+    .replace(/[\u0300-\u036F]/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+}
+
 /** Data ISO -> `dd/mm/aaaa`, e string vazia quando não há data. */
 function dataCurta(iso) {
   if (!iso) return ''
@@ -184,7 +222,7 @@ export async function exportClippingToPDF(clipping) {
     pdf.setFont('helvetica', estilo)
     pdf.setFontSize(size)
     pdf.setTextColor(...cor)
-    pdf.splitTextToSize(String(txt), LARGURA - recuo).forEach((ln) => {
+    pdf.splitTextToSize(paraWinAnsi(txt), LARGURA - recuo).forEach((ln) => {
       espaco(altura + 1)
       pdf.text(ln, M + recuo, y)
       y += altura
@@ -197,7 +235,7 @@ export async function exportClippingToPDF(clipping) {
     pdf.setFont('helvetica', 'bold')
     pdf.setFontSize(11.5)
     pdf.setTextColor(...COR.titulo)
-    pdf.text(String(txt).toUpperCase(), M, y)
+    pdf.text(paraWinAnsi(txt).toUpperCase(), M, y)
     if (contagem != null) {
       pdf.setFont('helvetica', 'normal')
       pdf.setFontSize(9)
@@ -317,7 +355,7 @@ export async function exportClippingToPDF(clipping) {
       pdf.setFont('helvetica', 'bold')
       pdf.setFontSize(10.5)
       pdf.setTextColor(...COR.fundo)
-      pdf.splitTextToSize(`${i + 1}. ${n.title || 'Sem título'}`, LARGURA - 5).forEach((ln) => {
+      pdf.splitTextToSize(paraWinAnsi(`${i + 1}. ${n.title || 'Sem título'}`), LARGURA - 5).forEach((ln) => {
         espaco(6)
         pdf.text(ln, M + 5, y)
         y += 5
@@ -366,119 +404,4 @@ export async function exportClippingToPDF(clipping) {
 
   const nomeData = (clipping.date || dataCurta(clipping.generatedAt) || '').replace(/\//g, '-')
   pdf.save(`clipping-defesabr${nomeData ? `-${nomeData}` : ''}.pdf`)
-}
-
-// PDF da Análise Semanal (cenários, oportunidades, riscos, recomendações e indicadores)
-export async function exportWeeklyToPDF(analysis, meta = {}) {
-  if (!analysis) return
-  const jsPDF = await loadJsPDF()
-  const pdf = new jsPDF('p', 'mm', 'a4')
-  const W = pdf.internal.pageSize.getWidth()
-  const H = pdf.internal.pageSize.getHeight()
-  const M = 15
-  let y = 0
-
-  const ensureSpace = (need) => {
-    if (y + need > H - 18) {
-      footer()
-      pdf.addPage()
-      y = M
-    }
-  }
-
-  pdf.setFillColor(20, 28, 40)
-  pdf.rect(0, 0, W, 28, 'F')
-  pdf.setTextColor(255, 255, 255)
-  pdf.setFont('helvetica', 'bold')
-  pdf.setFontSize(16)
-  pdf.text('DefesaBR Intelligence', M, 13)
-  pdf.setFont('helvetica', 'normal')
-  pdf.setFontSize(9)
-  pdf.setTextColor(150, 201, 222)
-  pdf.text('Análise Semanal de Cenários — Segurança e Defesa', M, 19)
-  pdf.text(`${meta.week || ''}${meta.focusLabel ? `  |  Perspectiva: ${meta.focusLabel}` : ''}`, M, 24)
-  y = 36
-
-  const heading = (txt) => {
-    ensureSpace(12)
-    pdf.setTextColor(26, 138, 184)
-    pdf.setFont('helvetica', 'bold')
-    pdf.setFontSize(12)
-    pdf.text(txt, M, y)
-    y += 6
-    pdf.setDrawColor(26, 138, 184)
-    pdf.line(M, y, W - M, y)
-    y += 5
-  }
-
-  const body = (txt, size = 10, color = [40, 40, 40]) => {
-    pdf.setTextColor(...color)
-    pdf.setFont('helvetica', 'normal')
-    pdf.setFontSize(size)
-    pdf.splitTextToSize(txt, W - M * 2).forEach((ln) => {
-      ensureSpace(6)
-      pdf.text(ln, M, y)
-      y += 5
-    })
-  }
-
-  const footer = () => {
-    pdf.setFontSize(7)
-    pdf.setTextColor(140, 140, 140)
-    pdf.text('Gerado a partir do acervo coletado pela plataforma. Nenhum trecho escrito por maquina.', M, H - 10)
-    pdf.text('DefesaBR Intelligence', W - M, H - 10, { align: 'right' })
-  }
-
-  // Contexto
-  if (analysis.context) {
-    heading('Contexto da Semana')
-    body(`Eventos monitorados: ${analysis.context.events_monitored ?? '—'}`)
-    body(`Nível de tensão: ${analysis.context.tension_level ?? '—'}/100`)
-    if (analysis.context.active_regions?.length) body(`Regiões ativas: ${analysis.context.active_regions.join(', ')}`)
-    y += 2
-  }
-
-  // Cenários
-  if (analysis.scenarios?.length) {
-    heading('Análise de Cenários')
-    analysis.scenarios.forEach((sc) => {
-      ensureSpace(16)
-      pdf.setFont('helvetica', 'bold')
-      pdf.setFontSize(11)
-      pdf.setTextColor(20, 28, 40)
-      body(`${sc.type} — ${sc.title} (${sc.probability}%)`, 11, [20, 28, 40])
-      body(sc.description, 9)
-      if (sc.factors?.length) body(`Fatores: ${sc.factors.join('; ')}`, 9, [70, 90, 110])
-      y += 2
-    })
-  }
-
-  // Oportunidades x Riscos
-  if (analysis.opportunities?.length) {
-    heading('Oportunidades')
-    analysis.opportunities.forEach((o) => body(`• ${o.title} (prob. ${o.probability} · impacto ${o.impact})`))
-  }
-  if (analysis.risks?.length) {
-    heading('Riscos')
-    analysis.risks.forEach((r) => body(`• ${r.title} (prob. ${r.probability} · impacto ${r.impact})`))
-  }
-
-  // Recomendações
-  if (analysis.recommendations && Object.keys(analysis.recommendations).length) {
-    heading('Recomendações por Perfil')
-    Object.entries(analysis.recommendations).forEach(([profile, text]) => {
-      body(`${profile}:`, 10, [20, 28, 40])
-      body(text, 9)
-      y += 1
-    })
-  }
-
-  // Indicadores
-  if (analysis.indicators?.length) {
-    heading('Indicadores a Monitorar')
-    analysis.indicators.forEach((ind) => body(`• ${ind.name}: ${ind.value} (meta ${ind.target}) — ${ind.status}`))
-  }
-
-  footer()
-  pdf.save(`analise-semanal-${(meta.focusLabel || 'defesabr').toLowerCase().replace(/\s+/g, '-')}.pdf`)
 }
