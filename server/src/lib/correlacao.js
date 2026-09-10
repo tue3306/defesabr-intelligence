@@ -1,6 +1,7 @@
 import { all, get } from '../db/index.js'
 import { normalizar } from './relevance.js'
 import { detectarEntidades, SETORES } from './entidades.js'
+import { nomeDaVitima } from './vitima.js'
 import { UFS } from './geo.js'
 
 // -----------------------------------------------------------------------------
@@ -176,7 +177,7 @@ function regraOrganizacaoVitima(artigo, entidades) {
         regra: porDominio ? 'organizacao-vitima-dominio' : 'organizacao-vitima-nome',
         alvoTipo: 'vitima',
         alvoId: v.website || v.victim,
-        alvoRotulo: v.victim,
+        alvoRotulo: nomeDaVitima(v.victim, v.website).nome,
         motivo: porDominio
           ? `A matéria cita ${e.nome}, cujo domínio (${raiz}) consta na lista de organizações `
             + `brasileiras com vazamento divulgado pelo grupo ${v.group || 'não identificado'}.`
@@ -527,7 +528,7 @@ function regraMunicipio(artigo) {
       regra: 'municipio-orgao-atacado',
       alvoTipo: 'municipio',
       alvoId: `${slug}.${uf}`,
-      alvoRotulo: `${v.victim} (${unidade.uf})`,
+      alvoRotulo: `${nomeDaVitima(v.victim, v.website).nome} (${unidade.uf})`,
       motivo: `A matéria cita um município cujo órgão público consta na lista de vazamentos: `
         + `"${v.victim}", no domínio ${v.website}, divulgado pelo grupo ${v.group || 'não identificado'}.`,
       evidencia: `"${slug}" no texto = rótulo do município em ${v.website}`,

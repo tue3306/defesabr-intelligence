@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { all } from '../db/index.js'
+import { nomeDaVitima } from '../lib/vitima.js'
 import { exigirPapel } from '../lib/auth.js'
 import { dias, limite } from '../lib/parametros.js'
 import { METODO_CORRELACAO } from '../lib/correlacao.js'
@@ -196,11 +197,15 @@ router.get('/intel/entidade/:tipo/:id', exigirPapel('user'), (req, res) => {
   const dominio = cat.dominio && !cat.dominio.includes('/') ? cat.dominio : null
   const vazamentos = dominio
     ? all(
-      `SELECT victim, "group", sector, discovered_at, criticality, nature
+      `SELECT victim, website, "group", sector, discovered_at, criticality, nature
          FROM ransomware_victims WHERE country = 'BR' AND (website = ? OR website = ?)
         ORDER BY discovered_at DESC LIMIT 10`,
       [dominio, `www.${dominio}`]
-    )
+    ).map((v) => {
+      // Ver `lib/vitima.js`: o campo da fonte é o título do post do criminoso.
+      const { nome, bruto, limpo } = nomeDaVitima(v.victim, v.website)
+      return { ...v, victim: nome, victimBruto: limpo ? bruto : null }
+    })
     : []
 
   res.json({

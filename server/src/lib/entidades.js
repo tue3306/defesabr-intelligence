@@ -331,6 +331,118 @@ const CATALOGO = [
   ...compilar(INFRAESTRUTURAS, 'infraestrutura'),
 ]
 
+// ─────────────────────────────────────────────────────────────────────────────
+// A INSTITUIÇÃO ESTRANGEIRA COM O MESMO NOME
+//
+// "Ministério da Saúde", "Ministério da Defesa", "Polícia Federal", "Banco
+// Central" e "Câmara dos Deputados" não são nomes brasileiros: são nomes
+// GENÉRICOS de instituição, e existem em dezenas de países. O catálogo os
+// tratava como se fossem exclusivos daqui.
+//
+// O custo apareceu na tela principal, com a força máxima. Uma matéria do G1
+// sobre um jornalista atingido por míssil no Líbano diz, no corpo:
+//
+//   "O Ministério da Saúde do Líbano também relatou que dois jornalistas
+//    ficaram feridos nos ataques israelenses de domingo"
+//
+// O detector reconheceu "Ministério da Saúde", a regra de domínio encontrou
+// `saude.gov.br` na lista de vítimas de ransomware, e a plataforma publicou uma
+// correlação FORÇA 5 — a que ela reserva para correspondência literal e
+// indiscutível — ligando um ataque israelense no Líbano a um vazamento de dados
+// do governo brasileiro.
+//
+// É o mesmo erro do estado do "Pará" virando a preposição "para": um termo do
+// catálogo que, no texto real, quase sempre é outra coisa. E é o erro mais caro
+// que esta plataforma pode cometer, porque ela promete que nenhuma relação é
+// inferida — uma ligação errada com evidência literal ao lado é mais
+// convincente que uma ligação errada sem evidência nenhuma.
+//
+// A GUARDA: o que vem DEPOIS do nome desqualifica a ocorrência. "Ministério da
+// Saúde do Líbano" e "Exército israelense" nomeiam instituições estrangeiras, e
+// a língua marca isso logo em seguida — com a preposição mais o país, ou com o
+// gentílico. Não há ambiguidade a resolver: é leitura direta.
+//
+// Vale para TODAS as entidades, e não só para as genéricas. "Petrobras da
+// Argentina" não existe, então a guarda não custa nada onde não é necessária —
+// e no dia em que o catálogo receber mais um nome genérico, ela já está lá.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Países que, logo após o nome, dizem que a instituição não é a brasileira. */
+const PAISES_ESTRANGEIROS = [
+  'libano', 'israel', 'ira', 'palestina', 'gaza', 'siria', 'iraque', 'iemen',
+  'egito', 'turquia', 'arabia saudita', 'catar', 'emirados arabes unidos', 'jordania',
+  'russia', 'ucrania', 'bielorrussia', 'polonia', 'alemanha', 'franca', 'italia',
+  'espanha', 'portugal', 'reino unido', 'inglaterra', 'irlanda', 'holanda',
+  'paises baixos', 'belgica', 'suica', 'austria', 'suecia', 'noruega', 'finlandia',
+  'dinamarca', 'grecia', 'romenia', 'hungria', 'republica tcheca',
+  'china', 'japao', 'coreia', 'india', 'paquistao', 'afeganistao', 'indonesia',
+  'filipinas', 'vietna', 'tailandia', 'taiwan', 'australia', 'nova zelandia',
+  'estados unidos', 'eua', 'canada', 'mexico', 'cuba', 'haiti',
+  'republica dominicana', 'guatemala', 'honduras', 'el salvador', 'nicaragua',
+  'costa rica', 'panama', 'colombia', 'venezuela', 'equador', 'peru', 'bolivia',
+  'chile', 'argentina', 'uruguai', 'paraguai', 'guiana', 'suriname',
+  'nigeria', 'africa do sul', 'etiopia', 'quenia', 'angola', 'mocambique',
+  'congo', 'sudao', 'libia', 'argelia', 'marrocos', 'tunisia',
+]
+
+/**
+ * Gentílicos estrangeiros, com as terminações de género e número.
+ *
+ * "brasileiro" está fora de propósito: ele CONFIRMA a entidade em vez de
+ * desqualificá-la, e é o único gentílico que este catálogo quer encontrar.
+ */
+const GENTILICOS_ESTRANGEIROS = [
+  'israelens[ea]s?', 'libanes[ea]s?', 'palestin[oa]s?', 'sir[ia][oa]s?',
+  'iraquian[oa]s?', 'iranian[oa]s?', 'turc[oa]s?', 'egipci[oa]s?',
+  'russ[oa]s?', 'ucranian[oa]s?', 'polon[eê]s[ea]s?',
+  'american[oa]s?', 'norte-american[oa]s?', 'estadunidens[ea]s?',
+  'britanic[oa]s?', 'ingl[eê]s[ea]s?', 'frances[ea]s?', 'alem[aã][oe]s?',
+  'italian[oa]s?', 'espanh[oó]l[ea]s?', 'portugues[ea]s?',
+  'chin[eê]s[ea]s?', 'japon[eê]s[ea]s?', 'corean[oa]s?', 'indian[oa]s?',
+  'argentin[oa]s?', 'venezuelan[oa]s?', 'colombian[oa]s?', 'chilen[oa]s?',
+  'peruan[oa]s?', 'bolivian[oa]s?', 'paraguai[oa]s?', 'uruguai[oa]s?',
+  'mexican[oa]s?', 'canadens[ea]s?', 'australian[oa]s?',
+]
+
+/**
+ * O que, logo depois do nome, prova que a instituição é de outro país.
+ *
+ * Ancorado em `^`: é testado contra o trecho que SUCEDE a ocorrência, e não
+ * contra o texto inteiro. Sem a âncora, "Israel" citado no fim da matéria
+ * desqualificaria uma menção legítima no começo.
+ */
+const RX_QUALIFICADOR_ESTRANGEIRO = new RegExp(
+  '^[\\s,]*(?:'
+  + `d[oae]s?\\s+(?:${PAISES_ESTRANGEIROS.join('|')})`
+  + '|'
+  + `(?:${GENTILICOS_ESTRANGEIROS.join('|')})`
+  + ')(?![\\p{L}\\p{N}])',
+  'iu',
+)
+
+/** Quantos caracteres depois da ocorrência bastam para ver o qualificador. */
+const JANELA_QUALIFICADOR = 48
+
+/**
+ * A entidade aparece ao menos uma vez SEM qualificador estrangeiro?
+ *
+ * Percorre todas as ocorrências, e não só a primeira. Uma matéria pode citar
+ * "o Ministério da Defesa de Israel" no primeiro parágrafo e "o Ministério da
+ * Defesa" brasileiro no terceiro — rejeitar pela primeira ocorrência perderia
+ * a segunda, que é a que interessa.
+ *
+ * Devolve o termo casado quando alguma ocorrência é legítima, e `null` quando
+ * TODAS são estrangeiras.
+ */
+function ocorrenciaBrasileira(rx, texto) {
+  const global = new RegExp(rx.source, 'giu')
+  for (const m of texto.matchAll(global)) {
+    const depois = normalizar(texto.slice(m.index + m[0].length, m.index + m[0].length + JANELA_QUALIFICADOR))
+    if (!RX_QUALIFICADOR_ESTRANGEIRO.test(depois)) return true
+  }
+  return false
+}
+
 /**
  * UFs cujo nome, SEM ACENTO, e uma palavra comum do portugues.
  *
@@ -411,7 +523,9 @@ export function detectarEntidades(texto) {
     // e o acento que as separa de uma palavra comum, e normalizar antes de
     // comparar jogaria fora exatamente o sinal que desambigua.
     const contra = e.exigeAcento ? cru : palheiro
-    const casou = e.rxs.find(({ rx }) => rx.test(contra))
+    // `ocorrenciaBrasileira` é mais caro que `test`, então só roda no termo que
+    // JÁ casou — o que, na prática, é uma ou duas entidades por matéria.
+    const casou = e.rxs.find(({ rx }) => rx.test(contra) && ocorrenciaBrasileira(rx, contra))
     if (!casou) continue
     achadas.push({
       tipo: e.tipo,

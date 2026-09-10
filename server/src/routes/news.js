@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { all, get } from '../db/index.js'
+import { nomeDaVitima } from '../lib/vitima.js'
 import { METODO_RELEVANCIA } from '../lib/relevance.js'
 import { avaliarRelevancia, classificar } from '../lib/relevance.js'
 import { UFS, REGIOES_ESTRATEGICAS, PAISES, detectarLugares, detectarPaises, nomePtDoPais, foraDaEscala, isoDoPais } from '../lib/geo.js'
@@ -441,10 +442,14 @@ router.get('/news/pais/:nome', exigirPapel('user'), (req, res) => {
 
   // Ransomware, quando o pais tem codigo ISO conhecido.
   const vitimas = iso ? all(
-    `SELECT victim, "group", sector, discovered_at, criticality, nature
+    `SELECT victim, website, "group", sector, discovered_at, criticality, nature
        FROM ransomware_victims WHERE country = ? ORDER BY discovered_at DESC LIMIT 15`,
     [iso]
-  ) : []
+  ).map((v) => {
+    // Ver `lib/vitima.js`: o campo da fonte é o título do post do criminoso.
+    const { nome, bruto, limpo } = nomeDaVitima(v.victim, v.website)
+    return { ...v, victim: nome, victimBruto: limpo ? bruto : null }
+  }) : []
   const totalVitimas = iso
     ? get('SELECT COUNT(*) AS n FROM ransomware_victims WHERE country = ?', [iso])?.n ?? 0
     : 0

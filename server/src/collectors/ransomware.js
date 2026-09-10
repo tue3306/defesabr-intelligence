@@ -3,6 +3,7 @@ import { buscarJson } from '../lib/fetcher.js'
 import { criticidadeDoIncidente } from '../lib/criticidade.js'
 import { urlSegura, dominioSeguro } from '../lib/saneamento.js'
 import config from '../config.js'
+import { nomeDaVitima } from '../lib/vitima.js'
 
 // -----------------------------------------------------------------------------
 // RANSOMWARE.LIVE — vítimas divulgadas por grupos de extorsão
@@ -66,6 +67,18 @@ function extrair(d) {
 }
 
 /** Coleta e grava. Nunca lança: o resultado descreve o que aconteceu. */
+/**
+ * Troca o título do post do criminoso pelo nome exibível da organização.
+ *
+ * O original viaja em `victimBruto` sempre que a limpeza mudou alguma coisa —
+ * sem ele, a plataforma estaria afirmando um nome que a fonte não escreveu, e
+ * é a possibilidade de conferir que separa normalizar de inventar.
+ */
+const comNomeLimpo = (v) => {
+  const { nome, bruto, limpo, ehDominio } = nomeDaVitima(v.victim, v.website)
+  return { ...v, victim: nome, victimBruto: limpo ? bruto : null, victimEhDominio: ehDominio }
+}
+
 export async function coletarRansomware() {
   const inicio = Date.now()
   const chave = config.ransomware.chave
@@ -227,6 +240,10 @@ export function panoramaRansomware({ dias = 365, limite = 60 } = {}) {
       // Histórico completo do país, independente da janela — é o número que
       // dá dimensão ao recorte, e ele existe desde 2017.
       totalHistorico: get("SELECT COUNT(*) AS n FROM ransomware_victims WHERE country = 'BR'")?.n ?? 0,
+      // `victim` é o TÍTULO DO POST do grupo criminoso, não a razão social da
+      // organização — ver `lib/vitima.js`. `nomeDaVitima` devolve o nome
+      // exibível e mantém o original em `victimBruto`, para que a afirmação
+      // continue conferível contra a fonte.
       itens: all(
         `SELECT external_id, victim, "group", sector, discovered_at, attack_date,
                 post_url, website, criticality, criticality_reason, nature
@@ -234,7 +251,7 @@ export function panoramaRansomware({ dias = 365, limite = 60 } = {}) {
           WHERE ${brWhere}
           ORDER BY discovered_at DESC LIMIT ?`,
         [desde, limite]
-      ),
+      ).map(comNomeLimpo),
       porCriticidade: all(
         `SELECT criticality AS nivel, COUNT(*) AS total FROM ransomware_victims
           WHERE ${brWhere} AND criticality IS NOT NULL
@@ -270,7 +287,7 @@ export function panoramaRansomware({ dias = 365, limite = 60 } = {}) {
            FROM ransomware_victims
           WHERE country = 'BR' AND nature = 'estado'
           ORDER BY discovered_at DESC LIMIT 20`
-      ),
+      ).map(comNomeLimpo),
     },
     // O indice inteiro, direto da fonte. E o unico denominador honesto: o
     // nosso banco tem todas as brasileiras e so uma amostra recente do resto.
