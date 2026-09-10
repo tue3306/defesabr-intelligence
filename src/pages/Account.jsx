@@ -12,6 +12,7 @@ import { useSettingsStore } from '../store/settingsStore'
 import { useTheme } from '../hooks/useTheme'
 import { CATEGORIES } from '../data/mockData'
 import { categoryColor } from '../utils/textUtils'
+import ChaveDaIa from '../components/ia/ChaveDaIa'
 
 const TABS = [
   { id: 'perfil', label: 'Perfil', icon: User },
@@ -184,6 +185,25 @@ function SecurityTab() {
 
   return (
     <div className="space-y-6">
+      {/* ─────────────────────────────────────────────────────────────────
+        * A CHAVE DO MODELO MORA AQUI, E NÃO EM CONFIGURAÇÕES
+        *
+        * Ela é credencial pessoal — do mesmo tipo que a senha, e do mesmo tipo
+        * que a sessão descrita logo abaixo. Configurações é a tela que alguém
+        * abre para mudar o tema, às vezes com outra pessoa olhando; não é lugar
+        * de pedir um segredo que custa dinheiro a quem o cola.
+        *
+        * O valor nunca chega ao navegador: é gravado cifrado no servidor e a
+        * API devolve só os quatro últimos caracteres. Ver o componente e
+        * `server/src/lib/segredoGuardado.js`.
+        * ───────────────────────────────────────────────────────────────── */}
+      <Card
+        title="Assistente por IA"
+        desc="A sua chave do modelo. Fica cifrada no servidor e o navegador nunca a lê de volta."
+      >
+        <ChaveDaIa />
+      </Card>
+
       <Card title="Esta sessão" desc="O que a plataforma sabe sobre o seu acesso agora.">
         <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Info2 termo="Usuário" valor={user?.username || '—'} />

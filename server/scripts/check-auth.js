@@ -117,6 +117,35 @@ const ROTAS = [
     muta: true,
   },
   { metodo: 'GET', caminho: '/api/ia/estado', minimo: 'user' },
+  { metodo: 'GET', caminho: '/api/ia/candidatas', minimo: 'user' },
+  // Analise em lote. Lista vazia de proposito: 400 prova que a guarda passou,
+  // sem gastar chamada de modelo nem depender de haver chave configurada.
+  {
+    metodo: 'POST',
+    caminho: '/api/ia/analise',
+    minimo: 'user',
+    corpo: { ids: [] },
+    // 429 TAMBEM PROVA QUE A GUARDA PASSOU, e por isso e aceito.
+    //
+    // Esta suite mede autorizacao, nao cota. Quem nao esta autenticado leva 401
+    // em `exigirPapel`, ANTES do limitador — entao so quem passou pela guarda
+    // pode receber 429. Recusa-lo faria a suite falhar na segunda execucao
+    // dentro da mesma hora, e uma suite que nao roda duas vezes nao serve.
+    autorizado: [400, 429],
+    muta: true,
+  },
+  // Relatorio semanal. Sem chave devolve 409 — nao e falha, e recurso
+  // desligado; com chave devolveria 200 do cache. Os dois passam da guarda.
+  {
+    metodo: 'POST',
+    caminho: '/api/ia/semanal',
+    minimo: 'user',
+    corpo: {},
+    // 200 com chave e cache, 409 sem chave, 429 com a cota gasta. Os tres
+    // significam a mesma coisa aqui: a guarda deixou passar.
+    autorizado: [200, 409, 429],
+    muta: true,
+  },
   // A leitura de uma correlacao. Id inexistente de proposito: 404 prova que a
   // guarda foi passada, sem gastar chamada de modelo.
   {
@@ -154,7 +183,8 @@ const ROTAS = [
     caminho: '/api/ia/sintese',
     minimo: 'user',
     corpo: { days: 7 },
-    autorizado: 409,
+    // 429 tambem prova que a guarda passou — ver a nota em /api/ia/analise.
+    autorizado: [409, 429],
     muta: true,
   },
   {
@@ -162,7 +192,7 @@ const ROTAS = [
     caminho: '/api/ia/perguntar',
     minimo: 'user',
     corpo: { pergunta: 'o que aconteceu no periodo' },
-    autorizado: 409,
+    autorizado: [409, 429],
     muta: true,
   },
 ]
@@ -233,7 +263,12 @@ async function main() {
         obtido = `erro: ${err.message}`
       }
 
-      const ok = obtido === esperava
+      // `esperado` pode devolver uma LISTA de códigos aceitáveis. É o caso das
+      // rotas cujo resultado legítimo depende de configuração — o relatório
+      // semanal devolve 200 com chave e 409 sem —, e nos dois casos a guarda
+      // foi passada, que é o que esta suíte mede.
+      const aceitos = Array.isArray(esperava) ? esperava : [esperava]
+      const ok = aceitos.includes(obtido)
       if (ok) passaram += 1
       else falharam += 1
 
@@ -243,7 +278,7 @@ async function main() {
       const escrita = rota.muta ? cor(' ✎', 33) : '  '
       console.log(
         `  ${marca}${escrita} ${rota.metodo.padEnd(5)} ${rota.caminho.padEnd(34)} ${alvo.padEnd(11)}`
-        + ` esperado ${esperava}, obtido ${obtido}`,
+        + ` esperado ${aceitos.join(' ou ')}, obtido ${obtido}`,
       )
     }
     console.log('')

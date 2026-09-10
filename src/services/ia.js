@@ -49,6 +49,25 @@ export async function lerCorrelacaoComIa(id, { forcar = false } = {}) {
   return data
 }
 
+/**
+ * Analisa um conjunto de matérias escolhido à mão.
+ *
+ * O navegador manda só os IDs. O servidor carrega as matérias, detecta as
+ * entidades, chama o modelo e CONFERE a resposta contra o que detectou —
+ * mandar o texto pronto daqui permitiria pedir análise de conteúdo que a
+ * plataforma nunca coletou.
+ */
+export async function analisarMaterias(ids) {
+  const { data } = await request('POST /ia/analise', { body: { ids } })
+  return data
+}
+
+/** O relatório da semana. Guardado por conta: relê sem gastar. */
+export async function gerarRelatorioSemanal({ forcar = false } = {}) {
+  const { data } = await request('POST /ia/semanal', { body: { forcar } })
+  return data
+}
+
 /** Guarda a chave DA PRÓPRIA CONTA, cifrada no servidor. Qualquer sessão. */
 export async function salvarMinhaChave(chave) {
   const { data } = await request('PUT /ia/minha-chave', { body: { chave } })
@@ -97,6 +116,7 @@ export const MOTIVO_SEM_IA =
 
 export default {
   estadoIa, gerarSintese, perguntarAoAcervo, lerCorrelacaoComIa,
+  analisarMaterias, gerarRelatorioSemanal,
   salvarMinhaChave, removerMinhaChave, salvarMeuModelo,
   salvarChaveIa, removerChaveIa, salvarModeloIa, MOTIVO_SEM_IA,
 }

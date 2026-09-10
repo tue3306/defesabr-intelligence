@@ -37,6 +37,7 @@ import { newsService } from '../services/newsService'
 import { useFontesReais } from '../hooks/useFontesReais'
 import EventosConsolidados from '../components/clipping/EventosConsolidados'
 import PerguntarAoAcervo from '../components/clipping/PerguntarAoAcervo'
+import RelatorioSemanal from '../components/clipping/RelatorioSemanal'
 import { useNewsStore } from '../store/newsStore'
 import { URGENCY_LEVELS } from '../data/mockData'
 import { alertMeta, categoryColor, clipboard, urgencyMeta } from '../utils/textUtils'
@@ -295,6 +296,11 @@ export default function DailyClipping() {
       {/* A caixa de perguntas vem ANTES da leitura corrida: quem chega com uma
         * pergunta na cabeça não deveria ter de rolar a edição inteira para
         * encontrá-la. Some por completo quando não há modelo ligado. */}
+      {/* O resumão da semana antes da caixa de perguntas: quem chega sem
+        * pergunta específica quer o panorama, e quem chega com uma já sabe
+        * onde procurar. Some por completo quando não há modelo ligado. */}
+      <RelatorioSemanal />
+
       <PerguntarAoAcervo dias={result?.period_days || 30} />
 
       <RelevantesParaOBrasil />

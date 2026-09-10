@@ -14,7 +14,8 @@
     "reclassify": "node scripts/reclassify.js",
     "reset": "node scripts/reset.js",
     "check": "node scripts/check.js",
-    "check:auth": "node scripts/check-auth.js"
+    "check:auth": "node scripts/check-auth.js",
+    "check:ia": "node scripts/check-ia.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

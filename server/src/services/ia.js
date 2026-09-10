@@ -71,7 +71,7 @@ const SISTEMA = [
  * @returns {{ ok: true, texto: string, modelo: string, uso: object }}
  *        | {{ ok: false, erro: string, codigo: string }}
  */
-async function conversar({ prompt, maxTokens = 1200, temperatura = 0.2, userId = null }) {
+async function conversar({ prompt, maxTokens = 1200, temperatura = 0.2, userId = null, prefixo = null }) {
   // A chave é resolvida por QUEM PEDE: a da conta vem antes da instalação.
   const { chave, modelo, configurada } = configIa(userId)
   if (!configurada) {
@@ -95,7 +95,12 @@ async function conversar({ prompt, maxTokens = 1200, temperatura = 0.2, userId =
         max_tokens: maxTokens,
         temperature: temperatura,
         system: SISTEMA,
-        messages: [{ role: 'user', content: prompt }],
+        // O `prefixo` preenche o começo da resposta do assistente. Serve para
+        // forçar JSON: com `{` já escrito, não há por onde o modelo inserir
+        // "Claro! Aqui está:" antes da chave.
+        messages: prefixo
+          ? [{ role: 'user', content: prompt }, { role: 'assistant', content: prefixo }]
+          : [{ role: 'user', content: prompt }],
       }),
     })
 
@@ -267,4 +272,238 @@ export async function lerCorrelacao({ correlacao, userId = null }) {
   return conversar({ prompt, maxTokens: 400, temperatura: 0.15, userId })
 }
 
-export default { sintetizarClipping, perguntarSobreAcervo, lerCorrelacao }
+// -----------------------------------------------------------------------------
+// RESPOSTA EM JSON, COM A ABERTURA JÁ ESCRITA
+//
+// Pedir "responda em JSON" e torcer é a forma mais comum de perder uma chamada
+// paga: o modelo escreve "Claro! Aqui está:" antes da chave e o `JSON.parse`
+// falha.
+//
+// A saída é forçada preenchendo o INÍCIO da resposta do assistente com `{`. O
+// modelo continua de onde a frase parou, e não há por onde ele inserir prosa
+// antes. É a técnica que o próprio provedor documenta, e custa uma linha.
+// -----------------------------------------------------------------------------
+async function conversarJson({ prompt, maxTokens = 2000, userId = null }) {
+  const r = await conversar({
+    prompt,
+    maxTokens,
+    temperatura: 0,
+    userId,
+    prefixo: '{',
+  })
+  if (!r.ok) return r
+
+  try {
+    return { ...r, dados: JSON.parse(`{${r.texto}`) }
+  } catch {
+    return { ok: false, codigo: 'JSON_INVALIDO', erro: 'O modelo respondeu num formato que não pôde ser lido.' }
+  }
+}
+
+/**
+ * Normaliza para comparar nome de entidade sem depender de acento nem de caixa.
+ */
+const chaveDeNome = (s) => String(s || '')
+  .toLowerCase()
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/[^a-z0-9]+/g, ' ')
+  .trim()
+
+/**
+ * A CONFERÊNCIA — o que separa isto de um gerador de texto.
+ *
+ * Exportada e pura de propósito: é a garantia central deste recurso, e uma
+ * garantia que não se pode testar não é garantia. `npm run check:ia` a exercita
+ * com uma resposta forjada que cita entidade inexistente.
+ *
+ * REGRA: toda entidade que o modelo nomear tem de existir na lista FECHADA que
+ * ele recebeu daquela matéria — a lista que o detector determinístico produziu.
+ * O que não passar é removido do resultado e CONTADO, porque uma alucinação
+ * silenciosa é pior que uma visível: a tela mostra o número, e um valor
+ * diferente de zero é o aviso de que aquele texto merece leitura mais atenta.
+ *
+ * Também descarta item cujo `n` não corresponde a nenhuma matéria enviada —
+ * um modelo que inventa a décima-sexta matéria de uma lista de quinze.
+ *
+ * @param {object} bruto  o JSON que o modelo devolveu
+ * @param {Array}  itens  as matérias enviadas, com `entidades` detectadas
+ * @returns {object|null} `null` quando a resposta não tem forma aproveitável
+ */
+export function conferirCitacoes(bruto, itens) {
+  if (!Array.isArray(bruto?.itens)) return null
+
+  let descartadas = 0
+  const porIndice = new Map(itens.map((it, i) => [i + 1, it]))
+
+  const analisados = bruto.itens
+    .filter((x) => porIndice.has(Number(x?.n)))
+    .map((x) => {
+      const it = porIndice.get(Number(x.n))
+      const permitidas = new Set((it.entidades || []).map((e) => chaveDeNome(e.nome)))
+      const citadas = Array.isArray(x.entidades) ? x.entidades : []
+      const validas = citadas.filter((nome) => permitidas.has(chaveDeNome(nome)))
+      descartadas += citadas.length - validas.length
+      return {
+        id: it.id,
+        n: Number(x.n),
+        contexto: String(x.contexto || '').trim() || null,
+        impacto: String(x.impacto || '').trim() || null,
+        entidadesCitadas: validas,
+      }
+    })
+
+  return {
+    leitura: String(bruto.leitura || '').trim() || null,
+    itens: analisados,
+    verificacao: {
+      entidadesDescartadas: descartadas,
+      itensRespondidos: analisados.length,
+      itensEnviados: itens.length,
+    },
+  }
+}
+
+/**
+ * ANÁLISE EM LOTE — o Contexto e o Impacto de um conjunto escolhido à mão.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * A DIVISÃO DO TRABALHO, E POR QUE ELA É ASSIM
+ *
+ * As oito regras determinísticas encontram ligações literais e provam cada uma
+ * com a evidência. O que elas não conseguem é dizer se a ligação IMPORTA — e é
+ * exatamente aí que o modelo entra.
+ *
+ * O que o modelo escreve:  Contexto no Brasil, Impacto possível.
+ * O que ele NÃO escreve:   o Índice de vínculo com o Brasil.
+ *
+ * O índice continua sendo contagem de entidades brasileiras reconhecidas no
+ * texto — órgãos, empresas, infraestrutura, UFs, setores — feita pelo mesmo
+ * catálogo que sempre a fez. Deixar o modelo produzir esse número seria pedir
+ * a ele a única coisa que ele não pode dar com segurança: um valor que PARECE
+ * apurado. "78/100" saído de um modelo é indistinguível de "78/100" contado, e
+ * quem lê não tem como saber qual dos dois está vendo.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * A VERIFICAÇÃO, QUE É O QUE SEPARA ISTO DE UM GERADOR DE TEXTO
+ *
+ * O modelo recebe, junto de cada matéria, a LISTA FECHADA de entidades
+ * brasileiras que o detector encontrou nela. É instruído a citar apenas essas.
+ *
+ * E depois a resposta é CONFERIDA: cada entidade que ele nomear é procurada na
+ * lista daquela matéria. O que não estiver lá é removido do resultado e
+ * contado em `descartadas` — que a tela exibe. Uma alucinação silenciosa vira
+ * uma alucinação visível, e o texto que sobra é o que passou pela conferência.
+ */
+export async function analisarLote({ itens, userId = null }) {
+  if (!itens?.length) {
+    return { ok: false, codigo: 'SEM_MATERIA', erro: 'Nenhuma matéria selecionada.' }
+  }
+
+  const blocos = itens.map((it, i) => {
+    const entidades = it.entidades.length
+      ? it.entidades.map((e) => `${e.nome} (${e.tipo})`).join('; ')
+      : 'nenhuma entidade brasileira reconhecida pelo catálogo'
+    const ligacoes = it.correlacoes?.length
+      ? it.correlacoes.map((c) => `${c.motivo} [evidência: ${c.evidencia}]`).join(' | ')
+      : 'nenhuma ligação com o acervo'
+    return [
+      `[${i + 1}] ${it.titulo}`,
+      `    fonte: ${it.fonte || 'não identificada'} · ${(it.publicadoEm || '').slice(0, 10)} · categoria ${it.categoria || '—'} · urgência ${it.urgencia || '—'}`,
+      `    resumo: ${String(it.resumo || '').slice(0, 900)}`,
+      `    ENTIDADES BRASILEIRAS RECONHECIDAS (lista fechada, cite só estas): ${entidades}`,
+      `    LIGAÇÕES JÁ APURADAS: ${ligacoes}`,
+    ].join('\n')
+  }).join('\n\n')
+
+  const prompt = [
+    `Analise as ${itens.length} matérias abaixo para um produto brasileiro de segurança e defesa.`,
+    '',
+    'Para CADA matéria, escreva dois campos:',
+    '',
+    '  contexto — o que esta notícia significa no quadro brasileiro. Uma ou duas frases.',
+    '             Se a matéria for estrangeira, diga o que dela alcança o Brasil.',
+    '             Se NADA nela alcançar o Brasil, escreva exatamente: "Sem alcance direto sobre o Brasil."',
+    '',
+    '  impacto  — a consequência POSSÍVEL, em linguagem condicional ("pode", "tende a").',
+    '             Uma frase. Se não houver consequência apoiada no texto, escreva exatamente:',
+    '             "Nenhum impacto direto identificável a partir desta matéria."',
+    '',
+    '  entidades — as entidades brasileiras que você citou, copiadas EXATAMENTE da lista',
+    '              fechada daquela matéria. Array vazio se não citou nenhuma.',
+    '',
+    'E um campo do conjunto:',
+    '',
+    '  leitura  — dois a três parágrafos curtos sobre o que estas matérias, LIDAS JUNTAS,',
+    '             dizem sobre o momento brasileiro. Cite as matérias por [n].',
+    '             Se elas não formarem um quadro comum, diga isso em vez de forçar um.',
+    '',
+    'REGRAS:',
+    '- Não invente órgão, empresa, estado, número ou data que não esteja no material.',
+    '- Não cite entidade que não esteja na lista fechada da matéria correspondente.',
+    '- Não atribua causalidade entre matérias diferentes: elas coexistem no período.',
+    '- Não produza nota, índice ou pontuação numérica de nenhum tipo.',
+    '',
+    'Responda SOMENTE com este JSON, sem texto antes nem depois:',
+    '{"leitura":"…","itens":[{"n":1,"contexto":"…","impacto":"…","entidades":["…"]}]}',
+    '',
+    '--- MATÉRIAS ---',
+    blocos,
+  ].join('\n')
+
+  const r = await conversarJson({ prompt, maxTokens: 3000, userId })
+  if (!r.ok) return r
+
+  const conferido = conferirCitacoes(r.dados, itens)
+  if (!conferido) {
+    return { ok: false, codigo: 'JSON_INVALIDO', erro: 'O modelo respondeu sem a lista de itens.' }
+  }
+
+  return { ok: true, modelo: r.modelo, uso: r.uso, ...conferido }
+}
+
+/**
+ * O RESUMÃO DA SEMANA.
+ *
+ * A síntese do clipping responde "o que houve"; esta responde "o que a semana
+ * disse". São quatro blocos fixos, e a forma fixa é o ponto: um resumo com
+ * estrutura variável não se compara com o da semana anterior, e comparar é
+ * metade do valor de um relatório semanal.
+ */
+export async function relatorioSemanal({ materias, alerta, panorama, userId = null }) {
+  if (!materias?.length) {
+    return { ok: false, codigo: 'SEM_MATERIA', erro: 'Não há matéria aprovada na semana para relatar.' }
+  }
+
+  const contexto = alerta?.level
+    ? `Nível de alerta da semana: ${alerta.level} (${alerta.score}/100), pela média ponderada de ${alerta.basis || 'todas as ocorrências'}.`
+    : 'A semana não tem nível de alerta calculável.'
+
+  const prompt = [
+    `Abaixo estão ${materias.length} matérias aprovadas pelo filtro de relevância nos últimos 7 dias.`,
+    contexto,
+    panorama ? `\nCONTAGENS JÁ APURADAS PELA PLATAFORMA (use estes números, não conte outros):\n${panorama}` : '',
+    '',
+    'Escreva o relatório da semana em quatro blocos, nesta ordem e com estes títulos exatos:',
+    '',
+    '  O QUE DOMINOU A SEMANA — os assuntos com mais cobertura e o que os une.',
+    '  O QUE TOCA O BRASIL — órgãos, empresas, estados e infraestrutura brasileira citados.',
+    '                        Inclua matéria estrangeira quando ela alcançar o país, dizendo como.',
+    '  O QUE MUDOU DE ESTADO — o que avançou, foi assinado, entregue, cancelado ou rompeu.',
+    '                          Se nada mudou de estado, diga isso.',
+    '  O QUE ACOMPANHAR — o que segue em aberto e merece atenção na próxima semana.',
+    '',
+    'Dois a quatro parágrafos curtos por bloco, sem lista com marcadores. Cite as matérias por [n].',
+    'Não invente número, data ou nome. Não repita a mesma matéria em blocos diferentes sem motivo.',
+    '',
+    '--- MATÉRIAS ---',
+    materiasParaTexto(materias, 600),
+  ].filter(Boolean).join('\n')
+
+  return conversar({ prompt, maxTokens: 2200, temperatura: 0.15, userId })
+}
+
+export default {
+  sintetizarClipping, perguntarSobreAcervo, lerCorrelacao,
+  analisarLote, relatorioSemanal, conferirCitacoes,
+}

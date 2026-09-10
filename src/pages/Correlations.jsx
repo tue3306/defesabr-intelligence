@@ -13,6 +13,7 @@ import { categoryColor } from '../utils/textUtils'
 import { useIa } from '../hooks/useIa'
 import { lerCorrelacaoComIa } from '../services/ia'
 import toast from 'react-hot-toast'
+import AnaliseAssistida from '../components/correlacoes/AnaliseAssistida'
 
 // -----------------------------------------------------------------------------
 // CORRELAÇÕES — o Brasil como centro, e a razão de cada ligação à vista
@@ -136,6 +137,15 @@ export default function Correlations() {
           />
         </section>
       )}
+
+      {/* A ANÁLISE ASSISTIDA VEM ANTES DAS LIGAÇÕES AUTOMÁTICAS.
+        *
+        * As regras determinísticas abaixo respondem "o que casa com o quê", e
+        * respondem bem. A pergunta que sobra — "e daí?" — é a que traz alguém
+        * a esta tela, e ela agora tem resposta no topo em vez de no rodapé.
+        *
+        * Some por completo quando não há modelo configurado. */}
+      <AnaliseAssistida />
 
       {/* ── FILTROS ── */}
       <div className="card flex flex-wrap items-center justify-between gap-3 p-4">

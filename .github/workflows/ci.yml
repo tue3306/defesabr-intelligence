@@ -21,7 +21,7 @@ concurrency:
 #   passava — e passaria mesmo com o servidor inteiro quebrado.
 #
 #   NENHUM TESTE RODAVA. O projeto tem duas suítes que sobem contra a API real
-#   (`npm run check`, 30 casos; `npm run check:auth`, 60 casos incluindo as
+#   (`npm run check`, 30 casos; `npm run check:auth`, 78 casos incluindo as
 #   rotas que MUDAM estado). Um CI verde que nunca as executou dá confiança sem
 #   base — é o mesmo defeito que este projeto já corrigiu num indicador de
 #   saúde que não media nada.
@@ -76,3 +76,10 @@ jobs:
         run: npm run check:auth
         env:
           API_URL: http://localhost:3001
+
+      # A conferência contra alucinação. Não chama a API do modelo — é lógica
+      # pura sobre respostas forjadas —, então roda sem chave, sem rede e sem
+      # custo. Fica DEPOIS das outras por ser a mais rápida a diagnosticar:
+      # quando ela quebra, o problema está numa função de trinta linhas.
+      - name: Conferência contra alucinação
+        run: npm run check:ia

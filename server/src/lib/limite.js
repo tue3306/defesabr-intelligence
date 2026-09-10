@@ -30,10 +30,41 @@
 const janelas = new Map()
 
 /** IP de quem chama, atrás do proxy do Railway. */
-function chave(req) {
+function ipDe(req) {
   // `x-forwarded-for` pode trazer uma cadeia; o cliente é o primeiro.
   const encaminhado = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim()
   return encaminhado || req.socket?.remoteAddress || 'desconhecido'
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POR IP OU POR CONTA — E A ESCOLHA DEPENDE DO QUE SE PROTEGE
+//
+// O aviso lá em cima ("não contar por e-mail") vale para `/auth/login`, e vale
+// muito: lá quem chama ESCOLHE a identidade que declara, e contar por ela
+// deixaria qualquer pessoa trancar a conta de outra só mandando senha errada.
+// A proteção viraria a ferramenta do ataque.
+//
+// Nas rotas do assistente a situação é o inverso em três pontos:
+//
+//   1. A identidade é PROVADA por token assinado. Ninguém consome a cota de
+//      outra pessoa sem ter o token dela — e quem o tem já entrou.
+//
+//   2. O recurso protegido é a CHAVE DE API DAQUELA CONTA, e cada uma paga a
+//      própria. Uma cota compartilhada não protege recurso compartilhado
+//      nenhum; ela só reparte um limite entre quem não divide a fatura.
+//
+//   3. O efeito colateral é concreto: num escritório atrás de um endereço só —
+//      que é o caso de qualquer empresa — a primeira pessoa a pedir quatro
+//      relatórios esgota a cota de todas as outras, cada uma com a própria
+//      chave e o próprio crédito.
+//
+// `porConta` inverte a ordem: usa a conta quando há sessão e cai no IP quando
+// não há. Sem sessão o comportamento é o de antes, que é o que protege as
+// rotas públicas.
+// ─────────────────────────────────────────────────────────────────────────────
+function chave(req, porConta) {
+  if (porConta && req.conta?.sub) return `conta:${req.conta.sub}`
+  return ipDe(req)
 }
 
 /**
@@ -50,10 +81,14 @@ function chave(req) {
  *                                   senha, e é assim que tem de ser: liberar
  *                                   quem acerta na 11ª tentativa entregaria a
  *                                   conta a quem estava justamente chutando
+ * @param {boolean} opcoes.porConta  conta por CONTA quando há sessão, caindo no
+ *                                   IP quando não há. Para rota autenticada
+ *                                   cujo custo é da própria pessoa — ver a nota
+ *                                   acima de `chave()`.
  */
-export function limitar({ max = 20, janelaMs = 60_000, soFalhas = false } = {}) {
+export function limitar({ max = 20, janelaMs = 60_000, soFalhas = false, porConta = false } = {}) {
   return (req, res, next) => {
-    const k = `${chave(req)}:${req.baseUrl}${req.path}`
+    const k = `${chave(req, porConta)}:${req.baseUrl}${req.path}`
     const agora = Date.now()
     const registro = janelas.get(k)
 
