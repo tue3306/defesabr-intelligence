@@ -330,7 +330,32 @@ chave, paga o próprio consumo, e o projeto não intermedeia nada.
 | **Resumo do período** | Um modelo lê as matérias aprovadas da edição e escreve o parágrafo de abertura |
 | **Perguntar ao acervo** | Pergunta livre respondida **somente** com o que a coleta trouxe |
 | **O que esta ligação significa** | A leitura de uma correlação — o salto que a regra não pode dar sem inventar |
-| **Onde se liga** | Configurações → *Assistente por IA*, em qualquer conta |
+| **Análise assistida** | Você escolhe até 15 matérias; o modelo escreve o *contexto no Brasil* e o *impacto possível* de cada uma |
+| **Resumão da semana** | Sete dias em quatro blocos fixos: o que dominou, o que toca o Brasil, o que mudou de estado, o que acompanhar |
+| **Onde se liga** | Minha conta → *Segurança*, em qualquer conta |
+
+### O índice de vínculo é contado, não escrito
+
+Na análise assistida o modelo escreve a **prosa** e a plataforma conta o
+**número**. A separação não é detalhe de implementação: um valor saído de um
+modelo é indistinguível de um apurado, e quem lê não tem como saber qual dos
+dois está vendo. `78/100` escrito por máquina parece exatamente com `78/100`
+contado do catálogo de entidades.
+
+Cada campo aparece com o próprio rótulo — *escrito por máquina* ou *contado*.
+
+### E a citação é conferida antes de aparecer
+
+O modelo recebe, por matéria, a lista **fechada** de entidades brasileiras que o
+detector determinístico encontrou, e é instruído a citar apenas essas. Depois a
+resposta é conferida: o que ele nomear fora da lista é **removido e contado**, e
+a tela mostra o número. Zero é o resultado esperado; qualquer outro valor é o
+aviso de que aquele texto merece leitura mais atenta.
+
+`npm run check:ia` prova isso com respostas forjadas — entidade inventada,
+entidade real mas de outra matéria, índice de item inexistente, resposta sem
+lista. Oito casos, sem chave, sem rede e sem custo, porque **uma garantia que
+não se pode testar não é garantia**. Roda no CI.
 
 A chave da instalação (`ANTHROPIC_API_KEY`, ou a gravada pelo administrador)
 continua existindo como **reserva**, para quem hospeda querer oferecer o recurso
@@ -494,6 +519,8 @@ parecerem idênticas, e foi ela que motivou separar os eixos em vez de somá-los
 | `npm start` | Serve API **e** interface compilada num processo só |
 | `npm run collect` | Dispara uma coleta pela linha de comando |
 | `npm run check` | Percorre a API e valida a FORMA de cada resposta, não só o status |
+| `npm run check:auth` | Percorre quatro identidades contra cada rota protegida — inclusive as que mudam estado |
+| `npm run check:ia` | Conferência contra alucinação, com respostas forjadas. Sem chave, sem rede, sem custo |
 | `npm run reclassify` | Reaplica as regras de relevância ao acervo já coletado |
 | `npm run reset:db` | Apaga o banco (pergunta antes) |
 

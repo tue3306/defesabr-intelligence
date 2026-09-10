@@ -44,6 +44,9 @@ desenho:
 | `POST /ia/sintese` | `user` | Resumo do período, guardado por conta e dia |
 | `POST /ia/perguntar` | `user` | Pergunta livre sobre o acervo |
 | `POST /ia/correlacao/:id` | `user` | O que uma ligação significa, guardado na linha |
+| `GET /ia/candidatas` | `user` | As matérias que se pode escolher para a análise assistida |
+| `POST /ia/analise` | `user` | Contexto e impacto de até 15 matérias escolhidas, **com a citação conferida** |
+| `POST /ia/semanal` | `user` | O relatório da semana em quatro blocos fixos |
 
 ### As quatro decisões que valem explicação
 
@@ -70,6 +73,22 @@ sem que a tela gaste.
 material. Se o front pudesse mandar o contexto, daria para pedir ao modelo que
 comentasse um texto qualquer e a resposta sairia com a mesma aparência de uma
 apurada no acervo.
+
+### A conferência contra alucinação
+
+A análise assistida faz uma promessa forte — nenhuma entidade brasileira que o
+modelo nomeie aparece na tela sem existir na matéria correspondente — e uma
+promessa dessas não vale nada sem teste.
+
+`conferirCitacoes()` é pura e exportada de propósito. `server/scripts/check-ia.js`
+a exercita com respostas forjadas: entidade inventada, entidade real mas de
+outra matéria, índice de item inexistente, resposta sem lista, campo ausente.
+Não chama a API do modelo, então roda sem chave, sem rede e sem custo — e por
+isso está no CI.
+
+O que não passa é removido **e contado**. A tela mostra o número: zero é o
+esperado, e qualquer outro valor é o aviso de que aquele texto merece leitura
+mais atenta. Uma alucinação silenciosa vira visível.
 
 ### E a regra que não mudou
 
