@@ -157,7 +157,10 @@ informação existe em vez de fingir que não.
 
 ## 🎨 Camada de apresentação
 
-- **Roteamento:** `HashRouter` (`/#/rota`) — necessário no GitHub Pages, que não reescreve URLs.
+- **Roteamento:** `HashRouter` (`/#/rota`). Nasceu por exigência do GitHub Pages,
+  que não reescreve URLs; ficou porque continua útil — com o hash, nenhuma rota
+  depende de o servidor saber devolver `index.html` para caminhos arbitrários, e
+  um link colado no meio de uma apresentação abre sempre.
 - **Tema:** classe `dark` no `<html>`. Superfícies escuras dentro do tema claro usam `.on-dark`.
 - **Acento:** ouro (`#caa733`); base grafite; verde/vermelho reservados a estado, não a decoração.
 - **Ritmo:** `PageHeader` → KPIs → filtros → conteúdo → nota. Espaçamento `space-y-6`.
@@ -179,7 +182,14 @@ informação existe em vez de fingir que não.
 `jspdf` e `html2canvas` (~590 kB somados) são carregados **sob demanda**, dentro das funções que
 geram PDF — quem exporta apenas CSV não paga por eles.
 
-Deploy: `npm run deploy` (gh-pages). `base` = `/defesabr-intelligence/` no build.
+**Deploy: Railway, um processo só.** `npm start` serve a API em `/api` e o `dist/`
+compilado na mesma porta, então `base` é a raiz (`/`). Ver [README](../README.md#deploy-no-railway).
+
+<sub>Houve um deploy estático em GitHub Pages, com `npm run deploy` e
+`base = /defesabr-intelligence/`. Ele saiu porque deixou de fazer sentido no dia
+em que o servidor passou a existir: o Pages entrega arquivo, não roda Node — a
+página abria e toda chamada de API respondia 404. Uma cópia pública quebrada do
+produto, republicada a cada push, é pior que nenhuma cópia.</sub>
 
 ---
 

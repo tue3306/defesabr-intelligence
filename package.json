@@ -19,8 +19,6 @@
     "reclassify": "npm --prefix server run reclassify",
     "reset:db": "npm --prefix server run reset",
     "postinstall": "npm --prefix server install",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist",
     "lint": "eslint src server scripts",
     "prebuild": "eslint src server scripts --quiet",
     "check:auth": "npm --prefix server run check:auth"
@@ -45,7 +43,6 @@
     "eslint": "^9.39.5",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
-    "gh-pages": "^6.1.1",
     "globals": "^17.12.0",
     "postcss": "^8.4.41",
     "tailwindcss": "^3.4.10",

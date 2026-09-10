@@ -11,21 +11,68 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# -----------------------------------------------------------------------------
+# O QUE ESTE WORKFLOW VERIFICA, E POR QUE PASSOU A VERIFICAR MAIS
+#
+# Ele rodava `npm run build` no Node 20 e mais nada. Duas coisas erradas:
+#
+#   NODE 20 NÃO RODA ESTE SERVIDOR. `package.json` declara `engines: >=24`, e o
+#   servidor usa `node:sqlite`, que não existe no 20. O build é só o Vite, então
+#   passava — e passaria mesmo com o servidor inteiro quebrado.
+#
+#   NENHUM TESTE RODAVA. O projeto tem duas suítes que sobem contra a API real
+#   (`npm run check`, 30 casos; `npm run check:auth`, 60 casos incluindo as
+#   rotas que MUDAM estado). Um CI verde que nunca as executou dá confiança sem
+#   base — é o mesmo defeito que este projeto já corrigiu num indicador de
+#   saúde que não media nada.
+#
+# Agora o CI faz o que alguém faria à mão antes de um deploy: instala, passa o
+# lint, compila, SOBE O SERVIDOR e roda as duas suítes contra ele.
+# -----------------------------------------------------------------------------
+
 jobs:
-  build:
-    name: Build
+  verificar:
+    name: Lint, build e suítes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Node 24
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          # A versão que `engines` exige e que `node:sqlite` precisa.
+          node-version: '24'
           cache: 'npm'
 
-      - name: Install dependencies
+      - name: Instalar
         run: npm install
+
+      - name: Lint
+        run: npm run lint
 
       - name: Build
         run: npm run build
+
+      # O servidor sobe com o banco vazio, cria o esquema, semeia as fontes e
+      # dispara uma coleta. `COLLECT_INTERVAL_MINUTES=0` desliga o agendador
+      # para que ele não colete por cima das suítes.
+      - name: Subir a API
+        run: |
+          COLLECT_INTERVAL_MINUTES=0 PORT=3001 npm start &
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:3001/api/health > /dev/null 2>&1; then
+              echo "API no ar"; exit 0
+            fi
+            sleep 2
+          done
+          echo "A API não respondeu em 120s"; exit 1
+
+      - name: Suíte de forma das respostas
+        run: npm run check
+        env:
+          API_URL: http://localhost:3001
+
+      - name: Suíte de autorização
+        run: npm run check:auth
+        env:
+          API_URL: http://localhost:3001
