@@ -37,6 +37,18 @@ export async function perguntarAoAcervo({ pergunta, days = 30 }) {
   return data
 }
 
+/**
+ * O que uma correlação significa para o Brasil.
+ *
+ * A correlação é carregada pelo servidor a partir do id — o navegador manda o
+ * número, nunca o conteúdo. Aceitar o corpo pronto permitiria pedir ao modelo
+ * que comentasse uma "correlação" que a plataforma nunca produziu.
+ */
+export async function lerCorrelacaoComIa(id, { forcar = false } = {}) {
+  const { data } = await request(`POST /ia/correlacao/${id}`, { body: { forcar } })
+  return data
+}
+
 /** Guarda a chave DA PRÓPRIA CONTA, cifrada no servidor. Qualquer sessão. */
 export async function salvarMinhaChave(chave) {
   const { data } = await request('PUT /ia/minha-chave', { body: { chave } })
@@ -84,7 +96,7 @@ export const MOTIVO_SEM_IA =
   + 'síntese ficam vazios em vez de preenchidos com texto plausível.'
 
 export default {
-  estadoIa, gerarSintese, perguntarAoAcervo,
+  estadoIa, gerarSintese, perguntarAoAcervo, lerCorrelacaoComIa,
   salvarMinhaChave, removerMinhaChave, salvarMeuModelo,
   salvarChaveIa, removerChaveIa, salvarModeloIa, MOTIVO_SEM_IA,
 }

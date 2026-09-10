@@ -105,6 +105,17 @@ export function capacidades() {
   const artigos = contar('SELECT COUNT(*) AS n FROM articles')
   const relevantes = contar('SELECT COUNT(*) AS n FROM articles WHERE relevant = 1')
 
+  // ── Estado do assistente por IA ──
+  //
+  // Contado do banco, como todo o resto desta tela: quantas contas trouxeram
+  // chave própria, se a instalação tem a de reserva, e quantas sínteses já
+  // foram geradas. Nenhum destes números é estimado.
+  const contasComChave = get('SELECT COUNT(*) AS n FROM users WHERE ia_api_key IS NOT NULL')?.n ?? 0
+  const instalacaoTemChave = !!process.env.ANTHROPIC_API_KEY
+    || !!get("SELECT valor FROM app_config WHERE chave = 'ia_api_key'")?.valor
+  const iaLigada = contasComChave > 0 || instalacaoTemChave
+  const sinteses = get("SELECT COUNT(*) AS n FROM app_config WHERE chave LIKE 'ia_sintese:%'")?.n ?? 0
+
   return [
     // ── COLETA ──
     capacidadeDeColeta({
@@ -292,20 +303,34 @@ export function capacidades() {
       },
     },
     {
-      id: 'analise-produzida',
-      nome: 'Dossiês e avaliações de analista',
-      grupo: 'Não implementado',
-      estado: 'nao_implementado',
-      detalhe: 'Produção editorial não existe; o Analista trabalha sobre a coleta, não sobre texto.',
-      descricao: 'Dossiês, matriz de riscos, narrativas e cenários eram telas completas cujo conteúdo '
-        + 'havia sido escrito à mão. Foram removidas: tela que exibe texto redigido como se fosse saída '
-        + 'de análise é a única mentira que um painel de inteligência não pode contar. O que o perfil '
-        + 'Analista faz hoje é real e verificável — monitorar a saúde da coleta, auditar a regra do '
-        + 'filtro contra qualquer texto e ler o histórico de execuções. Produção editorial com autoria '
-        + 'registrada continua fora, e agora depende só de fluxo de redação: as contas no servidor, que '
-        + 'eram o pré-requisito, já existem.',
-      fonte: 'src/data/ (conteúdo editorial)',
-      metricas: {},
+      id: 'assistente-ia',
+      nome: 'Assistente por IA',
+      grupo: iaLigada ? 'Operacional' : 'Opcional',
+      estado: iaLigada ? 'operacional' : 'opcional',
+      detalhe: iaLigada
+        ? `Ligado nesta instalação (${contasComChave} conta(s) com chave própria).`
+        : 'Desligado. Cada conta liga o recurso com a própria chave, em Configurações.',
+      descricao: 'Aqui havia "Dossiês e avaliações de analista", marcado como não implementado: '
+        + 'dossiês, matriz de riscos e narrativas eram telas cujo conteúdo havia sido escrito à mão, e '
+        + 'foram removidas — tela que exibe texto redigido como se fosse saída de análise é a única '
+        + 'mentira que um painel de inteligência não pode contar. '
+        + 'O trabalho de análise que faltava passou a existir por outro caminho: um modelo de '
+        + 'linguagem escreve o resumo do período e responde perguntas sobre o acervo, SEMPRE marcado '
+        + 'como escrito por máquina. A chave é de cada conta, guardada cifrada no servidor, e quem usa '
+        + 'paga o próprio consumo. Sem chave o recurso não roda e nada aparece quebrado: os campos de '
+        + 'síntese ficam vazios com a nota explicando o motivo. '
+        + 'O que continua fora é produção editorial com autoria humana registrada — e a distinção '
+        + 'importa: "a mesa de análise avaliou" e "um modelo resumiu" são afirmações diferentes, e a '
+        + 'interface nunca troca uma pela outra.',
+      fonte: 'server/src/services/ia.js · server/src/routes/ia.js · server/src/lib/chaveIa.js',
+      pendente: iaLigada ? null
+        : 'Nenhuma pendência de código: o recurso está pronto e desligado por falta de chave, '
+          + 'que é uma decisão de quem usa.',
+      metricas: {
+        contasComChave: contasComChave,
+        chaveDaInstalacao: instalacaoTemChave ? 1 : 0,
+        sintesesGuardadas: sinteses,
+      },
     },
   ]
 }

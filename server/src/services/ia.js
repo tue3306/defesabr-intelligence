@@ -218,4 +218,53 @@ export async function perguntarSobreAcervo({ pergunta, materias, panorama, userI
   return conversar({ prompt: blocos.join('\n'), maxTokens: 1400, temperatura: 0.1, userId })
 }
 
-export default { sintetizarClipping, perguntarSobreAcervo }
+/**
+ * O que uma correlação significa para o Brasil.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * A REGRA PROVA A LIGAÇÃO. ELA NÃO DIZ POR QUE A LIGAÇÃO IMPORTA.
+ *
+ * As oito regras determinísticas fazem exatamente uma coisa, e fazem bem: casam
+ * texto com texto e mostram a evidência. "A matéria cita Nuclep, cujo domínio
+ * consta na lista de organizações com vazamento divulgado" é verdadeiro,
+ * verificável e — para quem lê — pode ser só uma coincidência de nome.
+ *
+ * O salto que falta é interpretativo, e é justamente o que uma regra não pode
+ * dar sem inventar: a Nuclep constrói o casco do submarino nuclear E teve dados
+ * expostos por um grupo de extorsão; isso diz alguma coisa sobre a superfície
+ * de ataque de um programa estratégico, ou são dois fatos sem relação?
+ *
+ * O modelo responde essa pergunta. E a resposta vem marcada como escrita por
+ * máquina, separada da regra — que continua sendo a parte provada.
+ *
+ * O QUE ELE RECEBE é só o que a plataforma já apurou: a matéria, a regra, a
+ * evidência literal e o contexto. Nada é buscado fora. Se não der para concluir
+ * nada do material, o prompt manda dizer isso — "coincidência de nome sem
+ * relação aparente" é uma resposta legítima e útil.
+ */
+export async function lerCorrelacao({ correlacao, userId = null }) {
+  const c = correlacao
+  const prompt = [
+    'A plataforma encontrou uma ligação entre uma notícia e o acervo dela, por uma regra',
+    'determinística de correspondência literal. Explique, em no máximo três frases, o que essa',
+    'ligação significa para a segurança e a defesa do Brasil.',
+    '',
+    'Se as duas coisas forem apenas coincidência de nome ou de setor, sem relação real, DIGA ISSO',
+    'com todas as letras. É uma resposta legítima, e mais útil que uma explicação forçada.',
+    '',
+    'Não invente fato, data ou número que não esteja abaixo. Não repita a regra — quem lê já a viu.',
+    '',
+    `MATÉRIA: ${c.artigo?.titulo || ''}`,
+    `RESUMO: ${String(c.artigo?.resumo || '').slice(0, 600)}`,
+    `PUBLICADA EM: ${(c.artigo?.publicadoEm || '').slice(0, 10)} · ${c.artigo?.fonte || 'fonte não identificada'}`,
+    '',
+    `LIGAÇÃO ENCONTRADA: ${c.motivo || ''}`,
+    `EVIDÊNCIA LITERAL: ${c.evidencia || ''}`,
+    `CONTEXTO NO BRASIL: ${c.contextoBrasil || '—'}`,
+    `FORÇA DA LIGAÇÃO: ${c.forca}/5 (5 = correspondência exata de domínio; 2 = apenas coincidência de setor)`,
+  ].join('\n')
+
+  return conversar({ prompt, maxTokens: 400, temperatura: 0.15, userId })
+}
+
+export default { sintetizarClipping, perguntarSobreAcervo, lerCorrelacao }

@@ -117,6 +117,15 @@ const ROTAS = [
     muta: true,
   },
   { metodo: 'GET', caminho: '/api/ia/estado', minimo: 'user' },
+  // A leitura de uma correlacao. Id inexistente de proposito: 404 prova que a
+  // guarda foi passada, sem gastar chamada de modelo.
+  {
+    metodo: 'POST',
+    caminho: '/api/ia/correlacao/999999',
+    minimo: 'user',
+    autorizado: 404,
+    muta: true,
+  },
 
   // A CHAVE DA PROPRIA CONTA. Qualquer sessao configura a sua — e ninguem sem
   // sessao configura a de ninguem. Corpo invalido de proposito: o teste quer

@@ -83,6 +83,7 @@ const COLUNAS_ADICIONADAS = [
   // Guardada por AES-256-GCM, nunca em texto puro: um backup do banco nao pode
   // entregar a chave de ninguem. Ver server/src/lib/segredoGuardado.js, que
   // tambem explica o que essa cifra NAO protege.
+  ['correlations', 'leitura_ia', 'TEXT'],
   ['users', 'ia_api_key', 'TEXT'],
   // O modelo que a pessoa escolheu, se escolheu. Nao e segredo, entao fica em
   // texto puro.

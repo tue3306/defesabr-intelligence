@@ -35,18 +35,23 @@ desenho:
 | Rota | Guarda | O que faz |
 |---|---|---|
 | `GET /ia/estado` | `user` | Se há modelo, qual, de onde veio a chave. **Nunca devolve a chave** |
-| `PUT /ia/chave` | `admin` | Grava a chave desta instalação |
-| `DELETE /ia/chave` | `admin` | Remove a chave gravada |
-| `PUT /ia/modelo` | `admin` | Troca o modelo |
-| `POST /ia/sintese` | `user` | Resumo executivo do período, guardado por dia |
+| `PUT /ia/minha-chave` | `user` | Grava a chave **da própria conta**, cifrada |
+| `DELETE /ia/minha-chave` | `user` | Remove a chave da conta |
+| `PUT /ia/meu-modelo` | `user` | Modelo da conta |
+| `PUT /ia/chave` | `admin` | Grava a chave de reserva da instalação |
+| `DELETE /ia/chave` | `admin` | Remove a de reserva |
+| `PUT /ia/modelo` | `admin` | Modelo padrão da instalação |
+| `POST /ia/sintese` | `user` | Resumo do período, guardado por conta e dia |
 | `POST /ia/perguntar` | `user` | Pergunta livre sobre o acervo |
+| `POST /ia/correlacao/:id` | `user` | O que uma ligação significa, guardado na linha |
 
 ### As quatro decisões que valem explicação
 
-**A chave nunca chega ao navegador.** Houve um campo que a guardava em
-`localStorage` — lido por qualquer extensão — e chamava o provedor direto do
-front. `GET /ia/estado` devolve se existe, de onde veio e os quatro últimos
-caracteres: suficiente para conferir qual está em uso, insuficiente para usá-la.
+**A chave é de cada conta, e nunca chega ao navegador.** Houve um campo que a
+guardava em `localStorage` — lido por qualquer extensão — e chamava o provedor
+direto do front. Agora ela é gravada cifrada (AES-256-GCM) no servidor, por
+conta, e `GET /ia/estado` devolve apenas se existe, de onde veio e os quatro
+últimos caracteres.
 
 **O ambiente tem precedência sobre o banco.** `ANTHROPIC_API_KEY` é o caminho de
 produção e a chave não toca o disco da aplicação. Com ela definida, a tela

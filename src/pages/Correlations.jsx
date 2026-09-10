@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   Link2, MapPin, Building2, ShieldAlert, Factory, Landmark, ExternalLink,
-  ChevronDown, Info, Target,
+  ChevronDown, Info, Target, Sparkles,
 } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import DataState from '../components/ui/DataState'
@@ -10,6 +10,9 @@ import { useResource } from '../hooks/useResource'
 import { request } from '../services/client'
 import { formatDateTimeBR } from '../utils/dateUtils'
 import { categoryColor } from '../utils/textUtils'
+import { useIa } from '../hooks/useIa'
+import { lerCorrelacaoComIa } from '../services/ia'
+import toast from 'react-hot-toast'
 
 // -----------------------------------------------------------------------------
 // CORRELAÇÕES — o Brasil como centro, e a razão de cada ligação à vista
@@ -282,6 +285,22 @@ function Correlacao({ c, aberto, onToggle }) {
           {c.contextoBrasil && <Campo rotulo="Contexto no Brasil" texto={c.contextoBrasil} />}
           {c.impacto && <Campo rotulo="Impacto possível" texto={c.impacto} />}
           {c.artigo?.brMotivo && <Campo rotulo="Índice de vínculo com o Brasil" texto={c.artigo.brMotivo} />}
+
+          {/* ─────────────────────────────────────────────────────────────
+            * O QUE A REGRA NÃO CONSEGUE DIZER
+            *
+            * Os campos acima são a parte PROVADA: a regra casou texto com
+            * texto, e a evidência está à vista. O que eles não dizem é se a
+            * ligação importa — "a matéria cita a Nuclep, que teve vazamento"
+            * é verdadeiro e pode ser só coincidência de nome.
+            *
+            * Esse salto é interpretativo, e é exatamente o que uma regra não
+            * pode dar sem inventar. O modelo dá, e vem separado e marcado:
+            * a regra continua sendo o que se pode conferir, e a leitura
+            * continua sendo opinião de máquina.
+            * ───────────────────────────────────────────────────────────── */}
+          <LeituraDaCorrelacao id={c.id} />
+
           <p className="text-[11px] muted">
             Regra aplicada: <code className="font-mono">{c.regra}</code>
           </p>
@@ -354,6 +373,56 @@ function Grupo({ rotulo, opcoes, valor, onChange }) {
           </button>
         ))}
       </div>
+    </div>
+  )
+}
+
+/**
+ * A leitura da ligação por modelo de linguagem.
+ *
+ * Só aparece quando há chave configurada — nem botão, nem aviso, nem convite.
+ * A tela de Configurações já explica o recurso a quem quiser ligá-lo; repetir
+ * a oferta em cada um dos cartões seria propaganda dentro do produto.
+ */
+function LeituraDaCorrelacao({ id }) {
+  const ia = useIa()
+  const [leitura, setLeitura] = useState(null)
+  const [carregando, setCarregando] = useState(false)
+
+  if (!ia.configurada) return null
+
+  const pedir = async () => {
+    setCarregando(true)
+    try {
+      setLeitura(await lerCorrelacaoComIa(id))
+    } catch (e) {
+      toast.error(e?.message || 'Não foi possível gerar a leitura.')
+    } finally {
+      setCarregando(false)
+    }
+  }
+
+  if (!leitura) {
+    return (
+      <button onClick={pedir} disabled={carregando} className="btn-ghost px-2.5 py-1 text-xs">
+        <Sparkles size={13} /> {carregando ? 'Lendo…' : 'O que isto significa?'}
+      </button>
+    )
+  }
+
+  return (
+    <div className="rounded-lg border border-brand-500/30 bg-brand-500/5 p-3">
+      <p className="mb-1.5 flex flex-wrap items-center gap-2">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-500/15 px-2 py-0.5 text-[10px] font-bold text-brand-700 dark:text-brand-300">
+          <Sparkles size={11} /> Leitura escrita por máquina
+        </span>
+        <span className="font-mono text-[10px] muted">{leitura.modelo}</span>
+      </p>
+      <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">{leitura.texto}</p>
+      <p className="mt-1.5 text-[11px] leading-relaxed muted">
+        Interpretação de um modelo sobre os campos acima. A regra, a evidência e o contexto são
+        apurados; isto não é — confira antes de usar como base para decisão.
+      </p>
     </div>
   )
 }

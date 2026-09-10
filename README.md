@@ -189,11 +189,19 @@ correlações diretas com o acervo. Não é importância editorial nem risco. A
 explicação viaja junto do número, sempre — um índice sem método declarado é um
 número que ninguém pode contestar, e portanto não vale nada.
 
-### A correlação não usa IA, e isso é de propósito
+### A correlação não usa IA para ENCONTRAR, e isso é de propósito
 
-A plataforma **tem** síntese por modelo de linguagem (ver
-[Síntese por IA](#síntese-por-ia)), e as ligações abaixo continuam sem ela.
-A separação é o desenho, não uma etapa pendente.
+A plataforma tem modelo de linguagem (ver [Síntese por IA](#síntese-por-ia)), e
+as ligações abaixo continuam sendo encontradas sem ele. A separação é o desenho,
+não uma etapa pendente.
+
+O modelo entra **depois**, e só se pedirem: cada ligação tem um botão *"o que
+isto significa?"* que devolve três frases sobre o que ela diz para a segurança e
+a defesa do Brasil — **incluindo "isto é coincidência de nome, sem relação
+aparente"**, que é uma resposta legítima e a mais útil quando é o caso.
+
+É a divisão que mantém tudo verificável: a regra prova que a ligação existe, o
+modelo comenta o que ela significa, e a tela nunca troca uma coisa pela outra.
 
 Um modelo produziria muito mais ligações, e cada uma seria impossível de
 auditar — o que inverteria o argumento inteiro de uma plataforma que se
@@ -314,22 +322,33 @@ tela mostra a ausência — nunca um número plausível no lugar.
 
 ## Síntese por IA
 
-Opcional, desligada por padrão, e **de quem hospeda**. A chave é da conta de
-quem sobe a instância, e o consumo é cobrado nela — o projeto não intermedeia
-nada.
+Opcional, desligada por padrão, e **de cada pessoa**. Quem usa cola a própria
+chave, paga o próprio consumo, e o projeto não intermedeia nada.
 
 | | |
 |---|---|
 | **Resumo do período** | Um modelo lê as matérias aprovadas da edição e escreve o parágrafo de abertura |
 | **Perguntar ao acervo** | Pergunta livre respondida **somente** com o que a coleta trouxe |
-| **Onde se liga** | Configurações → *Síntese por IA*, com conta de administrador, ou `ANTHROPIC_API_KEY` |
+| **O que esta ligação significa** | A leitura de uma correlação — o salto que a regra não pode dar sem inventar |
+| **Onde se liga** | Configurações → *Assistente por IA*, em qualquer conta |
+
+A chave da instalação (`ANTHROPIC_API_KEY`, ou a gravada pelo administrador)
+continua existindo como **reserva**, para quem hospeda querer oferecer o recurso
+a quem não tem chave própria. A precedência vai da mais específica para a mais
+geral — conta → ambiente → banco —, e a tela avisa, em amarelo, quando é o
+crédito de outra pessoa que está sendo gasto.
 
 ### As regras que o recurso respeita
 
-**A chave nunca chega ao navegador.** Ela vive no servidor da instalação —
-variável de ambiente em produção, ou gravada pela tela de administração. Quem
-chama o provedor é o servidor, depois de autenticar a sessão. A API devolve
+**A chave nunca chega ao navegador, e não fica em texto puro.** Ela vive no
+servidor, cifrada com AES-256-GCM (`server/src/lib/segredoGuardado.js`). Quem
+chama o provedor é o servidor, depois de autenticar a sessão; a API devolve
 apenas se existe, de onde veio e os quatro últimos caracteres.
+
+<sub>A cifra protege contra o banco vazar sozinho — um backup, um volume
+esquecido. Ela **não** protege contra quem já tem o servidor, porque a chave de
+cifra sai do mesmo segredo que o processo precisa ter em memória. O código diz
+isso em vez de vender um cofre que não é.</sub>
 
 <sub>Isto é a correção de um erro real: houve um campo que guardava a chave em
 `localStorage` — onde qualquer extensão do navegador a lê — e chamava o provedor
@@ -354,9 +373,11 @@ qualquer pessoa pode publicar uma notícia com ordens escritas para um modelo. O
 prompt do sistema declara isso, e o modelo não tem ferramenta nenhuma à
 disposição: a saída é texto exibido, e nada nela dispara ação na plataforma.
 
-**A síntese fica guardada.** Gerada sob demanda e guardada por período e dia:
-abrir o clipping não custa uma chamada, e pedir de novo no mesmo dia devolve o
-mesmo texto sem gastar.
+**A síntese fica guardada, por conta.** Gerada sob demanda e guardada por
+conta, período e dia: abrir o clipping não custa uma chamada, e pedir de novo no
+mesmo dia devolve o mesmo texto sem gastar. A conta entra na chave do cache
+porque a chave de API é dela — um cache compartilhado faria a primeira pessoa a
+pedir pagar a leitura de todas as outras.
 
 ---
 

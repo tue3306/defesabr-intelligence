@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { all } from '../db/index.js'
+import { all, get, run } from '../db/index.js'
 import { exigirPapel } from '../lib/auth.js'
 import { limitar } from '../lib/limite.js'
 import { dias } from '../lib/parametros.js'
@@ -8,7 +8,7 @@ import {
   salvarChaveDaConta, removerChaveDaConta, salvarModeloDaConta,
   MODELO_PADRAO,
 } from '../lib/chaveIa.js'
-import { sintetizarClipping, perguntarSobreAcervo } from '../services/ia.js'
+import { sintetizarClipping, perguntarSobreAcervo, lerCorrelacao } from '../services/ia.js'
 import { sinteseGuardada, guardarSintese } from '../lib/sinteseCache.js'
 import { nivelDeAlerta } from './news.js'
 
@@ -232,6 +232,73 @@ router.post('/ia/perguntar', exigirPapel('user'), limitar({ max: 20, janelaMs: 6
     geradoEm: new Date().toISOString(),
     uso: r.uso,
   })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/ia/correlacao/:id — o que esta ligação significa
+//
+// A correlação é carregada AQUI, pelo id, e não recebida do cliente. Aceitar o
+// corpo pronto permitiria mandar ao modelo uma "correlação" que a plataforma
+// nunca produziu, e a resposta sairia com a mesma aparência de uma lida do
+// acervo.
+//
+// A leitura fica guardada na própria linha: uma ligação não muda, então relê-la
+// não deve custar outra chamada. Ver a coluna `leitura_ia` em `correlations`.
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/ia/correlacao/:id', exigirPapel('user'), limitar({ max: 30, janelaMs: 60 * 60_000 }), async (req, res) => {
+  const id = Number(req.params.id)
+  if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Identificador inválido.' })
+
+  const linha = get(
+    `SELECT c.id, c.regra, c.motivo, c.evidencia, c.contexto_br, c.forca,
+            a.title AS titulo, a.summary AS resumo, a.published_at AS publicado,
+            s.name AS fonte, c.leitura_ia
+       FROM correlations c
+       JOIN articles a ON a.id = c.article_id
+       LEFT JOIN sources s ON s.id = a.source_id
+      WHERE c.id = ?`,
+    [id],
+  )
+  if (!linha) return res.status(404).json({ error: 'Correlação não encontrada.' })
+
+  // Já lida antes? Devolve sem gastar.
+  if (linha.leitura_ia && !req.body?.forcar) {
+    try {
+      return res.json({ ...JSON.parse(linha.leitura_ia), doCache: true })
+    } catch { /* cache ilegível: gera de novo */ }
+  }
+
+  const { configurada } = configIa(req.conta?.sub)
+  if (!configurada) {
+    return res.status(409).json({ error: 'Nenhuma chave de modelo configurada para esta conta nem para esta instalação.', code: 'SEM_CHAVE' })
+  }
+
+  const r = await lerCorrelacao({
+    userId: req.conta?.sub,
+    correlacao: {
+      motivo: linha.motivo,
+      evidencia: linha.evidencia,
+      contextoBrasil: linha.contexto_br,
+      forca: linha.forca,
+      artigo: {
+        titulo: linha.titulo,
+        resumo: linha.resumo,
+        publicadoEm: linha.publicado,
+        fonte: linha.fonte,
+      },
+    },
+  })
+  if (!r.ok) return res.status(502).json({ error: r.erro, code: r.codigo })
+
+  const carga = {
+    texto: r.texto,
+    origem: 'modelo',
+    modelo: r.modelo,
+    geradoEm: new Date().toISOString(),
+  }
+  run('UPDATE correlations SET leitura_ia = ? WHERE id = ?', [JSON.stringify(carga), id])
+
+  res.json({ ...carga, doCache: false })
 })
 
 export default router
