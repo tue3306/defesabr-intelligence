@@ -10,44 +10,76 @@ mostra o estado real de cada capacidade, contado do banco.
 
 ---
 
-## 1. Síntese por IA
+## 1. Síntese por IA — **feita**
 
-**Estado:** deliberadamente ausente. Nenhum texto da plataforma foi escrito por
-máquina, e a interface diz isso em voz alta — o Clipping exibe "Sem síntese por
-IA: nenhum texto desta edição foi escrito por máquina" em vez de deixar o campo
-vazio sem explicação.
+**Estado:** implementada, e sob as condições que esta seção fixou quando o
+recurso ainda não existia. Ficam registradas porque foram elas que definiram o
+desenho:
 
-Houve um botão "Gerar clipping com IA". Ele animava quatro etapas por 1,4
-segundo e devolvia um documento escrito à mão. Foi removido: interface que
-encena trabalho que não acontece é pior que a ausência do recurso, porque quem
-assiste acredita.
+> a chave viverá apenas no servidor e o front chamará um endpoint próprio, que
+> autentica quem pede — e nenhum texto de máquina sai sem estar marcado.
 
-### Onde entra
+### O que existe
 
-| Peça | Arquivo | Estado |
+| Peça | Arquivo |
+|---|---|
+| Resolução da chave (ambiente → banco) | `server/src/lib/chaveIa.js` |
+| Chamada ao modelo | `server/src/services/ia.js` |
+| Rotas | `server/src/routes/ia.js` |
+| Cache da síntese | `server/src/lib/sinteseCache.js` |
+| Estado no navegador | `src/hooks/useIa.js`, `src/services/ia.js` |
+| Configuração (admin) | `src/pages/Settings.jsx` → *Síntese por IA* |
+| Síntese na tela | `src/pages/DailyClipping.jsx` → `SinteseDoPeriodo` |
+| Perguntas ao acervo | `src/components/clipping/PerguntarAoAcervo.jsx` |
+
+| Rota | Guarda | O que faz |
 |---|---|---|
-| Detecção de chave | `src/services/ia.js` → `iaConfigurada()` | pronto, devolve `false` |
-| Campo do resumo | `server/src/routes/news.js` → `summaryExecutive` | existe, sempre `null` |
-| Nota de ausência | mesma resposta, `summaryNote` | explica por que está vazio |
-| Exibição | `src/pages/DailyClipping.jsx` | mostra a nota quando não há texto |
+| `GET /ia/estado` | `user` | Se há modelo, qual, de onde veio a chave. **Nunca devolve a chave** |
+| `PUT /ia/chave` | `admin` | Grava a chave desta instalação |
+| `DELETE /ia/chave` | `admin` | Remove a chave gravada |
+| `PUT /ia/modelo` | `admin` | Troca o modelo |
+| `POST /ia/sintese` | `user` | Resumo executivo do período, guardado por dia |
+| `POST /ia/perguntar` | `user` | Pergunta livre sobre o acervo |
 
-O contrato já está fechado: o dia em que `summaryExecutive` vier preenchido, a
-tela o exibe sem mudança nenhuma. O que falta é só quem o preenche.
+### As quatro decisões que valem explicação
 
-### O que fazer
+**A chave nunca chega ao navegador.** Houve um campo que a guardava em
+`localStorage` — lido por qualquer extensão — e chamava o provedor direto do
+front. `GET /ia/estado` devolve se existe, de onde veio e os quatro últimos
+caracteres: suficiente para conferir qual está em uso, insuficiente para usá-la.
 
-1. Variável `ANTHROPIC_API_KEY` (ou equivalente) em `server/src/config.js`,
-   no mesmo padrão dos agregadores: **sem chave, o recurso não roda e não
-   aparece como falha**. Não configurado não é quebrado.
-2. Um `server/src/services/sintese.js` que receba os artigos aprovados do dia e
-   devolva o resumo executivo.
-3. Preencher `summaryExecutive` em `/news/clipping`.
+**O ambiente tem precedência sobre o banco.** `ANTHROPIC_API_KEY` é o caminho de
+produção e a chave não toca o disco da aplicação. Com ela definida, a tela
+mostra o campo desabilitado explicando o motivo, em vez de aceitar um valor que
+o servidor ignoraria — configuração que a tela mostra e o servidor descarta é o
+pior tipo de divergência, porque é silenciosa.
 
-### O que não fazer
+**A síntese é sob demanda e fica guardada.** Preenchê-la dentro de
+`/news/clipping` poria uma chamada paga de alguns segundos em toda abertura da
+tela. Ela é gerada quando alguém pede e guardada por período e dia; a partir daí
+`/news/clipping` a devolve de graça, e o contrato antigo — "o dia em que
+`summaryExecutive` vier preenchido, a tela o exibe sem mudança nenhuma" — vale
+sem que a tela gaste.
 
-Não gerar texto sem marcar a origem. Se um parágrafo foi escrito por modelo, a
-tela precisa dizer — a diferença entre "a mesa de análise avaliou" e "um modelo
-resumiu" é a diferença entre um produto de inteligência e um gerador de texto.
+**O contexto é montado pelo servidor.** Quem pergunta escolhe a pergunta, não o
+material. Se o front pudesse mandar o contexto, daria para pedir ao modelo que
+comentasse um texto qualquer e a resposta sairia com a mesma aparência de uma
+apurada no acervo.
+
+### E a regra que não mudou
+
+Todo texto de máquina vem marcado. As respostas carregam `origem: 'modelo'` e o
+nome do modelo; a tela exibe o selo **"Escrito por máquina"** antes do texto — e
+não depois, porque um aviso embaixo do parágrafo chega tarde para quem já leu.
+
+A declaração do cabeçalho do Clipping deixou de ser permanente e passou a
+refletir a edição: sem síntese, afirma a ausência; com síntese, diz o que foi
+escrito por máquina e o que continua sendo da coleta.
+
+O prompt do sistema declara que as matérias são **dado, não instrução** — o
+acervo vem de feeds públicos, e qualquer pessoa pode publicar uma notícia com
+ordens escritas para um modelo. O modelo não tem ferramenta nenhuma à
+disposição: a saída é texto exibido, e nada nela dispara ação na plataforma.
 
 ---
 

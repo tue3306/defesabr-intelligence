@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import {
   Rss, KeyRound, Bell, SlidersHorizontal, UserCog, Trash2, Plus, Circle, Eye, EyeOff,
   Palette, Star, Gauge, Stethoscope, Users, Sun, Moon, LogIn, ShieldCheck, CreditCard, BarChart3,
-  Check, Lock, Server, Database, PlugZap, ShieldAlert,
+  Check, Lock, Server, Database, PlugZap, ShieldAlert, Sparkles,
 } from 'lucide-react'
 import { useSettingsStore } from '../store/settingsStore'
 import { useAuthStore } from '../store/authStore'
@@ -12,7 +13,8 @@ import { useCan, useProfileMeta } from '../auth/useCan'
 import { useTheme } from '../hooks/useTheme'
 import { FOCUS_AREAS, CATEGORIES } from '../data/mockData'
 import { PLANS, PLAN_LABEL } from '../data/plansData'
-import { iaConfigurada } from '../services/ia'
+import { salvarChaveIa, removerChaveIa, salvarModeloIa } from '../services/ia'
+import { useIa } from '../hooks/useIa'
 import { request } from '../services/client'
 import { useFontesReais } from '../hooks/useFontesReais'
 import { API_BASE_URL, APP_VERSION } from '../services/config'
@@ -408,39 +410,171 @@ function SourcesEditor() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SINTESE POR IA — DECLARADA, NAO OFERECIDA
+// SÍNTESE POR IA — A CHAVE VIVE NO SERVIDOR
 //
-// Aqui havia um campo para colar a chave da Anthropic, guardada em texto puro
-// no localStorage, com um aviso em vermelho de que aquilo nao era seguro. O
-// aviso estava certo, e era exatamente o argumento contra o campo existir.
+// Esta seção passou por três estados, e a ordem explica o desenho de agora.
 //
-// Nada o consumia: `iaConfigurada()` devolve `false` sempre, e nenhuma tela
-// desta plataforma chama modelo de linguagem. O campo pedia um segredo real de
-// quem usa, para uma funcionalidade que nao existe, guardando-o onde qualquer
-// extensao do navegador o le. Num projeto de codigo aberto, o convite e ainda
-// pior: quem clona pode achar que basta colar a chave para ligar o recurso.
+// PRIMEIRO houve um campo que colava a chave da Anthropic no `localStorage`,
+// com um aviso em vermelho de que aquilo não era seguro. O aviso estava certo,
+// e era o argumento contra o campo existir: `localStorage` é lido por qualquer
+// extensão do navegador, e a chamada saía do navegador direto ao provedor, onde
+// qualquer DevTools aberto a mostra.
 //
-// O contrato para quando a sintese existir esta em ROADMAP.md, e a regra e
-// simples: a chave vive no SERVIDOR, e o front chama um endpoint proprio.
+// DEPOIS o campo foi removido e a seção passou a explicar por que não havia um,
+// deixando escrito o contrato para quando a síntese existisse: "a chave viverá
+// apenas no servidor e o front chamará um endpoint próprio, que autentica quem
+// pede".
+//
+// AGORA a síntese existe, e o contrato foi cumprido à risca. O campo voltou —
+// mas o que ele faz é `PUT /api/ia/chave`, uma rota de administrador que grava
+// a chave no banco DA INSTALAÇÃO. O navegador nunca a guarda, nunca a lê de
+// volta e nunca fala com o provedor: `GET /api/ia/estado` devolve se existe, de
+// onde veio e os quatro últimos caracteres — o bastante para conferir qual está
+// em uso, e insuficiente para usá-la.
+//
+// A VARIÁVEL DE AMBIENTE TEM PRECEDÊNCIA. Quem publica no Railway define
+// `ANTHROPIC_API_KEY` e a chave nunca toca o disco da aplicação. Nesse caso o
+// campo aparece desabilitado dizendo isso, em vez de aceitar um valor que o
+// servidor ignoraria — uma configuração que a tela mostra e o servidor descarta
+// é o pior tipo de divergência, porque é silenciosa.
 // ─────────────────────────────────────────────────────────────────────────────
 function SinteseIA() {
+  const ia = useIa()
+  const [chave, setChave] = useState('')
+  const [modelo, setModelo] = useState('')
+  const [salvando, setSalvando] = useState(false)
+
+  useEffect(() => { setModelo(ia.modelo || '') }, [ia.modelo])
+
+  const guardar = async () => {
+    setSalvando(true)
+    try {
+      await salvarChaveIa(chave.trim())
+      setChave('')
+      await ia.recarregar()
+      toast.success('Chave guardada no servidor desta instalação.')
+    } catch (e) {
+      toast.error(e?.message || 'Não foi possível guardar a chave.')
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  const apagar = async () => {
+    try {
+      await removerChaveIa()
+      await ia.recarregar()
+      toast.success('Chave removida.')
+    } catch (e) {
+      toast.error(e?.message || 'Não foi possível remover a chave.')
+    }
+  }
+
+  const trocarModelo = async () => {
+    try {
+      const r = await salvarModeloIa(modelo.trim())
+      await ia.recarregar()
+      toast.success(`Modelo: ${r.modelo}`)
+    } catch (e) {
+      toast.error(e?.message || 'Não foi possível trocar o modelo.')
+    }
+  }
+
   return (
     <>
-      <p className="text-sm muted">
-        Nenhum texto desta plataforma foi escrito por máquina, e nenhuma tela chama modelo de
-        linguagem. Os campos de síntese ficam vazios com a nota explicando o motivo, em vez de
-        preenchidos com texto plausível.
+      <div className="flex flex-wrap items-center gap-2">
+        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${
+          ia.configurada
+            ? 'bg-military-green/15 text-emerald-700 dark:text-emerald-300'
+            : 'bg-gray-100 text-gray-600 dark:bg-white/5 dark:text-gray-400'
+        }`}
+        >
+          <Sparkles size={13} /> {ia.configurada ? 'Modelo conectado' : 'Nenhum modelo conectado'}
+        </span>
+        {ia.configurada && (
+          <span className="chip font-mono text-[11px]">
+            {ia.modelo} · chave {ia.finalDaChave} · {ia.origem === 'ambiente' ? 'do ambiente' : 'desta instalação'}
+          </span>
+        )}
+      </div>
+
+      <p className="mt-3 text-sm muted">
+        {ia.configurada
+          ? 'A síntese do clipping e as perguntas ao acervo estão disponíveis. Todo texto gerado aparece marcado como escrito por máquina — nenhuma tela o apresenta como apuração.'
+          : 'Sem chave, os campos de síntese ficam vazios com a nota explicando o motivo, em vez de preenchidos com texto plausível. Nada na plataforma deixa de funcionar por isso.'}
       </p>
-      <div className="mt-3 rounded-lg border border-gray-200 p-3 dark:border-white/10">
+
+      {!ia.podeConfigurar ? (
+        <p className="mt-3 rounded-lg border border-dashed border-gray-300 p-3 text-xs leading-relaxed muted dark:border-white/15">
+          A chave é configurada por quem administra esta instalação.
+        </p>
+      ) : ia.fixadoPorAmbiente ? (
+        <p className="mt-3 rounded-lg border border-dashed border-gray-300 p-3 text-xs leading-relaxed muted dark:border-white/15">
+          A chave vem da variável de ambiente <code className="font-mono">ANTHROPIC_API_KEY</code> e tem
+          precedência sobre qualquer valor gravado aqui — é assim que se configura em produção, e
+          nesse caminho ela nunca toca o disco da aplicação. Para configurá-la por esta tela, remova
+          a variável do ambiente.
+        </p>
+      ) : (
+        <div className="mt-4 space-y-4">
+          <div>
+            <label htmlFor="ia-chave" className="mb-1 block text-sm font-medium">
+              Chave da API (Anthropic)
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <input
+                id="ia-chave"
+                type="password"
+                autoComplete="off"
+                spellCheck={false}
+                placeholder={ia.configurada ? `configurada (${ia.finalDaChave}) — cole outra para substituir` : 'sk-ant-…'}
+                value={chave}
+                onChange={(e) => setChave(e.target.value)}
+                className="min-w-[16rem] flex-1"
+              />
+              <button onClick={guardar} disabled={salvando || chave.trim().length < 12} className="btn-primary">
+                {salvando ? 'Guardando…' : 'Guardar'}
+              </button>
+              {ia.configurada && ia.origem === 'banco' && (
+                <button onClick={apagar} className="btn-ghost">Remover</button>
+              )}
+            </div>
+            <p className="mt-1.5 text-xs leading-relaxed muted">
+              Vai para o servidor desta instalação e não volta: o navegador nunca a guarda nem a lê.
+              Obtenha a sua em <code className="font-mono">console.anthropic.com</code>. O consumo é
+              cobrado na conta de quem hospeda.
+            </p>
+          </div>
+
+          <div>
+            <label htmlFor="ia-modelo" className="mb-1 block text-sm font-medium">Modelo</label>
+            <div className="flex flex-wrap gap-2">
+              <input
+                id="ia-modelo"
+                type="text"
+                spellCheck={false}
+                placeholder={ia.modeloPadrao}
+                value={modelo}
+                onChange={(e) => setModelo(e.target.value)}
+                className="min-w-[14rem] flex-1"
+              />
+              <button onClick={trocarModelo} className="btn-ghost">Aplicar</button>
+            </div>
+            <p className="mt-1.5 text-xs muted">Vazio volta ao padrão ({ia.modeloPadrao}).</p>
+          </div>
+        </div>
+      )}
+
+      <div className="mt-4 rounded-lg border border-gray-200 p-3 dark:border-white/10">
         <p className="flex items-center gap-1.5 text-sm font-bold">
-          <ShieldAlert size={15} className="text-gray-400" /> Por que não há campo de chave aqui
+          <ShieldAlert size={15} className="text-gray-400" /> Como a chave é tratada
         </p>
-        <p className="mt-1.5 text-xs leading-relaxed muted">
-          Havia um, e ele guardava a chave em texto puro no armazenamento deste navegador — onde
-          qualquer extensão a lê. Quando a síntese existir, a chave viverá apenas no servidor e o
-          front chamará um endpoint próprio, que autentica quem pede e registra o consumo. O
-          contrato já está descrito em <code className="font-mono">ROADMAP.md</code>.
-        </p>
+        <ul className="mt-1.5 space-y-1 text-xs leading-relaxed muted">
+          <li>— Guardada no servidor desta instalação, nunca no navegador.</li>
+          <li>— Não é devolvida por rota nenhuma: a tela vê só os quatro últimos caracteres.</li>
+          <li>— Quem chama o provedor é o servidor, autenticando a sessão antes.</li>
+          <li>— <code className="font-mono">ANTHROPIC_API_KEY</code> no ambiente tem precedência e é o caminho recomendado em produção.</li>
+        </ul>
       </div>
     </>
   )
@@ -453,7 +587,7 @@ function Diagnostics() {
   const fontes = useFontesReais()
   const online = fontes.ok ?? 0
   const total = fontes.total ?? 0
-  const ai = iaConfigurada()
+  const ia = useIa()
   // Este bloco marcava AwesomeAPI e World Bank como `ok: true` fixo — dois
   // "ok" que nunca mudavam, mesmo com o servidor fora do ar —, dizia "modo
   // demo" para a IA (o modo não existe mais) e anunciava a versão v1.0.0, que
@@ -461,7 +595,11 @@ function Diagnostics() {
   // governança, a partir das execuções reais; aqui fica só o que esta tela
   // sabe de fato.
   const items = [
-    { name: 'Síntese por IA', ok: ai, note: ai ? 'configurada' : 'não conectada' },
+    {
+      name: 'Síntese por IA',
+      ok: ia.configurada,
+      note: ia.configurada ? `${ia.modelo} · chave ${ia.origem === 'ambiente' ? 'do ambiente' : 'desta instalação'}` : 'não conectada',
+    },
     { name: 'Fontes de coleta', ok: total > 0 && online === total, note: total ? `${online}/${total} responderam` : 'servidor não respondeu' },
     { name: 'Versão da interface', ok: true, note: APP_VERSION },
   ]

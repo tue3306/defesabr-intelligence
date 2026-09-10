@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Activity, X, ArrowRight } from 'lucide-react'
-import { iaConfigurada } from '../../services/ia'
+import { useIa } from '../../hooks/useIa'
 import { useCan } from '../../auth/useCan'
 import { APP_VERSION } from '../../services/config'
 import { formatTime } from '../../utils/dateUtils'
@@ -32,13 +32,14 @@ export default function StatusFAB() {
   // O hook precisa ser chamado sempre, mesmo sem permissão: sair antes mudaria
   // a ordem dos hooks entre renders e o React quebraria.
   const saude = useResource(() => adminService.health(), [], { enabled: pode })
+  // Pelo mesmo motivo do comentário acima: antes do primeiro `return`.
+  const ia = useIa()
 
   if (!pode) return null
 
   // A forma vem da ponte (`GET /admin/health` → `/system/status`): contadores
   // no topo e o acervo em `archive`.
   const d = saude.data
-  const ai = iaConfigurada()
 
   const degraded = d?.degraded ?? 0
   const operational = d?.operational ?? 0
@@ -70,8 +71,8 @@ export default function StatusFAB() {
     },
     {
       name: 'Síntese por IA',
-      ok: ai,
-      note: ai ? 'configurada' : 'não conectada',
+      ok: ia.configurada,
+      note: ia.configurada ? `${ia.modelo} conectado` : 'não conectada',
     },
   ]
 

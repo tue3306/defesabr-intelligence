@@ -1,28 +1,71 @@
+import { request } from './client'
+
 // -----------------------------------------------------------------------------
-// ESTADO DA IA — declarado num lugar só
+// O ASSISTENTE, DO LADO DO NAVEGADOR
 //
-// Três telas perguntam "existe um modelo de linguagem ligado a esta
-// plataforma?". A resposta é não, e vinha de `isApiConfigured()` em
-// `src/api/anthropic.js` — um arquivo de 200 linhas que montava prompts,
-// chamava a API da Anthropic e, quando não havia chave, devolvia
-// `mockDailyClipping` e `mockWeeklyAnalysis`: um clipping inteiro escrito à
-// mão apresentado como saída de modelo.
+// Este arquivo já existiu como um booleano: `iaConfigurada()` devolvia `false`
+// e três telas o consultavam para dizer, com honestidade, que não havia modelo
+// nenhum ligado à plataforma.
 //
-// Esse arquivo saiu. O que sobrou dele em uso era exatamente este booleano.
+// Ele ganhou o outro lado. O que NÃO mudou é o princípio: a chave nunca passa
+// por aqui. Houve um campo de chave nas Configurações que a guardava em texto
+// puro no `localStorage` — de onde qualquer extensão a lê — e a mandava do
+// navegador direto ao provedor. Agora quem guarda e quem chama é o servidor;
+// este módulo só conversa com `/api/ia/*`, autenticado pela sessão.
 //
-// Quando a integração for feita, é aqui que ela se anuncia: a checagem passa a
-// ler a configuração real e as telas que já perguntam continuam funcionando
-// sem alteração. Até lá a resposta é `false`, e é verdade.
+// TODO TEXTO QUE VOLTA DAQUI VEM MARCADO. As respostas trazem `origem:
+// 'modelo'` e o nome do modelo, e as telas exibem essa marca. A diferença entre
+// "a mesa de análise avaliou" e "um modelo resumiu" é a diferença entre um
+// produto de inteligência e um gerador de texto.
 // -----------------------------------------------------------------------------
 
-/** Existe um modelo de linguagem configurado? Hoje, não. */
-export function iaConfigurada() {
-  return false
+/** Estado do recurso nesta instalação. Nunca devolve a chave. */
+export async function estadoIa() {
+  const { data } = await request('GET /ia/estado')
+  return data
 }
 
-/** Por que o campo de síntese está vazio — texto exibido ao usuário. */
+/** Gera (ou devolve do cache do dia) o resumo executivo do período. */
+export async function gerarSintese({ days = 7, forcar = false } = {}) {
+  const { data } = await request('POST /ia/sintese', { body: { days, forcar } })
+  return data
+}
+
+/** Pergunta livre sobre o acervo. O contexto é montado pelo servidor. */
+export async function perguntarAoAcervo({ pergunta, days = 30 }) {
+  const { data } = await request('POST /ia/perguntar', { body: { pergunta, days } })
+  return data
+}
+
+/** Guarda a chave no servidor desta instalação. Só administrador. */
+export async function salvarChaveIa(chave) {
+  const { data } = await request('PUT /ia/chave', { body: { chave } })
+  return data
+}
+
+/** Remove a chave guardada. */
+export async function removerChaveIa() {
+  const { data } = await request('DELETE /ia/chave')
+  return data
+}
+
+/** Troca o modelo usado. Vazio volta ao padrão. */
+export async function salvarModeloIa(modelo) {
+  const { data } = await request('PUT /ia/modelo', { body: { modelo } })
+  return data
+}
+
+/**
+ * Por que o campo de síntese pode estar vazio.
+ *
+ * Continua exportado porque continua verdade quando não há chave — e é o texto
+ * que as telas mostram no lugar de um parágrafo inventado.
+ */
 export const MOTIVO_SEM_IA =
-  'Nenhum modelo de linguagem está conectado a esta plataforma. Os campos de '
+  'Nenhum modelo de linguagem está conectado a esta instalação. Os campos de '
   + 'síntese ficam vazios em vez de preenchidos com texto plausível.'
 
-export default { iaConfigurada, MOTIVO_SEM_IA }
+export default {
+  estadoIa, gerarSintese, perguntarAoAcervo,
+  salvarChaveIa, removerChaveIa, salvarModeloIa, MOTIVO_SEM_IA,
+}

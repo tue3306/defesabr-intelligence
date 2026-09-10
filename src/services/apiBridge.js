@@ -213,6 +213,12 @@ export const PONTES = new Map([
       // linguagem. A tela mostra a nota no lugar — que é a diferença entre
       // "ainda não gerado" e "esta versão não gera isto".
       summary_executive: d.summaryExecutive,
+      // A MARCA VIAJA COM O TEXTO. `summaryOrigem: 'modelo'` é o que permite à
+      // tela dizer que aquele parágrafo foi escrito por máquina — sem ele, a
+      // síntese apareceria com a mesma aparência da apuração da plataforma.
+      summary_origem: d.summaryOrigem,
+      summary_modelo: d.summaryModelo,
+      summary_gerado_em: d.summaryGeradoEm,
       summary_note: d.summaryNote,
       // ─────────────────────────────────────────────────────────────────
       // AUSÊNCIA DE OCORRÊNCIA NÃO É CALMA

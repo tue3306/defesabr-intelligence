@@ -88,6 +88,54 @@ const ROTAS = [
     autorizado: 404,
     muta: true,
   },
+
+  // ── ASSISTENTE POR IA ──
+  //
+  // `PUT /api/ia/chave` GRAVA UM SEGREDO. E a rota mais sensivel que este
+  // servidor tem: quem a alcanca sem ser administrador troca a chave de API de
+  // quem hospeda — e o consumo e cobrado nessa pessoa.
+  //
+  // As de sintese e pergunta gastam dinheiro a cada chamada. Uma delas aberta
+  // sem sessao seria conta aberta para a internet inteira.
+  //
+  // O corpo enviado a `PUT /ia/chave` e invalido de proposito: o teste quer
+  // saber quem PASSA DA GUARDA, e passar da guarda com corpo invalido devolve
+  // 400 — o que prova a autorizacao sem sobrescrever a chave da instalacao.
+  {
+    metodo: 'PUT',
+    caminho: '/api/ia/chave',
+    minimo: 'admin',
+    corpo: { chave: 'formato-invalido-de-proposito' },
+    autorizado: 400,
+    muta: true,
+  },
+  {
+    metodo: 'PUT',
+    caminho: '/api/ia/modelo',
+    minimo: 'admin',
+    corpo: { modelo: '' },
+    muta: true,
+  },
+  { metodo: 'GET', caminho: '/api/ia/estado', minimo: 'user' },
+  // Sem chave configurada a rota responde 409 (recurso nao ligado), que e
+  // exatamente o estado de uma instalacao recem-clonada. O que se testa aqui e
+  // a guarda: 401 sem sessao, e passar dela com sessao.
+  {
+    metodo: 'POST',
+    caminho: '/api/ia/sintese',
+    minimo: 'user',
+    corpo: { days: 7 },
+    autorizado: 409,
+    muta: true,
+  },
+  {
+    metodo: 'POST',
+    caminho: '/api/ia/perguntar',
+    minimo: 'user',
+    corpo: { pergunta: 'o que aconteceu no periodo' },
+    autorizado: 409,
+    muta: true,
+  },
 ]
 
 const NIVEL = { user: 1, analyst: 2, admin: 3 }

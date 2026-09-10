@@ -128,7 +128,7 @@ export default function AuthModal({ open, onClose, abaInicial = 'entrar' }) {
               autoComplete="username"
               autoCapitalize="none"
               spellCheck={false}
-              placeholder="admin123"
+              placeholder="usuario123"
               required
               {...campo('username')}
             />
@@ -170,10 +170,14 @@ export default function AuthModal({ open, onClose, abaInicial = 'entrar' }) {
               : <><UserPlus size={16} /> Criar conta</>}
         </button>
 
+        {/* O texto listava os papéis internos — "Analista e Administrador são
+          * atribuídos pela governança" — para quem só quer criar uma conta.
+          * O que essa pessoa precisa saber é o que a conta dela alcança;
+          * o organograma é assunto de quem opera a instalação. */}
         {aba === 'cadastrar' && (
           <p className="text-center text-xs muted">
-            Contas criadas aqui recebem o perfil <strong>Usuário</strong>. Analista e Administrador
-            são atribuídos pela governança, não escolhidos no cadastro.
+            Toda conta criada aqui acessa a plataforma por completo: clipping, correlações,
+            mapa estratégico, incidentes e busca no acervo.
             <br />
             <span className="mt-1 inline-block">
               A entrada por conta Google está prevista e ainda não existe — enquanto não

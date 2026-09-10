@@ -1,7 +1,35 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Newspaper, Globe2, BarChart3, LineChart, GraduationCap, ShieldCheck, ArrowRight, Sparkles, BookOpen, Brain, RotateCcw, Check, Linkedin, Twitter, Youtube, Instagram, Radar, Building2, ShieldAlert, Landmark, Factory, ChevronDown, HelpCircle, Route, CircleDot, Eye, UserCircle, PenTool, ShieldQuestion, Target, Database, Crosshair, Layers, Link2,
+import {
+  Newspaper,
+  Globe2,
+  BarChart3,
+  LineChart,
+  GraduationCap,
+  ShieldCheck,
+  ArrowRight,
+  BookOpen,
+  Brain,
+  RotateCcw,
+  Check,
+  Linkedin,
+  Twitter,
+  Youtube,
+  Instagram,
+  Radar,
+  Building2,
+  ShieldAlert,
+  Landmark,
+  Factory,
+  ChevronDown,
+  HelpCircle,
+  Route,
+  CircleDot,
+  Database,
+  Crosshair,
+  Layers,
+  Link2,
 } from 'lucide-react'
 import NewsCard from '../components/ui/NewsCard'
 import { SkeletonCard } from '../components/ui/Skeleton'
@@ -14,66 +42,14 @@ import { useNews } from '../hooks/useNews'
 import { useNewsVolume } from '../hooks/useNewsVolume'
 import { useGastoMilitar, useIndiceDeAlerta } from '../hooks/useDadosReais'
 import { useVitrine } from '../hooks/useVitrine'
-import { useContasIniciais } from '../auth/useContasIniciais'
 import { useVitrineReal } from '../hooks/useVitrineReal'
-import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
-import { PROFILES, PROFILE_ORDER } from '../auth/permissions'
-import { LANDING_FEATURES, PLANS } from '../data/plansData'
+import { LANDING_FEATURES } from '../data/plansData'
 import { glossary } from '../data/learnData'
 import { USE_CASES, STANDARDS, FAQ, ROADMAP } from '../data/landingExtra'
 import { alertMeta } from '../utils/textUtils'
 
 const FEATURE_ICONS = { Newspaper, Globe2, BarChart3, LineChart, GraduationCap, ShieldCheck }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// OS PERFIS, E POR QUE SAO TRES E NAO QUATRO
-//
-// Esta secao listava QUATRO cartoes, um por entrada de `PROFILES`, e dois
-// deles prometiam o que a plataforma nao entrega mais:
-//
-//   ANALISTA  tinha botao "Entrar como Analista", e nao ha conta de analista.
-//             O projeto e aberto e nasce com DUAS contas. O papel continua no
-//             modelo de permissao e nas rotas — o Administrador o alcanca por
-//             heranca —, mas oferecer um botao de entrada para ele era
-//             prometer uma porta que nao existe.
-//
-//   VISITANTE tinha "Compara os planos antes de decidir" apontando para
-//             /planos. Nao ha o que decidir: o codigo e aberto e nao ha
-//             cobranca.
-//
-// Ficaram os dois perfis em que se pode ENTRAR, mais o Visitante como estado
-// (nao como conta). O papel Analista aparece explicado no rodape da secao, que
-// e onde ele de fato importa: para quem for ler o modelo de permissao.
-// ─────────────────────────────────────────────────────────────────────────────
-const PERFIS_NA_VITRINE = ['visitor', 'user', 'admin']
-
-const PROFILE_ENTRY = {
-  visitor: {
-    papel: null, icon: Eye, to: '/aprender', cta: 'Começar pelo Centro Educacional',
-    does: [
-      'Lê a primeira dobra com os números medidos do acervo',
-      'Acessa o Centro Educacional por completo',
-      'Vê o método do filtro e a régua da correlação',
-    ],
-  },
-  user: {
-    papel: 'user', icon: UserCircle, to: '/painel', cta: 'Entrar como Usuário',
-    does: [
-      'Clipping consolidado e as correlações com o Brasil',
-      'Ameaças cibernéticas, atores, CVEs e o mapa navegável',
-      'Salva na pasta pessoal — que segue a conta, não o navegador',
-    ],
-  },
-  admin: {
-    papel: 'admin', icon: ShieldQuestion, to: '/admin', cta: 'Entrar como Administrador',
-    does: [
-      'Tudo o que o Usuário vê, mais a saúde real da coleta',
-      'Governa as fontes, dispara coleta e audita o filtro',
-      'Vê as contas que existem no banco desta instalação',
-    ],
-  },
-}
 
 const USE_CASE_ICONS = { Radar, Building2, ShieldAlert, Landmark, Factory, GraduationCap }
 
@@ -98,8 +74,6 @@ const Section = ({ children, className = '' }) => (
 
 export default function Landing() {
   const { news, loading } = useNews()
-  const navigate = useNavigate()
-  const { contas, entrarComo } = useContasIniciais()
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const user = useAuthStore((s) => s.user)
 
@@ -347,87 +321,25 @@ export default function Landing() {
         </div>
       </Section>
 
-      {/* PARA CADA PERFIL — o que cada um enxerga */}
-      <Section>
-        <h2 className="text-center text-2xl font-bold tracking-tight">Uma plataforma, três recortes</h2>
-        <p className="mx-auto mt-2 max-w-2xl text-center text-sm muted">
-          O que você vê depende de quem você é — e a diferença é verificada no servidor, não
-          escondida na interface. O projeto é aberto e nasce com duas contas: entre por elas e
-          percorra a plataforma como cada uma a usa.
-        </p>
-
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {PERFIS_NA_VITRINE.map((id) => {
-            const profile = PROFILES[id]
-            const entry = PROFILE_ENTRY[id]
-            const Icon = entry.icon
-            return (
-              <div key={id} className="card flex flex-col p-5 transition-colors hover:border-gold-500/40">
-                <span
-                  className="flex h-11 w-11 items-center justify-center rounded-xl"
-                  style={{ background: `${profile.color}22`, color: profile.color }}
-                >
-                  <Icon size={21} />
-                </span>
-                <h3 className="mt-3 text-base font-bold tracking-tight">{profile.label}</h3>
-                {/* A cor do perfil já identifica o cartão pelo ícone acima. Repeti-la
-                    no texto media entre 2,3:1 e 3,0:1 conforme o tema — a mesma
-                    cor não serve para marcar e para ler. */}
-                <p className="text-xs font-semibold uppercase tracking-wide muted">
-                  {profile.tagline}
-                </p>
-                <ul className="mt-3 flex-1 space-y-1.5">
-                  {entry.does.map((item) => (
-                    <li key={item} className="flex gap-2 text-xs leading-relaxed muted">
-                      <Check size={13} className="mt-0.5 shrink-0 text-emerald-800 dark:text-emerald-400 dark:text-emerald-400" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-                {/* CLICAR AQUI FAZ LOGIN DE VERDADE.
-                  *
-                  * Chamava `loginAsDemo(entry.persona)`, e essa acao nao existe
-                  * mais no store — saiu junto com o modo demonstracao, em que
-                  * escolher uma persona escrevia `{ role: 'admin' }` no
-                  * localStorage e mais nada acontecia. O botao continuou na
-                  * tela chamando o que nao existe: os quatro derrubavam a
-                  * pagina com "loginAsDemo is not a function".
-                  *
-                  * Agora chama `entrarComo(papel)`, que faz POST /auth/login
-                  * com a conta inicial daquele papel. Sem conta para o papel —
-                  * o Analista nao tem, e uma instalacao que trocou as senhas
-                  * nao oferece nenhuma —, o botao vira link para a tela de
-                  * entrada em vez de prometer o que nao pode cumprir. */}
-                {entry.papel && contas.some((c) => c.role === entry.papel && c.senhaPadrao) ? (
-                  <button
-                    onClick={async () => {
-                      const r = await entrarComo(entry.papel)
-                      if (r.ok) navigate(entry.to)
-                    }}
-                    className={`mt-4 w-full justify-center text-sm ${id === 'analyst' ? 'btn-primary' : 'btn-ghost'}`}
-                  >
-                    {entry.cta} <ArrowRight size={14} />
-                  </button>
-                ) : (
-                  <Link
-                    to={entry.papel ? '/planos' : entry.to}
-                    className={`mt-4 w-full justify-center text-sm ${id === 'analyst' ? 'btn-primary' : 'btn-ghost'}`}
-                  >
-                    {entry.papel ? 'Ver o que este perfil alcança' : entry.cta} <ArrowRight size={14} />
-                  </Link>
-                )}
-              </div>
-            )
-          })}
-        </div>
-
-        <p className="mt-3 text-center text-xs muted">
-          Entrar por estas contas é um login de verdade: a senha é conferida no servidor com
-          scrypt e o papel vem de um token assinado. Existe um terceiro papel, <strong>Analista</strong>,
-          no modelo de permissão e nas rotas — ele governa a auditoria da coleta e é alcançado
-          pelo Administrador, que o herda. Não há conta separada para ele.
-        </p>
-      </Section>
+      {/* ─────────────────────────────────────────────────────────────────
+        * AQUI HAVIA "UMA PLATAFORMA, TRÊS RECORTES"
+        *
+        * Três cartões — Visitante, Usuário, Administrador — explicando o que
+        * cada perfil enxerga, com botão de entrada em cada um e um rodapé sobre
+        * o papel Analista.
+        *
+        * Era organograma, não produto. Quem chega à página quer saber o que a
+        * plataforma sabe sobre o Brasil; a estrutura interna de permissão é
+        * assunto de quem OPERA a instalação, e para essa pessoa existe o README.
+        *
+        * Pior, anunciava a conta de administrador na página pública. Toda conta
+        * criada aqui nasce com papel `user`; quem administra é quem subiu a
+        * instância e já tem a credencial. Divulgar a porta dos fundos numa
+        * vitrine não informa ninguém que precisasse da informação.
+        *
+        * A entrada continua a um clique: as chamadas do topo levam a telas que
+        * exigem sessão, e a tela de bloqueio oferece a conta inicial.
+        * ───────────────────────────────────────────────────────────────── */}
 
       {/* PRÉVIA DO PRODUTO — números lidos dos módulos, não promessas */}
       <Section className="card p-5 sm:p-6">
@@ -597,47 +509,18 @@ export default function Landing() {
         </div>
       </Section>
 
-      {/* NIVEIS DE ACESSO
+      {/* ─────────────────────────────────────────────────────────────────
+        * AQUI HAVIA "O QUE CADA NÍVEL ENXERGA"
         *
-        * Era "Planos para cada necessidade — Comece gratis. Faca upgrade
-        * quando quiser", com um preco por cartao e um botao de assinatura.
-        * Nao ha cobranca neste projeto e nunca houve: os precos sairam do
-        * catalogo quando o comercio simulado foi removido, e esta secao passou
-        * a desenhar caixas de preco VAZIAS — o defeito que mostra que a secao
-        * inteira descrevia um produto que nao existe.
+        * Restou de quando havia três planos com preço. O comércio simulado saiu
+        * há tempo, e a seção passou a listar níveis de acesso que não separam
+        * mais nada: o projeto é aberto, não há cobrança, e toda conta nasce com
+        * a profundidade completa de leitura.
         *
-        * O que sobra e o que continua sendo verdade e util: o que cada nivel
-        * destrava. Serve para tornar o modelo de permissao inspecionavel antes
-        * de entrar, e nao para vender nada. */}
-      <Section>
-        <h2 className="text-center text-2xl font-bold tracking-tight">O que cada nível enxerga</h2>
-        <p className="mx-auto mt-2 max-w-xl text-center text-sm muted">
-          Projeto de código aberto: não há cobrança, e toda conta recebe a profundidade completa
-          de leitura. O que separa os perfis é o <strong>papel</strong>, verificado no servidor.
-        </p>
-        <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-3">
-          {PLANS.map((p) => (
-            <div key={p.id} className={`card flex flex-col p-6 ${p.recommended ? 'border-gold-500/50 ring-1 ring-gold-500/30' : ''}`}>
-              <div className="flex items-center justify-between gap-2">
-                <h3 className="text-lg font-bold tracking-tight">{p.name}</h3>
-                <span className="chip shrink-0 text-[10px]">Aberto</span>
-              </div>
-              <p className="mt-1 text-xs muted">{p.tagline}</p>
-              <ul className="mt-4 flex-1 space-y-1.5 text-sm">
-                {p.features.slice(0, 4).map((f) => (
-                  <li key={f} className="flex items-start gap-2">
-                    <Check size={15} className="mt-0.5 shrink-0 text-emerald-800 dark:text-emerald-400" />
-                    <span className="text-gray-300">{f}</span>
-                  </li>
-                ))}
-              </ul>
-              <Link to="/planos" className={`mt-5 ${p.recommended ? 'btn-primary' : 'btn-ghost'} w-full justify-center`}>
-                Ver o que este nível destrava
-              </Link>
-            </div>
-          ))}
-        </div>
-      </Section>
+        * Uma grade de três cartões que dizem a mesma coisa é pior que nenhuma:
+        * ocupa a dobra em que caberia o produto e sugere uma escolha que não
+        * existe.
+        * ───────────────────────────────────────────────────────────────── */}
 
       {/* ROADMAP */}
       <Section>
@@ -685,10 +568,12 @@ export default function Landing() {
       <Section className="card overflow-hidden">
         <div className="on-dark flex flex-col items-center gap-4 bg-gradient-to-br from-brand-900/40 via-military-card to-military-darker p-8 text-center sm:p-10">
           <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Pronto para começar?</h2>
+          {/* A conta de administrador saiu daqui. Ela existe e está documentada
+            * no README, que é onde quem sobe a instância vai procurar — anunciá-la
+            * na página pública não ajuda ninguém que precise dela. */}
           <p className="max-w-xl text-gray-300">
-            Projeto de código aberto. Entre com <code className="font-mono text-gold-400">usuario123</code> ou{' '}
-            <code className="font-mono text-gold-400">admin123</code> — a senha é igual ao usuário —, ou clone o
-            repositório e suba a sua própria instância.
+            Projeto de código aberto. Entre com <code className="font-mono text-gold-400">usuario123</code>{' '}
+            — a senha é igual ao usuário —, ou clone o repositório e suba a sua própria instância.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Link to="/correlacoes" className="btn-primary"><Link2 size={16} /> Ver as correlações</Link>

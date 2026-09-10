@@ -295,6 +295,22 @@ router.get('/auth/me', (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 router.get('/auth/contas', (_req, res) => {
   const items = CONTAS_INICIAIS
+    // ─────────────────────────────────────────────────────────────────────
+    // A CONTA DE ADMINISTRADOR NÃO É OFERECIDA AQUI
+    //
+    // Esta rota é pública e alimenta a tela de entrada. Ela listava as duas
+    // contas semeadas, e a tela desenhava um botão para cada uma — inclusive
+    // "Entrar como Administrador", com a senha documentada no README.
+    //
+    // Quem administra a instalação é quem a subiu, e essa pessoa já tem a
+    // credencial: oferecer o botão não informava ninguém que precisasse da
+    // informação, e convidava todo o resto. Toda conta criada pelo cadastro
+    // nasce com papel `user`; a governança não é autoatendimento.
+    //
+    // A conta continua existindo e entra normalmente pelo formulário. O que
+    // sai é o convite — não o acesso.
+    // ─────────────────────────────────────────────────────────────────────
+    .filter((c) => c.role !== 'admin')
     .map((c) => {
       const existe = get('SELECT username, role FROM users WHERE username = ?', [c.username])
       if (!existe) return null
@@ -310,7 +326,7 @@ router.get('/auth/contas', (_req, res) => {
 
   res.json({
     items,
-    nota: 'Contas iniciais de um projeto de código aberto. O acervo que elas mostram é real, '
+    nota: 'Conta inicial de um projeto de código aberto. O acervo que ela mostra é real, '
       + 'coletado de fontes públicas — não há dado simulado em nenhuma tela.',
     sessaoPersistente: config.auth.segredoFixado,
     // Sinaliza à interface que a autenticação por provedor externo ainda não

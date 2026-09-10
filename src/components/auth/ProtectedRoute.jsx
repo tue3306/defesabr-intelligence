@@ -33,17 +33,23 @@ const ROLE_WALL = {
     ],
     cta: 'Entrar como Analista',
   },
+  // O BOTÃO DE ENTRAR COMO ADMINISTRADOR SAIU.
+  //
+  // `papel: null` faz o muro descrever a seção sem oferecer a porta — quem
+  // administra a instalação já tem a credencial e entra pelo formulário. O
+  // botão convidava justamente quem não deveria passar.
   admin: {
     icon: UserCog,
-    papel: 'admin',
-    title: 'Recurso do Administrador',
-    desc: 'Esta seção é de governança da plataforma — contas, fontes, integrações e auditoria.',
+    papel: null,
+    title: 'Área de governança da instalação',
+    desc: 'Esta seção é de quem opera a plataforma — fontes de coleta, auditoria do filtro e '
+      + 'saúde dos serviços. Não há nada aqui para quem consulta o acervo.',
     perks: [
       'Estado real de cada capacidade da plataforma, derivado do banco',
       'Disparar coleta manualmente, no total ou por fonte',
       'Trilha de auditoria e saúde dos serviços',
     ],
-    cta: 'Entrar como Administrador',
+    cta: 'Voltar ao painel',
   },
 }
 
@@ -101,9 +107,9 @@ export default function ProtectedRoute({ children, permission, capability }) {
           ))}
         </div>
         <p className="mt-3 text-center text-xs muted">
-          Contas reais deste projeto aberto — o acervo que elas mostram é o coletado das fontes
-          públicas. Cada papel alcança um recorte diferente da plataforma,
-          e a diferença é verificada no servidor.
+          Conta real deste projeto aberto — o acervo que ela mostra é o coletado das fontes
+          públicas, sem nenhum dado simulado. Você também pode criar a sua: toda conta nova
+          alcança a plataforma por completo.
         </p>
       </Wall>
     )
@@ -141,11 +147,11 @@ export default function ProtectedRoute({ children, permission, capability }) {
             <Link to="/planos" className="btn-primary">
               Voltar ao nível completo <ArrowRight size={15} />
             </Link>
-            <button onClick={() => entrar('analyst')} className="btn-ghost">
-              Entrar como Analista
-            </button>
           </div>
-          <p className="mt-3 text-xs muted">A troca é livre nas contas de exemplo; o que cada uma alcança é decidido pelo servidor.</p>
+          <p className="mt-3 text-xs muted">
+            O nível é só de leitura: nenhuma tela fica inacessível por causa dele numa conta
+            recém-criada.
+          </p>
         </Wall>
       )
     }
@@ -161,15 +167,28 @@ export default function ProtectedRoute({ children, permission, capability }) {
         description={wall.desc}
         list={wall.perks.map((text) => ({ text }))}
       >
+        {/* SÓ HÁ BOTÃO QUANDO EXISTE PORTA.
+          * `wall.papel` é nulo para a governança: quem opera a instalação já
+          * tem a credencial e entra pelo formulário. Um botão "Entrar como
+          * Administrador" numa tela que qualquer visitante alcança convida
+          * exatamente quem não deveria passar. */}
         <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <button onClick={() => entrar(wall.papel)} className="btn-primary">
-            {wall.cta} <ArrowRight size={15} />
-          </button>
-          <Link to="/painel" className="btn-ghost">Voltar ao painel</Link>
+          {wall.papel ? (
+            <>
+              <button onClick={() => entrar(wall.papel)} className="btn-primary">
+                {wall.cta} <ArrowRight size={15} />
+              </button>
+              <Link to="/painel" className="btn-ghost">Voltar ao painel</Link>
+            </>
+          ) : (
+            <Link to="/painel" className="btn-primary">{wall.cta} <ArrowRight size={15} /></Link>
+          )}
         </div>
-        <p className="mt-3 text-xs muted">
-          Perfil exigido: <strong>{target?.label || wall.papel}</strong> — verificado no servidor.
-        </p>
+        {wall.papel && (
+          <p className="mt-3 text-xs muted">
+            Perfil exigido: <strong>{target?.label || wall.papel}</strong> — verificado no servidor.
+          </p>
+        )}
       </Wall>
     )
   }

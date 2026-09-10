@@ -33,8 +33,15 @@ e-mail de confirmação — então a instalação nasce com duas contas:
 
 | Usuário | Senha | Papel | O que enxerga |
 |---|---|---|---|
-| `usuario123` | `usuario123` | Usuário | O acervo já filtrado: clipping, **correlações**, mapas, ameaças cibernéticas, busca |
-| `admin123` | `admin123` | Administrador | \+ saúde da coleta, auditoria do filtro e console de governança |
+| `usuario123` | `usuario123` | Usuário | O acervo já filtrado: clipping, **correlações**, mapas, incidentes, busca |
+| `admin123` | `admin123` | Administrador | \+ saúde da coleta, auditoria do filtro, chave do modelo e console de governança |
+
+> **A conta de administrador não é oferecida na interface.** Ela entra pelo
+> formulário normal, e está documentada aqui — que é onde quem sobe a instância
+> vai procurar. A vitrine chegou a ter três cartões explicando os perfis, com
+> um botão "Entrar como Administrador" e a senha ao lado: isso era organograma
+> para quem quer ler notícia, e um convite para quem não deveria passar.
+> Toda conta criada pelo cadastro nasce com papel `user`.
 
 Elas **não são contas de demonstração**, e a distinção não é de vocabulário:
 não existe modo demonstração nesta plataforma, nenhum dado é simulado, e o que
@@ -182,13 +189,20 @@ correlações diretas com o acervo. Não é importância editorial nem risco. A
 explicação viaja junto do número, sempre — um índice sem método declarado é um
 número que ninguém pode contestar, e portanto não vale nada.
 
-### Sem IA, de propósito
+### A correlação não usa IA, e isso é de propósito
+
+A plataforma **tem** síntese por modelo de linguagem (ver
+[Síntese por IA](#síntese-por-ia)), e as ligações abaixo continuam sem ela.
+A separação é o desenho, não uma etapa pendente.
 
 Um modelo produziria muito mais ligações, e cada uma seria impossível de
 auditar — o que inverteria o argumento inteiro de uma plataforma que se
-apresenta como não inventando nada. O que existe aqui é a base determinística
-sobre a qual um modelo pode um dia **propor** candidatos, com estas regras
-**confirmando**. É a ordem que mantém a explicação verificável.
+apresenta como não inventando nada. Cada regra aqui casa texto com texto, e a
+tela mostra a evidência ao lado. O modelo entra depois disso, para **resumir o
+que as regras acharam** — nunca para achar.
+
+É a ordem que mantém a explicação verificável: as regras propõem e provam, o
+modelo comenta e vem marcado como máquina.
 
 O método inteiro é publicado em `GET /api/intel/metodo`.
 
@@ -298,6 +312,54 @@ tela mostra a ausência — nunca um número plausível no lugar.
 
 ---
 
+## Síntese por IA
+
+Opcional, desligada por padrão, e **de quem hospeda**. A chave é da conta de
+quem sobe a instância, e o consumo é cobrado nela — o projeto não intermedeia
+nada.
+
+| | |
+|---|---|
+| **Resumo do período** | Um modelo lê as matérias aprovadas da edição e escreve o parágrafo de abertura |
+| **Perguntar ao acervo** | Pergunta livre respondida **somente** com o que a coleta trouxe |
+| **Onde se liga** | Configurações → *Síntese por IA*, com conta de administrador, ou `ANTHROPIC_API_KEY` |
+
+### As regras que o recurso respeita
+
+**A chave nunca chega ao navegador.** Ela vive no servidor da instalação —
+variável de ambiente em produção, ou gravada pela tela de administração. Quem
+chama o provedor é o servidor, depois de autenticar a sessão. A API devolve
+apenas se existe, de onde veio e os quatro últimos caracteres.
+
+<sub>Isto é a correção de um erro real: houve um campo que guardava a chave em
+`localStorage` — onde qualquer extensão do navegador a lê — e chamava o provedor
+direto do front. Foi removido, e a explicação de por que não havia campo ficou
+na tela durante todo o tempo em que o recurso não existiu.</sub>
+
+**Sem chave, nada quebra.** Os campos de síntese ficam vazios com a nota
+explicando o motivo, exatamente como antes. Não configurado não é falha, e a
+tela nunca mostra erro por causa disso.
+
+**Todo texto de máquina vem marcado.** O selo *"Escrito por máquina"* aparece
+**antes** do texto, com o nome do modelo e a hora — um aviso embaixo do
+parágrafo chega tarde para quem já leu.
+
+**O material é escolhido pelo servidor.** Quem pergunta escolhe a pergunta, não
+o contexto. Se o navegador pudesse mandar o material, daria para pedir ao modelo
+que comentasse um texto qualquer, e a resposta sairia com a mesma aparência de
+uma apurada no acervo.
+
+**O acervo é dado, não instrução.** As matérias vêm de feeds públicos, e
+qualquer pessoa pode publicar uma notícia com ordens escritas para um modelo. O
+prompt do sistema declara isso, e o modelo não tem ferramenta nenhuma à
+disposição: a saída é texto exibido, e nada nela dispara ação na plataforma.
+
+**A síntese fica guardada.** Gerada sob demanda e guardada por período e dia:
+abrir o clipping não custa uma chamada, e pedir de novo no mesmo dia devolve o
+mesmo texto sem gastar.
+
+---
+
 ## O princípio, e por que ele aparece no código
 
 **Nada aqui é inventado.** É a regra que governou cada decisão, e o histórico
@@ -309,9 +371,12 @@ lista de quinze fontes com status "online" fixo, cenários com probabilidades de
 62% atrás de um paywall, e alertas de segurança que um temporizador fabricava a
 cada 45 segundos.
 
-Onde falta capacidade, a interface diz. O Clipping exibe *"Sem síntese por IA:
-nenhum texto desta edição foi escrito por máquina"* em vez de deixar um campo
-vazio sem explicação — e o console em `/admin` lista o estado real de cada
+Onde falta capacidade, a interface diz. Numa instalação sem chave de modelo, o
+Clipping exibe *"Sem síntese por IA: nenhum texto desta edição foi escrito por
+máquina"* em vez de deixar um campo vazio sem explicação. Com o modelo ligado, a
+mesma linha passa a dizer o que foi escrito por máquina e o que continua sendo
+da coleta — a declaração acompanha a edição em vez de ser um texto fixo que
+envelheceria em silêncio. O console em `/admin` lista o estado real de cada
 capacidade, contado do banco.
 
 Ver [ROADMAP.md](ROADMAP.md) para o que ainda falta e onde encaixa.
@@ -477,8 +542,12 @@ quebrar durante a apresentação.
 Declarado com a mesma seriedade — um sistema que não publica seus limites
 convida quem o usa a atribuir-lhe capacidades que ele não tem:
 
-- **Não gera análise por IA.** Nenhum texto aqui foi escrito por máquina. O
-  resumo executivo do clipping fica explicitamente vazio.
+- **Não escreve análise por conta própria.** A síntese por IA existe e é
+  opcional: sem chave configurada, nenhum texto da plataforma foi escrito por
+  máquina e os campos ficam vazios com a nota explicando o motivo. Com chave, o
+  único texto de máquina é o resumo de abertura do clipping e as respostas às
+  perguntas ao acervo — os dois marcados como tal. Seleção, contagens,
+  correlações e classificação continuam sendo regra determinística.
 - **Não tem recuperação de senha nem confirmação de e-mail.** A autenticação
   em si é real — scrypt, token assinado, papel conferido por rota —, mas o
   ciclo de vida da conta para no cadastro: quem esquecer a senha não tem por
@@ -827,12 +896,6 @@ Todas as variáveis disponíveis estão em [`.env.example`](.env.example).
 Deliberadamente fora desta versão, e com a arquitetura já preparada para
 recebê-las:
 
-- **Síntese por IA no clipping** — o espaço já está reservado na tela, descrito e
-  vazio; o campo `summaryExecutive` já existe na API devolvendo `null` com a nota
-  que explica por quê. Quando o modelo entrar, a tela o exibe sem alteração
-  nenhuma — e o texto vem **marcado como escrito por máquina**, porque a
-  diferença entre "a mesa de análise avaliou" e "um modelo resumiu" é a diferença
-  entre um produto de inteligência e um gerador de texto.
 - **Entrar com conta Google** — `users.auth_provider`, `users.email` e o campo de
   entrada que aceita usuário **ou** e-mail já existem. Falta o provedor; nada no
   banco precisa mudar para recebê-lo.

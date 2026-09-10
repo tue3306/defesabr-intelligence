@@ -7,6 +7,7 @@ import { UFS, REGIOES_ESTRATEGICAS, PAISES, detectarLugares, detectarPaises, nom
 import { consolidar, LIMIAR_SIMILARIDADE, JANELA_HORAS } from '../lib/eventos.js'
 import { dias, limite } from '../lib/parametros.js'
 import { exigirPapel } from '../lib/auth.js'
+import { sinteseGuardada } from '../lib/sinteseCache.js'
 
 const router = Router()
 
@@ -165,6 +166,9 @@ router.get('/news/clipping', (req, res) => {
     )?.n ?? 0,
   }))
 
+  // A síntese guardada do período, se alguém já a pediu hoje. Ver routes/ia.js.
+  const sintese = sinteseGuardada(days)
+
   res.json({
     periodDays: days,
     generatedAt: new Date().toISOString(),
@@ -191,10 +195,28 @@ router.get('/news/clipping', (req, res) => {
     activeSources: get(
       "SELECT COUNT(*) AS n FROM sources WHERE enabled = 1 AND last_status = 'ok'",
     )?.n ?? 0,
-    // O resumo executivo exigiria um analista ou um modelo de linguagem. Sem
-    // nenhum dos dois, devolvemos null em vez de inventar um parágrafo.
-    summaryExecutive: null,
-    summaryNote: 'Resumo executivo automático não é gerado nesta versão — exigiria um modelo de linguagem.',
+    // ─────────────────────────────────────────────────────────────────────
+    // O RESUMO EXECUTIVO, QUANDO ALGUÉM O PEDIU
+    //
+    // Este campo devolveu `null` durante toda a vida do projeto, com a nota
+    // explicando que a versão não gerava síntese. O contrato do ROADMAP era
+    // que, no dia em que ele viesse preenchido, a tela o exibiria sem mudança
+    // nenhuma — e é o que acontece agora.
+    //
+    // A geração NÃO acontece aqui: seria uma chamada paga de alguns segundos
+    // em toda abertura da tela. `POST /api/ia/sintese` gera sob demanda e
+    // guarda por período e dia; aqui só se lê o que já existe.
+    //
+    // `summaryOrigem` é a marca: 'modelo' diz à interface que aquele parágrafo
+    // foi escrito por máquina, e ela precisa dizê-lo a quem lê.
+    // ─────────────────────────────────────────────────────────────────────
+    summaryExecutive: sintese?.texto || null,
+    summaryOrigem: sintese?.origem || null,
+    summaryModelo: sintese?.modelo || null,
+    summaryGeradoEm: sintese?.geradoEm || null,
+    summaryNote: sintese
+      ? null
+      : 'Resumo executivo por modelo de linguagem ainda não gerado para este período.',
     method: METODO_RELEVANCIA,
   })
 })
