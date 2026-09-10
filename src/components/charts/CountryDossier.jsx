@@ -188,7 +188,9 @@ export default function CountryDossier({ pais, dias = 180 }) {
                   {rw.itens.slice(0, 5).map((v) => (
                     <li key={v.victim + v.discovered_at} className="flex flex-wrap items-center gap-x-2 text-xs">
                       <span className="font-mono muted">{formatDateBR(v.discovered_at)}</span>
-                      <span className="font-medium">{v.victim}</span>
+                      <span className="font-medium" title={v.victimBruto ? `Publicado pelo grupo como: ${v.victimBruto}` : undefined}>
+                        {v.victim}
+                      </span>
                       <span className="rounded-full bg-red-500/15 px-1.5 py-0.5 font-mono text-[10px] text-red-800 dark:text-red-300">
                         {v.group}
                       </span>

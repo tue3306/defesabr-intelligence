@@ -100,13 +100,32 @@ router.get('/intel/brasil', exigirPapel('user'), (req, res) => {
   res.json({
     periodoDias: janela,
 
-    // As entidades brasileiras mais citadas no período, por tipo. É o mapa do
-    // que a imprensa está cobrindo, no vocabulário do catálogo.
+    // As entidades brasileiras mais citadas no período. É o mapa do que a
+    // imprensa está cobrindo, no vocabulário do catálogo.
+    //
+    // ─────────────────────────────────────────────────────────────────────
+    // SETOR NÃO É ENTIDADE, E A MISTURA DUPLICAVA O PAINEL VIZINHO
+    //
+    // O catálogo trata setor como um tipo de entidade, o que é conveniente na
+    // detecção — o mesmo laço reconhece "Ministério da Defesa" e "defesa". Mas
+    // esta lista alimenta um painel chamado "Entidades mais citadas", e ele
+    // ficava lado a lado com "Setores sob pressão", na mesma tela.
+    //
+    // O resultado era duas colunas com as MESMAS TRÊS LINHAS no topo — Defesa
+    // 86, Energia 19, Transporte e logística 16 — sob rótulos diferentes. Quem
+    // lê conclui que são medidas distintas que coincidem, quando é a mesma
+    // contagem exibida duas vezes; e "Defesa" com 86, no topo, empurrava para
+    // fora as entidades de verdade, que são o produto do painel: Exército
+    // Brasileiro, Ministério da Defesa, Marinha do Brasil.
+    //
+    // Setores saem daqui e ficam só no painel deles.
+    // ─────────────────────────────────────────────────────────────────────
     entidades: all(
       `SELECT e.tipo, e.entidade_id, e.nome, COUNT(DISTINCT e.article_id) AS mencoes
          FROM article_entities e
          JOIN articles a ON a.id = e.article_id
         WHERE a.published_at >= ${corte}
+          AND e.tipo <> 'setor'
         GROUP BY e.tipo, e.entidade_id
         ORDER BY mencoes DESC LIMIT 40`
     ),

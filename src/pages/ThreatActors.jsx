@@ -282,7 +282,9 @@ function Ator({ a, aberto, onToggle }) {
                 {d.vitimasBrasileiras.slice(0, 8).map((v) => (
                   <li key={v.victim + v.discovered_at} className="flex flex-wrap items-center gap-x-2 text-xs">
                     <span className="font-mono muted">{formatDateBR(v.discovered_at)}</span>
-                    <span className="font-medium">{v.victim}</span>
+                    <span className="font-medium" title={v.victimBruto ? `Publicado pelo grupo como: ${v.victimBruto}` : undefined}>
+                      {v.victim}
+                    </span>
                     {v.sector && <span className="muted">· {v.sector}</span>}
                   </li>
                 ))}

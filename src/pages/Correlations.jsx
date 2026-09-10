@@ -127,7 +127,7 @@ export default function Correlations() {
           />
           <Painel
             titulo="Entidades mais citadas"
-            dica="Contagem de MENÇÃO no texto das matérias coletadas, pelo catálogo de entidades brasileiras. Citação não implica envolvimento."
+            dica="Órgãos, empresas, infraestrutura e unidades da federação citados no texto das matérias, pelo catálogo brasileiro. Setores ficam no painel ao lado, para os dois não repetirem a mesma contagem. Citação não implica envolvimento."
             vazio="Nenhuma entidade brasileira reconhecida no período."
             itens={p.entidades?.slice(0, 6).map((e) => ({ chave: `${e.tipo}-${e.entidade_id}`, rotulo: e.nome, valor: e.mencoes }))}
           />
@@ -140,11 +140,27 @@ export default function Correlations() {
           <Grupo rotulo="Período" opcoes={JANELAS} valor={dias} onChange={setDias} />
           <Grupo rotulo="Força" opcoes={FORCAS} valor={minForca} onChange={setMinForca} />
         </div>
+        {/* A CONTAGEM PRECISA DIZER QUANTAS ESTÃO EM TELA.
+          *
+          * Ela anunciava "143 ligações" com a lista abaixo mostrando onze — o
+          * total do período contra o resultado do filtro, que abre em "diretas
+          * ou mais". Quem lia via um número grande e uma lista curta e concluía
+          * que a página tinha falhado em carregar o resto.
+          *
+          * Agora diz as duas coisas e o que separa uma da outra. */}
         {d?.resumo && (
           <p className="text-xs muted">
-            <strong className="font-mono">{d.resumo.correlacoes}</strong> ligações em{' '}
+            <strong className="font-mono">{itens.length}</strong>{' '}
+            {minForca > 1 ? 'em tela' : 'ligações'}
+            {minForca > 1 && (
+              <>
+                {' '}de <strong className="font-mono">{d.resumo.correlacoes}</strong> no período
+              </>
+            )}
+            {' · '}
             <strong className="font-mono">{d.resumo.artigosComCorrelacao}</strong> de{' '}
             <strong className="font-mono">{d.resumo.artigosAvaliados}</strong> matérias avaliadas
+            têm alguma ligação
           </p>
         )}
       </div>
@@ -235,9 +251,15 @@ function Correlacao({ c, aberto, onToggle }) {
               {c.artigo.categoria}
             </span>
           )}
+          {/* "Brasil 38" era um número sem unidade, explicado só no `title` —
+            * e quem lê num toque não tem `title`. O rótulo passa a dizer o que
+            * a escala mede, e o motivo continua no dossiê que abre abaixo. */}
           {c.artigo?.brScore > 0 && (
-            <span className="chip text-[10px]" title={c.artigo.brMotivo}>
-              Brasil {c.artigo.brScore}
+            <span
+              className="chip text-[10px]"
+              title={`Índice de vínculo com o Brasil, de 0 a 100. ${c.artigo.brMotivo || ''}`}
+            >
+              vínculo BR <span className="font-mono font-bold">{c.artigo.brScore}</span>/100
             </span>
           )}
           <span className="ml-auto font-mono text-[11px] muted">

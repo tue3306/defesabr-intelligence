@@ -2,6 +2,7 @@ import { all, get, run } from '../db/index.js'
 import { buscarJson } from '../lib/fetcher.js'
 import { textoLimpo } from '../lib/saneamento.js'
 import config from '../config.js'
+import { nomeDaVitima } from '../lib/vitima.js'
 
 // -----------------------------------------------------------------------------
 // PERFIS DE ATOR — quem ataca o Brasil, e como
@@ -230,13 +231,19 @@ export function atoresContraBrasil({ limite = 20 } = {}) {
 /** Perfil completo de um ator. */
 export function ator(nome) {
   const a = get('SELECT * FROM threat_actors WHERE name_key = LOWER(?)', [nome])
+  // `victim` é o título do post do grupo, não a razão social — ver
+  // `lib/vitima.js`. O original viaja em `victimBruto` quando a limpeza mexeu
+  // em algo, para que o nome exibido continue conferível contra a fonte.
   const brasileiras = all(
-    `SELECT victim, sector, discovered_at, criticality, criticality_reason, post_url
+    `SELECT victim, website, sector, discovered_at, criticality, criticality_reason, post_url
        FROM ransomware_victims
       WHERE country = 'BR' AND "group" = ?
       ORDER BY discovered_at DESC LIMIT 30`,
     [nome]
-  )
+  ).map((v) => {
+    const exibicao = nomeDaVitima(v.victim, v.website)
+    return { ...v, victim: exibicao.nome, victimBruto: exibicao.limpo ? exibicao.bruto : null }
+  })
 
   if (!a) {
     return {

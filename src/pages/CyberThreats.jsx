@@ -147,9 +147,23 @@ export default function CyberThreats() {
                   {br.estado.map((e) => (
                     <li key={e.external_id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5 text-sm">
                       <span className="font-mono text-xs muted">{formatDateBR(e.discovered_at)}</span>
-                      <span className="font-semibold">{e.victim}</span>
-                      <span className="rounded-full bg-red-500/15 px-2 py-0.5 font-mono text-[10px] font-bold text-red-800 dark:text-red-300">
-                        {e.group}
+                      {/* O NOME BRUTO FICA AO ALCANCE. `victimBruto` só vem quando a
+                        * limpeza mudou alguma coisa (ver server/src/lib/vitima.js);
+                        * pô-lo no `title` é o que separa normalizar de reescrever —
+                        * quem quiser conferir o que a fonte publicou, confere. */}
+                      <span className="font-semibold" title={e.victimBruto ? `Publicado pelo grupo como: ${e.victimBruto}` : undefined}>
+                        {e.victim}
+                      </span>
+                      {/* "emperador", "thegentlemen", "lockbit5" — sem rótulo, esta
+                        * pílula era uma palavra solta em vermelho ao lado do nome de
+                        * uma prefeitura. Quem não conhece a nomenclatura do meio não
+                        * tinha como saber que é o grupo que reivindicou o ataque. */}
+                      <span
+                        className="rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-bold text-red-800 dark:text-red-300"
+                        title={`Grupo que reivindicou o ataque: ${e.group}`}
+                      >
+                        <span className="font-normal opacity-70">grupo </span>
+                        <span className="font-mono">{e.group}</span>
                       </span>
                       <span className="ml-auto text-xs muted">{e.criticality_reason}</span>
                     </li>
@@ -263,7 +277,12 @@ export default function CyberThreats() {
                           <td className="py-2 pr-3 font-mono text-xs muted">
                             {v.discovered_at ? formatDateBR(v.discovered_at) : '—'}
                           </td>
-                          <td className="py-2 pr-3 font-medium">{v.victim}</td>
+                          <td
+                            className="py-2 pr-3 font-medium"
+                            title={v.victimBruto ? `Publicado pelo grupo como: ${v.victimBruto}` : undefined}
+                          >
+                            {v.victim}
+                          </td>
                           <td className="py-2 pr-3">
                             <span className="rounded-full bg-gray-500/15 px-2 py-0.5 font-mono text-[11px]">
                               {v.group || '—'}

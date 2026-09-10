@@ -100,7 +100,7 @@ export default function StrategicMap() {
             <Painel
               icone={Newspaper}
               titulo="Entidades brasileiras mais citadas"
-              dica="Contagem de MENÇÃO no texto das matérias, pelo catálogo de órgãos, empresas e infraestrutura crítica. Citação não implica envolvimento."
+              dica="Órgãos, empresas, infraestrutura crítica e unidades da federação citados no texto das matérias, pelo catálogo brasileiro. Setores ficam no painel ao lado, para os dois não repetirem a mesma contagem. Citação não implica envolvimento."
               vazio="Nenhuma entidade brasileira reconhecida no período."
               itens={p.entidades?.slice(0, 6).map((e) => ({ k: `${e.tipo}-${e.entidade_id}`, r: e.nome, v: e.mencoes }))}
             />
