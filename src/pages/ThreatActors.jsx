@@ -58,11 +58,9 @@ const SEV = {
 
 export default function ThreatActors() {
   const atores = useResource(() => request('GET /cyber/atores', { params: { limit: 25 } }), [])
-  const cves = useResource(() => request('GET /cyber/cves'), [])
   const [aberto, setAberto] = useState(null)
 
   const lista = atores.data?.items || []
-  const listaCves = cves.data?.items || []
   const comPerfil = lista.filter((a) => a.temPerfil).length
   const contraEstado = lista.filter((a) => a.contraEstado > 0).length
   const totalVitimas = lista.reduce((soma, a) => soma + (a.vitimasBr || 0), 0)
@@ -72,19 +70,23 @@ export default function ThreatActors() {
       <PageHeader
         icon={Crosshair}
         title="Grupos contra o Brasil"
-        description="Quem ataca organizações brasileiras: quantas já expôs, se atingiu o Estado, e como entra — técnicas MITRE ATT&CK, ferramentas e vulnerabilidades conhecidas."
+        description="Quem ataca organizações brasileiras: quantas já expôs, se atingiu o Estado, e como entra — técnicas mapeadas ao MITRE ATT&CK e ferramentas conhecidas."
         help="Os perfis vêm do ransomware.live e cobrem apenas os grupos com vítima brasileira registrada no acervo."
         breadcrumb={[{ label: 'Operacional' }, { label: 'Grupos contra o Brasil' }]}
         badges={<Badge type={lista.length ? 'live' : 'sem-dado'} />}
       />
 
-      {/* A ORDEM DOS CARTOES MUDOU, e a ordem e o argumento.
+      {/* TRÊS CARTÕES, E OS TRÊS SÃO SOBRE O BRASIL.
         *
-        * Vinha "Grupos · Vulnerabilidades · CVEs criticos · Estado". Os dois do
-        * meio eram contagem de CVE, o dado menos especifico desta plataforma —
-        * e empurravam para a ponta aquele que so ela tem: quantos grupos
-        * atingiram o Estado brasileiro. */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        * Vinham quatro: "Grupos · Vulnerabilidades · CVEs críticos · Estado".
+        * Os dois do meio contavam CVE — o dado menos específico desta
+        * plataforma — e empurravam para a ponta aquele que só ela tem: quantos
+        * grupos atingiram o Estado brasileiro.
+        *
+        * Primeiro os CVEs críticos saíram. Agora saiu o último, e com ele a
+        * última contagem que não respondia a nenhuma pergunta de quem
+        * acompanha segurança e defesa do país. */}
+      <div className="grid gap-4 sm:grid-cols-3">
         <MetricCard icon={Crosshair} label="Grupos contra o Brasil" value={lista.length || '—'}
           hint={`${comPerfil} com perfil detalhado`} accent="amber" />
         <MetricCard icon={Landmark} label="Atacaram o Estado brasileiro"
@@ -92,13 +94,11 @@ export default function ThreatActors() {
           hint="órgão público, judiciário ou militar" accent="red" />
         <MetricCard icon={ShieldAlert} label="Organizações expostas" value={totalVitimas || '—'}
           hint="somadas por estes grupos, no Brasil" accent="red" />
-        <MetricCard icon={Bug} label="Vulnerabilidades conhecidas" value={listaCves.length || '—'}
-          hint="que estes grupos sabem explorar" accent={listaCves.length ? 'amber' : 'green'} />
       </div>
 
       {/* ── O QUE ISSO SIGNIFICA PARA QUEM DEFENDE ──
         *
-        * No lugar da tabela de CVEs, a leitura que ela nao dava: o que a
+        * No lugar daquela tabela, a leitura que ela nao dava: o que a
         * presenca destes grupos significa para o alvo brasileiro. Cada frase
         * abaixo e derivada de contagem do acervo, nao de opiniao. */}
       <section className="card p-5">
@@ -123,17 +123,16 @@ export default function ThreatActors() {
           />
           <Leitura
             titulo="A entrada é conhecida"
-            corpo={listaCves.length > 0
-              ? `Estes grupos exploram ${listaCves.length} vulnerabilidades já catalogadas e corrigíveis. O caminho de entrada não é secreto — o que falta, no alvo, é a correção aplicada.`
-              : 'Os perfis ainda não trouxeram vulnerabilidades associadas a estes grupos.'}
+            corpo={comPerfil > 0
+              ? `${comPerfil} destes grupos têm perfil detalhado no acervo, com as táticas e técnicas mapeadas ao MITRE ATT&CK. O modo de entrada não é segredo — está catalogado, e abre no perfil de cada um.`
+              : 'Os perfis detalhados ainda não foram coletados para estes grupos.'}
           />
         </div>
 
         <p className="mt-4 text-xs leading-relaxed muted">
-          A lista completa de identificadores CVE saiu desta tela: ela é útil para quem opera a
-          infraestrutura do alvo, e ruído para quem acompanha segurança e defesa. As
-          vulnerabilidades de cada grupo continuam no perfil dele, abaixo, onde respondem à
-          pergunta que importa aqui — <strong>como este grupo entra</strong>.
+          Como cada grupo entra está no perfil dele, abaixo: as táticas e técnicas mapeadas ao
+          MITRE ATT&amp;CK e as ferramentas conhecidas. É o que responde à pergunta que importa
+          aqui — <strong>como este grupo opera</strong> — sem virar catálogo de falhas técnicas.
         </p>
       </section>
 
@@ -144,7 +143,7 @@ export default function ThreatActors() {
           Perfis dos grupos
         </h2>
         <p className="mt-1 text-sm muted">
-          Clique para ver as táticas MITRE ATT&amp;CK, as ferramentas e os CVEs de cada um.
+          Clique para ver as táticas MITRE ATT&amp;CK e as ferramentas de cada um.
           <strong> BR</strong> é o que o grupo fez aqui; <strong>mundo</strong> vem da fonte e conta o planeta.
         </p>
 
@@ -193,7 +192,6 @@ function Ator({ a, aberto, onToggle }) {
         </span>
         <span className="ml-auto flex items-center gap-3 text-xs muted">
           {a.tecnicas > 0 && <span>{a.tecnicas} técnicas</span>}
-          {a.cves > 0 && <span className="font-semibold text-red-700 dark:text-red-400">{a.cves} CVEs</span>}
           {a.ferramentas > 0 && <span>{a.ferramentas} ferramentas</span>}
           <ChevronDown size={16} className={aberto ? 'rotate-180 transition-transform' : 'transition-transform'} />
         </span>
@@ -212,20 +210,6 @@ function Ator({ a, aberto, onToggle }) {
               {d.ultimaVez && <span>Última: <strong>{formatDateBR(d.ultimaVez)}</strong></span>}
               {d.negociacoes > 0 && <span><strong>{d.negociacoes}</strong> negociações registradas</span>}
             </p>
-          )}
-
-          {d?.cves?.length > 0 && (
-            <div className="mb-4">
-              <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wider muted">Vulnerabilidades exploradas</p>
-              <div className="flex flex-wrap gap-1.5">
-                {d.cves.map((c) => (
-                  <span key={c.CVE} className={`rounded px-1.5 py-0.5 font-mono text-[11px] ${SEV[String(c.severity).toUpperCase()] || SEV.LOW}`}
-                    title={`${c.Vendor || ''} ${c.Product || ''} · CVSS ${c.CVSS ?? '—'}`}>
-                    {String(c.CVE).split(' ')[0]}
-                  </span>
-                ))}
-              </div>
-            </div>
           )}
 
           {d?.ttps?.length > 0 && (

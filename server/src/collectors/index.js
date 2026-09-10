@@ -111,7 +111,7 @@ export async function coletarTudo(gatilho = 'agendado') {
   // vazio, achava zero grupos e terminava em 47ms sem gravar nada.
   //
   // O efeito em producao: o disco do Railway e efemero, entao toda publicacao
-  // recria o banco; a tela de Atores ficava com "0 CVEs" ate o ciclo seguinte,
+  // recria o banco; a tela de Grupos ficava sem perfil ate o ciclo seguinte,
   // meia hora depois. A causa nao era o tamanho do lote — era a ordem.
   //
   // A dependencia agora esta expressa na estrutura: quem depende de dado
@@ -123,7 +123,7 @@ export async function coletarTudo(gatilho = 'agendado') {
   //
   // A correlacao cruza artigos com vitimas e com perfis de ator. Precisa dos
   // tres ja gravados, entao roda depois de todos — inclusive depois de
-  // `atores`, que e quem traz os CVEs.
+  // `atores`, que e quem traz os perfis.
   //
   // Nao busca nada fora: e derivacao pura sobre o que acabou de entrar. Por
   // isso nao tem tratamento de rede nem retentativa, e por isso e barato o

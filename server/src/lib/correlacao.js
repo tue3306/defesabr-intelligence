@@ -9,7 +9,7 @@ import { UFS } from './geo.js'
 //
 // A plataforma tinha duas metades que nunca se falavam. De um lado o acervo de
 // notícias; do outro, 546 organizações brasileiras com vazamento divulgado,
-// dezenas de grupos criminosos e os CVEs que eles sabem explorar. Um leitor
+// dezenas de grupos criminosos que as atacaram. Um leitor
 // atento poderia ligar as duas metades na cabeça — a matéria sobre a prefeitura
 // e o registro de `arcos.mg.gov.br` —, mas a plataforma não ligava, e o
 // trabalho de ligar é justamente o que separa um agregador de notícias de um
@@ -20,7 +20,7 @@ import { UFS } from './geo.js'
 //
 // 1. NENHUMA RELAÇÃO É INFERIDA. Cada ligação nasce de uma correspondência
 //    LITERAL e verificável: um domínio igual a outro domínio, um identificador
-//    de CVE presente no texto, um nome de grupo que consta no acervo, uma sigla
+//    um nome de grupo que consta no acervo, uma sigla
 //    de UF dentro de um domínio `.gov.br`. Não há similaridade semântica, não
 //    há "provavelmente relacionado", não há pontuação por afinidade.
 //
@@ -60,18 +60,11 @@ export const JANELA_DIAS = 180
 const FORCA = {
   DOMINIO: 5,
   NOME_ORGANIZACAO: 5,
-  CVE: 5,
   GRUPO: 4,
   MUNICIPIO: 4,
   UF_ESTADO: 3,
   INFRAESTRUTURA: 3,
   SETOR: 2,
-}
-
-/** Identificadores de CVE citados no texto, em caixa alta e sem repetição. */
-function cvesCitados(texto) {
-  const achados = String(texto || '').toUpperCase().match(/CVE-\d{4}-\d{4,7}/g)
-  return achados ? [...new Set(achados)] : []
 }
 
 /**
@@ -197,51 +190,22 @@ function regraOrganizacaoVitima(artigo, entidades) {
   return out
 }
 
-/**
- * R2 — CVE citado no texto é explorado por grupo com vítima brasileira.
- *
- * Transforma um boletim genérico de vulnerabilidade em prioridade local: não
- * "corrija esta falha", e sim "esta falha é usada por quem já atacou aqui".
- */
-function regraCve(artigo) {
-  const citados = cvesCitados(`${artigo.title} ${artigo.summary || ''}`)
-  if (!citados.length) return []
-
-  const out = []
-  for (const cve of citados) {
-    // `cves_json` guarda o array de vulnerabilidades como a fonte entrega. A
-    // busca é por conteúdo do texto JSON: o identificador é único o bastante
-    // para não colidir com outro campo.
-    const atores = all(
-      `SELECT name, cves_json FROM threat_actors
-        WHERE cves_json LIKE ? LIMIT 5`,
-      [`%${cve}%`]
-    )
-    for (const a of atores) {
-      const vitimasBr = get(
-        'SELECT COUNT(*) AS n FROM ransomware_victims WHERE country = \'BR\' AND LOWER("group") = LOWER(?)',
-        [a.name]
-      )?.n ?? 0
-      if (!vitimasBr) continue
-
-      out.push({
-        regra: 'cve-ator-brasil',
-        alvoTipo: 'ator',
-        alvoId: a.name,
-        alvoRotulo: a.name,
-        motivo: `A matéria cita ${cve}, vulnerabilidade que a fonte atribui ao grupo ${a.name} — `
-          + `um grupo com ${vitimasBr} vítima(s) brasileira(s) registrada(s) no acervo.`,
-        evidencia: `${cve} presente no texto e no perfil de ${a.name}`,
-        contextoBr: `${a.name} tem ${vitimasBr} organização(ões) brasileira(s) na lista de vazamentos.`,
-        impacto: 'A correção desta vulnerabilidade tem prioridade local: não é uma falha teórica, '
-          + 'é uma que um grupo com histórico no Brasil sabe explorar.',
-        forca: FORCA.CVE,
-      })
-    }
-  }
-  return out
-}
-
+// ─────────────────────────────────────────────────────────────────────────────
+// AQUI HAVIA A REGRA DO CVE, E ELA NUNCA ENCONTROU NADA
+//
+// "CVE citado no texto é explorado por grupo com vítima brasileira": procurava
+// `CVE-\d{4}-\d{4,7}` no texto da matéria e cruzava com o perfil dos grupos.
+//
+// Medida contra o acervo real, produziu ZERO correlações. O motivo é simples e
+// devia ter sido previsto: jornalismo de defesa e segurança não escreve
+// identificador de CVE. Quem escreve é boletim técnico de fornecedor, e esta
+// plataforma não coleta boletim técnico — coleta imprensa.
+//
+// A regra também trazia o problema que tirou a tabela de CVEs da tela de
+// grupos: um identificador só significa algo para quem opera a infraestrutura
+// do alvo. Para quem acompanha segurança e defesa do Brasil, é ruído com
+// aparência de rigor.
+// ─────────────────────────────────────────────────────────────────────────────
 /**
  * R3 — Grupo criminoso citado no texto tem vítima brasileira.
  *
@@ -547,7 +511,6 @@ function regraMunicipio(artigo) {
 
 const REGRAS = [
   regraOrganizacaoVitima,
-  regraCve,
   regraGrupo,
   // Municipio ANTES da UF: e a ligacao mais especifica que a geografia permite,
   // e as duas podem valer para a mesma materia — quem le ve primeiro a cidade.
@@ -655,7 +618,6 @@ export const METODO_CORRELACAO = {
   regras: [
     { id: 'organizacao-vitima-dominio', forca: FORCA.DOMINIO, titulo: 'Organização citada consta como vítima (por domínio)', criterio: 'O domínio da entidade citada é igual ao domínio registrado numa vítima brasileira. Fato contra fato, sem semelhança de nome.' },
     { id: 'organizacao-vitima-nome', forca: FORCA.NOME_ORGANIZACAO, titulo: 'Organização citada consta como vítima (por nome)', criterio: 'O nome normalizado da entidade é IGUAL ao da vítima. Continência não vale: "Vale" dentro de "Vale do Aço" não é a mineradora.' },
-    { id: 'cve-ator-brasil', forca: FORCA.CVE, titulo: 'CVE citado é explorado por grupo com vítima brasileira', criterio: 'O identificador CVE aparece no texto e no perfil de um grupo que tem vítima brasileira registrada.' },
     { id: 'grupo-citado', forca: FORCA.GRUPO, titulo: 'Grupo citado tem vítima brasileira', criterio: 'O nome do grupo aparece no texto com fronteira de palavra, e o grupo consta no acervo com vítima no Brasil.' },
     { id: 'municipio-orgao-atacado', forca: FORCA.MUNICIPIO, titulo: 'O município citado teve órgão público com vazamento', criterio: 'O rótulo do município sai do próprio domínio da vítima (arcos.mg.gov.br → "arcos") e é casado com fronteira de palavra. Rótulo de função administrativa (saude, fazenda) é excluído: não é cidade.' },
     { id: 'uf-orgaos-atacados', forca: FORCA.UF_ESTADO, titulo: 'A UF citada tem órgãos com vazamento divulgado', criterio: 'Domínios terminados em .<uf>.gov.br identificam a unidade da federação sem inferência.' },

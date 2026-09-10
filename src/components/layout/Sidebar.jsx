@@ -105,7 +105,7 @@ const NAV_SECTIONS = [
       },
       {
         // Era "Atores & Vulnerabilidades", e a metade das vulnerabilidades
-        // dominava a tela com uma lista de CVEs. Ver a nota em ThreatActors:
+        // dominava a tela com uma lista de identificadores. Ver ThreatActors:
         // o produto aqui é QUEM ataca o Estado brasileiro, não o catálogo de
         // falhas técnicas.
         to: '/atores', label: 'Grupos contra o Brasil', icon: Crosshair, requiresAuth: true,

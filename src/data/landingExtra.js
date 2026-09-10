@@ -50,7 +50,7 @@ export const FAQ = [
   },
   {
     q: 'O que a plataforma faz que um leitor de RSS não faz?',
-    a: 'Correlaciona. Cada matéria é cruzada com as organizações brasileiras que tiveram vazamento divulgado, com os grupos criminosos que as atacaram e com os CVEs que esses grupos sabem explorar. São oito regras determinísticas, e cada ligação mostra o motivo, a evidência literal que a sustenta e o impacto possível — nada nasce de semelhança semântica ou de estimativa.',
+    a: 'Correlaciona. Cada matéria é cruzada com as organizações brasileiras que tiveram vazamento divulgado, e com os grupos criminosos que as atacaram. São sete regras determinísticas, e cada ligação mostra o motivo, a evidência literal que a sustenta e o impacto possível — nada nasce de semelhança semântica ou de estimativa.',
   },
   {
     q: 'Quanto custa?',
@@ -72,7 +72,7 @@ export const FAQ = [
 // quando o item foi escrito.
 export const ROADMAP = [
   { phase: 'Disponível', title: 'Coleta e clipping', text: '50 fontes RSS e quatro APIs de governo, com filtro de relevância auditável e coleta a cada 30 minutos.', done: true },
-  { phase: 'Disponível', title: 'Correlação com o Brasil', text: 'Oito regras determinísticas ligam matérias a organizações atacadas, grupos, CVEs, municípios, UFs e setores — cada uma com a evidência à vista.', done: true },
+  { phase: 'Disponível', title: 'Correlação com o Brasil', text: 'Sete regras determinísticas ligam matérias a organizações atacadas, grupos, municípios, UFs e setores — cada uma com a evidência à vista.', done: true },
   { phase: 'Disponível', title: 'Autenticação no servidor', text: 'Senha em scrypt, token assinado e papel conferido por rota: 401 sem sessão, 403 com papel insuficiente.', done: true },
   { phase: 'Planejado', title: 'Entrar com conta Google', text: 'As colunas `username` e `auth_provider` já existem para receber o provedor externo sem remodelar nada.', done: false },
   { phase: 'Planejado', title: 'Análise por modelo de linguagem', text: 'Resumo executivo do clipping e síntese de período, hoje declarados como ausentes em vez de preenchidos.', done: false },

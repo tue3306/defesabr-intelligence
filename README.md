@@ -84,12 +84,11 @@ brasileiras** com vazamento divulgado desde 2017, entre elas prefeituras,
 câmaras municipais e secretarias estaduais de saúde. O número cresce a cada
 coleta — a contagem exata do momento está na tela de Ameaças Cibernéticas.
 
-**O alerta genérico não ajuda.** Um boletim de vulnerabilidades lista as
-centenas de CVEs críticos do mês. Aqui a lista é cruzada: apenas as
-vulnerabilidades que grupos **com vítima brasileira registrada** sabem explorar.
-A priorização sai do cruzamento, não de um juízo sobre gravidade — e ela aparece
-no perfil de cada grupo, respondendo *como este grupo entra*, em vez de como
-tabela solta de identificadores (ver [o que saiu da tela de
+**O alerta genérico não ajuda.** Um boletim de ameaça lista centenas de grupos
+no mundo. Aqui a lista é cruzada: apenas os que têm **vítima brasileira
+registrada** — com as táticas mapeadas ao MITRE ATT&CK, as ferramentas
+conhecidas e quantos já atingiram órgão do Estado. O recorte sai do cruzamento,
+não de um juízo sobre gravidade (ver [o que saiu da tela de
 grupos](#o-que-saiu-da-tela-de-grupos-e-por-quê)).
 
 <sub>Aqui não há número fixo de propósito. Esta linha já disse "hoje 36"
@@ -112,7 +111,7 @@ um agregador de um produto de inteligência.
 
 A plataforma tinha duas metades que nunca se falavam: de um lado o acervo de
 notícias, do outro as organizações brasileiras com vazamento divulgado, os
-grupos criminosos e os CVEs que eles sabem explorar. A matéria sobre a
+grupos criminosos que as atacaram. A matéria sobre a
 Prefeitura de Arcos e o registro de `arcos.mg.gov.br` viviam em telas
 diferentes, e nada dizia que falavam do mesmo lugar.
 
@@ -127,7 +126,6 @@ regras determinísticas de correlação:
 |---|---|---|
 | Organização citada consta como vítima (domínio) | 5 | Domínio da entidade **igual** ao registrado num vazamento |
 | Organização citada consta como vítima (nome) | 5 | Nome normalizado **idêntico** — continência não vale |
-| CVE citado é explorado por grupo com vítima brasileira | 5 | O identificador está no texto **e** no perfil do grupo |
 | Grupo citado tem vítima brasileira | 4 | Nome do grupo **+** contexto cibernético no mesmo texto |
 | O município citado teve órgão com vazamento | 4 | O rótulo sai do próprio domínio: `arcos.mg.gov.br` → "arcos" |
 | A UF citada tem órgão com vazamento | 3 | Domínios `.<uf>.gov.br` identificam o estado sem inferência |
@@ -137,9 +135,8 @@ regras determinísticas de correlação:
 ### Três regras que governam tudo
 
 **Nenhuma relação é inferida.** Cada ligação nasce de correspondência literal:
-domínio igual a domínio, identificador de CVE presente no texto, sigla de UF
-dentro de um `.gov.br`. Não há similaridade semântica nem pontuação por
-afinidade.
+domínio igual a domínio, nome de grupo presente no texto, sigla de UF dentro
+de um `.gov.br`. Não há similaridade semântica nem pontuação por afinidade.
 
 **Toda ligação carrega a própria prova.** A tela mostra quatro campos: o
 `motivo` (a regra, em português), a `evidência` (o trecho literal que a
@@ -283,11 +280,19 @@ só esta plataforma tem: **quais grupos atacaram o Estado brasileiro** — prefe
 câmara municipal, secretaria estadual —, com nome e data, identificados pelo
 domínio da vítima (`.gov.br`, `.jus.br`, `.mil.br`), que é fato e não suposição.
 
-As vulnerabilidades **não sumiram — mudaram de altitude.** Continuam no perfil de
-cada grupo, onde respondem à pergunta certa (*como este grupo entra*), e o
-agregado continua no cartão. No lugar da tabela entrou a leitura brasileira, com
-frases derivadas de contagem: *"11 dos 25 grupos com atividade no Brasil já
-divulgaram dados de órgão público, judiciário ou militar"*.
+Primeiro a tabela saiu do centro da tela e as vulnerabilidades ficaram no perfil
+de cada grupo. Depois saíram por completo — da tela, da API, da coleta e do
+banco —, junto com a regra de correlação que as usava e que, medida contra o
+acervo real, **nunca encontrou uma ligação sequer**: jornalismo de defesa não
+escreve identificador de CVE, quem escreve é boletim técnico de fornecedor, e
+esta plataforma coleta imprensa.
+
+O que responde a *como este grupo entra* continua lá, num formato que serve ao
+público desta plataforma: as **táticas e técnicas mapeadas ao MITRE ATT&CK** e as
+**ferramentas conhecidas**, no perfil de cada grupo. E no lugar da tabela entrou
+a leitura brasileira, com frases derivadas de contagem: *"11 dos 25 grupos com
+atividade no Brasil já divulgaram dados de órgão público, judiciário ou
+militar"*.
 
 ---
 
@@ -295,7 +300,7 @@ divulgaram dados de órgão público, judiciário ou militar"*.
 
 | | |
 |---|---|
-| **Correlações com o Brasil** | Cada matéria cruzada com as organizações atacadas, os grupos e os CVEs do acervo — com o motivo, a evidência literal e o impacto possível de cada ligação |
+| **Correlações com o Brasil** | Cada matéria cruzada com as organizações atacadas e os grupos do acervo — com o motivo e a evidência literal de cada ligação |
 | **Clipping consolidado** | Matérias de 50 fontes agrupadas por evento, com selo de quantos veículos cobriram cada fato e as fontes originais visíveis |
 | **Clipping em PDF** | Documento agrupado por categoria, com o painel de alerta e sua distribuição, e cada matéria trazendo fonte, data, endereço original e os termos que a aprovaram |
 | **Incidentes no Brasil** | Organizações brasileiras divulgadas por grupos de ransomware, com criticidade derivada de domínio e setor, e o recorte do Estado em primeiro plano |
@@ -690,7 +695,7 @@ inclusive as que MUDAM estado.
 | `GET` | `/intel/correlacoes` | `user` | As ligações encontradas, com motivo, evidência, contexto e impacto |
 | `GET` | `/intel/brasil` | `user` | Panorama do país: entidades citadas, setores sob pressão, estados, ligações fortes |
 | `GET` | `/intel/entidade/:tipo/:id` | `user` | Dossiê de uma entidade: matérias que a citam, correlações e vazamentos |
-| `GET` | `/intel/metodo` | — | **As oito regras, as quatro guardas e o catálogo inteiro** |
+| `GET` | `/intel/metodo` | — | **As sete regras, as quatro guardas e o catálogo inteiro** |
 
 ### Notícias
 | Método | Rota | Guarda | O que faz |
@@ -710,7 +715,6 @@ inclusive as que MUDAM estado.
 | `GET` | `/cyber/ransomware` | — | Agregados públicos; a lista nominal exige sessão |
 | `GET` | `/cyber/atores` | `user` | Quem ataca o Brasil, com TTPs e ferramentas |
 | `GET` | `/cyber/ator/:nome` | `user` | Perfil completo de um grupo |
-| `GET` | `/cyber/cves` | `user` | Vulnerabilidades exploradas por quem ataca o Brasil |
 | `GET` | `/cyber/alertas` | `user` | Incidente crítico contra organização brasileira nas últimas N horas |
 
 ### Dados públicos

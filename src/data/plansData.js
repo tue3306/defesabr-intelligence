@@ -136,7 +136,7 @@ export const LANDING_FEATURES = [
   // vitrine seguiu anunciando o produto anterior: clipping, mapa e graficos —
   // tudo verdade, e nada que explique por que alguem usaria isto em vez de
   // acompanhar as fontes direto.
-  { icon: 'Link2', title: 'Correlação com o Brasil', text: 'Cada matéria é cruzada com as organizações brasileiras atacadas, os grupos e os CVEs do acervo. Sete regras determinísticas, e cada ligação mostra o motivo, a evidência literal e o impacto possível.' },
+  { icon: 'Link2', title: 'Correlação com o Brasil', text: 'Cada matéria é cruzada com as organizações brasileiras atacadas e os grupos do acervo. Sete regras determinísticas, e cada ligação mostra o motivo e a evidência literal que a sustenta.' },
   { icon: 'Newspaper', title: 'Clipping consolidado', text: 'O mesmo fato coberto por vários veículos vira uma linha, com o selo de quantos o corroboraram e as fontes originais visíveis.' },
   { icon: 'Globe2', title: 'Mapa navegável', text: 'Cada país abre um dossiê: cobertura noticiosa com tendência, categorias e as vítimas de ransomware do território, cruzadas pelo código ISO.' },
   { icon: 'BarChart3', title: 'Método auditável', text: 'A regra que decide o que entra no acervo é publicada e pode ser aplicada a qualquer texto, com os termos que casaram.' },

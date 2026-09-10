@@ -6,7 +6,7 @@ import {
 } from '../collectors/indicators.js'
 import { normalizar } from '../lib/relevance.js'
 import { panoramaRansomware, alertasRansomware } from '../collectors/ransomware.js'
-import { atoresContraBrasil, ator, cvesContraBrasil } from '../collectors/atores.js'
+import { atoresContraBrasil, ator } from '../collectors/atores.js'
 import { exigirPapel } from '../lib/auth.js'
 import { limitar } from '../lib/limite.js'
 import { limite } from '../lib/parametros.js'
@@ -313,7 +313,7 @@ router.get('/cyber/ransomware', (req, res) => {
 // Estes tres endpoints estavam abertos, protegidos apenas pelo `requiresAuth`
 // do menu lateral. E exatamente o antipadrao que este projeto corrigiu nos
 // perfis: esconder o botao nao e controlar acesso. Qualquer um com o endereco
-// raspava os perfis de ator, as TTPs e a lista de CVEs sem ter conta.
+// raspava os perfis de ator e as TTPs sem ter conta.
 //
 // Sao tambem a parte mais valiosa da plataforma — o cruzamento entre
 // vulnerabilidade conhecida e grupo com vitima brasileira nao existe pronto em
@@ -332,23 +332,9 @@ router.get('/cyber/atores', exigirPapel('user'), (req, res) => {
   })
 })
 
-// GET /api/cyber/ator/:nome — perfil completo: TTPs, CVEs, ferramentas
+// GET /api/cyber/ator/:nome — perfil completo: TTPs e ferramentas
 router.get('/cyber/ator/:nome', exigirPapel('user'), (req, res) => {
   res.json(ator(String(req.params.nome).slice(0, 80)))
-})
-
-// GET /api/cyber/cves — vulnerabilidades exploradas por quem ataca o Brasil
-//
-// Lista de correcao com prioridade real: nao "as vulnerabilidades do mes", e
-// sim as que grupos com vitima brasileira registrada sabem usar.
-router.get('/cyber/cves', exigirPapel('user'), (req, res) => {
-  const items = cvesContraBrasil()
-  res.json({
-    total: items.length,
-    items,
-    nota: 'CVEs atribuidos aos grupos pela propria fonte, restritos aos que tem vitima '
-      + 'brasileira no acervo. CVSS e severidade sao os publicados no registro do CVE.',
-  })
 })
 
 // GET /api/cyber/alertas — so o que exige atencao agora

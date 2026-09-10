@@ -241,7 +241,7 @@ CREATE INDEX IF NOT EXISTS idx_rw_discovered ON ransomware_victims(discovered_at
 --
 -- Responde a metade que serve para DEFENDER: quem ataca e como. Um operador
 -- que sabe que o grupo entra por credencial de VPN valida (T1078) e explora
--- CVE-2020-3259 em Cisco ASA tem o que fazer amanha; quem so sabe o nome, nao.
+-- e usa Rclone para exfiltrar tem o que fazer amanha; quem so sabe o nome, nao.
 --
 -- Os campos ricos ficam como JSON porque a forma vem da fonte e tem
 -- profundidade variavel (tatica -> tecnicas -> detalhe). Normalizar em tabelas
@@ -257,7 +257,6 @@ CREATE TABLE IF NOT EXISTS threat_actors (
   first_seen    TEXT,
   last_seen     TEXT,
   ttps_json     TEXT,
-  cves_json     TEXT,
   tools_json    TEXT,
   locations_json TEXT,
   negotiation_count INTEGER DEFAULT 0,

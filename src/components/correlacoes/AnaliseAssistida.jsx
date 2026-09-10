@@ -14,7 +14,7 @@ import InfoTooltip from '../ui/InfoTooltip'
 // -----------------------------------------------------------------------------
 // ANÁLISE ASSISTIDA — você escolhe as matérias, o modelo escreve a leitura
 //
-// As oito regras determinísticas encontram ligações literais e provam cada uma
+// As sete regras determinísticas encontram ligações literais e provam cada uma
 // com a evidência. O que elas não conseguem é dizer se a ligação IMPORTA: "a
 // matéria cita a Nuclep, que teve vazamento" é verdadeiro e pode ser só
 // coincidência de nome. Esse salto é interpretativo, e é o que falta.

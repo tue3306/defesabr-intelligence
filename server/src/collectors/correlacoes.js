@@ -13,11 +13,11 @@ import { correlacionar } from '../lib/correlacao.js'
 //
 // `coletarAtores` foi posto em `Promise.all` junto de `coletarRansomware`, do
 // qual depende: ele lia a tabela de vítimas antes de ela ser preenchida,
-// terminava em 47 ms sem gravar nada, e a tela de Atores ficava com zero CVEs
+// terminava em 47 ms sem gravar nada, e a tela de Grupos ficava sem perfil
 // até o ciclo seguinte — meia hora depois, a cada publicação.
 //
 // Este passo depende de TODOS os outros: precisa dos artigos que o RSS trouxe,
-// das vítimas que o ransomware.live trouxe e dos perfis de ator com os CVEs.
+// das vítimas que o ransomware.live trouxe e dos perfis de ator.
 // Por isso roda por último, em série, e a dependência está expressa na
 // estrutura de `collectors/index.js` em vez de comentada em algum lugar.
 //

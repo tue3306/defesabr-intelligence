@@ -226,10 +226,10 @@ export default function Landing() {
             />
             <Diferencial
               icone={Crosshair}
-              titulo="A correção que importa primeiro"
-              texto="Boletim de vulnerabilidade lista os CVEs críticos do mês, que são centenas. Aqui a
-                     lista é cruzada: só as que grupos COM VÍTIMA BRASILEIRA registrada sabem explorar,
-                     com o CVSS e quem as usa."
+              titulo="Quem ataca o Brasil, e como entra"
+              texto="Boletim de ameaça lista centenas de grupos no mundo. Aqui só os que têm VÍTIMA
+                     BRASILEIRA registrada — com as táticas mapeadas ao MITRE ATT&CK, as ferramentas
+                     conhecidas e quantos já atingiram o Estado."
               numero={v.gruposContraBrasil}
               unidade="grupos com vítima no Brasil"
               para="/atores"

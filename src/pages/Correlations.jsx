@@ -28,7 +28,7 @@ import AnaliseAssistida from '../components/correlacoes/AnaliseAssistida'
 //
 //   MOTIVO      a regra que produziu a ligação, em português;
 //   EVIDÊNCIA   o trecho literal que a sustenta — o domínio que casou, o
-//               identificador do CVE, o termo encontrado no texto;
+//               o termo encontrado no texto, a sigla da UF;
 //   CONTEXTO    o que isso significa no Brasil, com a contagem que o sustenta;
 //   IMPACTO     a consequência POSSÍVEL, em linguagem condicional.
 //
@@ -84,7 +84,7 @@ export default function Correlations() {
   //
   // Com o padrão em "todas", a página abria com dezenas de cartões repetindo
   // a mesma observação genérica, e as poucas ligações que apontam para um fato
-  // concreto — um município atacado, um CVE que um grupo com vítima brasileira
+  // concreto — um município atacado, uma organização que consta na lista de
   // explora — ficavam soterradas na página três. O produto parecia lista de
   // notícias com nota de rodapé.
   //
@@ -183,8 +183,8 @@ export default function Correlations() {
         <Info size={15} className="mt-0.5 shrink-0 text-brand-500 dark:text-brand-300" />
         <span className="text-gray-700 dark:text-gray-300">
           <strong>Correlação não é causalidade.</strong> Cada ligação abaixo nasce de uma
-          correspondência literal — um domínio igual a outro, um identificador de CVE presente no
-          texto, um nome de grupo que consta no acervo. Nenhuma vem de semelhança semântica ou de
+          correspondência literal — um domínio igual a outro, um nome de grupo que consta no
+          acervo, uma sigla de UF dentro de um domínio. Nenhuma vem de semelhança semântica ou de
           estimativa, e a <strong>força</strong> mede o quanto a ligação é direta, não o quanto ela
           é perigosa.
         </span>

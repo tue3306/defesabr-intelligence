@@ -10,14 +10,13 @@ import { nomeDaVitima } from '../lib/vitima.js'
 // A tela de Ameaças Cibernéticas respondia "o que foi atacado". Faltava a
 // outra metade, que é a que serve para defender: QUEM ATACA E COMO. Um
 // operador que sabe que o `akira` entra por credencial de VPN válida
-// (T1078) e explora CVE-2020-3259 em Cisco ASA tem o que fazer amanhã de
+// (T1078) e usa Rclone para exfiltrar tem o que fazer amanhã de
 // manhã; um que só sabe o nome do grupo, não.
 //
 // O `/group/{nome}` entrega, por ator:
 //
 //   ttps             táticas e técnicas com o identificador MITRE ATT&CK
 //                    (TA0001 / T1078.002) e a descrição do uso concreto
-//   vulnerabilities  CVEs com fabricante, produto, CVSS e severidade
 //   tools            ferramentas por categoria — roubo de credencial,
 //                    evasão, exfiltração, LOLBAS
 //   firstseen/lastseen, contagem de vítimas e de negociações
@@ -34,7 +33,7 @@ import { nomeDaVitima } from '../lib/vitima.js'
 //
 // POR QUE UMA VEZ POR DIA, E NÃO A CADA CICLO
 //
-// Perfil de ator muda em semanas — uma TTP nova, um CVE novo. Reconsultar a
+// Perfil de ator muda em semanas — uma TTP nova, uma ferramenta nova. Reconsultar a
 // cada 30 minutos gastaria cota para reescrever a mesma linha. O detalhe é
 // renovado quando passa de `IDADE_MAXIMA_HORAS`, e a coleta processa no
 // máximo `POR_CICLO` por vez para não estourar o tempo do agendador.
@@ -52,7 +51,7 @@ const IDADE_MAXIMA_HORAS = 24
 // A partida a frio e outro caso, e ele acontece toda semana. O disco do
 // Railway e efemero: cada deploy recria o banco vazio. Com 25 por ciclo, os
 // perfis levam CINCO CICLOS — duas horas e meia — para existir, e nesse
-// intervalo a tela de Atores mostra "0 CVEs" e "0 tecnicas". E justamente a
+// intervalo a tela de Grupos mostra "0 tecnicas" e "0 ferramentas". E justamente a
 // parte mais valiosa da plataforma vazia logo depois de publicar.
 //
 // Medido: 110 requisicoes levam ~90 segundos com o limite de duas conexoes
@@ -64,7 +63,7 @@ const POR_CICLO_PARTIDA_FRIA = 120
  * Grupos com vítima brasileira, mais desatualizados primeiro.
  *
  * Na partida a frio — tabela vazia, o que acontece a cada deploy no Railway —
- * o lote e maior, para a tela nao ficar duas horas e meia sem CVEs.
+ * o lote e maior, para a tela nao ficar duas horas e meia sem perfil.
  */
 function aRenovar() {
   const jaTem = get('SELECT COUNT(*) AS n FROM threat_actors')?.n ?? 0
@@ -124,16 +123,15 @@ export async function coletarAtores() {
       run(
         `INSERT INTO threat_actors
            (name, name_key, description, victims_total, first_seen, last_seen,
-            ttps_json, cves_json, tools_json, locations_json,
+            ttps_json, tools_json, locations_json,
             negotiation_count, has_ransomnote, fetched_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ','now'))
          ON CONFLICT (name_key) DO UPDATE SET
            description = excluded.description,
            victims_total = excluded.victims_total,
            first_seen = excluded.first_seen,
            last_seen = excluded.last_seen,
            ttps_json = excluded.ttps_json,
-           cves_json = excluded.cves_json,
            tools_json = excluded.tools_json,
            locations_json = excluded.locations_json,
            negotiation_count = excluded.negotiation_count,
@@ -149,7 +147,6 @@ export async function coletarAtores() {
           d.firstseen || null,
           d.lastseen || null,
           JSON.stringify(d.ttps || []),
-          JSON.stringify(d.vulnerabilities || []),
           JSON.stringify(d.tools || {}),
           JSON.stringify(d.locations || []),
           Number.isFinite(d.negotiation_count) ? d.negotiation_count : 0,
@@ -190,7 +187,7 @@ export function atoresContraBrasil({ limite = 20 } = {}) {
             MAX(v.discovered_at) AS ultimaBr,
             SUM(CASE WHEN v.nature = 'estado' THEN 1 ELSE 0 END) AS contraEstado,
             a.description, a.victims_total, a.first_seen, a.last_seen,
-            a.ttps_json, a.cves_json, a.tools_json, a.negotiation_count, a.fetched_at
+            a.ttps_json, a.tools_json, a.negotiation_count, a.fetched_at
        FROM ransomware_victims v
        LEFT JOIN threat_actors a ON a.name_key = LOWER(v."group")
       WHERE v.country = 'BR' AND v."group" IS NOT NULL AND v."group" != ''
@@ -202,7 +199,6 @@ export function atoresContraBrasil({ limite = 20 } = {}) {
 
   return linhas.map((l) => {
     const ttps = ler(l.ttps_json, [])
-    const cves = ler(l.cves_json, [])
     const tools = ler(l.tools_json, {})
     return {
       nome: l.nome,
@@ -218,10 +214,6 @@ export function atoresContraBrasil({ limite = 20 } = {}) {
       // Contagens para a lista; o detalhe completo vem em `ator()`.
       taticas: Array.isArray(ttps) ? ttps.length : 0,
       tecnicas: contarTecnicas(ttps),
-      cves: Array.isArray(cves) ? cves.length : 0,
-      cvesCriticos: Array.isArray(cves)
-        ? cves.filter((c) => ['CRITICAL', 'HIGH'].includes(String(c?.severity || '').toUpperCase())).length
-        : 0,
       ferramentas: contarFerramentas(tools),
       temPerfil: !!l.fetched_at,
     }
@@ -254,7 +246,6 @@ export function ator(nome) {
     }
   }
 
-  const cves = ler(a.cves_json, [])
   return {
     nome: a.name,
     descricao: a.description,
@@ -264,46 +255,28 @@ export function ator(nome) {
     negociacoes: a.negotiation_count,
     perfilEm: a.fetched_at,
     ttps: ler(a.ttps_json, []),
-    cves: [...cves].sort((x, y) => (y?.CVSS || 0) - (x?.CVSS || 0)),
     ferramentas: ler(a.tools_json, {}),
     vitimasBrasileiras: brasileiras,
   }
 }
 
-/**
- * CVEs explorados por quem ataca o Brasil, agregados.
- *
- * É a lista de correção com prioridade real: não "as vulnerabilidades do
- * mês", e sim as que grupos com vítima brasileira registrada sabem usar.
- */
-export function cvesContraBrasil() {
-  const porCve = new Map()
+// ─────────────────────────────────────────────────────────────────────────────
+// AQUI HAVIA `cvesContraBrasil()`, E A TELA QUE A CONSUMIA JÁ TINHA SAÍDO
+//
+// Ela agregava os CVEs de todos os grupos com vítima brasileira e alimentava
+// uma tabela — identificador, CVSS, fabricante, produto — no topo da tela de
+// grupos. Essa tabela foi removida por estar no lugar errado: um identificador
+// de CVE só significa algo para quem opera a infraestrutura do alvo e vai
+// aplicar a correção; para quem acompanha segurança e defesa do Brasil, é
+// ruído com aparência de rigor.
+//
+// A função sobreviveu à tela por um tempo, servindo uma rota que ninguém mais
+// chamava. Sai agora junto com o resto: a coleta deixou de pedir o campo, o
+// banco deixou de guardá-lo e a API deixou de devolvê-lo.
+//
+// O que a plataforma diz sobre COMO um grupo entra continua existindo, e num
+// formato que serve ao público dela: as técnicas mapeadas ao MITRE ATT&CK e as
+// ferramentas conhecidas, no perfil de cada grupo.
+// ─────────────────────────────────────────────────────────────────────────────
 
-  for (const l of all(
-    `SELECT a.name, a.cves_json FROM threat_actors a
-      WHERE a.cves_json IS NOT NULL AND a.cves_json != '[]'
-        AND a.name_key IN (SELECT DISTINCT LOWER("group") FROM ransomware_victims WHERE country = 'BR')`
-  )) {
-    for (const c of ler(l.cves_json, [])) {
-      const id = String(c?.CVE || '').trim()
-      if (!id) continue
-      if (!porCve.has(id)) {
-        porCve.set(id, {
-          cve: id,
-          fabricante: c.Vendor || null,
-          produto: c.Product || null,
-          cvss: Number.isFinite(c.CVSS) ? c.CVSS : null,
-          severidade: String(c.severity || '').toUpperCase() || null,
-          grupos: [],
-        })
-      }
-      porCve.get(id).grupos.push(l.name)
-    }
-  }
-
-  return [...porCve.values()].sort(
-    (a, b) => b.grupos.length - a.grupos.length || (b.cvss || 0) - (a.cvss || 0)
-  )
-}
-
-export default { coletarAtores, atoresContraBrasil, ator, cvesContraBrasil }
+export default { coletarAtores, atoresContraBrasil, ator }

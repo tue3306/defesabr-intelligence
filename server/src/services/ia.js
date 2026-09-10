@@ -229,7 +229,7 @@ export async function perguntarSobreAcervo({ pergunta, materias, panorama, userI
  * ─────────────────────────────────────────────────────────────────────────────
  * A REGRA PROVA A LIGAÇÃO. ELA NÃO DIZ POR QUE A LIGAÇÃO IMPORTA.
  *
- * As oito regras determinísticas fazem exatamente uma coisa, e fazem bem: casam
+ * As sete regras determinísticas fazem exatamente uma coisa, e fazem bem: casam
  * texto com texto e mostram a evidência. "A matéria cita Nuclep, cujo domínio
  * consta na lista de organizações com vazamento divulgado" é verdadeiro,
  * verificável e — para quem lê — pode ser só uma coincidência de nome.
@@ -370,7 +370,7 @@ export function conferirCitacoes(bruto, itens) {
  * ─────────────────────────────────────────────────────────────────────────────
  * A DIVISÃO DO TRABALHO, E POR QUE ELA É ASSIM
  *
- * As oito regras determinísticas encontram ligações literais e provam cada uma
+ * As sete regras determinísticas encontram ligações literais e provam cada uma
  * com a evidência. O que elas não conseguem é dizer se a ligação IMPORTA — e é
  * exatamente aí que o modelo entra.
  *
