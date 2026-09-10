@@ -21,17 +21,23 @@ const BENEFITS = [
 
 // Textos do bloqueio por PAPEL, por perfil exigido.
 const ROLE_WALL = {
+  // NÃO HÁ CONTA DE ANALISTA, ENTÃO NÃO HÁ BOTÃO.
+  //
+  // O papel existe no modelo de permissão e nas rotas, e o Administrador o
+  // alcança por herança — mas a instalação semeia duas contas, e nenhuma delas
+  // é analista. O botão chamava `entrar('analyst')`, que procura uma conta com
+  // esse papel e não encontra nenhuma: um clique que não podia dar certo.
   analyst: {
     icon: PenTool,
-    papel: 'analyst',
-    title: 'Recurso do perfil Analista',
-    desc: 'Esta área é de quem monitora a coleta — inspeciona o filtro de relevância, acompanha as fontes e audita as execuções.',
+    papel: null,
+    title: 'Área de monitoramento da coleta',
+    desc: 'Esta área é de quem opera a plataforma — inspeciona o filtro de relevância, acompanha as fontes e audita as execuções.',
     perks: [
       'Método do filtro de relevância, com teste ao vivo em qualquer texto',
       'Disponibilidade medida de cada fonte cadastrada',
       'Histórico de execuções dos coletores, com duração e erro',
     ],
-    cta: 'Entrar como Analista',
+    cta: 'Voltar ao painel',
   },
   // O BOTÃO DE ENTRAR COMO ADMINISTRADOR SAIU.
   //
