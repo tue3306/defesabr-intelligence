@@ -20,7 +20,6 @@ function RootLayout() {
 // Lazy loading das páginas para reduzir o bundle inicial
 const Landing = lazy(() => import('./pages/Landing'))
 const Home = lazy(() => import('./pages/Home'))
-const Plans = lazy(() => import('./pages/Plans'))
 const DailyClipping = lazy(() => import('./pages/DailyClipping'))
 const Correlations = lazy(() => import('./pages/Correlations'))
 const StrategicMap = lazy(() => import('./pages/StrategicMap'))
@@ -112,7 +111,17 @@ export default function App() {
         <Route element={<RootLayout />}>
           {/* ── VISITANTE — público, sem login ── */}
           <Route path="/" element={<Page scope="Início"><Landing /></Page>} />
-          <Route path="/planos" element={<Page scope="Planos"><Plans /></Page>} />
+          {/* /planos SAIU. Era a pagina de precos, virou "Niveis de acesso" quando
+            * o comercio simulado foi removido, e o que restou dela era um seletor
+            * para ver a plataforma pelos olhos de quem alcanca menos.
+            *
+            * Num projeto sem cobranca, em que toda conta ja nasce com o nivel
+            * completo, isso e ferramenta de quem desenvolve — nao de quem le
+            * noticia. E era a ultima tela que explicava perfis a quem so quer
+            * acompanhar seguranca e defesa do Brasil.
+            *
+            * Quem chegar por link antigo cai no 404, que oferece as telas que
+            * existem. */}
           <Route path="/aprender" element={<Page scope="Centro Educacional"><Learn /></Page>} />
           <Route path="/sobre" element={<Page scope="Sobre"><About /></Page>} />
 

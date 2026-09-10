@@ -448,13 +448,16 @@ que nunca existiu: preços em três colunas, desconto anual de 17%, faturas
 desenhadas no navegador com cartão terminado em 4242.
 
 Sendo o projeto de código aberto, **toda conta nasce com o nível de leitura
-completo** (`institucional`), e o que separa os perfis é só o papel. O eixo do
-plano permanece no código por dois motivos concretos, nenhum deles comercial:
+completo** (`institucional`), e o que separa os perfis é só o papel.
 
-- o servidor devolve a coluna `plan` no login, e ela viaja no token;
-- a página **Níveis de acesso** (`/planos`) usa esse eixo para **ver a
-  plataforma pelos olhos de quem tem menos acesso** — que é a única forma de
-  conferir se uma tela bloqueada explica o motivo em vez de aparecer vazia.
+O eixo do plano continua no código — o servidor devolve a coluna `plan` no login
+e ela viaja no token —, mas **nada na interface o altera**. Houve uma página de
+Níveis de acesso que permitia rebaixá-lo, para ver a plataforma pelos olhos de
+quem alcança menos; ela saiu junto com a última explicação de perfis dirigida a
+quem só quer acompanhar segurança e defesa. Na prática, portanto, nenhum
+bloqueio por nível aparece: os muros continuam implementados para o caso de uma
+instalação semear conta com nível menor, e nesse caso explicam o motivo em vez
+de mostrar tela vazia.
 
 A conta do Usuário tinha nível `profissional`, que liberava POR PLANO
 exatamente o que o Analista tem POR PAPEL. Era essa a razão de as duas visões

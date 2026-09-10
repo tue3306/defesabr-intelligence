@@ -2,9 +2,27 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import {
-  Rss, KeyRound, Bell, SlidersHorizontal, UserCog, Trash2, Plus, Circle, Eye, EyeOff,
-  Palette, Star, Gauge, Stethoscope, Users, Sun, Moon, LogIn, ShieldCheck, CreditCard, BarChart3,
-  Check, Lock, Server, Database, PlugZap, ShieldAlert, Sparkles,
+  Rss,
+  KeyRound,
+  Bell,
+  SlidersHorizontal,
+  Circle,
+  Palette,
+  Star,
+  Stethoscope,
+  Users,
+  Sun,
+  Moon,
+  LogIn,
+  ShieldCheck,
+  CreditCard,
+  BarChart3,
+  Lock,
+  Server,
+  Database,
+  PlugZap,
+  ShieldAlert,
+  Sparkles,
 } from 'lucide-react'
 import { useSettingsStore } from '../store/settingsStore'
 import { useAuthStore } from '../store/authStore'
@@ -225,7 +243,7 @@ function PlanSection() {
           </p>
           <p className="mt-0.5 text-sm muted">{current.tagline}</p>
         </div>
-        <Link to="/planos" className="btn-ghost shrink-0">Ver todos os níveis</Link>
+
       </div>
       <p className="mt-3 text-xs leading-relaxed muted">
         Projeto de código aberto: não há assinatura. O que de fato muda o que você alcança é o

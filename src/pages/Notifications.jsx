@@ -328,7 +328,7 @@ export default function Notifications() {
               tone="locked"
               title="Alertas personalizados acima do nível atual"
               hint="Regras para ser avisado quando a postura nacional subir, quando houver ocorrência grave numa área monitorada ou quando um programa estratégico mudar de status. Toda conta nasce com o nível completo — este aviso só aparece com o nível rebaixado."
-              action={{ label: 'Voltar ao nível completo', to: '/planos' }}
+              action={{ label: 'Voltar ao painel', to: '/painel' }}
               compact
             />
           }

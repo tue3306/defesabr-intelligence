@@ -2,11 +2,32 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import {
-  Search, LayoutDashboard, Newspaper, BarChart3, LineChart, Archive as ArchiveIcon,
-  Tv, GraduationCap, Settings, HelpCircle, Bell, Moon, Sun, CornerDownLeft, Home,
-  Sparkles, DollarSign, Target, Waves, Shield, Scale, Factory, Layers, Radio,
-  Landmark, CalendarDays, BadgeCheck, Compass, ShieldAlert, FileText, ClipboardList,
-  ShieldCheck, UserCircle, Lock, Globe2, Link2, Crosshair,
+  Archive as ArchiveIcon,
+  Search,
+  LayoutDashboard,
+  Newspaper,
+  LineChart,
+  Tv,
+  GraduationCap,
+  Settings,
+  HelpCircle,
+  Bell,
+  Moon,
+  Sun,
+  CornerDownLeft,
+  Home,
+  DollarSign,
+  Factory,
+  Landmark,
+  BadgeCheck,
+  Compass,
+  ShieldAlert,
+  ShieldCheck,
+  UserCircle,
+  Lock,
+  Globe2,
+  Link2,
+  Crosshair,
 } from 'lucide-react'
 import { useTheme } from '../../hooks/useTheme'
 import { useAuthStore } from '../../store/authStore'
@@ -53,7 +74,6 @@ export default function CommandPalette() {
       { id: 'inicio', group: 'Navegação', label: 'Ir para o Início', icon: Home, run: go('/') },
       { id: 'painel', group: 'Navegação', label: 'Abrir Painel', icon: LayoutDashboard, run: go('/painel'), auth: true },
       { id: 'busca', group: 'Navegação', label: 'Abrir Busca global', icon: Search, run: go('/busca'), auth: true },
-      { id: 'planos', group: 'Navegação', label: 'Ver níveis de acesso', icon: Sparkles, run: go('/planos') },
       { id: 'aprender', group: 'Navegação', label: 'Abrir Centro Educacional', icon: GraduationCap, run: go('/aprender') },
       { id: 'sobre', group: 'Navegação', label: 'Sobre o projeto', icon: HelpCircle, run: go('/sobre') },
 
@@ -159,9 +179,11 @@ export default function CommandPalette() {
 
   const choose = (cmd) => {
     if (!cmd) return
-    // Comando bloqueado leva ao caminho de desbloqueio, não a um beco sem saída.
+    // Comando bloqueado leva ao painel, não a um beco sem saída. Antes ia para
+    // /planos, que era o caminho de desbloqueio — a página saiu, e o único
+    // bloqueio que resta é de PAPEL, que nenhuma tela destrava.
     if (cmd.locked) {
-      navigate('/planos')
+      navigate('/painel')
     } else {
       cmd.run?.()
     }

@@ -196,7 +196,7 @@ export default function Search() {
                 return (
                   <li key={t.id}>
                     <Link
-                      to={locked ? '/planos' : t.to}
+                      to={locked ? '/painel' : t.to}
                       className={`flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-sm transition-colors hover:bg-gray-100 dark:hover:bg-white/10 ${locked ? 'opacity-60' : ''}`}
                     >
                       <Icon size={15} style={{ color: TYPE_COLOR[t.id] }} />
@@ -304,7 +304,7 @@ export default function Search() {
 // ── Um resultado ─────────────────────────────────────────────────────────────
 function ResultRow({ item, query, allowed }) {
   const color = TYPE_COLOR[item.type] || '#5c616a'
-  const to = allowed ? item.to : '/planos'
+  const to = allowed ? item.to : '/painel'
 
   return (
     <Link

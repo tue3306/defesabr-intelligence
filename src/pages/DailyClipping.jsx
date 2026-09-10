@@ -220,9 +220,9 @@ export default function DailyClipping() {
           <Can
             do="reports.export"
             fallback={
-              <Link to="/planos" className="btn-ghost" title="A exportação está acima do nível de leitura selecionado — ajuste em Níveis de acesso">
+              <span className="btn-ghost cursor-not-allowed opacity-60" title="A exportação está acima do nível de leitura desta conta.">
                 <Lock size={14} /> Exportar PDF
-              </Link>
+              </span>
             }
           >
             <button onClick={handlePDF} disabled={!result} className="btn-ghost">

@@ -143,15 +143,17 @@ export default function ProtectedRoute({ children, permission, capability }) {
             * muro significa que o nível foi REBAIXADO de propósito na página
             * de Níveis de acesso, para ver a plataforma pelos olhos de quem
             * alcança menos — e o caminho de volta é o mesmo lugar. */}
+          {/* Este muro ficou INALCANÇÁVEL na prática: toda conta nasce com o
+            * nível completo e a tela que permitia rebaixá-lo saiu. Ele fica
+            * porque o eixo continua no modelo de permissão — se uma instalação
+            * semear conta com nível menor, o bloqueio explica o motivo em vez de
+            * mostrar tela vazia. O que não faz é oferecer uma saída que não
+            * existe mais. */}
           <div className="mt-6 flex flex-wrap justify-center gap-2">
-            <Link to="/planos" className="btn-primary">
-              Voltar ao nível completo <ArrowRight size={15} />
+            <Link to="/painel" className="btn-primary">
+              Voltar ao painel <ArrowRight size={15} />
             </Link>
           </div>
-          <p className="mt-3 text-xs muted">
-            O nível é só de leitura: nenhuma tela fica inacessível por causa dele numa conta
-            recém-criada.
-          </p>
         </Wall>
       )
     }

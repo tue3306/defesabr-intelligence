@@ -2,8 +2,17 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
-  BarChart3, RefreshCw, Lock, FileSpreadsheet, Layers, Wallet, Globe2, ShieldAlert,
-  TrendingUp, TrendingDown, Minus, Anchor, ExternalLink,
+  BarChart3,
+  RefreshCw,
+  Lock,
+  FileSpreadsheet,
+  Layers,
+  Wallet,
+  Globe2,
+  ShieldAlert,
+  TrendingUp,
+  TrendingDown,
+  Minus,
 } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Badge from '../components/ui/Badge'
@@ -71,7 +80,7 @@ function ExportCSVButton({ rows, filename, label }) {
   if (!gate.allowed) {
     return (
       <Link
-        to="/planos"
+        to="/painel"
         className="chip transition-colors hover:border-gold-500/40 hover:text-gold-600 dark:hover:text-gold-400"
         aria-label={`Exportar ${label} em CSV requer plano com exportação de relatórios`}
       >

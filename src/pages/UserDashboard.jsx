@@ -2,10 +2,28 @@ import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
-  ShieldCheck, Clock, ArrowRight, ChevronRight, Activity, Target, Newspaper,
-  Globe2, CalendarDays, TrendingUp, TrendingDown, Bell, Waves, Lightbulb,
-  BarChart3, Landmark, Bookmark, Star, Sparkles, Compass, GraduationCap,
-  BookOpen, Map, Scale, Factory, Bot, FileText, Radar, Tv, DollarSign, Database,
+  ShieldCheck,
+  Clock,
+  ArrowRight,
+  ChevronRight,
+  Newspaper,
+  Globe2,
+  TrendingUp,
+  TrendingDown,
+  Bell,
+  BarChart3,
+  Landmark,
+  Bookmark,
+  Star,
+  Compass,
+  GraduationCap,
+  BookOpen,
+  Factory,
+  FileText,
+  Radar,
+  Tv,
+  DollarSign,
+  Database,
 } from 'lucide-react'
 import MetricCard from '../components/ui/MetricCard'
 import NewsCard from '../components/ui/NewsCard'
@@ -62,21 +80,6 @@ const DISCOVERY_MODULES = [
   { to: '/fontes', icon: Database, label: 'Confiabilidade das fontes', hint: 'Disponibilidade medida de cada fonte' },
 ]
 
-// O QUE O NÍVEL COMPLETO DE LEITURA ALCANÇA.
-//
-// A lista prometia "matriz de riscos, cenários e monitor de narrativas (FIMI)"
-// e "assistente de IA" — nada disso existe: as telas saíram por exibirem texto
-// redigido, e a IA nunca foi ligada.
-//
-// Agora ela também deixou de ser um argumento de venda. Não há cobrança neste
-// projeto e toda conta nasce com o nível completo; este bloco só aparece para
-// quem rebaixou o próprio nível na página de Níveis de acesso, e serve para
-// dizer o que aquele degrau esconde — não para oferecer uma compra.
-const NIVEL_COMPLETO = [
-  { icon: Activity, text: 'Radar legislativo: proposições de defesa na Câmara' },
-  { icon: Radar, text: 'Séries econômicas e industriais completas, com comparativos' },
-  { icon: Sparkles, text: 'Exportação em PDF e CSV, filtros avançados e modo apresentação' },
-]
 
 // -----------------------------------------------------------------------------
 // PAINEL DO PERFIL USUÁRIO — quem CONSOME inteligência.
@@ -270,11 +273,7 @@ export default function UserDashboard() {
             <Link to="/legislativo" className="btn-ghost text-sm"><FileText size={15} /> Radar legislativo</Link>
             <Link to="/dados" className="btn-ghost text-sm"><Radar size={15} /> Séries e indicadores</Link>
             <Link to="/busca" className="btn-ghost text-sm"><Newspaper size={15} /> Buscar no acervo</Link>
-            <Can not do="analysis.full">
-              <Link to="/planos" className="btn-primary text-sm">
-                <Sparkles size={15} /> Voltar ao nível completo
-              </Link>
-            </Can>
+
           </div>
           <div className="min-w-0">
             <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider muted">Áreas monitoradas</p>
@@ -364,40 +363,13 @@ export default function UserDashboard() {
 
         {/* ───────────── TRILHO LATERAL ───────────── */}
         <div className="space-y-6">
-          {/* O QUE O NÍVEL SELECIONADO ESCONDE — e não um convite de compra.
-            * Este cartão vendia o "Plano Profissional" com botão dourado e
-            * lista de benefícios. Num projeto de código aberto sem cobrança,
-            * isso é encenação: não há o que comprar, e toda conta já nasce com
-            * o nível completo. Ele só é alcançável por quem rebaixou o próprio
-            * nível de propósito, e passa a servir a essa pessoa: dizer o que
-            * ficou de fora e como voltar. */}
-          <Can not do="analysis.full">
-            <Section className="card overflow-hidden">
-              <div className="bg-gradient-to-br from-gold-500/15 to-transparent p-5">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-gold-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-gold-600 dark:text-gold-400">
-                  <Sparkles size={12} /> Nível de leitura reduzido
-                </span>
-                <h2 className="mt-2 text-base font-bold tracking-tight">O que o nível completo alcança</h2>
-                <ul className="mt-3 space-y-2">
-                  {NIVEL_COMPLETO.map(({ icon: Icon, text }) => (
-                    <li key={text} className="flex items-start gap-2 text-sm muted">
-                      <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-brand-500/15 text-brand-300">
-                        <Icon size={13} />
-                      </span>
-                      <span>{text}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link to="/planos" className="btn-primary mt-4 w-full justify-center text-sm">
-                  Voltar ao nível completo <ArrowRight size={15} />
-                </Link>
-                <p className="mt-2 text-center text-[11px] muted">
-                  Não há cobrança: toda conta nasce com o nível completo. Este cartão só aparece
-                  porque o nível foi reduzido para conferir a plataforma por outro ângulo.
-                </p>
-              </div>
-            </Section>
-          </Can>
+          {/* AQUI HAVIA O CARTÃO "O QUE O NÍVEL COMPLETO ALCANÇA".
+            *
+            * Nasceu como venda do "Plano Profissional", virou explicação do que
+            * um nível reduzido esconde, e agora não tem mais quando aparecer:
+            * toda conta nasce com o nível completo e a tela que permitia
+            * rebaixá-lo saiu. Um bloco que nunca renderiza é código que descreve
+            * um produto que não existe. */}
 
           {/* Câmbio e indicadores — parte da profundidade do nível completo */}
           <Can do="analysis.full">
