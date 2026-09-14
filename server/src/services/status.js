@@ -123,7 +123,8 @@ export function capacidades() {
       nome: 'Coleta de notícias (RSS)',
       coletor: 'rss',
       descricao: 'O servidor busca o XML direto de quem publica — sem proxy de terceiro e sem chave de API.',
-      fonte: 'gov.br/defesa · agenciabrasil.ebc.com.br · agenciagov.ebc.com.br',
+      // Listava três domínios quando o catálogo tem dezenas de fontes.
+      fonte: `${contar('SELECT COUNT(*) AS n FROM sources WHERE enabled = 1')} fonte(s) ativa(s) no catálogo — ver Governança → Fontes e coleta`,
       contagem: () => artigos,
       evidencia: (t, e) => `${t} artigo(s) no acervo · ${e.items_new} novo(s) na última execução`,
     }),
@@ -159,6 +160,83 @@ export function capacidades() {
       contagem: () => contar("SELECT COUNT(*) AS n FROM indicators WHERE provider = 'bcb' AND code IN ('usd','eur')"),
       evidencia: (t) => `${t} cotação(ões) registradas`,
     }),
+
+    // ── COLETORES QUE O PAINEL NÃO LISTAVA ──
+    //
+    // O ciclo roda nove coletores e esta tela mostrava quatro. Exportações,
+    // ransomware, atores e correlações alimentam telas inteiras — e, se um
+    // deles parasse, o painel de saúde continuaria verde.
+    capacidadeDeColeta({
+      id: 'coleta-comex',
+      nome: 'Exportações de defesa',
+      coletor: 'comex',
+      descricao: 'Exportações brasileiras por NCM do setor de defesa, pela API pública do Comex Stat.',
+      fonte: 'api-comexstat.mdic.gov.br',
+      contagem: () => contar("SELECT COUNT(*) AS n FROM indicators WHERE provider = 'comexstat'"),
+      evidencia: (t) => `${t} registro(s) de exportação`,
+    }),
+    capacidadeDeColeta({
+      id: 'coleta-ransomware',
+      nome: 'Vítimas de ransomware',
+      coletor: 'ransomware',
+      descricao: 'Organizações brasileiras divulgadas por grupos de extorsão, com data e grupo.',
+      fonte: 'ransomware.live',
+      contagem: () => contar('SELECT COUNT(*) AS n FROM ransomware_victims'),
+      evidencia: (t) => `${t} vítima(s) registradas`,
+    }),
+    capacidadeDeColeta({
+      id: 'coleta-atores',
+      nome: 'Atores de ameaça',
+      coletor: 'atores',
+      descricao: 'Grupos de extorsão com vítima brasileira registrada, com técnicas (identificador MITRE ATT&CK) e ferramentas.',
+      fonte: 'ransomware.live',
+      contagem: () => contar('SELECT COUNT(*) AS n FROM threat_actors'),
+      evidencia: (t) => `${t} ator(es) catalogados`,
+    }),
+    capacidadeDeColeta({
+      id: 'correlacoes',
+      nome: 'Correlações entre notícias',
+      coletor: 'correlacoes',
+      descricao: 'Vínculos por entidade em comum (país, organização, programa) entre matérias aprovadas.',
+      fonte: 'server/src/collectors/correlacoes.js',
+      contagem: () => contar('SELECT COUNT(*) AS n FROM correlations'),
+      evidencia: (t) => `${t} correlação(ões) calculadas`,
+    }),
+    (() => {
+      // Agregadores com chave são opcionais: sem chave não rodam, e isso não é
+      // falha. Com chave, medem-se como qualquer coletor.
+      const temChave = !!(config.agregadores?.gnews || config.agregadores?.newsdata)
+      if (temChave) {
+        const execucao = ultimaExecucao('agregadores')
+        return {
+          id: 'coleta-agregadores',
+          nome: 'Agregadores de notícias',
+          grupo: 'Coleta',
+          estado: execucao?.ok ? 'operacional' : 'degradado',
+          detalhe: !execucao ? 'Nunca executado nesta instalação.'
+            : execucao.ok ? `${execucao.items_new ?? 0} novo(s) na última execução`
+              : `Última execução falhou: ${execucao.error || 'sem detalhe'}`,
+          descricao: 'Busca por palavra-chave em GNews e NewsData, com a mesma regra de relevância do RSS.',
+          fonte: 'gnews.io · newsdata.io',
+          metricas: {
+            ultimaExecucao: execucao?.finished_at || null,
+            duracaoMs: execucao?.duration_ms ?? null,
+            novosNaUltima: execucao?.items_new ?? null,
+            confiabilidade: confiabilidade('agregadores'),
+          },
+        }
+      }
+      return {
+        id: 'coleta-agregadores',
+        nome: 'Agregadores de notícias',
+        grupo: 'Coleta',
+        estado: 'opcional',
+        detalhe: 'Não configurado (GNEWS_API_KEY ou NEWSDATA_API_KEY). As fontes RSS cobrem os mesmos veículos.',
+        descricao: 'Opcional. Sem chave, o coletor não roda e não conta como falha.',
+        fonte: 'gnews.io · newsdata.io',
+        metricas: {},
+      }
+    })(),
 
     // ── PROCESSAMENTO ──
     {
@@ -243,7 +321,7 @@ export function capacidades() {
         : 'Sem acervo para buscar.',
       descricao: 'LIKE sobre título, resumo e ementa. Suficiente para este volume; um índice FTS5 '
         + 'seria o próximo passo se o acervo crescer uma ordem de grandeza.',
-      fonte: 'server/src/routes/search.js',
+      fonte: 'server/src/routes/data.js',
       metricas: { registros: artigos },
     },
     {
@@ -252,80 +330,45 @@ export function capacidades() {
       grupo: 'Entrega',
       estado: 'operacional',
       detalhe: `${contar('SELECT COUNT(*) AS n FROM bookmarks')} item(ns) salvos`,
-      descricao: 'Sem sistema de contas, o dono é o navegador: a interface gera um identificador local. '
-        + 'Não identifica pessoa — e some se o usuário limpar os dados do site.',
-      fonte: 'server/src/routes/bookmarks.js',
+      descricao: 'Guardados por conta no servidor: a pasta acompanha a pessoa em qualquer navegador. '
+        + 'Remover a conta remove a pasta junto.',
+      fonte: 'server/src/routes/system.js',
       metricas: { registros: contar('SELECT COUNT(*) AS n FROM bookmarks') },
     },
 
-    // ── O QUE NÃO EXISTE ──
-    //
-    // Declarado com a mesma seriedade do que existe. Um sistema que não
-    // publica seus limites convida quem o usa a atribuir-lhe capacidades que
-    // ele não tem — e isso é a diferença entre honestidade
-    // técnica e propaganda.
-    {
-      id: 'ia-analise',
-      nome: 'Análise por IA',
-      grupo: 'Não implementado',
-      estado: 'nao_implementado',
-      detalhe: 'Nenhum texto desta plataforma foi escrito por máquina.',
-      descricao: 'Resumo executivo, síntese e classificação semântica exigiriam um modelo de linguagem. '
-        + 'Previsto para a próxima etapa; até lá os campos correspondentes ficam explicitamente vazios '
-        + 'em vez de preenchidos com texto plausível.',
-      fonte: '—',
-      pendente: 'O contrato ja esta fechado: `summaryExecutive` existe na resposta do clipping '
-        + 'e a tela o exibe quando vier preenchido. Falta so quem o preenche — ver ROADMAP.md, '
-        + 'secao 1. Sem chave, o recurso nao roda e nao conta como falha.',
-      metricas: {},
-    },
     {
       id: 'contas',
       nome: 'Contas e permissões',
       grupo: 'Acesso',
       estado: 'operacional',
-      detalhe: 'Senha por scrypt, token assinado e papel verificado por rota no servidor.',
-      descricao: 'Esta linha dizia, até pouco tempo atrás, que o servidor não autenticava ninguém — '
-        + 'os perfis existiam apenas no navegador e a API atendia qualquer requisição. Deixou de ser '
-        + 'verdade. Hoje a senha é guardada como hash scrypt com sal por conta e conferida em tempo '
-        + 'constante; o login devolve um token HMAC-SHA256 com papel e validade; e cada rota protegida '
-        + 'passa por `exigirPapel()`, que responde 401 sem sessão e 403 com papel insuficiente. '
-        + 'Trocar o papel no localStorage não abre nada: o papel vem do token assinado, não do cliente. '
-        + 'A verificação é testável — `npm run check:auth` percorre quatro identidades contra doze '
-        + 'rotas e confere o código de cada resposta.',
+      detalhe: 'Senha por scrypt, token assinado, e papel e situação conferidos no banco a cada requisição.',
+      descricao: 'A senha é guardada como hash scrypt com sal por conta; o login devolve um token '
+        + 'HMAC-SHA256 com validade; cada rota protegida passa por `exigirPapel()`, que responde 401 '
+        + 'sem sessão e 403 com papel insuficiente. O token só identifica: papel e situação são lidos '
+        + 'do banco a cada requisição, então suspender, remover ou trocar o papel de uma conta vale na '
+        + 'requisição seguinte, sem esperar o token vencer. `npm run check:auth` confere as rotas.',
       fonte: 'server/src/lib/auth.js · server/src/routes/auth.js',
-      pendente: 'Falta o ciclo em volta: recuperacao de senha, confirmacao de e-mail e '
-        + 'promocao de papel pela interface. O esquema ja isola o que seria por conta, e a '
-        + 'migracao incremental de colunas existe — ver ROADMAP.md, secao 2.',
+      pendente: 'Recuperação de senha e confirmação de e-mail não existem: dependem de envio de '
+        + 'e-mail, que esta instalação não tem.',
       metricas: {
         contas: get('SELECT COUNT(*) AS n FROM users')?.n ?? 0,
-        papeis: 3,
+        papeis: 2,
       },
     },
     {
       id: 'assistente-ia',
       nome: 'Assistente por IA',
-      grupo: iaLigada ? 'Operacional' : 'Opcional',
+      grupo: 'IA',
       estado: iaLigada ? 'operacional' : 'opcional',
       detalhe: iaLigada
-        ? `Ligado nesta instalação (${contasComChave} conta(s) com chave própria).`
-        : 'Desligado. Cada conta liga o recurso com a própria chave, em Configurações.',
-      descricao: 'Aqui havia "Dossiês e avaliações de analista", marcado como não implementado: '
-        + 'dossiês, matriz de riscos e narrativas eram telas cujo conteúdo havia sido escrito à mão, e '
-        + 'foram removidas — tela que exibe texto redigido como se fosse saída de análise é a única '
-        + 'mentira que um painel de inteligência não pode contar. '
-        + 'O trabalho de análise que faltava passou a existir por outro caminho: um modelo de '
-        + 'linguagem escreve o resumo do período e responde perguntas sobre o acervo, SEMPRE marcado '
-        + 'como escrito por máquina. A chave é de cada conta, guardada cifrada no servidor, e quem usa '
-        + 'paga o próprio consumo. Sem chave o recurso não roda e nada aparece quebrado: os campos de '
-        + 'síntese ficam vazios com a nota explicando o motivo. '
-        + 'O que continua fora é produção editorial com autoria humana registrada — e a distinção '
-        + 'importa: "a mesa de análise avaliou" e "um modelo resumiu" são afirmações diferentes, e a '
-        + 'interface nunca troca uma pela outra.',
+        ? `Ligado: ${contasComChave} conta(s) com chave própria${instalacaoTemChave ? ', e a chave da instalação configurada' : ''}.`
+        : 'Desligado até alguém configurar uma chave — em Minha conta → Segurança, onde cada conta guarda a própria e o administrador pode definir a da instalação.',
+      descricao: 'Resumo da semana, perguntas ao acervo, análise assistida de até 15 matérias escolhidas '
+        + 'e o guia da plataforma. Todo texto gerado vem marcado como escrito por máquina, e as citações '
+        + 'são conferidas contra o que foi coletado. A chave fica cifrada no servidor e nunca volta ao '
+        + 'navegador; quem usa paga o próprio consumo.',
       fonte: 'server/src/services/ia.js · server/src/routes/ia.js · server/src/lib/chaveIa.js',
-      pendente: iaLigada ? null
-        : 'Nenhuma pendência de código: o recurso está pronto e desligado por falta de chave, '
-          + 'que é uma decisão de quem usa.',
+      pendente: null,
       metricas: {
         contasComChave: contasComChave,
         chaveDaInstalacao: instalacaoTemChave ? 1 : 0,
@@ -339,7 +382,9 @@ export function capacidades() {
 export function panorama() {
   const caps = capacidades()
   const porEstado = (e) => caps.filter((c) => c.estado === e).length
-  const implementadas = caps.filter((c) => c.estado !== 'nao_implementado')
+  // Opcional (sem chave, por decisão de quem instala) também fica fora da conta:
+  // não é algo que a plataforma deixou de entregar.
+  const implementadas = caps.filter((c) => c.estado !== 'nao_implementado' && c.estado !== 'opcional')
 
   return {
     geradoEm: new Date().toISOString(),
@@ -348,6 +393,7 @@ export function panorama() {
       operacional: porEstado('operacional'),
       degradado: porEstado('degradado'),
       naoImplementado: porEstado('nao_implementado'),
+      opcional: porEstado('opcional'),
       // A saúde só conta o que a plataforma se propõe a fazer. Contar o não
       // implementado como falha puniria a honestidade de declará-lo.
       saude: implementadas.length

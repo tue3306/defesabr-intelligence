@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------------
 // TESTE DE AUTORIZAÇÃO
 //
-// Prova que a diferença entre os três perfis é verificada no SERVIDOR, e não
+// Prova que a diferença entre os perfis é verificada no SERVIDOR, e não
 // apenas escondida na interface. Cada perfil é testado contra cada endpoint
 // protegido, e o resultado é comparado com o esperado.
 //
@@ -29,13 +29,15 @@ const ROTAS = [
   { metodo: 'GET', caminho: '/api/economy/indicators', minimo: null },
   { metodo: 'GET', caminho: '/api/search?q=marinha', minimo: null },
 
-  { metodo: 'GET', caminho: '/api/sources', minimo: 'analyst' },
-  { metodo: 'GET', caminho: '/api/system/runs', minimo: 'analyst' },
-  { metodo: 'GET', caminho: '/api/system/method', minimo: 'analyst' },
-  { metodo: 'POST', caminho: '/api/system/method/test', minimo: 'analyst', corpo: { text: 'Marinha do Brasil' } },
+  { metodo: 'GET', caminho: '/api/sources', minimo: 'admin' },
+  { metodo: 'GET', caminho: '/api/system/runs', minimo: 'admin' },
+  { metodo: 'GET', caminho: '/api/system/method', minimo: 'admin' },
+  { metodo: 'POST', caminho: '/api/system/method/test', minimo: 'admin', corpo: { text: 'Marinha do Brasil' } },
 
   { metodo: 'GET', caminho: '/api/system/status', minimo: 'admin' },
   { metodo: 'GET', caminho: '/api/system/capabilities', minimo: 'admin' },
+  { metodo: 'GET', caminho: '/api/system/audit', minimo: 'admin' },
+  { metodo: 'GET', caminho: '/api/users', minimo: 'admin' },
 
   // ── ROTAS QUE MUDAM ESTADO ──
   //
@@ -77,13 +79,50 @@ const ROTAS = [
   {
     metodo: 'POST',
     caminho: '/api/legislative/999999/refresh',
-    minimo: 'analyst',
+    minimo: 'admin',
     autorizado: 404,
     muta: true,
   },
   {
     metodo: 'POST',
     caminho: '/api/system/collect/999999',
+    minimo: 'admin',
+    autorizado: 404,
+    muta: true,
+  },
+
+  // ── A PRÓPRIA CONTA ──
+  //
+  // Corpos invalidos de proposito: nome vazio e senha atual errada param em 400
+  // sem mudar nada. `POST /auth/sessoes/encerrar` fica de fora — autorizado, ele
+  // revogaria a sessao da propria suite.
+  { metodo: 'PATCH', caminho: '/api/auth/me', minimo: 'user', corpo: { name: '' }, autorizado: 400, muta: true },
+  {
+    metodo: 'PUT',
+    caminho: '/api/auth/senha',
+    minimo: 'user',
+    corpo: { atual: 'errada-de-proposito', nova: 'qualquer-coisa' },
+    // 429: a cota por conta desta rota e curta, e so quem passou da guarda a gasta.
+    autorizado: [400, 429],
+    muta: true,
+  },
+
+  // ── GOVERNANÇA DE CONTAS ──
+  //
+  // Identificador inexistente de proposito: quem passa da guarda recebe 404
+  // antes de qualquer alteracao, e a suite roda em producao sem suspender nem
+  // remover ninguem.
+  {
+    metodo: 'PATCH',
+    caminho: '/api/users/999999',
+    minimo: 'admin',
+    corpo: { status: 'ativo' },
+    autorizado: 404,
+    muta: true,
+  },
+  {
+    metodo: 'DELETE',
+    caminho: '/api/users/999999',
     minimo: 'admin',
     autorizado: 404,
     muta: true,
@@ -209,7 +248,7 @@ const ROTAS = [
   },
 ]
 
-const NIVEL = { user: 1, analyst: 2, admin: 3 }
+const NIVEL = { user: 1, admin: 2 }
 
 async function entrar(conta) {
   if (!conta.usuario) return null

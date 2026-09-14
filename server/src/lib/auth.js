@@ -2,17 +2,18 @@ import { randomBytes, scrypt, timingSafeEqual, createHmac } from 'node:crypto'
 import { promisify } from 'node:util'
 import config from '../config.js'
 import { resolverSegredo } from './segredo.js'
+import { get } from '../db/index.js'
 
 // -----------------------------------------------------------------------------
 // AUTENTICAÇÃO
 //
-// Até aqui os quatro perfis eram verificados só no navegador: trocar de perfil
+// Até aqui os perfis eram verificados só no navegador: trocar de perfil
 // mudava o que a interface mostrava, e a API atendia qualquer requisição sem
 // perguntar quem chamava. Esconder um menu não é controle de acesso — quem
 // soubesse o endereço do endpoint entrava.
 //
-// Este módulo é o mínimo para que a diferença entre Usuário, Analista e
-// Administrador seja verificada no SERVIDOR, sem dependência externa:
+// Este módulo é o mínimo para que a diferença entre Usuário e Administrador
+// seja verificada no SERVIDOR, sem dependência externa:
 //
 //   senha    scrypt com sal por conta (node:crypto)
 //   sessão   token assinado com HMAC-SHA256, contendo id, papel e validade
@@ -21,9 +22,9 @@ import { resolverSegredo } from './segredo.js'
 // contêiner a cada deploy, e sessão em memória some junto. Um token assinado é
 // verificável sem estado — o servidor confere a assinatura e a validade.
 //
-// O QUE ISTO NÃO É: não há recuperação de senha, verificação de e-mail, nem
-// revogação de token antes do vencimento. São coisas necessárias num produto
-// real, e a ausência está declarada no painel de saúde em vez de simulada.
+// O QUE ISTO NÃO É: não há recuperação de senha nem verificação de e-mail —
+// as duas dependem de envio de mensagem, que a instalação não tem. A revogação
+// antes do vencimento existe: ver `lerConta` e a coluna `sessoes_desde`.
 // -----------------------------------------------------------------------------
 
 const ALGORITMO_SCRYPT = { N: 16384, r: 8, p: 1, keylen: 64 }
@@ -83,7 +84,7 @@ function assinar(payloadB64) {
  * Emite um token para a conta.
  *
  * Formato: `<payload em base64url>.<assinatura>`. O payload é legível por
- * qualquer um — e deve ser: ele não guarda segredo, só id, papel, plano e
+ * qualquer um — e deve ser: ele não guarda segredo, só id, nome, papel e
  * vencimento. O que impede forjar um papel de administrador é a assinatura,
  * que exige o segredo do servidor.
  */
@@ -93,7 +94,8 @@ export function emitirToken(conta) {
     name: conta.name,
     email: conta.email,
     role: conta.role,
-    plan: conta.plan,
+    // Emissão: comparada com `sessoes_desde` para revogar tokens antigos.
+    iat: Date.now(),
     exp: Date.now() + config.auth.duracaoHoras * 3600_000,
   }
   const corpo = base64url(JSON.stringify(payload))
@@ -126,8 +128,16 @@ export function lerToken(token) {
   }
 }
 
-/** Papéis que herdam as capacidades dos anteriores. */
-const HIERARQUIA = { user: 1, analyst: 2, admin: 3 }
+/**
+ * Papéis que herdam as capacidades dos anteriores.
+ *
+ * Eram três, com `analyst` no meio. Nenhuma conta chegava a ele — a instalação
+ * semeia usuário e administrador, o cadastro cria usuário e a governança só
+ * atribui esses dois —, e o que ele guardava (fontes, execuções, método do
+ * filtro) é operação da instalação. Papel intermediário sem ninguém dentro só
+ * multiplica os casos a conferir.
+ */
+const HIERARQUIA = { user: 1, admin: 2 }
 
 /**
  * Middleware: lê o token do cabeçalho e põe a conta em `req.conta`.
@@ -138,7 +148,44 @@ const HIERARQUIA = { user: 1, analyst: 2, admin: 3 }
 export function lerConta(req, _res, next) {
   const cabecalho = req.headers.authorization || ''
   const token = cabecalho.startsWith('Bearer ') ? cabecalho.slice(7) : null
-  req.conta = token ? lerToken(token) : null
+  const payload = token ? lerToken(token) : null
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // O TOKEN PROVA QUEM É. O BANCO DIZ O QUE ESSA PESSOA PODE AGORA.
+  //
+  // Esta função confiava no papel gravado DENTRO do token. A assinatura
+  // garante que o token não foi forjado — mas não que ele continua valendo:
+  // ela diz o que era verdade quando ele foi emitido, e ele vale doze horas.
+  //
+  // O efeito era que nenhuma decisão de governança tinha efeito imediato.
+  // Rebaixar um administrador deixava a pessoa administrando até o token
+  // vencer. Suspender ou excluir uma conta não fazia nada — o token continuava
+  // abrindo todas as rotas que abria antes.
+  //
+  // Agora o token identifica, e o banco autoriza. Uma leitura por chave
+  // primária no SQLite por requisição, que é o preço de uma revogação que
+  // funciona. Conta inexistente ou suspensa vira ausência de sessão: 401, e o
+  // navegador desconecta.
+  // ───────────────────────────────────────────────────────────────────────────
+  if (!payload) {
+    req.conta = null
+    return next()
+  }
+
+  let atual = null
+  try {
+    atual = get('SELECT name, role, status, sessoes_desde FROM users WHERE id = ?', [payload.sub])
+  } catch {
+    atual = null
+  }
+
+  // Token emitido antes do marco de revogação — troca de senha ou "encerrar
+  // as outras sessões" — deixa de valer, mesmo com assinatura e prazo em dia.
+  const revogado = atual?.sessoes_desde && (payload.iat || 0) < atual.sessoes_desde
+
+  req.conta = atual && (atual.status || 'ativo') === 'ativo' && !revogado
+    ? { ...payload, role: atual.role, name: atual.name }
+    : null
   next()
 }
 

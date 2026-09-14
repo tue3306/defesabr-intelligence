@@ -2,12 +2,14 @@ import { Router } from 'express'
 import { all, get, run } from '../db/index.js'
 import { exigirPapel } from '../lib/auth.js'
 import { limitar } from '../lib/limite.js'
+import { registrarAuditoria } from '../lib/auditoria.js'
 import { dias } from '../lib/parametros.js'
 import {
   configIa, salvarChave, removerChave, salvarModelo,
   salvarChaveDaConta, removerChaveDaConta, salvarModeloDaConta,
-  MODELO_PADRAO,
+  MODELO_PADRAO, chaveComFormatoValido,
 } from '../lib/chaveIa.js'
+import { contaCompartilhada } from './auth.js'
 import {
   sintetizarClipping, perguntarSobreAcervo, lerCorrelacao,
   analisarLote, relatorioSemanal, responderSobreAPlataforma,
@@ -53,6 +55,15 @@ const SELECT_MATERIAS = `
    WHERE a.relevant = 1
      AND a.published_at >= strftime('%Y-%m-%dT%H:%M:%SZ','now', ?)`
 
+const compartilhada = (req) =>
+  contaCompartilhada(get('SELECT username FROM users WHERE id = ?', [req.conta?.sub]))
+
+const recusaCompartilhada = (res) => res.status(403).json({
+  error: 'Esta é a conta de uso compartilhado do projeto e não guarda chave própria — outras '
+    + 'pessoas usariam o seu crédito. Crie a sua conta pelo cadastro para usar a sua chave.',
+  code: 'CONTA_COMPARTILHADA',
+})
+
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/ia/estado — o recurso está ligado?
 //
@@ -75,6 +86,9 @@ router.get('/ia/estado', exigirPapel('user'), (req, res) => {
     // Configurar a chave DA INSTALAÇÃO é do administrador. Configurar a
     // própria é de qualquer conta — é a chave dela.
     podeConfigurarInstalacao: req.conta?.role === 'admin',
+    // Conta de uso compartilhado não guarda chave própria: os outros visitantes
+    // gastariam o crédito de quem a colou. Ver `contaCompartilhada`.
+    contaCompartilhada: compartilhada(req),
     fixadoPorAmbiente: !!process.env.ANTHROPIC_API_KEY,
     nota: e.configurada
       ? 'Textos gerados por modelo aparecem sempre marcados como escritos por máquina.'
@@ -94,6 +108,7 @@ router.get('/ia/estado', exigirPapel('user'), (req, res) => {
 // valor: a resposta traz só os quatro últimos caracteres.
 // ─────────────────────────────────────────────────────────────────────────────
 router.put('/ia/minha-chave', exigirPapel('user'), limitar({ max: 10, janelaMs: 60_000 }), (req, res) => {
+  if (chaveComFormatoValido(req.body?.chave) && compartilhada(req)) return recusaCompartilhada(res)
   const r = salvarChaveDaConta(req.conta.sub, req.body?.chave)
   if (!r.ok) return res.status(400).json({ error: r.erro })
   const e = configIa(req.conta.sub)
@@ -107,6 +122,9 @@ router.delete('/ia/minha-chave', exigirPapel('user'), (req, res) => {
 })
 
 router.put('/ia/meu-modelo', exigirPapel('user'), (req, res) => {
+  // Voltar ao padrão é sempre permitido; escolher outro modelo numa conta
+  // compartilhada mudaria o custo que a chave da instalação paga por todos.
+  if (String(req.body?.modelo || '').trim() && compartilhada(req)) return recusaCompartilhada(res)
   const r = salvarModeloDaConta(req.conta.sub, req.body?.modelo)
   if (!r.ok) return res.status(400).json({ error: r.erro })
   const e = configIa(req.conta.sub)
@@ -119,19 +137,25 @@ router.put('/ia/meu-modelo', exigirPapel('user'), (req, res) => {
 router.put('/ia/chave', exigirPapel('admin'), limitar({ max: 10, janelaMs: 60_000 }), (req, res) => {
   const r = salvarChave(req.body?.chave)
   if (!r.ok) return res.status(400).json({ error: r.erro })
+  registrarAuditoria(req, { acao: 'Chave de IA da instalação definida', alvo: 'Assistente por IA', nivel: 'warn' })
   const { modelo, finalDaChave } = configIa()
   res.json({ ok: true, configurada: true, origem: 'banco', modelo, finalDaChave })
 })
 
-router.delete('/ia/chave', exigirPapel('admin'), (_req, res) => {
+router.delete('/ia/chave', exigirPapel('admin'), (req, res) => {
   removerChave()
+  registrarAuditoria(req, { acao: 'Chave de IA da instalação removida', alvo: 'Assistente por IA', nivel: 'warn' })
   const estado = configIa()
   res.json({ ok: true, configurada: estado.configurada, origem: estado.origem })
 })
 
 router.put('/ia/modelo', exigirPapel('admin'), (req, res) => {
+  const anterior = configIa().modelo
   const r = salvarModelo(req.body?.modelo)
   if (!r.ok) return res.status(400).json({ error: r.erro })
+  if (r.modelo !== anterior) {
+    registrarAuditoria(req, { acao: `Modelo da instalação: ${anterior} → ${r.modelo}`, alvo: 'Assistente por IA' })
+  }
   res.json({ ok: true, modelo: r.modelo })
 })
 

@@ -84,6 +84,22 @@ const COLUNAS_ADICIONADAS = [
   // entregar a chave de ninguem. Ver server/src/lib/segredoGuardado.js, que
   // tambem explica o que essa cifra NAO protege.
   ['correlations', 'leitura_ia', 'TEXT'],
+  // A SITUACAO DA CONTA: 'ativo' ou 'suspenso'.
+  //
+  // O console de governanca tinha botoes de suspender, reativar e remover
+  // conta. Os tres mudavam uma lista na memoria do navegador e anunciavam
+  // sucesso — "Conta de fulano removida" —, e nada chegava ao servidor. A
+  // pessoa "removida" continuava entrando.
+  //
+  // Suspensao com efeito precisa de um lugar para morar, e e aqui. Ver
+  // `lerConta` em lib/auth.js, que a consulta a cada requisicao.
+  ['users', 'status', "TEXT NOT NULL DEFAULT 'ativo'"],
+  // MARCO DE REVOGAÇÃO DAS SESSÕES, em milissegundos.
+  //
+  // O token é sem estado, então "encerrar as outras sessões" e "trocar a
+  // senha" não tinham como invalidar o que já foi emitido. Com este marco,
+  // `lerConta` recusa todo token emitido antes dele.
+  ['users', 'sessoes_desde', 'INTEGER'],
   ['users', 'ia_api_key', 'TEXT'],
   // O modelo que a pessoa escolheu, se escolheu. Nao e segredo, entao fica em
   // texto puro.
@@ -134,6 +150,10 @@ export function migrate() {
 
   // 3. indices sobre essas colunas — so agora elas existem
   for (const sql of INDICES_ADICIONADOS) db.exec(sql)
+
+  // 4. papeis que deixaram de existir. `analyst` saiu do modelo; uma conta que
+  // ainda o tenha vira `user`, o papel de menor privilegio, e nao `admin`.
+  db.exec("UPDATE users SET role = 'user' WHERE role NOT IN ('user', 'admin')")
 }
 
 // `DatabaseSync` devolve objetos com protótipo nulo. Isso quebra

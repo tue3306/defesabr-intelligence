@@ -10,6 +10,7 @@ import { atoresContraBrasil, ator } from '../collectors/atores.js'
 import { exigirPapel } from '../lib/auth.js'
 import { limitar } from '../lib/limite.js'
 import { limite } from '../lib/parametros.js'
+import { registrarAuditoria } from '../lib/auditoria.js'
 
 const router = Router()
 
@@ -69,7 +70,7 @@ router.get('/legislative', (req, res) => {
  * tramitação é ação pontual de diagnóstico, não algo que se faça em rajada.
  */
 router.post('/legislative/:id/refresh',
-  exigirPapel('analyst'),
+  exigirPapel('admin'),
   limitar({ max: 20, janelaMs: 60_000 }),
   async (req, res, next) => {
     try {
@@ -270,7 +271,7 @@ router.get('/economy/exports', (req, res) => {
 //
 // A landing anuncia quantas fontes alimentam o acervo, e essa é uma afirmação
 // que o visitante tem o direito de conferir. Mas ela vinha de `/sources`, que
-// exige papel `analyst` e devolve `lastError` e histórico de falhas — telemetria
+// exige papel `admin` e devolve `lastError` e histórico de falhas — telemetria
 // operacional que não é assunto de quem ainda não entrou.
 //
 // O resultado era um 401 no console da página inicial e a contagem em branco.
@@ -356,7 +357,7 @@ router.get('/sources/summary', (req, res) => {
 
   // A lista leve: nome, categoria e se respondeu. Nada de `lastError` nem de
   // historico de falhas — isso e telemetria operacional e continua no
-  // /sources, que exige papel `analyst`.
+  // /sources, que exige papel `admin`.
   //
   // Ela existe porque a tela de Configuracoes mostrava uma lista de 15 fontes
   // ESCRITA A MAO com `status: 'online'` fixo, incluindo tres que o proprio
@@ -376,7 +377,7 @@ router.get('/sources/summary', (req, res) => {
   res.json({ total: r?.total ?? 0, ok: r?.ok ?? 0, items: itens })
 })
 
-router.get('/sources', exigirPapel('analyst'), (req, res) => {
+router.get('/sources', exigirPapel('admin'), (req, res) => {
   const itens = all(
     `SELECT s.*, (SELECT COUNT(*) FROM articles a WHERE a.source_id = s.id) AS artigos,
             (SELECT COUNT(*) FROM articles a WHERE a.source_id = s.id AND a.relevant = 1) AS relevantes
@@ -447,6 +448,13 @@ router.patch('/sources/:id', exigirPapel('admin'), (req, res) => {
     return res.status(400).json({ error: 'Envie `enabled` como booleano.', campo: 'enabled' })
   }
   run('UPDATE sources SET enabled = ? WHERE id = ?', [req.body.enabled ? 1 : 0, s.id])
+  if (!!s.enabled !== req.body.enabled) {
+    registrarAuditoria(req, {
+      acao: req.body.enabled ? 'Coleta da fonte religada' : 'Coleta da fonte pausada',
+      alvo: `Fonte · ${s.name}`,
+      nivel: req.body.enabled ? 'info' : 'warn',
+    })
+  }
   res.json({ ok: true, id: s.id, enabled: req.body.enabled })
 })
 

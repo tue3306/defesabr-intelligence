@@ -155,6 +155,26 @@ CREATE TABLE IF NOT EXISTS collector_runs (
 CREATE INDEX IF NOT EXISTS idx_runs_collector ON collector_runs(collector, started_at DESC);
 
 -- ─────────────────────────────────────────────────────────────────────────────
+-- TRILHA DE GOVERNANÇA
+--
+-- Atos de administração: papel e situação de conta, remoção de conta, fonte
+-- ligada ou desligada, chave de IA da instalação, coleta disparada à mão.
+-- `actor_name` é copiado no momento do ato para que a linha continue legível
+-- depois que a conta de quem agiu for removida.
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS audit_log (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  created_at  TEXT NOT NULL,
+  actor_id    INTEGER,
+  actor_name  TEXT,
+  action      TEXT NOT NULL,
+  target      TEXT NOT NULL,
+  level       TEXT NOT NULL DEFAULT 'info'
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_quando ON audit_log(created_at DESC);
+
+-- ─────────────────────────────────────────────────────────────────────────────
 -- FAVORITOS
 --
 -- Sem sistema de contas, o "dono" é o navegador: a interface gera um

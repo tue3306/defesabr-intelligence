@@ -125,6 +125,9 @@ export function configIa(userId = null) {
   }
 }
 
+/** A chave tem o formato de uma chave da Anthropic? Não diz se ela funciona. */
+export const chaveComFormatoValido = (valor) => RX_CHAVE.test(String(valor || '').trim())
+
 /** Grava a chave DA CONTA, cifrada. */
 export function salvarChaveDaConta(userId, valor) {
   const limpa = String(valor || '').trim()

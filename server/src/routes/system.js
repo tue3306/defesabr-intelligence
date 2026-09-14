@@ -6,16 +6,22 @@ import { coletarAgora, coletarFonte, estadoDoAgendador } from '../collectors/ind
 import { METODO_RELEVANCIA, avaliarRelevancia, classificar } from '../lib/relevance.js'
 import { exigirPapel } from '../lib/auth.js'
 import { limite } from '../lib/parametros.js'
+import { registrarAuditoria, trilhaDeAuditoria } from '../lib/auditoria.js'
+import { alertasDeSeguranca } from './auth.js'
 
 const router = Router()
 
 // GET /api/system/status — o painel de diagnóstico
-router.get('/system/status', exigirPapel('admin'), (req, res) => res.json(panorama()))
+router.get('/system/status', exigirPapel('admin'), async (req, res, next) => {
+  try {
+    res.json({ ...panorama(), alertas: await alertasDeSeguranca() })
+  } catch (err) { next(err) }
+})
 
 router.get('/system/capabilities', exigirPapel('admin'), (req, res) => res.json({ items: capacidades() }))
 
 // GET /api/system/runs — histórico das coletas
-router.get('/system/runs', exigirPapel('analyst'), (req, res) => {
+router.get('/system/runs', exigirPapel('admin'), (req, res) => {
   const quantos = limite(req.query.limit, 40, 200)
   const itens = historicoDeExecucoes(quantos)
 
@@ -36,11 +42,18 @@ router.get('/system/runs', exigirPapel('analyst'), (req, res) => {
   })
 })
 
+// GET /api/system/audit — atos de governança e execuções de coleta, juntos
+router.get('/system/audit', exigirPapel('admin'), (req, res) => {
+  const itens = trilhaDeAuditoria(limite(req.query.limit, 60, 300))
+  res.json({ items: itens, total: itens.length })
+})
+
 // POST /api/system/collect — dispara a coleta manualmente
 router.post('/system/collect', exigirPapel('admin'), async (req, res, next) => {
   try {
     const r = await coletarAgora('manual')
-    if (r.jaEmAndamento) return res.status(409).json(r)
+    if (r.jaEmAndamento) return res.status(409).json({ ...r, error: r.mensagem })
+    registrarAuditoria(req, { acao: `Coleta completa disparada à mão (${Math.round(r.duracaoMs / 1000)} s)`, alvo: 'Todos os coletores' })
     res.json(r)
   } catch (err) { next(err) }
 })
@@ -53,12 +66,18 @@ router.post('/system/collect/:sourceId', exigirPapel('admin'), async (req, res, 
   try {
     const fonte = get('SELECT * FROM sources WHERE id = ?', [req.params.sourceId])
     if (!fonte) return res.status(404).json({ error: 'Fonte não encontrada.' })
-    res.json(await coletarFonte(fonte))
+    const r = await coletarFonte(fonte)
+    registrarAuditoria(req, {
+      acao: r?.ok === false ? `Teste de fonte falhou — ${r.erro || 'sem detalhe'}` : 'Fonte testada manualmente',
+      alvo: `Fonte · ${fonte.name}`,
+      nivel: r?.ok === false ? 'error' : 'info',
+    })
+    res.json(r)
   } catch (err) { next(err) }
 })
 
 // GET /api/system/method — como o filtro decide
-router.get('/system/method', exigirPapel('analyst'), (req, res) => {
+router.get('/system/method', exigirPapel('admin'), (req, res) => {
   res.json({
     ...METODO_RELEVANCIA,
     // Amostra do que o filtro RECUSOU. É a metade que costuma ficar
@@ -78,7 +97,7 @@ router.get('/system/method', exigirPapel('analyst'), (req, res) => {
 //
 // Deixa o filtro demonstrável ao vivo: cola-se um título e vê-se a decisão com
 // os termos que casaram. Sem isso, "a regra é auditável" é só uma afirmação.
-router.post('/system/method/test', exigirPapel('analyst'), (req, res) => {
+router.post('/system/method/test', exigirPapel('admin'), (req, res) => {
   const texto = String(req.body?.text || '').trim()
   if (!texto) return res.status(400).json({ error: 'Envie um texto em "text".' })
 
