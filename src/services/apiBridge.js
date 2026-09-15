@@ -368,30 +368,33 @@ export const PONTES = new Map([
   // ── Legislativo ──
   ['GET /strategic/legislative', {
     caminho: '/legislative',
-    parametros: (p = {}) => ({ q: p.q, limit: 150 }),
+    parametros: (p = {}) => ({ q: p.q, limit: 300, todas: p.todas ? 'true' : undefined }),
     transformar: (d) => ({
       items: (d.items || []).map((b) => ({
         id: String(b.id),
+        externalId: b.externalId,
         code: b.code,
         house: b.house,
-        title: b.code,
         summary: b.summary,
         url: b.url,
         presented_at: b.presentedAt,
-        updated_at: b.fetchedAt,
-        status: b.statusText,
+        fetched_at: b.fetchedAt,
         statusText: b.statusText,
+        status_at: b.statusAt,
         keyword: b.keyword,
         stage: estagioDe(b.statusText),
-        // A RELEVÂNCIA para a defesa não é derivável: exige ler a proposição e
-        // decidir o que ela significa. Fica nula, e a tela omite o rótulo em
-        // vez de exibir um campo vazio que parece defeito.
-        relevance: null,
+        // Por que está no Radar: os termos de defesa encontrados na ementa.
+        relevante: b.relevante,
+        termos: b.termos || [],
       })),
       total: d.total,
+      coletadas: d.coletadas,
+      foraDoDominio: d.foraDoDominio,
+      metodo: d.metodo,
       provider: d.provider,
       lastFetchAt: d.lastFetchAt,
       semSituacao: d.semSituacao,
+      keywords: d.keywords,
     }),
   }],
 
@@ -541,12 +544,15 @@ export const PONTES = new Map([
  * "norma" e também poderia casar com outros padrões mais genéricos.
  */
 function estagioDe(texto) {
-  if (!texto) return 'comissao'
+  // Sem situação consultada não há estágio. Devolvia 'comissao', e 140
+  // proposições apareciam "Em comissão · 35%" sem que ninguém tivesse lido.
+  if (!texto) return 'pendente'
   const t = texto.toLowerCase()
   if (/arquivad|retirad|prejudicad|devolvid/.test(t)) return 'arquivado'
   if (/transformad.*norma|convertid.*lei|sancionad|promulgad/.test(t)) return 'aprovado'
   if (/remetid.*sanç|aguardando sanç|autógrafo/.test(t)) return 'sancao'
   if (/plenári|plenario|ordem do dia|pauta/.test(t)) return 'plenario'
+  if (/apresentação de proposição|apresentacao de proposicao|aguardando despacho|aguardando encaminhamento|recebimento/.test(t)) return 'apresentada'
   return 'comissao'
 }
 

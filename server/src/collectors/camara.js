@@ -1,5 +1,6 @@
 import { get, run, transacao } from '../db/index.js'
 import { buscarJson } from '../lib/fetcher.js'
+import { avaliarProposicao } from '../lib/proposicoes.js'
 
 // -----------------------------------------------------------------------------
 // DADOS ABERTOS DA CÂMARA DOS DEPUTADOS
@@ -118,36 +119,64 @@ export async function coletarCamara() {
   }
 }
 
+/** Depois de quantos dias uma situação já consultada volta para a fila. */
+const SITUACAO_VALE_DIAS = 7
+
 /**
- * Preenche a situação de tramitação das proposições que ainda não a têm.
+ * Preenche e renova a situação de tramitação das proposições.
  *
  * Separado da coleta porque é uma requisição POR proposição: fazer isso para
  * 100 proposições dentro da coleta transformaria uma operação de 8 segundos
  * numa de vários minutos. Aqui roda em lote pequeno, a cada execução.
+ *
+ * Ordem da fila: as que nunca foram consultadas, depois as consultadas há mais
+ * de uma semana, da mais antiga para a mais nova; dentro de cada grupo, as que
+ * o Radar exibe vão primeiro — consultar uma proposição sobre inteligência
+ * artificial antes das de defesa gastava o lote com o que ninguém vê.
  */
 export async function enriquecerSituacoes(limite = 12) {
-  const pendentes = get('SELECT COUNT(*) AS n FROM bills WHERE status_text IS NULL')?.n ?? 0
-  if (!pendentes) return { atualizadas: 0, pendentes: 0 }
-
   const { all } = await import('../db/index.js')
-  const lote = all(
-    'SELECT id, external_id FROM bills WHERE status_text IS NULL ORDER BY id DESC LIMIT ?',
-    [limite]
-  )
+  const fila = all(
+    `SELECT id, external_id, summary, status_text, status_at FROM bills
+     WHERE status_text IS NULL OR status_at IS NULL
+        OR status_at < strftime('%Y-%m-%dT%H:%M:%SZ', 'now', ?)
+     ORDER BY external_id DESC`,
+    [`-${SITUACAO_VALE_DIAS} days`]
+  ).map((b) => ({
+    ...b,
+    nunca: b.status_text == null,
+    relevante: avaliarProposicao(b.summary).relevante,
+  }))
+  const pendentes = fila.filter((b) => b.nunca).length
+  if (!fila.length) return { atualizadas: 0, pendentes: 0 }
+
+  const lote = fila
+    .sort((a, b) => (Number(b.nunca) - Number(a.nunca))
+      || (Number(b.relevante) - Number(a.relevante))
+      || String(a.status_at || '').localeCompare(String(b.status_at || '')))
+    .slice(0, limite)
 
   let atualizadas = 0
+  let novas = 0
   for (const b of lote) {
     const s = await situacaoDaProposicao(b.external_id)
     if (!s) continue
-    run(
-      `UPDATE bills SET status_text = ?, presented_at = COALESCE(?, presented_at),
-         summary = COALESCE(?, summary) WHERE id = ?`,
-      [s.statusText, s.presentedAt, s.summary, b.id]
-    )
+    gravarSituacao(b.id, s)
     atualizadas += 1
+    if (b.nunca) novas += 1
   }
 
-  return { atualizadas, pendentes: pendentes - atualizadas }
+  return { atualizadas, pendentes: pendentes - novas }
 }
 
-export default { coletarCamara, enriquecerSituacoes, situacaoDaProposicao, PALAVRAS_CHAVE }
+/** Grava a situação consultada e a data da consulta. */
+export function gravarSituacao(id, s) {
+  run(
+    `UPDATE bills SET status_text = ?, presented_at = COALESCE(?, presented_at),
+       summary = COALESCE(?, summary),
+       status_at = strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE id = ?`,
+    [s.statusText, s.presentedAt, s.summary, id]
+  )
+}
+
+export default { coletarCamara, enriquecerSituacoes, gravarSituacao, situacaoDaProposicao, PALAVRAS_CHAVE }

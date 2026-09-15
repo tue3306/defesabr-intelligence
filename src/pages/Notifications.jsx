@@ -86,7 +86,10 @@ export default function Notifications() {
   }, [visible, filter, level])
 
   const pages = Math.max(1, Math.ceil(list.length / PER_PAGE))
-  const pageItems = list.slice((page - 1) * PER_PAGE, page * PER_PAGE)
+  // Limitada ao total: em "Não lidas", marcar como lida tira o item da lista, e
+  // a página 2 podia ficar vazia com notificações ainda na página 1.
+  const current = Math.min(page, pages)
+  const pageItems = list.slice((current - 1) * PER_PAGE, current * PER_PAGE)
 
   // Agrupa a página atual por dia, preservando a ordem recebida.
   const grouped = useMemo(() => {
@@ -217,8 +220,30 @@ export default function Notifications() {
                         <Badge type="urgency" value={n.level} />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium leading-snug">{n.title}</p>
-                        <p className="text-xs muted" title={formatDateTimeBR(n.time)}>{timeAgo(n.time)}</p>
+                        {/^https?:\/\//i.test(n.url || '') ? (
+                          <a
+                            href={n.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => markRead(n.id)}
+                            className="font-medium leading-snug hover:text-brand-500 hover:underline dark:hover:text-brand-300"
+                          >
+                            {n.title}
+                          </a>
+                        ) : n.to ? (
+                          <Link
+                            to={n.to}
+                            onClick={() => markRead(n.id)}
+                            className="font-medium leading-snug hover:text-brand-500 hover:underline dark:hover:text-brand-300"
+                          >
+                            {n.title}
+                          </Link>
+                        ) : (
+                          <p className="font-medium leading-snug">{n.title}</p>
+                        )}
+                        <p className="text-xs muted" title={formatDateTimeBR(n.time)}>
+                          {n.source ? `${n.source} · ` : ''}{timeAgo(n.time)}
+                        </p>
                       </div>
                       <div className="flex shrink-0 items-center gap-1">
                         {!n.read && <span className="mr-1 h-2 w-2 rounded-full bg-gold-500" title="Não lida" />}
@@ -246,7 +271,7 @@ export default function Notifications() {
             </section>
           ))}
 
-          <Pagination page={page} pages={pages} onChange={setPage} total={list.length} label="notificações" />
+          <Pagination page={current} pages={pages} onChange={setPage} total={list.length} label="notificações" />
         </div>
       )}
 

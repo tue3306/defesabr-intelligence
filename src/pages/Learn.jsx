@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   GraduationCap, BookOpen, Brain, Search, Shield, Globe2, LineChart, Cpu, ArrowRight,
@@ -66,8 +66,18 @@ function useLearnProgress() {
 
 export default function Learn() {
   const progress = useLearnProgress()
-  const [q, setQ] = useState('')
+  // `?termo=` chega da busca global: o glossário abre já filtrado no termo,
+  // em vez de deixar o leitor no topo da página procurando de novo.
+  const [params] = useSearchParams()
+  const termoInicial = params.get('termo') || ''
+  const [q, setQ] = useState(termoInicial)
   const [cat, setCat] = useState('')
+
+  useEffect(() => {
+    if (!termoInicial) return
+    setQ(termoInicial)
+    document.getElementById('glossario')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [termoInicial])
 
   const terms = useMemo(() => {
     const nq = normalize(q)
@@ -244,7 +254,7 @@ export default function Learn() {
       </section>
 
       {/* GLOSSÁRIO */}
-      <section>
+      <section id="glossario" className="scroll-mt-24">
         <h2 className="mb-4 flex items-center gap-2 text-lg font-bold tracking-tight">
           <Search size={20} className="text-brand-400 dark:text-brand-300" /> Glossário de termos e siglas ({terms.length})
         </h2>

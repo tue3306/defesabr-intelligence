@@ -132,10 +132,11 @@ export function capacidades() {
       id: 'coleta-camara',
       nome: 'Proposições legislativas',
       coletor: 'camara',
-      descricao: 'Dados Abertos da Câmara, consultados por 13 palavras-chave do domínio e deduplicados por id.',
+      descricao: 'Dados Abertos da Câmara, consultados por 13 palavras-chave e deduplicados por id. '
+        + 'Só entram no Radar as que têm termo de defesa na ementa.',
       fonte: 'dadosabertos.camara.leg.br',
       contagem: () => contar('SELECT COUNT(*) AS n FROM bills'),
-      evidencia: (t) => `${t} proposição(ões) acompanhadas`,
+      evidencia: (t) => `${t} proposição(ões) coletadas por palavra-chave`,
     }),
     capacidadeDeColeta({
       id: 'coleta-worldbank',

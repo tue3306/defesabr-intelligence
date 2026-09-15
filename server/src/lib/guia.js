@@ -83,7 +83,9 @@ export const TELAS = [
     caminho: '/legislativo',
     nivel: 'Estratégico',
     resumo: 'Proposições de defesa em tramitação, dos Dados Abertos da Câmara.',
-    detalhe: 'Cada proposição pode ter a tramitação consultada ao vivo na Câmara.',
+    detalhe: 'Só entram as que têm termo de defesa na ementa, e cada cartão mostra qual. A situação de '
+      + 'tramitação é consultada na Câmara em lotes a cada coleta; o administrador pode consultar uma '
+      + 'proposição na hora.',
   },
   {
     id: 'dados',

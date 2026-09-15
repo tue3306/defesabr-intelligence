@@ -116,6 +116,13 @@ const COLUNAS_ADICIONADAS = [
   // nao vale nada. Ver server/src/lib/correlacao.js.
   ['articles', 'br_score', 'INTEGER'],
   ['articles', 'br_motivo', 'TEXT'],
+
+  // QUANDO A SITUACAO DE TRAMITACAO FOI CONSULTADA NA CAMARA.
+  //
+  // A situacao era preenchida uma vez e nunca mais: uma proposicao "Aguardando
+  // Designacao de Relator" continuava assim no Radar depois de aprovada. Com a
+  // data, a coleta reconsulta as mais antigas e a tela diz de quando e o dado.
+  ['bills', 'status_at', 'TEXT'],
 ]
 
 /**

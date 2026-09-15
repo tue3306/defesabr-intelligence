@@ -162,8 +162,16 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
                     <ul className="max-h-[60vh] overflow-y-auto sm:max-h-80">
                       {notifications.slice(0, 8).map((n) => (
                         <li key={n.id}>
+                          {/* A notificação abre o que ela anuncia: a matéria no
+                              veículo ou a tela dos incidentes. Antes o clique só
+                              a marcava como lida, e o link guardado não servia
+                              para nada. */}
                           <button
-                            onClick={() => markRead(n.id)}
+                            onClick={() => {
+                              markRead(n.id)
+                              if (/^https?:\/\//i.test(n.url || '')) window.open(n.url, '_blank', 'noopener,noreferrer')
+                              else if (n.to) { setNotifOpen(false); navigate(n.to) }
+                            }}
                             className={`flex w-full items-start gap-2.5 px-3 py-2.5 text-left text-sm transition-colors hover:bg-gray-100 dark:hover:bg-white/10 ${
                               n.read ? 'opacity-55' : ''
                             }`}

@@ -84,7 +84,10 @@ export default function Archive() {
   }, [clippings, query, cats, alert, sort, range])
 
   const pages = Math.max(1, Math.ceil(filtered.length / PER_PAGE))
-  const pageItems = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE)
+  // Limitada ao total: excluir os últimos itens da última página a deixava
+  // vazia, com clippings ainda nas anteriores.
+  const current = Math.min(page, pages)
+  const pageItems = filtered.slice((current - 1) * PER_PAGE, current * PER_PAGE)
 
   const hasFilters = !!(query || cats.length || alert || range.from || range.to)
   const clearFilters = () => { setQuery(''); setCats([]); setAlert(''); setRange({ from: '', to: '' }) }
@@ -327,7 +330,7 @@ export default function Archive() {
                 )
               })}
 
-              <Pagination page={page} pages={pages} onChange={setPage} total={filtered.length} label="clippings" />
+              <Pagination page={current} pages={pages} onChange={setPage} total={filtered.length} label="clippings" />
             </div>
           )}
         </>

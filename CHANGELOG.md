@@ -26,6 +26,11 @@ Auditoria de consistência entre o que a interface promete e o que existe.
 - **Senha temporária** gerada pelo administrador para quem esqueceu a própria.
 - Atalho de entrada das duas contas iniciais (usuário e administrador), exibido só
   enquanto a senha padrão — conferida no hash — estiver em uso.
+- **Regra de domínio das proposições** (`server/src/lib/proposicoes.js`): o Radar
+  Legislativo só mostra a proposição cuja ementa tem termo de defesa, e cada
+  cartão diz qual. `?todas=true` mostra as de fora, marcadas.
+- Situação de tramitação com data de consulta (`bills.status_at`), renovada pela
+  coleta depois de 7 dias; o administrador consulta uma proposição na hora.
 
 ### Corrigido
 
@@ -47,6 +52,19 @@ Auditoria de consistência entre o que a interface promete e o que existe.
 - Parte dos feeds entregava a matéria inteira como resumo (até 8.930
   caracteres); as respostas passam a trazer um trecho, com link para o original.
 - Quiz: recorde guardado por trilha, e não um número só para todas.
+- Radar Legislativo: 127 das 176 proposições coletadas não eram de defesa — a
+  busca da Câmara trazia "inteligência" artificial, "soberania" econômica e as
+  polícias militares dos Estados. As três ordenações não ordenavam (campos que a
+  API não tinha), o indicador "Alta relevância" era sempre zero e o detalhe
+  exibia uma seção "Impacto para a defesa" vazia.
+- Proposição sem situação consultada aparecia "Em comissão · 35%".
+- Resultados da busca levavam à tela genérica: a notícia abre no veículo, a
+  proposição abre o Radar filtrado nela, o termo abre o glossário no termo e a
+  fonte abre a lista filtrada.
+- Notificações guardavam o link da matéria e não o usavam; o clique agora abre
+  a matéria ou a tela dos incidentes.
+- Notificações e arquivo: marcar como lida ou excluir o último item de uma
+  página a deixava vazia com itens ainda nas anteriores.
 
 ### Removido
 

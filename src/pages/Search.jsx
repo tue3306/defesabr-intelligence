@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import {
   Search as SearchIcon, Newspaper, Layers, ShieldAlert, Target, Radio,
   BadgeCheck, CalendarDays, Landmark, Archive, BookOpen, Compass,
-  X, Sparkles, Database, ChevronRight,
+  X, Sparkles, Database, ChevronRight, ExternalLink,
 } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
@@ -303,10 +303,16 @@ export default function Search() {
 // ── Um resultado ─────────────────────────────────────────────────────────────
 function ResultRow({ item, query }) {
   const color = TYPE_COLOR[item.type] || '#5c616a'
+  // Notícia abre no veículo que a publicou; o resto, na tela que a mostra.
+  const externo = !!item.href
+  const Raiz = externo ? 'a' : Link
+  const destino = externo
+    ? { href: item.href, target: '_blank', rel: 'noopener noreferrer' }
+    : { to: item.to }
 
   return (
-    <Link
-      to={item.to}
+    <Raiz
+      {...destino}
       className="card flex items-start gap-3 p-4 transition-colors hover:border-gold-500/40"
     >
       <span className="mt-1 h-2 w-2 shrink-0 rounded-full" style={{ background: color }} />
@@ -335,7 +341,9 @@ function ResultRow({ item, query }) {
 
       </div>
 
-      <ChevronRight size={16} className="mt-1 shrink-0 text-gray-400" />
-    </Link>
+      {externo
+        ? <ExternalLink size={15} className="mt-1 shrink-0 text-gray-400" aria-label="abre em nova aba" />
+        : <ChevronRight size={16} className="mt-1 shrink-0 text-gray-400" />}
+    </Raiz>
   )
 }

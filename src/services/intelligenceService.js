@@ -16,6 +16,8 @@ import { request } from './client'
 export const intelligenceService = {
   sources: (params) => request('GET /intel/sources', { params }),
   legislative: (params) => request('GET /strategic/legislative', { params }),
+  // Consulta a situação de uma proposição na Câmara, ao vivo (só administrador).
+  atualizarTramitacao: (id) => request(`POST /legislative/${id}/refresh`),
 }
 
 export default intelligenceService

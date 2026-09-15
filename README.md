@@ -707,7 +707,7 @@ inclusive as que MUDAM estado.
 ### Dados públicos
 | Método | Rota | Guarda | O que faz |
 |---|---|---|---|
-| `GET` | `/legislative` | — | Proposições coletadas |
+| `GET` | `/legislative` | — | Proposições com termo de defesa na ementa, com os termos encontrados (`?todas=true` inclui as de fora) |
 | `POST` | `/legislative/:id/refresh` | `admin` | Consulta a tramitação na Câmara, ao vivo |
 | `GET` | `/economy/indicators` | — | Séries do World Bank + câmbio do Banco Central |
 | `GET` | `/economy/bcb` | — | Dólar, euro, IPCA, Selic e IGP-M — atualizados no dia |

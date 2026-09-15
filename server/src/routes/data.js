@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { all, get, run } from '../db/index.js'
-import { situacaoDaProposicao, PALAVRAS_CHAVE } from '../collectors/camara.js'
+import { situacaoDaProposicao, gravarSituacao, PALAVRAS_CHAVE } from '../collectors/camara.js'
 import {
   INDICADORES_WB, PAISES_COMPARACAO, serie, ultimoValor, ultimoCambio, rotuloIndicador,
 } from '../collectors/indicators.js'
@@ -10,7 +10,8 @@ import { atoresContraBrasil, ator } from '../collectors/atores.js'
 import { exigirPapel } from '../lib/auth.js'
 import { limitar } from '../lib/limite.js'
 import { limite } from '../lib/parametros.js'
-import { resumoCurto } from '../lib/saneamento.js'
+import { resumoCurto, urlSegura } from '../lib/saneamento.js'
+import { avaliarProposicao, METODO_PROPOSICOES } from '../lib/proposicoes.js'
 import { registrarAuditoria } from '../lib/auditoria.js'
 
 const router = Router()
@@ -19,34 +20,55 @@ const router = Router()
 
 router.get('/legislative', (req, res) => {
   const { q, keyword, limit = '120' } = req.query
+  // `todas=true` inclui as que só casaram a palavra-chave da busca — para quem
+  // quiser conferir o que o filtro deixou de fora.
+  const todas = req.query.todas === 'true'
   const onde = []
   const params = []
   if (keyword) { onde.push('keyword = ?'); params.push(keyword) }
   if (q) { onde.push('(code LIKE ? OR summary LIKE ?)'); params.push(`%${q}%`, `%${q}%`) }
 
-  const itens = all(
+  // O filtro de domínio roda sobre todas as linhas antes do LIMIT: cortar antes
+  // esconderia proposições relevantes atrás de irrelevantes mais recentes.
+  // Ordem pelo id da Câmara, que cresce com o registro. Pela data de
+  // apresentação, as já consultadas passavam à frente de mais novas que ainda
+  // não tinham data — a busca por palavra-chave não a devolve.
+  const avaliadas = all(
     `SELECT * FROM bills ${onde.length ? `WHERE ${onde.join(' AND ')}` : ''}
-     ORDER BY presented_at DESC NULLS LAST, id DESC LIMIT ?`,
-    [...params, limite(limit, 120, 300)]
-  ).map((b) => ({
-    id: b.id,
-    externalId: b.external_id,
-    code: b.code,
-    house: b.house,
-    summary: b.summary,
-    url: b.url,
-    presentedAt: b.presented_at,
-    statusText: b.status_text,
-    keyword: b.keyword,
-    fetchedAt: b.fetched_at,
-  }))
+     ORDER BY external_id DESC`,
+    params
+  ).map((b) => ({ b, avaliacao: avaliarProposicao(b.summary) }))
+
+  const foraDoDominio = avaliadas.filter((x) => !x.avaliacao.relevante).length
+  const doRadar = avaliadas.filter((x) => todas || x.avaliacao.relevante)
+  const itens = doRadar
+    .slice(0, limite(limit, 120, 300))
+    .map(({ b, avaliacao }) => ({
+      id: b.id,
+      externalId: b.external_id,
+      code: b.code,
+      house: b.house,
+      summary: b.summary,
+      url: b.url,
+      presentedAt: b.presented_at,
+      statusText: b.status_text,
+      statusAt: b.status_at,
+      keyword: b.keyword,
+      fetchedAt: b.fetched_at,
+      relevante: avaliacao.relevante,
+      termos: avaliacao.termos,
+    }))
 
   res.json({
     items: itens,
     total: itens.length,
-    // Quantas ainda não têm situação de tramitação: é uma requisição por
-    // proposição, então o enriquecimento roda em lote a cada coleta.
-    semSituacao: get('SELECT COUNT(*) AS n FROM bills WHERE status_text IS NULL')?.n ?? 0,
+    coletadas: avaliadas.length,
+    foraDoDominio,
+    metodo: METODO_PROPOSICOES,
+    // Quantas das exibidas ainda não têm situação de tramitação: é uma
+    // requisição por proposição, então o enriquecimento roda em lote a cada
+    // coleta. Contava o acervo inteiro, inclusive o que o Radar não mostra.
+    semSituacao: doRadar.filter((x) => !x.b.status_text).length,
     lastFetchAt: get('SELECT MAX(fetched_at) AS t FROM bills')?.t || null,
     keywords: PALAVRAS_CHAVE,
     provider: 'dadosabertos.camara.leg.br',
@@ -79,14 +101,7 @@ router.post('/legislative/:id/refresh',
       if (!b) return res.status(404).json({ error: 'Proposição não encontrada.' })
 
       const s = await situacaoDaProposicao(b.external_id)
-      if (s) {
-        run(
-          `UPDATE bills SET status_text = ?, presented_at = COALESCE(?, presented_at),
-             summary = COALESCE(?, summary),
-             fetched_at = strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE id = ?`,
-          [s.statusText, s.presentedAt, s.summary, b.id]
-        )
-      }
+      if (s) gravarSituacao(b.id, s)
       res.json({
         ok: !!s,
         status: s,
@@ -480,7 +495,7 @@ router.get('/search', (req, res) => {
   const likeSemAcento = `%${normalizar(q)}%`
 
   const noticias = all(
-    `SELECT a.id, a.title, a.summary, a.category, a.urgency, a.published_at, s.name AS fonte
+    `SELECT a.id, a.title, a.summary, a.category, a.urgency, a.published_at, a.url, s.name AS fonte
      FROM articles a LEFT JOIN sources s ON s.id = a.source_id
      WHERE a.relevant = 1
        AND (a.search_key LIKE ? OR a.title LIKE ? OR a.summary LIKE ?)
@@ -495,15 +510,20 @@ router.get('/search', (req, res) => {
     snippet: resumoCurto(a.summary),
     badge: a.urgency,
     date: a.published_at,
+    // A matéria abre no veículo. Levava a /clipping, que mostra só os últimos
+    // dias: um resultado de um mês atrás caía numa tela onde ele não estava.
+    href: urlSegura(a.url),
     to: '/clipping',
   }))
 
+  // Só as de defesa: a busca devolvia também as que a Câmara achou por
+  // "inteligência" artificial ou "fronteira" no nome de uma universidade.
   const proposicoes = all(
     `SELECT * FROM bills
      WHERE search_key LIKE ? OR code LIKE ? OR summary LIKE ?
-     ORDER BY presented_at DESC LIMIT 20`,
+     ORDER BY external_id DESC LIMIT 60`,
     [likeSemAcento, like, like]
-  ).map((b) => ({
+  ).filter((b) => avaliarProposicao(b.summary).relevante).slice(0, 20).map((b) => ({
     id: `bill-${b.id}`,
     type: 'proposicao',
     typeLabel: 'Legislativo',
@@ -512,7 +532,8 @@ router.get('/search', (req, res) => {
     snippet: b.summary,
     badge: null,
     date: b.presented_at,
-    to: '/legislativo',
+    // Abre o Radar já filtrado nesta proposição, não a lista inteira.
+    to: `/legislativo?q=${encodeURIComponent(b.code)}`,
   }))
 
   // As fontes sao ~50 linhas: normalizar em JS custa menos que uma coluna.
@@ -526,7 +547,7 @@ router.get('/search', (req, res) => {
     subtitle: `${s.category || s.kind} · ${s.last_status || 'sem coleta'}`,
     snippet: s.url,
     badge: null,
-    to: '/fontes',
+    to: `/fontes?q=${encodeURIComponent(s.name)}`,
   }))
 
   const itens = [...noticias, ...proposicoes, ...fontes]

@@ -50,7 +50,7 @@ function noGlossario(q) {
       subtitle: g.category,
       snippet: g.definition,
       badge: null,
-      to: '/aprender',
+      to: `/aprender?termo=${encodeURIComponent(g.term)}`,
     }))
 }
 

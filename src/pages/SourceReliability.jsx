@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Link } from 'react-router-dom'
 import {
   BadgeCheck, X, Gauge, AlertTriangle, Pause, Download, ExternalLink, Newspaper, Radio, BookOpen,
@@ -47,7 +48,9 @@ export default function SourceReliability() {
   const aoVivo = meta?.source === 'live'
   const sources = useMemo(() => data?.items || [], [data])
 
-  const [query, setQuery] = useState('')
+  // `?q=` chega da busca global: o resultado abre a fonte já filtrada.
+  const [params] = useSearchParams()
+  const [query, setQuery] = useState(() => params.get('q') || '')
   const [categoria, setCategoria] = useState('')
   const [estado, setEstado] = useState('')
   const [sort, setSort] = useState('disp-asc')

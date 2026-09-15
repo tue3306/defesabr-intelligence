@@ -105,6 +105,8 @@ export function useLiveNotifications() {
           level: 'CRITICO',
           estado: v.nature === 'estado',
           source: `${v.group} · ${v.criticality_reason}`,
+          // Sem link próprio na fonte: a notificação leva à tela dos incidentes.
+          to: '/ciberameacas',
         }))
 
         const novos = [...doCiber, ...doAcervo].filter((n) => !jaVistos.current.has(n.chave))
@@ -119,7 +121,7 @@ export function useLiveNotifications() {
         // usuário não precisa de quinze torradas empilhadas.
         for (const n of novos.slice(0, 3)) {
           // REGISTRAR sempre; INTERROMPER so com o aviso ligado.
-          addNotification({ title: n.title, level: n.level, url: n.url, source: n.source })
+          addNotification({ title: n.title, level: n.level, url: n.url, to: n.to, source: n.source })
           if (!avisosLigados) continue
 
           // Ataque ao Estado fica mais tempo na tela e usa outro icone: e o

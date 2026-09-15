@@ -111,8 +111,16 @@ if (feed?.items?.[0]) {
 await checar('GET /news/:id (inexistente)', '/api/news/99999999', () => 'recusa correta', { status: 404 })
 
 console.log('\nDADOS PÚBLICOS')
-await checar('GET /legislative', '/api/legislative?limit=5',
-  (b) => Array.isArray(b?.items) && `${b.total} proposições, ${b.semSituacao} sem tramitação`)
+// O Radar só pode trazer proposição com termo de defesa na ementa, e cada uma
+// diz qual. `todas=true` devolve também as de fora, marcadas como tal.
+await checar('GET /legislative', '/api/legislative?limit=300',
+  (b) => Array.isArray(b?.items)
+    && b.items.every((i) => i.relevante === true && i.termos?.length > 0)
+    && `${b.total} no Radar de ${b.coletadas} coletadas, ${b.semSituacao} sem tramitação`)
+await checar('GET /legislative?todas', '/api/legislative?limit=300&todas=true',
+  (b) => Array.isArray(b?.items)
+    && b.items.filter((i) => !i.relevante).length === Math.min(b.foraDoDominio, b.items.length)
+    && `${b.foraDoDominio} fora do domínio, marcadas`)
 await checar('GET /economy/indicators', '/api/economy/indicators',
   (b) => b?.indicators?.length && `${b.indicators.length} indicadores, câmbio ${b.exchange?.usd ? 'ok' : 'ausente'}`)
 await checar('GET /economy/comparison', '/api/economy/comparison',
@@ -167,6 +175,35 @@ if (feed?.items?.[0]) {
     { semSessao: true, headers: { 'X-Client-Id': 'navegador-A' } })
   await checar('DELETE /bookmarks (conta)', `/api/bookmarks/${id}`,
     (b) => b?.ok && 'removido', { method: 'DELETE' })
+}
+
+// Regra de domínio das proposições: lógica pura, sem rede. Casos reais do
+// acervo — os que a regra deve aceitar e os que ela existe para recusar.
+console.log('\nREGRA DAS PROPOSIÇÕES')
+{
+  const { avaliarProposicao } = await import('../src/lib/proposicoes.js')
+  const casos = [
+    ['Dispõe sobre medidas de valorização dos militares das Forças Armadas.', true],
+    ['Altera a Lei nº 1.001, de 21 de outubro de 1969 (Código Penal Militar).', true],
+    ['Aprova o texto do Acordo de Cooperação em Defesa entre o Brasil e a Arábia Saudita.', true],
+    ['Institui política para trabalhadores substituídos por automação e inteligência artificial.', false],
+    ['Dispõe sobre auxílio-fardamento para policiais-militares, bombeiros-militares e guardas municipais.', false],
+    ['Altera a Lei nº 14.751, de 2023, para garantir ao militar estadual a vedação de regresso.', false],
+    ['Para que a Comissão de Relações Exteriores e Defesa Nacional apure o contrato da COP30.', false],
+    ['Cria a Universidade Federal da Fronteira Norte.', false],
+  ]
+  for (const [ementa, esperado] of casos) {
+    const nome = `${esperado ? 'aceita' : 'recusa'}: ${ementa.slice(0, 26)}…`
+    const r = avaliarProposicao(ementa)
+    if (r.relevante === esperado) {
+      passou += 1
+      console.log(`  \x1b[32m✓\x1b[0m ${nome.padEnd(36)} \x1b[2m${r.termos.join(', ') || 'sem termo'}\x1b[0m`)
+    } else {
+      falhou += 1
+      problemas.push(`regra das proposições: ${nome}`)
+      console.log(`  \x1b[31m✗\x1b[0m ${nome.padEnd(36)} esperado ${esperado}`)
+    }
+  }
 }
 
 console.log('\nERROS')
