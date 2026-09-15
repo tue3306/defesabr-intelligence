@@ -40,6 +40,14 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 **Corrigido**
 
+- **O administrador podia ficar sem existir para sempre.** Se alguém se
+  cadastrasse com o nome configurado em `ADMIN_USERNAME` antes de as variáveis
+  existirem — o que aconteceu num deploy real —, a conta nascia como usuário
+  comum e a subida seguinte encontrava o nome ocupado, sem nunca criar o
+  administrador. Agora o nome é reservado no cadastro, e uma conta comum com
+  ele é assumida na subida: vira administradora, recebe a senha da variável e
+  as sessões anteriores dela caem. Enquanto a conta for administradora, a senha
+  trocada na tela continua valendo.
 - **As notificações não chegavam.** O navegador consultava o acervo a cada cinco
   minutos e só avisava o que aparecesse DEPOIS da primeira consulta; recarregar
   a página zerava a memória, e o que chegava morava no `localStorage` — sair da

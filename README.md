@@ -32,11 +32,21 @@ a informar nem confirmação a esperar. Toda conta criada pelo cadastro nasce co
 o perfil **Usuário** e alcança o acervo por completo.
 
 A conta de **Administrador** da instalação não é oferecida na tela nem publicada
-aqui: ela é criada na primeira subida do servidor a partir das variáveis de
-ambiente `ADMIN_USERNAME` e `ADMIN_PASSWORD` (ver [Como rodar](#como-rodar)).
+aqui: ela é criada na subida do servidor a partir das variáveis de ambiente
+`ADMIN_USERNAME` e `ADMIN_PASSWORD` (ver [Como rodar](#como-rodar)). O
+administrador pode promover outras contas no Console de Governança.
+
+**As duas variáveis são obrigatórias para haver administrador.** Sem elas a
+plataforma sobe e o cadastro funciona, mas ninguém administra a instalação — o
+servidor avisa no boot. O nome configurado fica **reservado**: ninguém consegue
+criá-lo pelo cadastro. E se ele já existir como conta comum — de um cadastro
+feito antes de as variáveis existirem —, a instalação **assume** a conta na
+subida seguinte: ela vira administradora, recebe a senha da variável e as
+sessões anteriores dela deixam de valer.
+
 Depois disso, a senha é trocada pela própria plataforma, em *Minha conta →
-Segurança*, e a variável não a sobrescreve. O administrador pode promover outras
-contas no Console de Governança.
+Segurança*, e a variável **não** a sobrescreve: enquanto a conta for
+administradora, quem manda na senha é o que foi definido na tela.
 
 São contas de verdade — senha em *scrypt* com sal por conta, token HMAC-SHA256,
 papel e situação conferidos no servidor a cada requisição.
@@ -240,7 +250,14 @@ Sobe os dois processos:
 Na primeira execução o servidor cria o banco, cadastra as fontes, cria a conta
 de administrador e dispara uma coleta. Sem `ADMIN_USERNAME` e `ADMIN_PASSWORD`,
 a plataforma sobe normalmente e o cadastro funciona, mas nenhuma conta de
-administrador é criada — o servidor avisa no boot.
+administrador é criada — o servidor avisa no boot, em amarelo:
+
+```
+Contas        ADMIN_USERNAME e ADMIN_PASSWORD não definidos — nenhuma conta de administrador foi criada.
+```
+
+Definiu as variáveis depois? Basta reiniciar (no Railway, um *Redeploy*): a
+conta é criada, ou assumida se o nome já estiver em uso.
 
 ### Os perfis
 
@@ -587,7 +604,7 @@ Para subir a sua, basta conectar o repositório:
 
 | Variável | Para quê |
 |---|---|
-| `ADMIN_USERNAME` e `ADMIN_PASSWORD` | Criam a conta de administrador na primeira subida. Depois a senha é trocada pela plataforma |
+| `ADMIN_USERNAME` e `ADMIN_PASSWORD` | **Obrigatórias para haver administrador.** Criam (ou assumem) a conta na subida; depois a senha é trocada pela plataforma |
 | `AUTH_SECRET` | Assina as sessões. Sem ela, quem estava logado cai a cada deploy |
 | `DB_PATH` | Opcional. Aponte para um volume (`/data/defesabr.db`) para o acervo persistir entre deploys |
 | `COLLECT_INTERVAL_MINUTES` | Opcional. Padrão 15; `0` desliga o agendador |
@@ -600,6 +617,11 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 Nenhum valor real vai para o repositório — ele é público. Todas as variáveis
 disponíveis estão em [`.env.example`](.env.example).
+
+Depois de criar ou mudar uma variável, o Railway precisa **subir de novo** para
+que ela valha — *Deployments → Redeploy*. Confira no log do deploy a linha
+`Contas` do banner de boot: ela diz se a conta foi criada, assumida, ou se as
+variáveis não chegaram.
 
 **Sobre persistência:** o disco do Railway é efêmero. Sem um volume montado, o
 acervo é recoletado a cada deploy e as contas criadas pelo cadastro somem; a de

@@ -42,10 +42,16 @@ Faremos o possível para responder em tempo razoável e manter você informado s
 
 ## Contas
 
-Não há conta com senha publicada. A conta de administrador da instalação é criada na primeira
-subida a partir de `ADMIN_USERNAME` e `ADMIN_PASSWORD`; sem as duas variáveis, nenhuma conta de
-administrador existe e o servidor avisa no boot. A senha é trocada depois em *Minha conta →
-Segurança*, e a variável não a sobrescreve.
+Não há conta com senha publicada. A conta de administrador da instalação é criada na subida a
+partir de `ADMIN_USERNAME` e `ADMIN_PASSWORD`; sem as duas variáveis, nenhuma conta de administrador
+existe e o servidor avisa no boot. A senha é trocada depois em *Minha conta → Segurança*, e a
+variável não a sobrescreve enquanto a conta for administradora.
+
+O identificador configurado em `ADMIN_USERNAME` é **reservado no cadastro**, e uma conta comum com
+esse nome — criada antes de as variáveis existirem — é **assumida** na subida seguinte: vira
+administradora, recebe a senha da variável e tem as sessões anteriores revogadas. Quem controla as
+variáveis do serviço é o dono da instalação; um cadastro feito antes não pode trancá-lo do lado de
+fora nem herdar o acesso.
 
 Versões anteriores semeavam `admin123` e `usuario123` com senha igual ao nome de usuário. Ao subir,
 o servidor **remove** essas contas — ou renomeia a de administrador para o `ADMIN_USERNAME`

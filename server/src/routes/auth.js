@@ -49,8 +49,17 @@ const SENHA_MAXIMA = 128
  * `admin123` e `usuario123` foram as contas públicas de versões anteriores, com
  * a senha publicada; reaproveitá-los confundiria quem ainda lembra delas. Os
  * demais evitam que alguém se cadastre com cara de conta oficial.
+ *
+ * O IDENTIFICADOR DO ADMINISTRADOR DA INSTALAÇÃO ENTRA NA LISTA, e isso não é
+ * detalhe: sem ele, qualquer visitante — ou o próprio dono, por engano — podia
+ * se cadastrar com o nome configurado em `ADMIN_USERNAME`. A conta nascia com
+ * papel `user`, e a partir daí `semearContas()` encontrava o nome ocupado e
+ * nunca mais criava o administrador. Aconteceu num deploy real: o dono entrava
+ * com o próprio usuário e não tinha nenhum poder de administração.
  */
 const RESERVADOS = new Set(['admin', 'administrador', 'admin123', 'usuario123', 'root', 'suporte', 'sistema'])
+
+const reservado = (usuario) => RESERVADOS.has(usuario) || usuario === config.auth.administrador.usuario
 
 /**
  * E-mail derivado do identificador.
@@ -99,7 +108,13 @@ const EMAILS_LEGADOS = ['usuario@defesabr.com', 'analista@defesabr.com', 'admin@
  *    estava publicada, e o cadastro já dá conta própria a quem quiser entrar.
  *
  * 2. O administrador vem de `ADMIN_USERNAME` / `ADMIN_PASSWORD`:
- *    • se a conta já existe, nada muda — a senha trocada pela plataforma vale;
+ *    • se a conta já existe COMO ADMINISTRADOR, nada muda — a senha trocada
+ *      pela plataforma continua valendo, e a variável não a sobrescreve;
+ *    • se existe mas NÃO é administrador (ou está suspensa), a instalação a
+ *      ASSUME: vira administrador ativo e recebe a senha da variável, com as
+ *      sessões anteriores revogadas. Quem controla o ambiente é o dono da
+ *      instalação, e um cadastro com o nome dele não pode trancá-lo do lado de
+ *      fora — nem servir de porta para alguém que o tenha registrado antes;
  *    • se não existe e há a antiga `admin123`, ela é RENOMEADA (mantém a trilha
  *      de auditoria e a pasta) e recebe a senha da variável;
  *    • se não existe nenhuma, é criada.
@@ -107,10 +122,11 @@ const EMAILS_LEGADOS = ['usuario@defesabr.com', 'analista@defesabr.com', 'admin@
  * 3. Sem as variáveis, `admin123` não pode continuar com a senha pública: é
  *    suspensa até alguém configurar o administrador, e o boot avisa.
  *
- * @returns {Promise<{ criadas: number, removidas: number, avisos: string[] }>}
+ * @returns {Promise<{ criadas: number, assumidas: number, removidas: number, avisos: string[] }>}
  */
 export async function semearContas() {
   let criadas = 0
+  let assumidas = 0
   let removidas = 0
   const avisos = []
 
@@ -125,7 +141,8 @@ export async function semearContas() {
   const adminLegado = get('SELECT id FROM users WHERE username = ?', [CONTAS_LEGADAS.admin])
 
   if (usuario && senha && RX_USUARIO.test(usuario)) {
-    const existente = get('SELECT id FROM users WHERE username = ?', [usuario])
+    const existente = get('SELECT id, role, status FROM users WHERE username = ?', [usuario])
+
     if (!existente) {
       const { sal, hash } = await hashSenha(senha)
       if (adminLegado) {
@@ -142,7 +159,22 @@ export async function semearContas() {
         )
         criadas += 1
       }
-    } else if (adminLegado) {
+    } else if (existente.role !== 'admin' || (existente.status || 'ativo') !== 'ativo') {
+      // A conta existe com o nome configurado, mas não é o administrador: ou
+      // alguém a cadastrou pela tela, ou ela foi suspensa. A instalação a
+      // assume — papel, situação e senha vêm do ambiente, e toda sessão antiga
+      // deixa de valer na requisição seguinte.
+      const { sal, hash } = await hashSenha(senha)
+      run(
+        `UPDATE users SET password_hash = ?, password_salt = ?, role = 'admin', status = 'ativo',
+           sessoes_desde = ? WHERE id = ?`,
+        [hash, sal, Date.now(), existente.id],
+      )
+      avisos.push(`A conta "${usuario}" existia sem ser administrador e foi assumida por ADMIN_USERNAME/ADMIN_PASSWORD.`)
+      assumidas += 1
+    }
+
+    if (existente && adminLegado) {
       removerConta(adminLegado.id)
       removidas += 1
     }
@@ -157,7 +189,7 @@ export async function semearContas() {
     }
   }
 
-  return { criadas, removidas, avisos }
+  return { criadas, assumidas, removidas, avisos }
 }
 
 /**
@@ -214,7 +246,7 @@ router.post('/auth/register', limitar({ max: 5, janelaMs: 10 * 60_000 }), async 
         campo: 'username',
       })
     }
-    if (RESERVADOS.has(usuario)) {
+    if (reservado(usuario)) {
       return res.status(409).json({ error: 'Este nome de usuário está reservado. Escolha outro.', campo: 'username' })
     }
     const problema = validarSenha(senha, 'password')

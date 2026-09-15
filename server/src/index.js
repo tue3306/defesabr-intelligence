@@ -48,6 +48,7 @@ const servidor = app.listen(config.port, config.host, async () => {
   console.log(`  Banco         ${config.dbPath}`)
   if (fontesCriadas) console.log(`  Fontes        ${fontesCriadas} cadastradas`)
   if (contas.criadas) console.log(`  Contas        conta de administrador criada (ADMIN_USERNAME)`)
+  if (contas.assumidas) console.log(`  Contas        conta de administrador assumida pelo ambiente`)
   if (contas.removidas) console.log(`  Contas        ${contas.removidas} conta(s) pública(s) antiga(s) removida(s)`)
   for (const aviso of contas.avisos) console.log(`  [33mContas        ${aviso}[0m`)
   // De onde veio o segredo que assina as sessoes. Quem hospeda precisa saber:
