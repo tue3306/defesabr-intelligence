@@ -95,8 +95,10 @@ export default function Correlations() {
   const r = useResource(
     () => request('GET /intel/correlacoes', { params: { days: dias, minForca, limit: 80 } }),
     [dias, minForca],
+    // Trocar período ou força não apaga a tela enquanto a nova consulta chega.
+    { keepPreviousData: true },
   )
-  const panorama = useResource(() => request('GET /intel/brasil', { params: { days: dias } }), [dias])
+  const panorama = useResource(() => request('GET /intel/brasil', { params: { days: dias } }), [dias], { keepPreviousData: true })
 
   const d = r.data
   const itens = d?.items || []
@@ -188,7 +190,7 @@ export default function Correlations() {
       </p>
 
       <DataState
-        loading={r.loading}
+        loading={r.loading && !d}
         error={r.error}
         empty={!itens.length}
         onRetry={r.refetch}

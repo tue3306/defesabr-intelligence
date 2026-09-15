@@ -8,6 +8,7 @@ import { consolidar, LIMIAR_SIMILARIDADE, JANELA_HORAS } from '../lib/eventos.js
 import { dias, limite } from '../lib/parametros.js'
 import { exigirPapel } from '../lib/auth.js'
 import { sinteseGuardada } from '../lib/sinteseCache.js'
+import { resumoCurto } from '../lib/saneamento.js'
 
 const router = Router()
 
@@ -15,7 +16,7 @@ const mapear = (a) => ({
   id: a.id,
   title: a.title,
   url: a.url,
-  summary: a.summary,
+  summary: resumoCurto(a.summary),
   source: a.source_name || 'Fonte desconhecida',
   sourceUrl: a.source_site,
   sourceId: a.source_id,
@@ -296,6 +297,23 @@ router.get('/news/eventos', exigirPapel('user'), (req, res) => {
 
   const eventos = consolidar(artigos)
 
+  // AS OPCOES DO FILTRO NAO PODEM SAIR DO RESULTADO FILTRADO.
+  //
+  // A tela montava os botoes de categoria a partir dos eventos devolvidos. Ao
+  // escolher "Cibersegurança", a resposta so trazia eventos dessa categoria, a
+  // lista de botoes encolhia para um so — e, com um so, a barra sumia inteira.
+  // Nao havia como voltar e escolher outra. As categorias agora sao contadas no
+  // periodo SEM o filtro de categoria, e viajam separadas dos eventos.
+  const categorias = all(
+    `SELECT a.category AS nome, COUNT(*) AS materias
+       FROM articles a
+      WHERE a.relevant = 1 AND a.category IS NOT NULL
+        AND a.published_at >= strftime('%Y-%m-%dT%H:%M:%SZ','now', '-${days} days')
+        ${urgencia ? 'AND a.urgency = ?' : ''}
+      GROUP BY a.category ORDER BY materias DESC, a.category`,
+    urgencia ? [urgencia] : []
+  )
+
   // Ordem do produto: primeiro o que mais veiculos cobriram, depois o mais
   // urgente, depois o mais recente. Corroboracao vem antes de recencia porque
   // um fato que tres redacoes cobriram no mesmo dia importa mais que um que
@@ -313,6 +331,7 @@ router.get('/news/eventos', exigirPapel('user'), (req, res) => {
     items: eventos.slice(0, limite(req.query.limit, 60, 200)),
     total: eventos.length,
     materias: artigos.length,
+    categorias,
     // A metrica que justifica a tela existir: quantas materias viraram quantos
     // eventos, e quantos foram corroborados por mais de um veiculo.
     consolidacao: {
@@ -492,7 +511,7 @@ router.get('/news/pais/:nome', exigirPapel('user'), (req, res) => {
       porFonte: contar('fonte').slice(0, 8),
     },
     noticias: doPais.slice(0, 20).map((a) => ({
-      id: a.id, titulo: a.title, resumo: a.summary, categoria: a.category,
+      id: a.id, titulo: a.title, resumo: resumoCurto(a.summary), categoria: a.category,
       urgencia: a.urgency, publicadoEm: a.published_at, url: a.url, fonte: a.fonte,
     })),
     ransomware: {

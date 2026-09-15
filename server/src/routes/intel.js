@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { resumoCurto } from '../lib/saneamento.js'
 import { all } from '../db/index.js'
 import { nomeDaVitima } from '../lib/vitima.js'
 import { exigirPapel } from '../lib/auth.js'
@@ -31,7 +32,7 @@ const mapear = (c) => ({
   artigo: {
     id: c.article_id,
     titulo: c.title,
-    resumo: c.summary,
+    resumo: resumoCurto(c.summary),
     url: c.url,
     categoria: c.category,
     urgencia: c.urgency,

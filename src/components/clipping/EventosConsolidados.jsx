@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Layers, ChevronDown, ExternalLink, CheckCircle2 } from 'lucide-react'
+import { Layers, ChevronDown, ExternalLink, CheckCircle2, X } from 'lucide-react'
 import DataState from '../ui/DataState'
 import InfoTooltip from '../ui/InfoTooltip'
 import { useResource } from '../../hooks/useResource'
@@ -35,15 +35,22 @@ export default function EventosConsolidados() {
   const [categoria, setCategoria] = useState('')
   const [aberto, setAberto] = useState(null)
 
+  // `keepPreviousData` mantém botões e lista na tela enquanto a nova consulta
+  // chega — sem isso a barra de categorias sumia e voltava a cada clique.
   const r = useResource(
     () => request('GET /news/eventos', { params: { days: dias, category: categoria || undefined, limit: 60 } }),
     [dias, categoria],
+    { keepPreviousData: true },
   )
   const d = r.data
   const eventos = d?.items || []
   const c = d?.consolidacao
 
-  const categorias = [...new Set(eventos.map((e) => e.categoria).filter(Boolean))].sort()
+  // As opções vêm do servidor, contadas no período SEM o filtro de categoria —
+  // não dos eventos já filtrados. A escolhida continua na barra mesmo que a
+  // nova janela não tenha matéria dela, para poder ser desmarcada.
+  const categorias = [...(d?.categorias || [])]
+  if (categoria && !categorias.some((x) => x.nome === categoria)) categorias.push({ nome: categoria, materias: 0 })
 
   return (
     <section className="card p-5">
@@ -87,43 +94,54 @@ export default function EventosConsolidados() {
         </p>
       )}
 
-      {categorias.length > 1 && (
-        <div className="mt-3 flex flex-wrap gap-1.5">
+      {(categorias.length > 1 || categoria) && (
+        <div className="mt-3 flex flex-wrap items-center gap-1.5" role="group" aria-label="Filtrar eventos por categoria">
           <button
             onClick={() => setCategoria('')}
+            aria-pressed={!categoria}
             className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${
               !categoria ? 'bg-gold-500 text-military-darker' : 'bg-gray-100 muted hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10'
             }`}
           >
             Todas
           </button>
-          {categorias.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setCategoria(categoria === cat ? '' : cat)}
-              className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${
-                categoria === cat ? 'text-white' : 'bg-gray-100 muted hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10'
-              }`}
-              style={categoria === cat ? { backgroundColor: categoryColor(cat) } : undefined}
-            >
-              {cat}
-            </button>
-          ))}
+          {categorias.map((cat) => {
+            const ativa = categoria === cat.nome
+            return (
+              <button
+                key={cat.nome}
+                // Clicar noutra categoria TROCA a seleção; clicar na ativa a desmarca.
+                onClick={() => setCategoria(ativa ? '' : cat.nome)}
+                aria-pressed={ativa}
+                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${
+                  ativa ? 'text-white' : 'bg-gray-100 muted hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10'
+                }`}
+                style={ativa ? { backgroundColor: categoryColor(cat.nome) } : undefined}
+                title={ativa ? 'Clique para ver todas' : `${cat.materias} matéria(s) no período`}
+              >
+                {cat.nome}
+                <span className={`font-mono text-[10px] ${ativa ? 'opacity-90' : 'opacity-70'}`}>{cat.materias}</span>
+                {ativa && <X size={11} aria-hidden="true" />}
+              </button>
+            )
+          })}
         </div>
       )}
 
       <DataState
-        loading={r.loading}
+        loading={r.loading && !d}
         error={r.error}
         empty={!eventos.length}
         onRetry={r.refetch}
         emptyProps={{
           icon: Layers,
-          title: 'Nenhum evento no período',
-          hint: 'Amplie a janela ou remova o filtro de categoria.',
+          title: categoria ? `Nenhum evento de ${categoria} no período` : 'Nenhum evento no período',
+          hint: categoria ? 'Amplie a janela ou veja todas as categorias.' : 'Amplie a janela: a coleta roda a cada 30 minutos.',
+          action: categoria ? { label: 'Ver todas as categorias', onClick: () => setCategoria('') } : undefined,
+          compact: true,
         }}
       >
-        <div className="mt-4 space-y-2">
+        <div className={`mt-4 space-y-2 transition-opacity ${r.loading ? 'opacity-60' : ''}`}>
           {eventos.map((e) => (
             <Evento
               key={e.id}

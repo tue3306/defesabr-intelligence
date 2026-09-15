@@ -10,6 +10,7 @@ import { atoresContraBrasil, ator } from '../collectors/atores.js'
 import { exigirPapel } from '../lib/auth.js'
 import { limitar } from '../lib/limite.js'
 import { limite } from '../lib/parametros.js'
+import { resumoCurto } from '../lib/saneamento.js'
 import { registrarAuditoria } from '../lib/auditoria.js'
 
 const router = Router()
@@ -491,7 +492,7 @@ router.get('/search', (req, res) => {
     typeLabel: 'Notícias',
     title: a.title,
     subtitle: `${a.fonte || 'Fonte'} · ${a.category || ''}`,
-    snippet: a.summary,
+    snippet: resumoCurto(a.summary),
     badge: a.urgency,
     date: a.published_at,
     to: '/clipping',

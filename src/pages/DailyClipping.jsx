@@ -109,10 +109,12 @@ export default function DailyClipping() {
   const allNews = useMemo(() => result?.news || [], [result])
   const hasFilters = Boolean(query.trim() || cats.length || urgency)
 
-  // As categorias disponíveis vêm da própria edição: nada de chip que não filtra nada.
+  // As categorias disponíveis vêm da edição inteira (não da lista já filtrada),
+  // mais as que estiverem marcadas: se a edição recarregar sem uma delas, o chip
+  // continua na tela para ser desmarcado, em vez de o filtro ficar preso invisível.
   const availableCats = useMemo(
-    () => [...new Set(allNews.map((n) => n.category).filter(Boolean))],
-    [allNews]
+    () => [...new Set([...allNews.map((n) => n.category).filter(Boolean), ...cats])],
+    [allNews, cats]
   )
 
   const filteredNews = useMemo(() => {
@@ -387,7 +389,7 @@ export default function DailyClipping() {
                 ))}
               </select>
             </div>
-            {availableCats.length > 1 && (
+            {(availableCats.length > 1 || cats.length > 0) && (
               <div>
                 <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase muted">
                   <Filter size={13} /> Categorias
@@ -501,7 +503,9 @@ function ClippingNewsItem({ news, defaultOpen = false }) {
       </div>
 
       <h3 className="mt-2 text-base font-bold leading-snug tracking-tight">{news.title}</h3>
-      <p className="mt-1.5 text-sm leading-relaxed text-gray-700 dark:text-gray-300">{news.summary}</p>
+      {news.summary && (
+        <p className="mt-1.5 line-clamp-3 text-sm leading-relaxed text-gray-700 dark:text-gray-300">{news.summary}</p>
+      )}
 
       {(news.key_points?.length > 0 || news.impact_br) && (
         <>

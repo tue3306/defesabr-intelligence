@@ -92,6 +92,14 @@ export default function Search() {
     .map((g) => ({ ...g, count: permitidos.filter((i) => i.type === g.id).length }))
     .filter((g) => g.count > 0)
 
+  // UM TIPO SEM RESULTADO NA NOVA BUSCA NÃO PODE FICAR PRESO. Com "Glossário"
+  // marcado e uma consulta que só acha notícias, o botão do tipo sumia da barra,
+  // a lista ficava vazia e a tela dizia "Nada encontrado" — havia resultados, só
+  // não havia como desmarcar o filtro. Volta para "Tudo".
+  useEffect(() => {
+    if (type && data && !permitidos.some((i) => i.type === type)) setType('')
+  }, [type, data, permitidos])
+
   // Agrupa por tipo preservando a ordem canônica de SEARCH_TYPES.
   const grouped = useMemo(() => {
     const map = new Map()

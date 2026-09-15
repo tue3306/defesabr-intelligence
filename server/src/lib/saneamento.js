@@ -137,4 +137,26 @@ export function textoLimpo(html) {
     .trim()
 }
 
-export default { urlSegura, dominioSeguro, textoLimpo }
+/**
+ * Trecho curto de uma matéria, para exibir.
+ *
+ * Parte dos feeds entrega a matéria INTEIRA no campo de descrição — medido no
+ * acervo: 60 de 300 aprovadas passavam de 600 caracteres, a maior com 8.930.
+ * O texto completo continua guardado, porque o filtro de relevância e a IA
+ * precisam dele; o que sai para a tela é um trecho, com o link para o original.
+ * Mostrar a matéria inteira enchia o clipping de blocos de texto e reproduzia o
+ * trabalho do veículo em vez de apontar para ele.
+ *
+ * Corta no fim de frase quando há um perto do limite; senão, em espaço, com "…".
+ */
+export function resumoCurto(texto, maximo = 320) {
+  const t = String(texto || '').replace(/\s+/g, ' ').trim()
+  if (t.length <= maximo) return t || null
+  const corte = t.slice(0, maximo)
+  const fimDeFrase = Math.max(corte.lastIndexOf('. '), corte.lastIndexOf('? '), corte.lastIndexOf('! '))
+  if (fimDeFrase >= maximo * 0.5) return corte.slice(0, fimDeFrase + 1)
+  const espaco = corte.lastIndexOf(' ')
+  return `${corte.slice(0, espaco > maximo * 0.6 ? espaco : maximo).replace(/[,;:\s]+$/, '')}…`
+}
+
+export default { urlSegura, dominioSeguro, textoLimpo, resumoCurto }

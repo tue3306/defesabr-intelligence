@@ -8,6 +8,7 @@ import { exigirPapel } from '../lib/auth.js'
 import { limite } from '../lib/parametros.js'
 import { registrarAuditoria, trilhaDeAuditoria } from '../lib/auditoria.js'
 import { alertasDeSeguranca } from './auth.js'
+import { resumoCurto } from '../lib/saneamento.js'
 
 const router = Router()
 
@@ -226,7 +227,7 @@ router.get('/bookmarks', (req, res) => {
     id: a.id,
     title: a.title,
     url: a.url,
-    summary: a.summary,
+    summary: resumoCurto(a.summary),
     source: a.source_name,
     category: a.category,
     urgency: a.urgency,

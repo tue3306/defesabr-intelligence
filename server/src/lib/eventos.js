@@ -1,4 +1,5 @@
 import { normalizar } from './relevance.js'
+import { resumoCurto } from './saneamento.js'
 
 // -----------------------------------------------------------------------------
 // EVENTOS CONSOLIDADOS
@@ -112,7 +113,7 @@ export function consolidar(artigos, { limiar = LIMIAR_SIMILARIDADE, janelaHoras 
     return {
       id: `ev-${g.principal.id}`,
       titulo: g.principal.title,
-      resumo: g.principal.summary,
+      resumo: resumoCurto(g.principal.summary),
       url: g.principal.url,
       categoria: g.principal.category,
       // A urgência do evento é a MAIOR entre as fontes: se um veículo tratou

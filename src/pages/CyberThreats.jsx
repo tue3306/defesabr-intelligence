@@ -43,7 +43,7 @@ const JANELAS = [
 
 export default function CyberThreats() {
   const [dias, setDias] = useState(365)
-  const r = useResource(() => request('GET /cyber/ransomware', { params: { days: dias } }), [dias])
+  const r = useResource(() => request('GET /cyber/ransomware', { params: { days: dias } }), [dias], { keepPreviousData: true })
   const d = r.data
   const br = d?.brasil
   const vazio = d && d.acervo === 0
@@ -77,7 +77,7 @@ export default function CyberThreats() {
       />
 
       <DataState
-        loading={r.loading}
+        loading={r.loading && !r.data}
         error={r.error}
         empty={vazio}
         onRetry={r.refetch}

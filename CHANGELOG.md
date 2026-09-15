@@ -40,6 +40,13 @@ Auditoria de consistência entre o que a interface promete e o que existe.
 - Guia da plataforma não listava as telas de visão geral, conta e recursos.
 - Valores em dólar com ponto decimal inglês ("R$ 5.170", "US$ 1911.7 mi").
 - Filtro "Senado" no Radar Legislativo, que a coleta não consulta.
+- Eventos consolidados: ao escolher uma categoria, a barra de categorias sumia e
+  não havia como voltar ou trocar. As opções passam a vir do período inteiro.
+- Busca e clipping: um filtro marcado sem resultado na nova consulta ficava
+  preso e invisível; agora volta para "Tudo" ou continua visível para desmarcar.
+- Parte dos feeds entregava a matéria inteira como resumo (até 8.930
+  caracteres); as respostas passam a trazer um trecho, com link para o original.
+- Quiz: recorde guardado por trilha, e não um número só para todas.
 
 ### Removido
 

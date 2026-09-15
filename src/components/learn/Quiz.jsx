@@ -2,13 +2,16 @@ import { useState, useMemo } from 'react'
 import { CheckCircle2, XCircle, Trophy, RotateCcw, Flame, ArrowRight, Layers } from 'lucide-react'
 import { quizQuestions, quizCategories } from '../../data/learnData'
 
-const BEST_KEY = 'defesabr-quiz-best'
+// O RECORDE É POR TRILHA. Era um número só para todas: acertar 25 de 30 em
+// "Todas as questões" deixava "Melhor recorde 25" na tela de uma trilha de
+// quatro perguntas, impossível de alcançar e sem sentido ao lado de "3/4".
+const BEST_KEY = 'defesabr-quiz-recordes'
 
-function loadBest() {
+function loadBests() {
   try {
-    return Number(localStorage.getItem(BEST_KEY)) || 0
+    return JSON.parse(localStorage.getItem(BEST_KEY) || '{}') || {}
   } catch {
-    return 0
+    return {}
   }
 }
 
@@ -26,7 +29,9 @@ export default function Quiz() {
   const [score, setScore] = useState(0)
   const [streak, setStreak] = useState(0)
   const [finished, setFinished] = useState(false)
-  const [best, setBest] = useState(loadBest)
+  const [bests, setBests] = useState(loadBests)
+  const chaveTrilha = filter || 'todas'
+  const best = bests[chaveTrilha] || 0
 
   const questions = useMemo(
     () => (filter ? quizQuestions.filter((q) => q.category === filter) : quizQuestions),
@@ -58,8 +63,9 @@ export default function Quiz() {
   const next = () => {
     if (idx + 1 >= total) {
       if (score > best) {
-        setBest(score)
-        try { localStorage.setItem(BEST_KEY, String(score)) } catch { /* ignore */ }
+        const novos = { ...bests, [chaveTrilha]: score }
+        setBests(novos)
+        try { localStorage.setItem(BEST_KEY, JSON.stringify(novos)) } catch { /* modo privado */ }
       }
       setFinished(true)
     } else {
@@ -115,8 +121,8 @@ export default function Quiz() {
             <p className="text-xs muted">Sua pontuação</p>
           </div>
           <div className="rounded-xl bg-white/5 p-4">
-            <p className="text-3xl font-bold text-amber-400">{best}</p>
-            <p className="text-xs muted">Melhor recorde</p>
+            <p className="text-3xl font-bold text-amber-400">{Math.max(best, score)}/{total}</p>
+            <p className="text-xs muted">Recorde nesta trilha</p>
           </div>
         </div>
         <div className="mt-6 flex justify-center gap-2">
