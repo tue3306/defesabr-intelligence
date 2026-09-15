@@ -38,6 +38,14 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
   navegador. Rotas `/api/notifications*`.
 - **Guia da plataforma** em `GET /api/guia`, servido pelo botão de ajuda.
 
+**Adicionado (diagnóstico)**
+
+- `GET /api/meta` passa a dizer, em `contas`, se `ADMIN_USERNAME`,
+  `ADMIN_PASSWORD` e `AUTH_SECRET` chegaram ao serviço e quantos
+  administradores ativos existem — só booleanos e contagem. Sem isso, um deploy
+  sem as variáveis só se distinguia de senha errada pelo log do boot, que some
+  na primeira rolagem.
+
 **Corrigido**
 
 - **O administrador podia ficar sem existir para sempre.** Se alguém se

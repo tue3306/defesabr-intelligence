@@ -150,6 +150,29 @@ router.get('/meta', (req, res) => {
     ambiente: config.ambiente,
     deploy: config.deploy,
     agendador: estadoDoAgendador(),
+    // ─────────────────────────────────────────────────────────────────────
+    // A CONTA DE ADMINISTRADOR CHEGOU AO SERVIÇO?
+    //
+    // Sem `ADMIN_USERNAME`/`ADMIN_PASSWORD` a instalação sobe sem
+    // administrador, e a única pista ficava no log do boot — que num deploy
+    // some na primeira rolagem. Quem publicou tentava entrar, recebia
+    // "usuário ou senha incorretos" (a resposta certa: a conta não existe) e
+    // não tinha como distinguir senha errada de variável que não chegou.
+    //
+    // Só BOOLEANOS e uma contagem: nenhum valor de variável, nenhum nome de
+    // conta. Diz se a variável chegou, não o que ela contém.
+    // ─────────────────────────────────────────────────────────────────────
+    contas: {
+      variaveis: {
+        ADMIN_USERNAME: Boolean(config.auth.administrador.usuario),
+        ADMIN_PASSWORD: Boolean(config.auth.administrador.senha),
+        AUTH_SECRET: config.auth.segredoFixado,
+      },
+      administradoresAtivos: get(
+        "SELECT COUNT(*) AS n FROM users WHERE role = 'admin' AND COALESCE(status, 'ativo') = 'ativo'",
+      )?.n ?? 0,
+      total: get('SELECT COUNT(*) AS n FROM users')?.n ?? 0,
+    },
     // Era uma lista escrita à mão com cinco fontes — duas de RSS, quando o
     // catálogo tem dezenas — e sem o Comex Stat nem o ransomware.live.
     fontes: [

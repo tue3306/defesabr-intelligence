@@ -619,9 +619,25 @@ Nenhum valor real vai para o repositório — ele é público. Todas as variáve
 disponíveis estão em [`.env.example`](.env.example).
 
 Depois de criar ou mudar uma variável, o Railway precisa **subir de novo** para
-que ela valha — *Deployments → Redeploy*. Confira no log do deploy a linha
-`Contas` do banner de boot: ela diz se a conta foi criada, assumida, ou se as
-variáveis não chegaram.
+que ela valha — *Deployments → Redeploy*.
+
+**Como conferir sem abrir o log:** `GET /api/meta` devolve, em `contas`, se cada
+variável chegou ao serviço e quantos administradores ativos existem. Só
+booleanos e contagem — nenhum valor de variável, nenhum nome de conta:
+
+```bash
+curl -s https://SEU-DOMINIO/api/meta | grep -o '"contas".*'
+```
+
+```json
+"contas": { "variaveis": { "ADMIN_USERNAME": true, "ADMIN_PASSWORD": true, "AUTH_SECRET": true },
+            "administradoresAtivos": 1, "total": 1 }
+```
+
+`ADMIN_USERNAME: false` significa que a variável não chegou àquele serviço — o
+nome está errado, foi criada em outro ambiente, ou o deploy ainda é o anterior.
+`administradoresAtivos: 0` com as variáveis `true` significa que o processo
+ainda não subiu depois de criá-las.
 
 **Sobre persistência:** o disco do Railway é efêmero. Sem um volume montado, o
 acervo é recoletado a cada deploy e as contas criadas pelo cadastro somem; a de
