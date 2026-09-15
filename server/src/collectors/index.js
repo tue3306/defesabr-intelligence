@@ -1,4 +1,4 @@
-import { run, agora } from '../db/index.js'
+import { run, get, agora } from '../db/index.js'
 import config from '../config.js'
 import { coletarTodas, coletarFonte, semearFontes } from './rss.js'
 import { coletarCamara, enriquecerSituacoes } from './camara.js'
@@ -9,6 +9,7 @@ import { coletarAtores } from './atores.js'
 import { coletarComex } from './comex.js'
 import { coletarBcb } from './bcb.js'
 import { calcularCorrelacoes } from './correlacoes.js'
+import { gerarNotificacoes } from '../lib/notificacoes.js'
 
 // -----------------------------------------------------------------------------
 // ORQUESTRAÇÃO DA COLETA
@@ -19,8 +20,53 @@ import { calcularCorrelacoes } from './correlacoes.js'
 // alguém desenhou uma vez.
 // -----------------------------------------------------------------------------
 
+// ─────────────────────────────────────────────────────────────────────────────
+// CADÊNCIA POR COLETOR
+//
+// O ciclo roda a cada `COLLECT_INTERVAL_MINUTES` (15 por padrão), que é a
+// frequência certa para notícia. Não é para o resto: a Câmara não muda de
+// quarto em quarto de hora, o Banco Central publica série diária e o World
+// Bank, anual. Rodar todos a cada ciclo só multiplicaria chamadas a serviços
+// públicos que não têm nada novo — e cotas gratuitas (GNews: 100/dia) acabariam.
+//
+// Cada coletor tem um espaçamento mínimo desde a última execução BEM-SUCEDIDA.
+// Execução que falhou não conta: a próxima tentativa vem no ciclo seguinte.
+// Coleta disparada à mão, na primeira subida ou pela linha de comando ignora a
+// cadência — quem pede agora quer agora.
+// ─────────────────────────────────────────────────────────────────────────────
+export const CADENCIA_MINUTOS = {
+  rss: 0,            // a cada ciclo
+  ransomware: 30,    // cota da API; vítimas novas aparecem em horas, não minutos
+  agregadores: 60,   // GNews 100 req/dia, NewsData 200 créditos/dia
+  camara: 60,
+  bcb: 60,
+  worldbank: 24 * 60,
+  comex: 12 * 60,    // o próprio coletor também pula dado com menos de 12 h
+  atores: 30,        // renova só perfis com mais de 24 h, em lotes
+  correlacoes: 0,    // derivação local, sem rede
+}
+
+const GATILHOS_SEM_CADENCIA = new Set(['manual', 'primeira-execucao', 'cli'])
+
+/** A última execução bem-sucedida deste coletor é recente demais? */
+function cedoDemais(nome, gatilho) {
+  const minutos = CADENCIA_MINUTOS[nome] || 0
+  if (!minutos || GATILHOS_SEM_CADENCIA.has(gatilho)) return false
+  const ultima = get(
+    `SELECT finished_at FROM collector_runs
+      WHERE collector = ? AND ok = 1 AND finished_at >= strftime('%Y-%m-%dT%H:%M:%SZ', 'now', ?)
+      ORDER BY id DESC LIMIT 1`,
+    // 1 minuto de folga: um ciclo de 15 que terminou em 29:40 não deve pular o de 30.
+    [nome, `-${minutos - 1} minutes`],
+  )
+  return !!ultima
+}
+
 /** Envolve um coletor para que o resultado vire linha no histórico. */
 async function registrar(nome, fn, gatilho = 'agendado') {
+  if (cedoDemais(nome, gatilho)) {
+    return { coletor: nome, ok: true, pulado: true, motivo: `cadência de ${CADENCIA_MINUTOS[nome]} min` }
+  }
   const inicio = Date.now()
   const inicioIso = agora()
   let resultado
@@ -60,15 +106,12 @@ async function registrar(nome, fn, gatilho = 'agendado') {
 
 // Quantas execuções guardar POR COLETOR.
 //
-// Sem teto, `collector_runs` cresce para sempre: seis coletores a cada 30
-// minutos são 288 linhas por dia, ~105 mil por ano. Num Railway sem volume
-// isso se resolve sozinho porque o disco é efêmero — mas o README recomenda
-// montar um volume justamente para o acervo persistir, e aí a tabela cresce
-// com ele. O painel de auditoria mostra as últimas dezenas; o resto é peso.
+// Sem teto, `collector_runs` cresce para sempre. O painel de auditoria mostra
+// as últimas dezenas; o resto é peso.
 //
-// 300 por coletor cobrem ~6 dias de agendador a cada 30 min, que é folga
-// suficiente para investigar qualquer falha depois do fim de semana.
-const EXECUCOES_POR_COLETOR = 300
+// 700 por coletor cobrem ~7 dias do coletor mais frequente (a cada 15 min),
+// folga suficiente para investigar uma falha depois do fim de semana.
+const EXECUCOES_POR_COLETOR = 700
 
 /** Apara o histórico, preservando as execuções recentes de cada coletor. */
 function aparar(nome) {
@@ -139,10 +182,19 @@ export async function coletarTudo(gatilho = 'agendado') {
   // Depois, e só se a Câmara respondeu: enriquecer exige uma requisição por
   // proposição, então roda em lote pequeno e fora do caminho crítico.
   let situacoes = { atualizadas: 0, pendentes: 0 }
-  if (legislativo.ok !== false) {
+  if (legislativo.ok !== false && !legislativo.pulado) {
     try {
       situacoes = await enriquecerSituacoes(12)
     } catch { /* melhor sem situação do que sem coleta */ }
+  }
+
+  // Por último, os avisos: dependem das matérias e dos incidentes que acabaram
+  // de entrar. Falha aqui não pode derrubar o resultado da coleta.
+  let notificacoes = { criadas: 0 }
+  try {
+    notificacoes = gerarNotificacoes({ noticias, legislativo, indicadores, comex, bcb, agregadores, ransomware, atores, correlacoes })
+  } catch (err) {
+    console.error('[coleta] notificações falharam:', err?.message || err)
   }
 
   return {
@@ -162,6 +214,7 @@ export async function coletarTudo(gatilho = 'agendado') {
     ransomware,
     atores,
     correlacoes,
+    notificacoes,
   }
 }
 
@@ -169,47 +222,58 @@ export async function coletarTudo(gatilho = 'agendado') {
 // AGENDADOR
 // ─────────────────────────────────────────────────────────────────────────────
 let temporizador = null
+let ativo = false
 let emAndamento = false
 let ultimaExecucao = null
 let proximaExecucao = null
 
 /**
- * `setInterval` em vez de node-cron: uma dependência a menos para um intervalo
- * fixo. Cron faria sentido se o horário importasse ("toda terça às 8h"), o que
- * não é o caso — o que importa é a frequência.
+ * Temporizador encadeado: o próximo ciclo é agendado quando o atual TERMINA.
+ *
+ * Com `setInterval` o relógio contava do início, então uma coleta de 3 minutos
+ * deixava só 12 até a seguinte e "próxima coleta" na tela mostrava o horário
+ * errado. Encadeado, o intervalo é sempre entre o fim de um e o começo do outro,
+ * e não há como dois ciclos do agendador se sobreporem. A trava `emAndamento`
+ * continua valendo para a coleta disparada à mão no meio de um ciclo.
  */
 export function iniciarAgendador() {
   const minutos = config.coleta.intervaloMinutos
   if (!minutos) return { ativo: false, motivo: 'COLLECT_INTERVAL_MINUTES=0' }
+  if (ativo) return { ativo: true, intervaloMinutos: minutos, proximaExecucao }
 
   const intervalo = minutos * 60_000
+  ativo = true
 
-  const ciclo = async () => {
-    // A trava evita sobreposição: se uma coleta demorar mais que o intervalo,
-    // a próxima esperaria a atual em vez de rodar em cima dela.
-    if (emAndamento) return
-    emAndamento = true
-    try {
-      ultimaExecucao = await coletarTudo('agendado')
-    } catch (err) {
-      console.error('[coleta] ciclo falhou:', err?.message || err)
-    } finally {
-      emAndamento = false
-      proximaExecucao = new Date(Date.now() + intervalo).toISOString()
-    }
+  const agendar = () => {
+    if (!ativo) return
+    proximaExecucao = new Date(Date.now() + intervalo).toISOString()
+    temporizador = setTimeout(ciclo, intervalo)
+    // `unref` permite ao processo encerrar sem esperar o temporizador.
+    temporizador.unref?.()
   }
 
-  temporizador = setInterval(ciclo, intervalo)
-  // `unref` permite ao processo encerrar sem esperar o temporizador — sem isso,
-  // Ctrl+C ficaria pendurado até o próximo ciclo.
-  temporizador.unref?.()
-  proximaExecucao = new Date(Date.now() + intervalo).toISOString()
+  const ciclo = async () => {
+    temporizador = null
+    if (!emAndamento) {
+      emAndamento = true
+      try {
+        ultimaExecucao = await coletarTudo('agendado')
+      } catch (err) {
+        console.error('[coleta] ciclo falhou:', err?.message || err)
+      } finally {
+        emAndamento = false
+      }
+    }
+    agendar()
+  }
 
+  agendar()
   return { ativo: true, intervaloMinutos: minutos, proximaExecucao }
 }
 
 export function pararAgendador() {
-  if (temporizador) clearInterval(temporizador)
+  ativo = false
+  if (temporizador) clearTimeout(temporizador)
   temporizador = null
   proximaExecucao = null
 }
@@ -229,7 +293,7 @@ export async function coletarAgora(gatilho = 'manual') {
 }
 
 export const estadoDoAgendador = () => ({
-  ativo: !!temporizador,
+  ativo,
   emAndamento,
   intervaloMinutos: config.coleta.intervaloMinutos,
   proximaExecucao,

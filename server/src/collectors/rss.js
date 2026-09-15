@@ -506,7 +506,7 @@ export async function coletarFonte(fonte) {
         // que existe para ser sobre defesa.
         if (fonte.somente_relevantes && !r.relevante) continue
 
-        // guid único: a coleta roda a cada 30 min e não pode reinserir.
+        // guid único: a coleta roda a cada ciclo e não pode reinserir.
         if (get('SELECT id FROM articles WHERE guid = ?', [item.guid])) continue
 
         // Mesma matéria vinda de OUTRA fonte — ou da mesma com guid novo, que

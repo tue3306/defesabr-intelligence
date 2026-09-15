@@ -21,8 +21,7 @@
     "postinstall": "npm --prefix server install",
     "lint": "eslint src server scripts",
     "prebuild": "eslint src server scripts --quiet",
-    "check:auth": "npm --prefix server run check:auth",
-    "check:ia": "npm --prefix server run check:ia"
+    "check:auth": "npm --prefix server run check:auth"
   },
   "dependencies": {
     "framer-motion": "^11.3.24",

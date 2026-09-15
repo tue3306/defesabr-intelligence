@@ -34,11 +34,11 @@ export const FAQ = [
   },
   {
     q: 'A plataforma precisa de servidor ou banco de dados?',
-    a: 'Sim, e é isso que a torna real. Um processo Node serve a API e a interface, coleta das fontes a cada 30 minutos e guarda em SQLite. Sem o servidor no ar, as telas mostram erro — não há dado local de reserva.',
+    a: 'Sim, e é isso que a torna real. Um processo Node serve a API e a interface, coleta as notícias a cada 15 minutos e guarda em SQLite. Sem o servidor no ar, as telas mostram erro — não há dado local de reserva.',
   },
   {
-    q: 'Como funciona a análise por IA?',
-    a: 'Com a sua chave da Anthropic, guardada cifrada no servidor e nunca devolvida ao navegador. Ela liga o resumo da semana, as perguntas ao acervo, a análise de até 15 matérias que você escolhe e as perguntas ao guia da plataforma. O modelo só recebe o que foi coletado, todo texto gerado vem marcado como escrito por máquina e as citações são conferidas contra as matérias. Sem chave, o resto da plataforma funciona igual.',
+    q: 'Como entro na plataforma?',
+    a: 'Crie uma conta com usuário e senha na tela de entrada. Toda conta nova tem o perfil de Usuário e alcança o acervo por completo; a administração da instalação (fontes, contas e auditoria) é do perfil Administrador.',
   },
   {
     q: 'É um sistema oficial de algum órgão público?',
@@ -46,7 +46,7 @@ export const FAQ = [
   },
   {
     q: 'O que a plataforma NÃO faz?',
-    a: 'Não produz avaliação de risco nem dossiê assinado por analista — isso é juízo humano, e as telas que fingiam fazê-lo foram removidas. Não publica texto de IA sem marcação, não recupera senha por e-mail e não tem entrada com conta Google.',
+    a: 'Não produz avaliação de risco nem dossiê assinado por analista — isso é juízo humano, e as telas que fingiam fazê-lo foram removidas. Não recupera senha por e-mail e não tem entrada por provedor externo.',
   },
   {
     q: 'O que a plataforma faz que um leitor de RSS não faz?',
@@ -54,7 +54,7 @@ export const FAQ = [
   },
   {
     q: 'Quanto custa?',
-    a: 'Nada: o projeto é de código aberto, sem cobrança, assinatura ou plano pago. Qualquer pessoa pode clonar o repositório e subir a própria instância. O único custo possível é o do modelo de IA, cobrado pela Anthropic na conta de quem cadastra a chave.',
+    a: 'Nada: o projeto é de código aberto, sem cobrança, assinatura ou plano pago. Qualquer pessoa pode clonar o repositório e subir a própria instância.',
   },
 ]
 
@@ -71,11 +71,11 @@ export const FAQ = [
 // A correlacao tambem estava reduzida a "geografica", que era o que ela era
 // quando o item foi escrito.
 export const ROADMAP = [
-  { phase: 'Disponível', title: 'Coleta e clipping', text: '50 fontes RSS, a Câmara, o Banco Central, o Comex Stat, o World Bank e o ransomware.live, com filtro de relevância auditável e coleta a cada 30 minutos.', done: true },
+  { phase: 'Disponível', title: 'Coleta e clipping', text: '50 fontes RSS, a Câmara, o Banco Central, o Comex Stat, o World Bank e o ransomware.live, com filtro de relevância auditável e coleta de notícias a cada 15 minutos.', done: true },
   { phase: 'Disponível', title: 'Correlação com o Brasil', text: 'Sete regras determinísticas ligam matérias a organizações atacadas, grupos, municípios, UFs e setores — cada uma com a evidência à vista.', done: true },
-  { phase: 'Disponível', title: 'Assistente por IA', text: 'Com a chave de cada conta: resumo da semana, perguntas ao acervo e análise assistida de matérias escolhidas, com as citações conferidas.', done: true },
+  { phase: 'Disponível', title: 'Notificações por conta', text: 'Gerados a cada coleta — matéria urgente e ataque a organização brasileira —, com o estado de leitura guardado na conta.', done: true },
   { phase: 'Disponível', title: 'Contas e governança', text: 'Senha em scrypt, papel e situação conferidos no servidor a cada requisição, troca de senha, suspensão com efeito imediato e trilha de auditoria.', done: true },
-  { phase: 'Planejado', title: 'Entrar com conta Google', text: 'As colunas `username` e `auth_provider` já existem para receber o provedor externo sem remodelar nada.', done: false },
+  { phase: 'Planejado', title: 'Entrar por provedor externo', text: 'As colunas `username` e `auth_provider` já existem para receber um provedor de identidade sem remodelar nada.', done: false },
   { phase: 'Planejado', title: 'Recuperação de senha por e-mail', text: 'Depende de um serviço de envio de e-mail, que a instalação ainda não tem.', done: false },
 ]
 
@@ -91,7 +91,7 @@ export const LANDING_FEATURES = [
   { icon: 'Globe2', title: 'Mapa navegável', text: 'Cada país abre um dossiê: cobertura noticiosa com tendência, categorias e as vítimas de ransomware do território, cruzadas pelo código ISO.' },
   { icon: 'BarChart3', title: 'Método auditável', text: 'A regra que decide o que entra no acervo é publicada e pode ser aplicada a qualquer texto, com os termos que casaram.' },
   { icon: 'LineChart', title: 'Dados militares e econômicos', text: 'Gastos de defesa, câmbio e indicadores setoriais em gráficos atualizados.' },
-  { icon: 'Sparkles', title: 'Assistente por IA, com a sua chave', text: 'Resumo da semana, perguntas ao acervo e análise de até 15 matérias escolhidas. Todo texto gerado vem marcado, e as citações são conferidas contra o que foi coletado.' },
+  { icon: 'Bell', title: 'Notificações', text: 'Matéria urgente e ataque a organização brasileira viram aviso a cada coleta, com o estado de leitura guardado na sua conta.' },
   { icon: 'GraduationCap', title: 'Centro educacional', text: 'Glossário, trilhas de estudo e quiz para quem está começando em defesa, geopolítica e cibersegurança.' },
   { icon: 'ShieldCheck', title: 'Fontes confiáveis', text: 'Agregação de fontes públicas e institucionais de Segurança e Defesa do Brasil.' },
 ]

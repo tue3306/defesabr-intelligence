@@ -32,12 +32,10 @@ import { segredoDaSessao } from './lib/auth.js'
 
 migrate()
 const fontesCriadas = semearFontes() + semearAgregadores()
-// `await` no topo do módulo, e não por elegância: `semearContas` passou a ser
-// assíncrona (scrypt fora do event loop), e sem esperar por ela a porta abriria
-// antes de as contas existirem — um login no primeiro segundo do contêiner
-// receberia "e-mail ou senha incorretos" sobre uma conta que estava sendo
-// criada. O banner também imprimiria uma Promise no lugar do número.
-const contasCriadas = await semearContas()
+// `await` no topo do módulo: `semearContas` é assíncrona (scrypt fora do event
+// loop), e sem esperar por ela a porta abriria antes de a conta de
+// administrador existir.
+const contas = await semearContas()
 
 const app = criarApp()
 const servidor = app.listen(config.port, config.host, async () => {
@@ -49,7 +47,9 @@ const servidor = app.listen(config.port, config.host, async () => {
   console.log(`  Node          ${process.version}`)
   console.log(`  Banco         ${config.dbPath}`)
   if (fontesCriadas) console.log(`  Fontes        ${fontesCriadas} cadastradas`)
-  if (contasCriadas) console.log(`  Contas        ${contasCriadas} conta(s) inicial(is) criada(s)`)
+  if (contas.criadas) console.log(`  Contas        conta de administrador criada (ADMIN_USERNAME)`)
+  if (contas.removidas) console.log(`  Contas        ${contas.removidas} conta(s) pública(s) antiga(s) removida(s)`)
+  for (const aviso of contas.avisos) console.log(`  [33mContas        ${aviso}[0m`)
   // De onde veio o segredo que assina as sessoes. Quem hospeda precisa saber:
   // 'banco' sobrevive a reinicio; 'memoria' nao.
   const seg = segredoDaSessao()

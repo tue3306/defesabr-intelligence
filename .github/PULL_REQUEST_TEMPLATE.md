@@ -19,7 +19,7 @@
 
 ## ✅ Checklist
 
-- [ ] Rodei `npm run build`, `npm run check`, `npm run check:auth` e `npm run check:ia` sem erros
+- [ ] Rodei `npm run build`, `npm run check` e `npm run check:auth` sem erros
 - [ ] Mantive o padrão visual e de código existente
 - [ ] **Não** alterei lógica que já funcionava sem necessidade
 - [ ] Atualizei a documentação afetada (README, CHANGELOG, etc.)

@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Activity, X, ArrowRight } from 'lucide-react'
-import { useIa } from '../../hooks/useIa'
 import { useCan } from '../../auth/useCan'
 import { APP_VERSION } from '../../services/config'
 import { formatTime } from '../../utils/dateUtils'
@@ -32,8 +31,6 @@ export default function StatusFAB() {
   // O hook precisa ser chamado sempre, mesmo sem permissão: sair antes mudaria
   // a ordem dos hooks entre renders e o React quebraria.
   const saude = useResource(() => adminService.health(), [], { enabled: pode })
-  // Pelo mesmo motivo do comentário acima: antes do primeiro `return`.
-  const ia = useIa()
 
   if (!pode) return null
 
@@ -75,11 +72,6 @@ export default function StatusFAB() {
       name: 'Alertas de segurança',
       ok: !saude.error && alertas === 0,
       note: alertas ? `${alertas} pendente(s)` : 'nenhum',
-    },
-    {
-      name: 'Assistente por IA (sua conta)',
-      ok: ia.configurada,
-      note: ia.configurada ? ia.modelo : 'sem chave',
     },
   ]
 

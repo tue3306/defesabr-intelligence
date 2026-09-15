@@ -26,7 +26,7 @@ async function autenticar() {
     const r = await fetch(`${BASE}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: 'admin123', password: 'admin123' }),
+      body: JSON.stringify({ username: process.env.ADMIN_USERNAME, password: process.env.ADMIN_PASSWORD }),
     })
     if (r.ok) TOKEN = (await r.json()).token
   } catch {
@@ -130,6 +130,22 @@ await checar('GET /sources', '/api/sources',
 await checar('GET /search', '/api/search?q=defesa',
   (b) => Array.isArray(b?.items) && `${b.total} resultados em ${b.groups?.length} grupos`)
 await checar('GET /search (vazio)', '/api/search?q=', (b) => b?.total === 0 && 'devolve vazio, não erro')
+
+console.log('\nNOTIFICAÇÕES E GUIA')
+const avisos = await checar('GET /notifications', '/api/notifications?limit=20',
+  (b) => Array.isArray(b?.items) && Number.isInteger(b.unread) && `${b.total} aviso(s), ${b.unread} por ler`)
+if (avisos?.items?.[0]) {
+  // Lê e devolve ao estado anterior: a suíte não pode mudar o que a conta viu.
+  const n = avisos.items[0]
+  await checar('POST /notifications/:id/read', `/api/notifications/${n.id}/read`, (b) => b?.read === true && 'marcada como lida', { method: 'POST' })
+  await checar('GET /notifications (lida)', '/api/notifications?limit=20',
+    (b) => b?.items?.find((i) => i.id === n.id)?.read === true && 'estado gravado na conta')
+  if (!n.read) {
+    await checar('DELETE /notifications/:id/read', `/api/notifications/${n.id}/read`, (b) => b?.read === false && 'de volta a não lida', { method: 'DELETE' })
+  }
+}
+await checar('POST /notifications/:id/read (inexistente)', '/api/notifications/99999999/read', () => 'recusa correta', { method: 'POST', status: 404 })
+await checar('GET /guia', '/api/guia', (b) => b?.telas?.length && b?.naoFaz?.length && `${b.telas.length} telas no guia`)
 
 console.log('\nFILTRO AO VIVO')
 await checar('POST method/test (aprova)', '/api/system/method/test', (b) => b?.relevante === true && b.porque, {

@@ -31,6 +31,7 @@ import MilitarySpendingChart from '../components/charts/MilitarySpendingChart'
 import GlobalHeatmap from '../components/charts/GlobalHeatmap'
 import { useNews } from '../hooks/useNews'
 import { useNewsStore } from '../store/newsStore'
+import { useNotificationStore } from '../store/notificationStore'
 import { useAuthStore } from '../store/authStore'
 import { useNewsVolume } from '../hooks/useNewsVolume'
 import { useGastoMilitar, useIndicadoresBcb, useIndiceDeAlerta } from '../hooks/useDadosReais'
@@ -68,8 +69,8 @@ export default function UserDashboard() {
   const bcb = useIndicadoresBcb()
   const indice = useIndiceDeAlerta(7)
   const user = useAuthStore((s) => s.user)
-  const notifications = useNewsStore((s) => s.notifications)
-  const unread = useNewsStore((s) => s.unreadCount())
+  const notifications = useNotificationStore((s) => s.items)
+  const unread = useNotificationStore((s) => s.unread)
   const favorites = useNewsStore((s) => s.favorites)
   const interestAreas = useSettingsStore((s) => s.interestAreas)
   const volume = useNewsVolume(14)
@@ -333,7 +334,7 @@ export default function UserDashboard() {
                     <span className="mt-0.5 shrink-0"><Badge type="urgency" value={n.level} /></span>
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{n.title}</p>
-                      <p className="text-xs muted">{timeAgo(n.time)}</p>
+                      <p className="text-xs muted">{timeAgo(n.eventAt || n.createdAt)}</p>
                     </div>
                   </li>
                 ))}

@@ -203,7 +203,7 @@ export async function exportClippingToPDF(clipping) {
       pdf.setFontSize(7)
       pdf.setTextColor(...COR.fraco)
       pdf.text(
-        'Montado a partir do acervo coletado de fontes públicas. Nenhum trecho foi escrito por modelo de linguagem.',
+        'Montado a partir do acervo coletado de fontes públicas.',
         M,
         H - 9.5
       )
@@ -304,25 +304,6 @@ export async function exportClippingToPDF(clipping) {
   ].filter(Boolean)
   texto(numeros.join('  ·  '), { size: 9, cor: COR.fraco })
 
-  // ── SÍNTESE: o campo reservado, honesto quando vazio ──
-  secao('Síntese do período')
-  if (clipping.summary_executive) {
-    String(clipping.summary_executive)
-      .split('\n')
-      .filter(Boolean)
-      .forEach((p) => { texto(p); y += 1.5 })
-  } else {
-    texto(
-      clipping.summary_note
-        || 'Resumo executivo automático não é gerado nesta versão — exigiria um modelo de linguagem.',
-      { size: 9, cor: COR.fraco, estilo: 'italic' }
-    )
-    texto(
-      'O espaço fica vazio de propósito: preenchê-lo com texto plausível seria a única coisa que esta plataforma não faz.',
-      { size: 8, cor: COR.fraco }
-    )
-  }
-
   // ── AS MATÉRIAS, AGRUPADAS POR CATEGORIA ──
   //
   // A ordem das categorias segue o VOLUME, e dentro de cada uma a urgência
@@ -388,7 +369,7 @@ export async function exportClippingToPDF(clipping) {
   // ── COMO ESTE DOCUMENTO FOI MONTADO ──
   secao('Como este documento foi montado')
   texto(
-    'A edição é montada pelo servidor a partir do que os coletores trouxeram e o filtro de relevância aprovou. Não há passo de análise por modelo de linguagem em nenhum ponto do caminho.',
+    'A edição é montada pelo servidor a partir do que os coletores trouxeram e o filtro de relevância aprovou.',
     { size: 8.5, cor: COR.fraco }
   )
   texto(

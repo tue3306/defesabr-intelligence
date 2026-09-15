@@ -8,7 +8,7 @@ Coloque aqui as imagens usadas na seção **Capturas de tela** do [README](../..
 |---------|-------------------|
 | `dashboard.png` | Painel principal (Home) |
 | `risk-map.png` | Mapa de risco interativo |
-| `clipping.png` | Clipping diário com resumo por IA |
+| `clipping.png` | Clipping diário, com nível de alerta e eventos consolidados |
 | `programs.png` | Programas estratégicos |
 
 ## Como gerar

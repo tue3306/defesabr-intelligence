@@ -1,9 +1,13 @@
 import { urgencyMeta, alertMeta, categoryColor } from '../../utils/textUtils'
 
+const AVISO = { label: 'AVISO', classes: 'bg-brand-500/15 text-brand-700 dark:text-brand-300 border-brand-500/40' }
+
 // Badge generico. type: 'urgency' | 'alert' | 'category' | 'live' | 'sem-dado' | 'plain'
 export default function Badge({ type = 'plain', value, children, className = '' }) {
   if (type === 'urgency') {
-    const m = urgencyMeta[value] || urgencyMeta.BAIXO
+    // AVISO é o nível das notificações de sistema (falha de coleta), que não
+    // são urgência de matéria e por isso não entram em `urgencyMeta`.
+    const m = urgencyMeta[value] || (value === 'AVISO' ? AVISO : urgencyMeta.BAIXO)
     return <Pill className={`${m.classes} ${className}`}>{m.label}</Pill>
   }
   if (type === 'alert') {

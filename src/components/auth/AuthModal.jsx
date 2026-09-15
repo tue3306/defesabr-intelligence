@@ -1,29 +1,23 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { LogIn, UserPlus, Loader2, ShieldCheck, UserCircle, AlertCircle } from 'lucide-react'
+import { LogIn, UserPlus, Loader2, AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Modal from '../ui/Modal'
 import { useAuthStore } from '../../store/authStore'
-import { API_BASE_URL } from '../../services/config'
-import { ROLE_LABELS as ROTULO_PAPEL } from '../../auth/permissions'
-import { carregarContasIniciais } from '../../auth/useContasIniciais'
 
 // -----------------------------------------------------------------------------
 // ENTRAR E CADASTRAR
 //
-// Substitui o modal anterior, que "entrava" escrevendo um objeto de usuário
-// inventado no localStorage — inclusive um com `role: 'admin'`. Agora as duas
-// abas falam com `/api/auth`, e o papel vem assinado pelo servidor.
+// As duas abas falam com `/api/auth`, e o papel vem assinado pelo servidor.
 //
-// A conta de usuário compartilhada continua sendo oferecida, com a senha na
-// tela de propósito: a plataforma precisa ser percorrível sem cadastro. Entrar
-// nela é um POST de verdade, com senha conferida por scrypt.
-//
-// O CADASTRO cria conta com papel Usuário — sempre. Escolher o próprio papel
-// no formulário faria de "Administrador" um campo de texto.
+// O CADASTRO pede só usuário e senha, e cria conta com papel Usuário — sempre.
+// Escolher o próprio papel no formulário faria de "Administrador" um campo de
+// texto; promover alguém é ato de quem administra.
 // -----------------------------------------------------------------------------
 
-const ICONE_PAPEL = { admin: ShieldCheck, user: UserCircle }
+const RX_USUARIO = /^[a-z0-9._-]{3,32}$/
+const SENHA_MINIMA = 6
+const FORM_VAZIO = { username: '', password: '', confirmacao: '' }
 
 export default function AuthModal({ open, onClose, abaInicial = 'entrar' }) {
   const navigate = useNavigate()
@@ -32,61 +26,57 @@ export default function AuthModal({ open, onClose, abaInicial = 'entrar' }) {
   const carregando = useAuthStore((s) => s.carregando)
 
   const [aba, setAba] = useState(abaInicial)
-  const [contas, setContas] = useState([])
   const [erro, setErro] = useState(null)
   const [campoComErro, setCampoComErro] = useState(null)
-
-  const [form, setForm] = useState({ name: '', username: '', email: '', password: '' })
+  const [form, setForm] = useState(FORM_VAZIO)
 
   useEffect(() => { setAba(abaInicial) }, [abaInicial, open])
   useEffect(() => { setErro(null); setCampoComErro(null) }, [aba])
+  // Fechar e abrir de novo não deixa a senha digitada no campo.
+  useEffect(() => { if (!open) setForm(FORM_VAZIO) }, [open])
 
-  // As contas iniciais vêm do servidor: se alguém as remover do banco, ou
-  // trocar a senha padrão, a tela deixa de oferecê-las em vez de mostrar
-  // credenciais que não funcionam.
-  useEffect(() => {
-    if (!open) return
-    let vivo = true
-    carregarContasIniciais().then((itens) => { if (vivo) setContas(itens) })
-    return () => { vivo = false }
-  }, [open])
+  const falhar = (mensagem, campo = null) => { setErro(mensagem); setCampoComErro(campo) }
 
   const concluir = (user) => {
-    toast.success(`Bem-vindo, ${user.name.split(' ')[0]}.`)
+    toast.success(`Bem-vindo, ${String(user.name || user.username).split(' ')[0]}.`)
     onClose?.()
     navigate('/painel')
-  }
-
-  const entrarCom = async (email, password) => {
-    setErro(null); setCampoComErro(null)
-    const r = await login(email, password)
-    if (r.ok) concluir(r.user)
-    else { setErro(r.error); setCampoComErro(r.campo) }
   }
 
   const aoEnviar = async (e) => {
     e.preventDefault()
     setErro(null); setCampoComErro(null)
+    const username = form.username.trim().toLowerCase()
 
     if (aba === 'entrar') {
-      // O campo aceita nome de usuário OU e-mail: o servidor procura nos dois.
-      return entrarCom(form.username, form.password)
+      const r = await login(username, form.password)
+      return r.ok ? concluir(r.user) : falhar(r.error, r.campo)
     }
 
-    const r = await register(form)
-    if (r.ok) concluir(r.user)
-    else { setErro(r.error); setCampoComErro(r.campo) }
+    // Conferido aqui para responder na hora; o servidor confere de novo.
+    if (!RX_USUARIO.test(username)) {
+      return falhar('Use 3 a 32 caracteres: letras minúsculas, números, ponto, hífen ou sublinhado.', 'username')
+    }
+    if (form.password.length < SENHA_MINIMA) {
+      return falhar(`A senha precisa de ao menos ${SENHA_MINIMA} caracteres.`, 'password')
+    }
+    if (form.password !== form.confirmacao) {
+      return falhar('As senhas não conferem.', 'confirmacao')
+    }
+
+    const r = await register({ username, password: form.password })
+    return r.ok ? concluir(r.user) : falhar(r.error, r.campo)
   }
 
   const campo = (nome) => ({
     value: form[nome],
     onChange: (e) => setForm((f) => ({ ...f, [nome]: e.target.value })),
+    'aria-invalid': campoComErro === nome || undefined,
     className: `input ${campoComErro === nome ? 'border-red-500 dark:border-red-400' : ''}`,
   })
 
   return (
     <Modal open={open} onClose={onClose} title={aba === 'entrar' ? 'Entrar' : 'Criar conta'} maxWidth="max-w-md">
-      {/* Abas */}
       <div className="mb-5 grid grid-cols-2 gap-1 rounded-lg bg-gray-100 p-1 dark:bg-white/5">
         {[
           { id: 'entrar', label: 'Entrar', icon: LogIn },
@@ -108,35 +98,23 @@ export default function AuthModal({ open, onClose, abaInicial = 'entrar' }) {
         ))}
       </div>
 
-      <form onSubmit={aoEnviar} className="space-y-3">
-        {aba === 'cadastrar' && (
-          <div>
-            <label htmlFor="auth-nome" className="mb-1 block text-sm font-medium">Nome</label>
-            <input id="auth-nome" type="text" autoComplete="name" required {...campo('name')} />
-          </div>
-        )}
-
-        {aba === 'entrar' ? (
-          <div>
-            <label htmlFor="auth-usuario" className="mb-1 block text-sm font-medium">Usuário</label>
-            <input
-              id="auth-usuario"
-              type="text"
-              autoComplete="username"
-              autoCapitalize="none"
-              spellCheck={false}
-              placeholder="usuario123"
-              required
-              {...campo('username')}
-            />
-            <p className="mt-1 text-xs muted">Nome de usuário ou e-mail.</p>
-          </div>
-        ) : (
-          <div>
-            <label htmlFor="auth-email" className="mb-1 block text-sm font-medium">E-mail</label>
-            <input id="auth-email" type="email" autoComplete="email" required {...campo('email')} />
-          </div>
-        )}
+      <form onSubmit={aoEnviar} className="space-y-3" noValidate>
+        <div>
+          <label htmlFor="auth-usuario" className="mb-1 block text-sm font-medium">Usuário</label>
+          <input
+            id="auth-usuario"
+            type="text"
+            autoComplete="username"
+            autoCapitalize="none"
+            spellCheck={false}
+            maxLength={32}
+            required
+            {...campo('username')}
+          />
+          {aba === 'cadastrar' && (
+            <p className="mt-1 text-xs muted">3 a 32 caracteres: letras minúsculas, números, ponto, hífen ou sublinhado.</p>
+          )}
+        </div>
 
         <div>
           <label htmlFor="auth-senha" className="mb-1 block text-sm font-medium">Senha</label>
@@ -144,14 +122,26 @@ export default function AuthModal({ open, onClose, abaInicial = 'entrar' }) {
             id="auth-senha"
             type="password"
             autoComplete={aba === 'entrar' ? 'current-password' : 'new-password'}
+            maxLength={128}
             required
-            minLength={6}
             {...campo('password')}
           />
-          {aba === 'cadastrar' && (
-            <p className="mt-1 text-xs muted">Ao menos 6 caracteres.</p>
-          )}
+          {aba === 'cadastrar' && <p className="mt-1 text-xs muted">Ao menos {SENHA_MINIMA} caracteres.</p>}
         </div>
+
+        {aba === 'cadastrar' && (
+          <div>
+            <label htmlFor="auth-confirmacao" className="mb-1 block text-sm font-medium">Confirme a senha</label>
+            <input
+              id="auth-confirmacao"
+              type="password"
+              autoComplete="new-password"
+              maxLength={128}
+              required
+              {...campo('confirmacao')}
+            />
+          </div>
+        )}
 
         {erro && (
           <p role="alert" className="flex items-start gap-1.5 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-800 dark:text-red-300">
@@ -167,63 +157,13 @@ export default function AuthModal({ open, onClose, abaInicial = 'entrar' }) {
               : <><UserPlus size={16} /> Criar conta</>}
         </button>
 
-        {/* O texto listava os papéis internos — "Analista e Administrador são
-          * atribuídos pela governança" — para quem só quer criar uma conta.
-          * O que essa pessoa precisa saber é o que a conta dela alcança;
-          * o organograma é assunto de quem opera a instalação. */}
         {aba === 'cadastrar' && (
           <p className="text-center text-xs muted">
-            Toda conta criada aqui acessa a plataforma por completo: clipping, correlações,
-            mapa estratégico, incidentes e busca no acervo.
-            <br />
-            <span className="mt-1 inline-block">
-              A entrada por conta Google está prevista e ainda não existe — enquanto não
-              existir, o campo acima é o único caminho.
-            </span>
+            A conta criada aqui acessa a plataforma por completo: clipping, correlações, mapa
+            estratégico, incidentes, notificações e busca no acervo.
           </p>
         )}
       </form>
-
-{/* Contas iniciais do projeto aberto.
-        *
-        * Só aparecem enquanto a senha for a documentada — o servidor devolve
-        * `senhaPadrao`, e numa instalação que a trocou o atalho some. Oferecer
-        * um botão com credencial que não funciona é pior que não oferecer. */}
-      {aba === 'entrar' && contas.some((c) => c.senhaPadrao) && (
-        <div className="mt-6 border-t border-gray-200 pt-5 dark:border-white/10">
-          <p className="mb-3 text-center text-xs font-bold uppercase tracking-wider muted">
-            ou entre com uma das contas iniciais
-          </p>
-          <div className="space-y-2">
-            {contas.filter((c) => c.senhaPadrao).map((c) => {
-              const Icon = ICONE_PAPEL[c.role] || UserCircle
-              return (
-                <button
-                  key={c.username}
-                  type="button"
-                  onClick={() => entrarCom(c.username, c.username)}
-                  disabled={carregando}
-                  className="flex w-full items-center gap-3 rounded-lg border border-gray-200 px-3 py-2.5 text-left transition-colors hover:border-gold-500/40 hover:bg-gray-50 dark:border-white/10 dark:hover:bg-white/[0.04]"
-                >
-                  <Icon size={18} className="shrink-0 text-brand-400 dark:text-brand-300" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-bold">{ROTULO_PAPEL[c.role] || c.name}</span>
-                    <span className="block truncate font-mono text-xs muted">
-                      usuário {c.username} · senha {c.username}
-                    </span>
-                  </span>
-                  <LogIn size={15} className="shrink-0 text-gray-400" />
-                </button>
-              )
-            })}
-          </div>
-          <p className="mt-3 text-center text-[11px] muted">
-            Contas públicas do projeto, com o acervo real. A de usuário é compartilhada e não
-            guarda nome, senha nem chave de IA próprios — para isso, crie a sua conta.
-          </p>
-        </div>
-      )}
     </Modal>
   )
 }
-

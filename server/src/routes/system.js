@@ -166,8 +166,8 @@ router.get('/meta', (req, res) => {
     ],
     // O que a plataforma AINDA NÃO faz — contado, não escrito à mão.
     //
-    // A lista era fixa e dizia `['Análise por IA', 'Contas e permissões',
-    // 'Dossiês de analista']`. As contas passaram a existir — senha em scrypt,
+    // A lista era fixa e dizia que 'Contas e permissões' e 'Dossiês de
+    // analista' faltavam. As contas passaram a existir — senha em scrypt,
     // token assinado, papel verificado por rota, checagens em
     // `npm run check:auth` — e a rota pública continuou anunciando que elas
     // não existiam. Uma lista escrita à mão sobre o que falta envelhece

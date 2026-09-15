@@ -364,3 +364,43 @@ CREATE TABLE IF NOT EXISTS app_config (
   valor      TEXT NOT NULL,
   criado_em  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
 );
+
+
+-- -----------------------------------------------------------------------------
+-- NOTIFICACOES
+--
+-- Geradas pelo SERVIDOR ao fim de cada coleta, e nao pelo navegador. Antes a
+-- tela perguntava ao acervo a cada cinco minutos e so avisava o que chegasse
+-- com ela aberta; fechar a aba, recarregar ou sair da conta perdia tudo, e o
+-- aviso de uma conta ficava no navegador de quem usou por ultimo.
+--
+--   notifications        o evento, uma linha por fato (`ref_key` e unico, entao
+--                        a mesma materia nunca vira dois avisos)
+--   notification_state   o que CADA CONTA fez com o evento: leu, dispensou
+--
+-- `audience` e o papel minimo que ve o aviso: 'user' vale para todas as contas,
+-- 'admin' so para quem administra (falha de coleta, por exemplo).
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS notifications (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  ref_key     TEXT NOT NULL UNIQUE,
+  kind        TEXT NOT NULL CHECK (kind IN ('noticia', 'incidente', 'sistema')),
+  level       TEXT NOT NULL CHECK (level IN ('CRITICO', 'ALTO', 'AVISO')),
+  title       TEXT NOT NULL,
+  detail      TEXT,
+  url         TEXT,
+  route       TEXT,
+  audience    TEXT NOT NULL DEFAULT 'user' CHECK (audience IN ('user', 'admin')),
+  event_at    TEXT,
+  created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at DESC);
+
+CREATE TABLE IF NOT EXISTS notification_state (
+  user_id          INTEGER NOT NULL,
+  notification_id  INTEGER NOT NULL REFERENCES notifications(id) ON DELETE CASCADE,
+  read_at          TEXT,
+  dismissed_at     TEXT,
+  PRIMARY KEY (user_id, notification_id)
+);

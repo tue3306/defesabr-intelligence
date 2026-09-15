@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  Shield, Newspaper, Link2, ShieldAlert, Sparkles, LifeBuoy, Command, ArrowRight, ArrowLeft, Check,
+  Shield, Newspaper, Link2, ShieldAlert, Bell, LifeBuoy, Command, ArrowRight, ArrowLeft, Check,
 } from 'lucide-react'
 import Modal from './Modal'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -44,10 +44,10 @@ const STEPS = [
     link: { to: '/ciberameacas', label: 'Ver os incidentes' },
   },
   {
-    icon: Sparkles,
-    title: 'Assistente por IA, com a sua chave',
-    text: 'Com uma chave da Anthropic, ligam-se o resumo da semana, as perguntas ao acervo e a análise de até 15 matérias que você escolher. A chave fica cifrada no servidor, e todo texto gerado vem marcado como escrito por máquina.',
-    link: { to: '/conta', label: 'Configurar em Minha conta → Segurança' },
+    icon: Bell,
+    title: 'Notificações',
+    text: 'A cada coleta, matéria urgente e ataque a organização brasileira viram aviso. O sino no topo mostra quantos estão por ler, e o que você lê fica marcado na sua conta.',
+    link: { to: '/notificacoes', label: 'Abrir as notificações' },
   },
   {
     icon: LifeBuoy,

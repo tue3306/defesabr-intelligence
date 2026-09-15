@@ -20,8 +20,10 @@ import config from '../config.js'
 // um índice maior, útil para pescar matéria de veículo não cadastrado.
 //
 // O que NÃO acrescentam é confiabilidade: as cotas gratuitas são apertadas
-// (GNews: 100 requisições/dia; NewsData: 200 créditos/dia) e a coleta roda a
-// cada 30 minutos, o que dá 48 execuções diárias. Cabe, com folga pequena.
+// (GNews: 100 requisições/dia; NewsData: 200 créditos/dia). Por isso este
+// coletor tem cadência própria de 60 minutos (ver CADENCIA_MINUTOS em
+// collectors/index.js): 24 execuções diárias, com folga, mesmo com o ciclo de
+// notícias a cada 15 minutos.
 //
 // A NewsAPI.org ficou de fora: o plano gratuito é explicitamente "somente
 // desenvolvimento" e recusa requisições de domínio em produção. Cadastrá-la

@@ -44,19 +44,10 @@ function ipDe(req) {
 // deixaria qualquer pessoa trancar a conta de outra só mandando senha errada.
 // A proteção viraria a ferramenta do ataque.
 //
-// Nas rotas do assistente a situação é o inverso em três pontos:
-//
-//   1. A identidade é PROVADA por token assinado. Ninguém consome a cota de
-//      outra pessoa sem ter o token dela — e quem o tem já entrou.
-//
-//   2. O recurso protegido é a CHAVE DE API DAQUELA CONTA, e cada uma paga a
-//      própria. Uma cota compartilhada não protege recurso compartilhado
-//      nenhum; ela só reparte um limite entre quem não divide a fatura.
-//
-//   3. O efeito colateral é concreto: num escritório atrás de um endereço só —
-//      que é o caso de qualquer empresa — a primeira pessoa a pedir quatro
-//      relatórios esgota a cota de todas as outras, cada uma com a própria
-//      chave e o próprio crédito.
+// Nas rotas de quem já entrou (troca de senha, por exemplo) a situação é a
+// inversa: a identidade é PROVADA por token assinado, ninguém consome a cota de
+// outra pessoa sem ter o token dela, e num escritório atrás de um endereço só
+// a primeira pessoa a errar a senha não pode esgotar a cota de todas as outras.
 //
 // `porConta` inverte a ordem: usa a conta quando há sessão e cai no IP quando
 // não há. Sem sessão o comportamento é o de antes, que é o que protege as

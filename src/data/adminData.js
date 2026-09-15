@@ -4,8 +4,7 @@
 // Este arquivo já declarou a saúde de oito serviços, um log de auditoria com
 // entradas assinadas por pessoas que não existem, 128 contas no plano Explorar
 // e um catálogo de integrações escrito à mão — com "SSO institucional
-// (SAML/OIDC)" e um modelo de linguagem "planejado" quando o assistente por IA
-// já funcionava. Tudo isso passou a vir de `/api/system/status`, que deriva
+// (SAML/OIDC)" planejado. Tudo isso passou a vir de `/api/system/status`, que deriva
 // cada estado do banco. Sobrou o que é vocabulário: rótulo e cor de cada estado.
 // -----------------------------------------------------------------------------
 

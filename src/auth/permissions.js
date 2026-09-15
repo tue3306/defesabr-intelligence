@@ -31,7 +31,7 @@ export const PROFILES = {
   user: {
     id: 'user',
     label: 'Usuário',
-    description: 'Painel, clipping, correlações, mapas, dados, ameaças cibernéticas, pasta pessoal e assistente por IA com a própria chave.',
+    description: 'Painel, clipping, correlações, mapas, dados, ameaças cibernéticas, notificações e pasta pessoal.',
     color: '#2e7d46',
   },
   admin: {

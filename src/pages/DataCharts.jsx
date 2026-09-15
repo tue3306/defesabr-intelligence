@@ -225,7 +225,7 @@ export default function DataCharts() {
           </button>
         }
       >
-        <nav className="-mb-1 flex gap-1 overflow-x-auto border-b border-gray-200 dark:border-white/10" role="tablist" aria-label="Temas de dados">
+        <nav className="-mb-1 flex gap-1 overflow-x-auto overflow-y-hidden border-b border-gray-200 dark:border-white/10" role="tablist" aria-label="Temas de dados">
           {TABS.map((t) => (
             <button
               key={t.id}

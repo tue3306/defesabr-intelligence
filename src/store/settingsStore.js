@@ -13,7 +13,7 @@ export const useSettingsStore = create(
       // O comentario que ficava aqui descrevia a plataforma como "um demo 100%
       // front-end (sem backend/proxy)" e explicava por que as fontes ao vivo
       // vinham desligadas. Ha um backend desde entao, ele coleta de 50 fontes
-      // a cada 30 minutos, e o texto so servia para desorientar quem chegasse.
+      // periodicamente, e o texto so servia para desorientar quem chegasse.
       notificationsEnabled: true,
       // Áreas temáticas de maior interesse do usuário (filtra/destaca conteúdo)
       interestAreas: [],

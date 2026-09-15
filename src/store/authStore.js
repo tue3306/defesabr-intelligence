@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { API_BASE_URL } from '../services/config'
 import { useNewsStore } from './newsStore'
+import { useNotificationStore } from './notificationStore'
 import { ROLE_LABELS } from '../auth/permissions'
 
 // -----------------------------------------------------------------------------
@@ -82,11 +83,11 @@ export const useAuthStore = create(
         }
       },
 
-      /** Cria conta. O servidor sempre atribui o papel `user`. */
-      register: async ({ name, email, password }) => {
+      /** Cria conta com usuário e senha. O servidor sempre atribui o papel `user`. */
+      register: async ({ username, password }) => {
         set({ carregando: true })
         try {
-          const { user, token } = await chamar('POST', '/auth/register', { name, email, password })
+          const { user, token } = await chamar('POST', '/auth/register', { username, password })
           set({ user, token, isAuthenticated: true, carregando: false, motivoSaida: null })
           sincronizarPasta()
           return { ok: true, user }
@@ -101,7 +102,8 @@ export const useAuthStore = create(
         // os avisos e os clippings arquivados. Deixá-los faria a próxima conta
         // a entrar neste navegador herdá-los — e enviar a pasta anterior para a
         // própria, na sincronização do login.
-        useNewsStore.setState({ favorites: [], notifications: [], clippings: [], latestClipping: null })
+        useNewsStore.setState({ favorites: [], clippings: [], latestClipping: null })
+        useNotificationStore.getState().limpar()
         set({ user: null, token: null, isAuthenticated: false, motivoSaida: motivo })
       },
 
@@ -144,22 +146,9 @@ export const useAuthStore = create(
         try {
           const { user, token } = await chamar('PUT', '/auth/senha', { atual, nova }, get().token)
           set({ user, token })
-          // A senha padrão pode ter deixado de valer: o atalho de entrada muda.
-          window.dispatchEvent(new CustomEvent('defesabr:contas-iniciais-mudaram'))
           return { ok: true }
         } catch (err) {
           return { ok: false, error: err.message, campo: err.campo, code: err.code }
-        }
-      },
-
-      /** Derruba todas as outras sessões desta conta. */
-      encerrarOutrasSessoes: async () => {
-        try {
-          const { user, token } = await chamar('POST', '/auth/sessoes/encerrar', null, get().token)
-          set({ user, token })
-          return { ok: true }
-        } catch (err) {
-          return { ok: false, error: err.message, code: err.code }
         }
       },
     }),

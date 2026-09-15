@@ -19,8 +19,8 @@ lê por uma camada de serviços única e não tem dado local de reserva.
 3. **Quatro estados sempre tratados.** Carregando · erro (com nova tentativa) · vazio · conteúdo,
    padronizados em `<DataState>`.
 4. **Falha isolada.** `ErrorBoundary` por rota: um módulo quebrado não derruba a aplicação.
-5. **Nada escrito por máquina sem marca.** Texto de modelo aparece rotulado; números nunca vêm de
-   modelo.
+5. **Nada inventado.** Todo número vem do banco, e toda afirmação da tela aponta para o dado que a
+   sustenta. Onde falta capacidade, a interface diz.
 
 ---
 
@@ -29,13 +29,12 @@ lê por uma camada de serviços única e não tem dado local de reserva.
 | Quem | Como | Alcança |
 |------|------|---------|
 | **Visitante** | sem sessão | página inicial, centro educacional, sobre |
-| **Usuário** | papel `user` — toda conta do cadastro | leitura do acervo, pasta, assistente por IA com a própria chave |
+| **Usuário** | papel `user` — toda conta do cadastro | leitura do acervo, pasta pessoal, notificações |
 | **Administrador** | papel `admin` | tudo, mais governança, método e coleta, disponibilidade das fontes |
 
 **No servidor** (`server/src/lib/auth.js`): senha em scrypt com sal; token HMAC-SHA256 que só
 **identifica**. `lerConta` lê papel, situação e `sessoes_desde` do banco a cada requisição — por isso
-suspender, remover ou rebaixar vale na hora, e trocar a senha ou "encerrar as outras sessões" invalida
-os tokens emitidos antes.
+suspender, remover ou rebaixar vale na hora, e trocar a senha invalida os tokens emitidos antes.
 
 **Na interface** (`src/auth/permissions.js`): capacidades por papel, consultadas por `useCan()`,
 `<Can>` e `<ProtectedRoute capability>`. Um 401 recebido com token enviado dispara
@@ -44,8 +43,9 @@ os tokens emitidos antes.
 **Governança** (`/api/users/:id`): duas travas no servidor — ninguém altera a própria conta, e a
 instalação nunca fica sem administrador ativo. Cada ato vai para `audit_log`.
 
-**Conta compartilhada**: `usuario123` com a senha documentada não troca nome, senha ou sessões e não
-guarda chave de IA (`contaCompartilhada()` em `server/src/routes/auth.js`).
+**Contas**: o cadastro pede usuário e senha e cria papel `user`. A conta de administrador vem de
+`ADMIN_USERNAME` / `ADMIN_PASSWORD` na primeira subida (`semearContas()` em
+`server/src/routes/auth.js`), que também remove as contas públicas de versões anteriores.
 
 ---
 
@@ -54,17 +54,17 @@ guarda chave de IA (`contaCompartilhada()` em `server/src/routes/auth.js`).
 ```
 server/src/
 ├── collectors/     rss · camara · indicators · bcb · comex · ransomware · atores · correlacoes · agendador
-├── lib/            auth · auditoria · relevance · correlacao · entidades · chaveIa · segredoGuardado · guia
-├── services/       status (capacidades derivadas do banco) · ia (chamadas ao modelo)
-├── routes/         auth · news · data · intel · ia · system
+├── lib/            auth · auditoria · relevance · correlacao · entidades · proposicoes · notificacoes · guia
+├── services/       status (capacidades derivadas do banco)
+├── routes/         auth · news · data · intel · notificacoes · guia · system
 └── db/             schema.sql + colunas incrementais (migração idempotente)
 
 src/
 ├── services/       client.js (request) · apiBridge.js (endpoint da tela → rota da API) · domínio
 ├── auth/           permissions.js · useCan · <Can>
-├── store/          authStore · newsStore (pasta, avisos, clippings arquivados) · settingsStore
-├── hooks/          useResource · useNews · useIa · useDadosReais · useLiveNotifications
-├── components/     layout · ui · charts · clipping · correlacoes · ia · guia · auth · system
+├── store/          authStore · notificationStore · newsStore (pasta, clippings) · settingsStore
+├── hooks/          useResource · useNews · useDadosReais · useLiveNotifications
+├── components/     layout · ui · charts · clipping · guia · auth
 └── pages/          uma tela por rota
 ```
 
@@ -89,13 +89,19 @@ e a mensagem do próprio servidor quando houver.
 
 ---
 
-## 🤖 Assistente por IA
+## 🔔 Notificações
 
-Chave por conta (ou da instalação, como reserva), cifrada com AES-256-GCM e nunca devolvida ao
-navegador. O servidor monta o contexto a partir do acervo, chama a API da Anthropic e confere a
-resposta: entidades brasileiras citadas fora da lista detectada nas matérias são removidas e
-contadas. O guia da plataforma (`lib/guia.js`) é a única fonte que o modelo pode usar para explicar
-as telas.
+Geradas pelo servidor ao fim de cada ciclo de coleta (`lib/notificacoes.js`): matéria relevante de
+urgência alta ou crítica e organização brasileira com incidente crítico nas últimas 48 h; falha
+inteira de coletor, só para administradores. O evento é gravado uma vez (`notifications.ref_key` é
+único) e o estado de leitura é por conta (`notification_state`), então o que foi lido num navegador
+aparece lido em outro. A interface consulta a cada minuto enquanto está aberta.
+
+## 🧭 Coleta
+
+Um ciclo a cada 15 minutos, encadeado (o próximo é agendado quando o anterior termina), com
+cadência mínima por coletor em `collectors/index.js` — notícias a cada ciclo, Câmara e Banco Central
+a cada hora, Comex a cada 12 h, World Bank a cada 24 h.
 
 ---
 
@@ -120,6 +126,6 @@ no Railway. `AUTH_SECRET` deve estar definido no ambiente para as sessões sobre
 | Recurso | Situação |
 |---------|----------|
 | Recuperação de senha e confirmação de e-mail | não existem — dependem de envio de e-mail |
-| Entrada com conta Google | não implementada; colunas `username` e `auth_provider` já existem |
-| Avisos fora do navegador | não existem; os avisos aparecem na própria tela |
+| Entrada por provedor externo | não implementada; colunas `username` e `auth_provider` já existem |
+| Avisos fora da plataforma (e-mail, push) | não existem; os avisos ficam na central de notificações |
 | Disco no Railway sem volume | efêmero: o acervo é recoletado a cada deploy |

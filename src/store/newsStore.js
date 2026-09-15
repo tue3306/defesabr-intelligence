@@ -10,9 +10,9 @@ import { request } from '../services/client'
 // com trinta avisos não lidos sobre acontecimentos que não aconteceram, e um
 // arquivo de edições que ninguém publicou.
 //
-// Agora ela nasce vazia. O arquivo enche quando o usuário salva uma edição; as
-// notificações, quando a coleta traz matéria de urgência alta — ver
-// `useLiveNotifications`, que consulta o acervo em vez de inventar alerta.
+// Agora ela nasce vazia. O arquivo enche quando o usuário salva uma edição.
+// As notificações saíram daqui: moram no servidor, por conta — ver
+// `notificationStore`.
 //
 // Uma bandeja de entrada vazia é a resposta certa para quem acabou de chegar.
 // -----------------------------------------------------------------------------
@@ -34,9 +34,6 @@ export const useNewsStore = create(
     (set, get) => ({
       // Arquivo de clippings salvos pelo usuário
       clippings: [],
-
-      // Notificações do que a coleta realmente trouxe
-      notifications: [],
 
       // Favoritos — "Minha Pasta" (notícias salvas pelo usuário)
       favorites: [],
@@ -63,9 +60,7 @@ export const useNewsStore = create(
           // "undefined…", e era isso que aparecia como prévia de toda edição
           // arquivada. Sem resumo, a prévia sai das próprias manchetes.
           alert_level: clipping.alert_level || null,
-          preview: clipping.summary_executive
-            ? `${clipping.summary_executive.slice(0, 140)}…`
-            : (clipping.news || []).slice(0, 3).map((n) => n.title).join(' · ') || null,
+          preview: (clipping.news || []).slice(0, 3).map((n) => n.title).join(' · ') || null,
           categories: [...new Set((clipping.news || []).map((n) => n.category))],
           data: clipping,
         }
@@ -173,44 +168,19 @@ export const useNewsStore = create(
           return { ok: false }
         }
       },
-
-      // Notificações
-      unreadCount: () => get().notifications.filter((n) => !n.read).length,
-
-      addNotification: (notif) =>
-        set({
-          notifications: [
-            { id: `n-${Date.now()}`, read: false, time: new Date().toISOString(), ...notif },
-            ...get().notifications,
-          ].slice(0, 30),
-        }),
-
-      markAllRead: () =>
-        set({ notifications: get().notifications.map((n) => ({ ...n, read: true })) }),
-
-      markRead: (id) =>
-        set({
-          notifications: get().notifications.map((n) =>
-            n.id === id ? { ...n, read: true } : n
-          ),
-        }),
-
-      // "Marcar como não lida" e "Excluir" viviam só no estado da página: a
-      // tela dizia "Esta ação não pode ser desfeita" e a notificação voltava no
-      // recarregamento seguinte.
-      markUnread: (id) =>
-        set({
-          notifications: get().notifications.map((n) =>
-            n.id === id ? { ...n, read: false } : n
-          ),
-        }),
-
-      removeNotification: (id) =>
-        set({ notifications: get().notifications.filter((n) => n.id !== id) }),
     }),
     // Chave nova (-v2). Quem já abriu a plataforma tem as cinco notificações
     // falsas e o arquivo de exemplo gravados no próprio navegador; manter a
     // chave antiga faria esse conteúdo sobreviver ao deploy que o removeu.
-    { name: 'defesabr-news-v2' }
+    {
+      name: 'defesabr-news-v2',
+      // Versão 1: as notificações passaram a morar no servidor. As que ficaram
+      // gravadas no navegador pela versão anterior são descartadas na carga.
+      version: 1,
+      migrate: (salvo) => {
+        const { notifications: _antigas, ...resto } = salvo || {}
+        return resto
+      },
+    }
   )
 )

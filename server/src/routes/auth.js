@@ -1,211 +1,170 @@
 import { Router } from 'express'
-import { randomInt } from 'node:crypto'
 import { all, get, run, agora } from '../db/index.js'
 import { hashSenha, senhaConfere, emitirToken, exigirPapel } from '../lib/auth.js'
 import config from '../config.js'
 import { limitar } from '../lib/limite.js'
 import { registrarAuditoria } from '../lib/auditoria.js'
+import { apagarEstadoDaConta } from '../lib/notificacoes.js'
 
 const router = Router()
 
 // -----------------------------------------------------------------------------
 // CONTAS E SESSÃO
 //
-// O mínimo para que a diferença entre os perfis seja verificada no servidor, e
-// não apenas escondida na interface.
+//   POST   /api/auth/register   cria conta (usuário e senha; papel 'user')
+//   POST   /api/auth/login      devolve token assinado
+//   GET    /api/auth/me         quem é o portador deste token
+//   PATCH  /api/auth/me         troca o nome de exibição
+//   PUT    /api/auth/senha      troca a senha, com a atual
 //
-//   POST /api/auth/register   cria conta (papel 'user')
-//   POST /api/auth/login      devolve token assinado
-//   GET  /api/auth/me         quem é o portador deste token
-//   GET  /api/auth/contas     as contas iniciais do projeto aberto
+//   GET    /api/users           contas da instalação            (admin)
+//   PATCH  /api/users/:id       papel e situação                (admin)
+//   DELETE /api/users/:id       remove a conta e o que é dela   (admin)
 //
 // ─────────────────────────────────────────────────────────────────────────────
-// POR QUE EXISTEM DUAS CONTAS COM SENHA PÚBLICA
+// PREPARADO PARA CRESCER
 //
-// Este é um projeto de código aberto. Quem clona o repositório precisa
-// conseguir entrar e ver a plataforma funcionando sem cadastrar nada, sem
-// configurar provedor de identidade e sem receber e-mail de confirmação —
-// senão a primeira experiência com o projeto é uma tela de login fechada.
+// O modelo já separa o que uma autenticação completa vai precisar:
 //
-// Elas NÃO são "contas de demonstração", e a distinção não é de vocabulário:
-// não existe modo demonstração nesta plataforma, nenhum dado é simulado, e o
-// que essas contas mostram é o acervo real coletado das fontes públicas. São
-// contas de verdade, com senha em scrypt, token assinado e papel verificado
-// por rota — apenas com credenciais conhecidas e documentadas no README.
+//   users.username       identificador local — o que a pessoa digita hoje
+//   users.email          endereço; hoje derivado (`@defesabr.invalid`), amanhã
+//                        informado e confirmado, ou vindo de um provedor
+//   users.auth_provider  'local' | provedor externo — quem responde pela identidade
+//   users.status         'ativo' | 'suspenso'
+//   users.sessoes_desde  marco de revogação de tokens (troca de senha)
 //
-// A senha ser óbvia é uma decisão, não um descuido: um projeto aberto cujo
-// deploy público tem conta de administrador precisa que isso esteja ÓBVIO para
-// quem for hospedar. Quem publicar a plataforma para valer troca as duas — o
-// README diz como, e `AUTH_SEED_ADMIN_PASSWORD` / `AUTH_SEED_USER_PASSWORD`
-// existem exatamente para isso.
-// ─────────────────────────────────────────────────────────────────────────────
-//
-// O QUE VEM DEPOIS: AUTENTICAÇÃO POR GOOGLE
-//
-// A estrutura já está pronta para receber OAuth sem remodelar nada:
-//
-//   users.username       identificador local, o que a pessoa digita hoje
-//   users.email          endereço; hoje derivado, amanhã vindo do provedor
-//   users.auth_provider  'local' | 'google' — quem responde pela identidade
-//
-// Quando o Google entrar, uma conta `google` simplesmente não terá senha
-// própria: `senhaConfere` nunca é chamada para ela, e `exigirPapel()` continua
-// funcionando igual, porque o papel mora no token e não no provedor. Ver
-// ROADMAP.md.
+// Senha em scrypt com sal por conta, token HMAC com validade, papel e situação
+// lidos do banco a cada requisição (ver lib/auth.js). Recuperação de senha e
+// confirmação de e-mail dependem de envio de mensagem, que a instalação não
+// tem; quando existir, entram como rotas novas sem mudar as de cima.
 // -----------------------------------------------------------------------------
 
-const RX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 const RX_USUARIO = /^[a-z0-9._-]{3,32}$/
 const SENHA_MINIMA = 6
+const SENHA_MAXIMA = 128
+
+/**
+ * Identificadores que não podem ser cadastrados.
+ *
+ * `admin123` e `usuario123` foram as contas públicas de versões anteriores, com
+ * a senha publicada; reaproveitá-los confundiria quem ainda lembra delas. Os
+ * demais evitam que alguém se cadastre com cara de conta oficial.
+ */
+const RESERVADOS = new Set(['admin', 'administrador', 'admin123', 'usuario123', 'root', 'suporte', 'sistema'])
+
+/**
+ * E-mail derivado do identificador.
+ *
+ * A coluna é `NOT NULL UNIQUE` desde a primeira versão do esquema, e o cadastro
+ * pede só usuário e senha. O domínio `.invalid` é reservado pela RFC 2606 para
+ * exatamente isto: garantidamente não resolvível, nunca aponta para a caixa de
+ * ninguém. Quando houver e-mail de verdade, ele substitui este valor.
+ */
+const emailDerivado = (username) => `${username}@defesabr.invalid`
+const emailReal = (email) => (String(email || '').endsWith('@defesabr.invalid') ? null : email)
 
 /** O que vai para o cliente. Nunca o hash nem o sal. */
 const publico = (u) => ({
   id: u.id,
   name: u.name,
   username: u.username,
-  email: u.email,
+  email: emailReal(u.email),
   role: u.role,
+  status: u.status || 'ativo',
   authProvider: u.auth_provider || 'local',
   createdAt: u.created_at,
   lastLoginAt: u.last_login_at,
-  // A tela de conta usa isto para explicar por que nome, senha e chave de IA
-  // não podem ser alterados nesta conta. Ver `contaCompartilhada`.
-  compartilhada: contaCompartilhada(u),
 })
 
-// ─────────────────────────────────────────────────────────────────────────────
-// AS DUAS CONTAS INICIAIS
-//
-// Uma por papel: usuário e administrador.
-//
-// A senha vem do ambiente quando definida. Sem variável, cai no valor
-// documentado: é o que faz `npm start` funcionar num clone recém-baixado.
-// ─────────────────────────────────────────────────────────────────────────────
-export const CONTAS_INICIAIS = [
-  {
-    name: 'Administrador',
-    username: 'admin123',
-    senha: process.env.AUTH_SEED_ADMIN_PASSWORD || 'admin123',
-    role: 'admin',
-    descricao: 'Governa a plataforma: fontes de coleta, auditoria e saúde do sistema.',
-  },
-  {
-    name: 'Usuário',
-    username: 'usuario123',
-    senha: process.env.AUTH_SEED_USER_PASSWORD || 'usuario123',
-    role: 'user',
-    descricao: 'Lê o acervo: clipping, correlações, mapas, ameaças cibernéticas e busca.',
-  },
-]
-
-/**
- * E-mail derivado do identificador.
- *
- * A coluna é `NOT NULL UNIQUE` desde a primeira versão do esquema, e as contas
- * iniciais não têm endereço real — ninguém vai receber mensagem nelas. O
- * domínio `.invalid` é reservado pela RFC 2606 justamente para este caso: é
- * garantidamente não resolvível, então não há risco de o valor um dia apontar
- * para a caixa de alguém.
- */
-const emailDerivado = (username) => `${username}@defesabr.invalid`
-
-/**
- * Identificadores das contas que a versao anterior semeava.
- *
- * Elas eram chamadas de "contas de demonstracao" e eram TRES, uma por papel,
- * com e-mail ficticio de pessoa inventada. Sairam junto com o vocabulario de
- * demonstracao: o projeto e aberto, as contas sao reais e o acervo tambem.
- *
- * A remocao precisa ser explicita. No Railway o disco e efemero e o banco
- * nasce vazio a cada publicacao, entao la elas somem sozinhas — mas o README
- * recomenda montar volume para o acervo persistir, e nesse caso as tres
- * continuariam existindo, com senha publica e papel de administrador, muito
- * depois de terem sido removidas do codigo. Credencial esquecida em instalacao
- * antiga e como se perde uma plataforma.
- */
-/**
- * A conta de usuário semeada com a senha documentada é COMPARTILHADA.
- *
- * Qualquer pessoa que leia o README entra nela. Se ela pudesse trocar a
- * senha, trancaria todos os outros do lado de fora; se pudesse guardar uma
- * chave de IA, os outros visitantes gastariam o crédito de quem a colou sem
- * que essa pessoa soubesse. Nome, senha, sessões e chave ficam travados nela —
- * quem quer uma conta própria cria pelo cadastro.
- *
- * Quem hospeda e define `AUTH_SEED_USER_PASSWORD` tira a senha do domínio
- * público, e a conta deixa de ser compartilhada.
- */
-export function contaCompartilhada(u) {
-  if (!u?.username) return false
-  const semente = CONTAS_INICIAIS.find((c) => c.username === u.username)
-  return !!semente && semente.role !== 'admin' && semente.senha === semente.username
+/** Remove a conta e tudo o que é só dela. */
+function removerConta(id) {
+  run('DELETE FROM bookmarks WHERE client_id = ?', [`conta:${id}`])
+  apagarEstadoDaConta(id)
+  run('DELETE FROM users WHERE id = ?', [id])
 }
 
-const CONTAS_REMOVIDAS = ['usuario@defesabr.com', 'analista@defesabr.com', 'admin@defesabr.com']
+// ─────────────────────────────────────────────────────────────────────────────
+// CONTAS NA SUBIDA
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Contas públicas de versões anteriores, com a senha documentada. */
+const CONTAS_LEGADAS = { admin: 'admin123', usuario: 'usuario123' }
+const EMAILS_LEGADOS = ['usuario@defesabr.com', 'analista@defesabr.com', 'admin@defesabr.com']
 
 /**
- * Remove o modelo antigo e cria as contas iniciais que faltarem.
+ * Garante a conta de administrador da instalação e retira as contas públicas
+ * antigas. Idempotente: roda em toda subida.
  *
- * Idempotente: roda em toda subida e nao sobrescreve conta existente. Quem
- * trocar a senha de uma delas nao a ve voltar ao padrao no proximo deploy.
+ * 1. `usuario123` e as contas do modelo mais antigo são removidas. A senha delas
+ *    estava publicada, e o cadastro já dá conta própria a quem quiser entrar.
+ *
+ * 2. O administrador vem de `ADMIN_USERNAME` / `ADMIN_PASSWORD`:
+ *    • se a conta já existe, nada muda — a senha trocada pela plataforma vale;
+ *    • se não existe e há a antiga `admin123`, ela é RENOMEADA (mantém a trilha
+ *      de auditoria e a pasta) e recebe a senha da variável;
+ *    • se não existe nenhuma, é criada.
+ *
+ * 3. Sem as variáveis, `admin123` não pode continuar com a senha pública: é
+ *    suspensa até alguém configurar o administrador, e o boot avisa.
+ *
+ * @returns {Promise<{ criadas: number, removidas: number, avisos: string[] }>}
  */
 export async function semearContas() {
   let criadas = 0
   let removidas = 0
+  const avisos = []
 
-  for (const email of CONTAS_REMOVIDAS) {
+  for (const email of EMAILS_LEGADOS) {
     const antiga = get('SELECT id FROM users WHERE email = ?', [email])
-    if (!antiga) continue
-    run('DELETE FROM bookmarks WHERE client_id = ?', [`conta:${antiga.id}`])
-    run('DELETE FROM users WHERE id = ?', [antiga.id])
-    removidas += 1
+    if (antiga) { removerConta(antiga.id); removidas += 1 }
   }
-  if (removidas) {
-    console.log(`  [33mContas        ${removidas} conta(s) do modelo antigo removida(s)[0m`)
-  }
+  const usuarioLegado = get('SELECT id FROM users WHERE username = ?', [CONTAS_LEGADAS.usuario])
+  if (usuarioLegado) { removerConta(usuarioLegado.id); removidas += 1 }
 
-  for (const c of CONTAS_INICIAIS) {
-    if (get('SELECT id FROM users WHERE username = ? OR email = ?', [c.username, emailDerivado(c.username)])) continue
-    const { sal, hash } = await hashSenha(c.senha)
-    run(
-      `INSERT INTO users (name, username, email, password_hash, password_salt, role, plan, auth_provider)
-       VALUES (?, ?, ?, ?, ?, ?, 'institucional', 'local')`,
-      [c.name, c.username, emailDerivado(c.username), hash, sal, c.role],
-    )
-    criadas += 1
-  }
+  const { usuario, senha } = config.auth.administrador
+  const adminLegado = get('SELECT id FROM users WHERE username = ?', [CONTAS_LEGADAS.admin])
 
-  // Chave de IA numa conta compartilhada seria crédito de uma pessoa gasto por
-  // todos os visitantes. Versões anteriores permitiam guardá-la; sai aqui.
-  for (const c of CONTAS_INICIAIS) {
-    const u = get('SELECT id, username, ia_api_key, ia_modelo FROM users WHERE username = ?', [c.username])
-    if (u && contaCompartilhada(u) && (u.ia_api_key || u.ia_modelo)) {
-      run('UPDATE users SET ia_api_key = NULL, ia_modelo = NULL WHERE id = ?', [u.id])
+  if (usuario && senha && RX_USUARIO.test(usuario)) {
+    const existente = get('SELECT id FROM users WHERE username = ?', [usuario])
+    if (!existente) {
+      const { sal, hash } = await hashSenha(senha)
+      if (adminLegado) {
+        run(
+          `UPDATE users SET username = ?, email = ?, name = 'Administrador', password_hash = ?, password_salt = ?,
+             role = 'admin', status = 'ativo', sessoes_desde = ? WHERE id = ?`,
+          [usuario, emailDerivado(usuario), hash, sal, Date.now(), adminLegado.id],
+        )
+      } else {
+        run(
+          `INSERT INTO users (name, username, email, password_hash, password_salt, role, plan, auth_provider)
+           VALUES ('Administrador', ?, ?, ?, ?, 'admin', 'institucional', 'local')`,
+          [usuario, emailDerivado(usuario), hash, sal],
+        )
+        criadas += 1
+      }
+    } else if (adminLegado) {
+      removerConta(adminLegado.id)
+      removidas += 1
+    }
+  } else {
+    if (usuario && !RX_USUARIO.test(usuario)) {
+      avisos.push('ADMIN_USERNAME inválido: use 3 a 32 caracteres entre letras minúsculas, números, ponto, hífen e sublinhado.')
+    }
+    avisos.push('ADMIN_USERNAME e ADMIN_PASSWORD não definidos — nenhuma conta de administrador foi criada.')
+    if (adminLegado) {
+      run("UPDATE users SET status = 'suspenso', sessoes_desde = ? WHERE id = ?", [Date.now(), adminLegado.id])
+      avisos.push('A antiga conta admin123 foi suspensa: a senha dela era pública.')
     }
   }
-  return criadas
+
+  return { criadas, removidas, avisos }
 }
 
 /**
  * Alertas de segurança que só quem administra precisa ver.
- *
- * Assíncrono porque conferir a senha padrão custa um scrypt. Roda quando o
- * painel de governança abre, não a cada requisição.
  */
 export async function alertasDeSeguranca() {
   const alertas = []
-  for (const c of CONTAS_INICIAIS.filter((x) => x.role === 'admin')) {
-    if (await aindaUsaSenhaPadrao(c.username)) {
-      alertas.push({
-        id: 'senha-padrao-admin',
-        nivel: 'critico',
-        titulo: `A conta ${c.username} ainda usa a senha documentada no README`,
-        detalhe: 'A tela de entrada oferece esta conta com um clique, e qualquer pessoa que a use '
-          + 'governa a instalação. Troque a senha em Minha conta → Segurança — o atalho some na hora — '
-          + 'ou defina AUTH_SEED_ADMIN_PASSWORD antes do primeiro boot.',
-      })
-    }
-  }
   if (!config.auth.segredoFixado) {
     alertas.push({
       id: 'auth-secret',
@@ -219,11 +178,10 @@ export async function alertasDeSeguranca() {
 }
 
 /**
- * Encontra a conta por identificador — nome de usuário OU e-mail.
+ * Encontra a conta pelo identificador — nome de usuário ou e-mail.
  *
- * Aceitar os dois não é conveniência: é o que deixa a porta aberta para o
- * Google. Hoje quem entra digita `admin123`; quando o provedor existir, a
- * mesma tela aceitará o endereço que ele devolver, sem que o formulário mude.
+ * Aceitar os dois deixa a porta aberta para login por e-mail no futuro sem que
+ * o formulário mude.
  */
 const contaPorIdentificador = (bruto) => {
   const id = String(bruto || '').trim().toLowerCase()
@@ -231,152 +189,115 @@ const contaPorIdentificador = (bruto) => {
   return get('SELECT * FROM users WHERE username = ? OR email = ?', [id, id]) || null
 }
 
+const validarSenha = (senha, campo) => {
+  if (senha.length < SENHA_MINIMA) return { error: `A senha precisa de ao menos ${SENHA_MINIMA} caracteres.`, campo }
+  if (senha.length > SENHA_MAXIMA) return { error: `A senha pode ter no máximo ${SENHA_MAXIMA} caracteres.`, campo }
+  return null
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// POST /api/auth/register
+// POST /api/auth/register — usuário e senha
 // ─────────────────────────────────────────────────────────────────────────────
-// Cadastro: teto mais apertado que o login. Criar conta é raro para uma
-// pessoa e barato para um robô — e cada tentativa custa um scrypt.
+// Teto mais apertado que o login: criar conta é raro para uma pessoa e barato
+// para um robô, e cada tentativa custa um scrypt.
 //
-// Toda conta nova nasce com papel `user`. Promover alguém é ato de governança,
-// não de autoatendimento: senão qualquer visitante se declara administrador
-// preenchendo um formulário.
-router.post('/auth/register', limitar({ max: 5, janelaMs: 10 * 60_000 }), async (req, res) => {
-  const { name, email, password } = req.body || {}
-  const username = req.body?.username
+// Toda conta nova nasce com papel `user`. Promover alguém é ato do
+// administrador, não de autoatendimento.
+router.post('/auth/register', limitar({ max: 5, janelaMs: 10 * 60_000 }), async (req, res, next) => {
+  try {
+    const usuario = String(req.body?.username || '').trim().toLowerCase()
+    const senha = String(req.body?.password || '')
 
-  const nome = String(name || '').trim()
-  const mail = String(email || '').trim().toLowerCase()
-  // Sem `username` explícito, o próprio e-mail vira o identificador — é o que
-  // mantém compatível quem já usava a rota só com e-mail.
-  const usuario = String(username || mail).trim().toLowerCase()
+    if (!RX_USUARIO.test(usuario)) {
+      return res.status(400).json({
+        error: 'O nome de usuário aceita 3 a 32 caracteres entre letras, números, ponto, hífen e sublinhado.',
+        campo: 'username',
+      })
+    }
+    if (RESERVADOS.has(usuario)) {
+      return res.status(409).json({ error: 'Este nome de usuário está reservado. Escolha outro.', campo: 'username' })
+    }
+    const problema = validarSenha(senha, 'password')
+    if (problema) return res.status(400).json(problema)
 
-  if (nome.length < 2) {
-    return res.status(400).json({ error: 'Informe seu nome.', campo: 'name' })
-  }
-  if (!RX_EMAIL.test(mail)) {
-    return res.status(400).json({ error: 'Informe um e-mail válido.', campo: 'email' })
-  }
-  if (username !== undefined && !RX_USUARIO.test(usuario)) {
-    return res.status(400).json({
-      error: 'O nome de usuário aceita 3 a 32 caracteres entre letras, números, ponto, hífen e sublinhado.',
-      campo: 'username',
-    })
-  }
-  if (String(password || '').length < SENHA_MINIMA) {
-    return res.status(400).json({
-      error: `A senha precisa de ao menos ${SENHA_MINIMA} caracteres.`,
-      campo: 'password',
-    })
-  }
+    if (get('SELECT id FROM users WHERE username = ? OR email = ?', [usuario, emailDerivado(usuario)])) {
+      // 409 e não 400: o pedido está correto, o conflito é de estado.
+      return res.status(409).json({ error: 'Este nome de usuário já está em uso.', campo: 'username' })
+    }
 
-  if (get('SELECT id FROM users WHERE email = ?', [mail])) {
-    // 409 e não 400: o pedido está correto, o conflito é de estado.
-    return res.status(409).json({ error: 'Já existe uma conta com este e-mail.', campo: 'email' })
-  }
-  if (get('SELECT id FROM users WHERE username = ?', [usuario])) {
-    return res.status(409).json({ error: 'Este nome de usuário já está em uso.', campo: 'username' })
-  }
+    const { sal, hash } = await hashSenha(senha)
+    const info = run(
+      `INSERT INTO users (name, username, email, password_hash, password_salt, role, plan, auth_provider)
+       VALUES (?, ?, ?, ?, ?, 'user', 'institucional', 'local')`,
+      [usuario, usuario, emailDerivado(usuario), hash, sal],
+    )
 
-  const { sal, hash } = await hashSenha(password)
-  const info = run(
-    `INSERT INTO users (name, username, email, password_hash, password_salt, role, plan, auth_provider)
-     VALUES (?, ?, ?, ?, ?, 'user', 'institucional', 'local')`,
-    [nome, usuario, mail, hash, sal],
-  )
-
-  const conta = get('SELECT * FROM users WHERE id = ?', [info.lastInsertRowid])
-  res.status(201).json({ user: publico(conta), token: emitirToken(conta) })
+    const conta = get('SELECT * FROM users WHERE id = ?', [info.lastInsertRowid])
+    run('UPDATE users SET last_login_at = ? WHERE id = ?', [agora(), conta.id])
+    res.status(201).json({ user: publico(conta), token: emitirToken(conta) })
+  } catch (err) { next(err) }
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/auth/login
 // ─────────────────────────────────────────────────────────────────────────────
-// 10 tentativas por IP a cada 5 minutos, contando só as que FALHAM. Quem
-// acerta não gasta cota; quem chuta, sim.
-router.post('/auth/login', limitar({ max: 10, janelaMs: 5 * 60_000, soFalhas: true }), async (req, res) => {
-  const { password } = req.body || {}
-  // `username`, `email` ou `identifier`: a tela manda um campo só, e aceitar os
-  // três nomes evita que um ajuste de rótulo no formulário quebre o login.
-  const conta = contaPorIdentificador(req.body?.username ?? req.body?.identifier ?? req.body?.email)
+// 10 tentativas por IP a cada 5 minutos, contando só as que FALHAM.
+router.post('/auth/login', limitar({ max: 10, janelaMs: 5 * 60_000, soFalhas: true }), async (req, res, next) => {
+  try {
+    const conta = contaPorIdentificador(req.body?.username ?? req.body?.identifier ?? req.body?.email)
 
-  // A MESMA resposta para identificador inexistente e senha errada. Distinguir
-  // os dois permite descobrir quais contas existem — informação que não custa
-  // nada dar e não deveria ser dada.
-  const generico = { error: 'Usuário ou senha incorretos.' }
-  if (!conta) return res.status(401).json(generico)
+    // A MESMA resposta para identificador inexistente e senha errada: distinguir
+    // os dois permitiria descobrir quais contas existem.
+    const generico = { error: 'Usuário ou senha incorretos.' }
+    if (!conta) return res.status(401).json(generico)
 
-  // Conta de provedor externo não tem senha local para conferir. Hoje não
-  // existe nenhuma; a guarda entra agora para que o dia em que existir não
-  // dependa de alguém lembrar de escrevê-la.
-  if ((conta.auth_provider || 'local') !== 'local') {
-    return res.status(401).json({
-      error: 'Esta conta entra pelo provedor externo, não por senha.',
-      code: 'PROVEDOR_EXTERNO',
-    })
-  }
-  if (!(await senhaConfere(String(password || ''), conta.password_salt, conta.password_hash))) {
-    return res.status(401).json(generico)
-  }
+    // Conta de provedor externo não tem senha local para conferir.
+    if ((conta.auth_provider || 'local') !== 'local') {
+      return res.status(401).json({ error: 'Esta conta entra pelo provedor externo, não por senha.', code: 'PROVEDOR_EXTERNO' })
+    }
+    if (!(await senhaConfere(String(req.body?.password || ''), conta.password_salt, conta.password_hash))) {
+      return res.status(401).json(generico)
+    }
 
-  // A SUSPENSÃO SÓ É DITA DEPOIS DA SENHA CERTA.
-  //
-  // Dizer "conta suspensa" a quem errou a senha confirmaria que a conta existe
-  // — a mesma informação que a resposta genérica acima existe para não dar.
-  // Quem acertou a senha já provou ser o dono, e merece saber o motivo.
-  if ((conta.status || 'ativo') !== 'ativo') {
-    return res.status(403).json({
-      error: 'Esta conta está suspensa. Fale com quem administra a plataforma.',
-      code: 'CONTA_SUSPENSA',
-    })
-  }
+    // A suspensão só é dita depois da senha certa: dizê-la a quem errou
+    // confirmaria que a conta existe.
+    if ((conta.status || 'ativo') !== 'ativo') {
+      return res.status(403).json({
+        error: 'Esta conta está suspensa. Fale com quem administra a plataforma.',
+        code: 'CONTA_SUSPENSA',
+      })
+    }
 
-  run('UPDATE users SET last_login_at = ? WHERE id = ?', [agora(), conta.id])
-  const atualizada = get('SELECT * FROM users WHERE id = ?', [conta.id])
-
-  res.json({ user: publico(atualizada), token: emitirToken(atualizada) })
-})
-
-// ─────────────────────────────────────────────────────────────────────────────
-// GET /api/auth/me — valida o token e devolve a conta
-// ─────────────────────────────────────────────────────────────────────────────
-router.get('/auth/me', (req, res) => {
-  if (!req.conta) {
-    return res.status(401).json({ error: 'Sessão ausente ou expirada.', code: 'SEM_SESSAO' })
-  }
-  const conta = get('SELECT * FROM users WHERE id = ?', [req.conta.sub])
-  if (!conta) {
-    return res.status(401).json({ error: 'A conta desta sessão não existe mais.', code: 'SEM_CONTA' })
-  }
-  res.json({ user: publico(conta) })
+    run('UPDATE users SET last_login_at = ? WHERE id = ?', [agora(), conta.id])
+    const atualizada = get('SELECT * FROM users WHERE id = ?', [conta.id])
+    res.json({ user: publico(atualizada), token: emitirToken(atualizada) })
+  } catch (err) { next(err) }
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
 // A PRÓPRIA CONTA
-//
-// A tela "Minha conta" tinha um botão "Salvar alterações" que mudava o nome só
-// no navegador — e a revalidação seguinte o desfazia — e declarava que troca
-// de senha "ainda não existe". Estas três rotas são a metade que faltava.
 // ─────────────────────────────────────────────────────────────────────────────
+const contaDaSessao = (req, res) => {
+  const conta = req.conta ? get('SELECT * FROM users WHERE id = ?', [req.conta.sub]) : null
+  if (!conta) res.status(401).json({ error: 'Sessão ausente ou expirada.', code: 'SEM_SESSAO' })
+  return conta
+}
 
-const recusaCompartilhada = (res) => res.status(403).json({
-  error: 'Esta é a conta de uso compartilhado do projeto: nome, senha e sessões não podem ser '
-    + 'alterados nela. Crie a sua conta pelo cadastro para ter esses controles.',
-  code: 'CONTA_COMPARTILHADA',
+// GET /api/auth/me — valida o token e devolve a conta
+router.get('/auth/me', (req, res) => {
+  const conta = contaDaSessao(req, res)
+  if (conta) res.json({ user: publico(conta) })
 })
 
 // PATCH /api/auth/me — nome de exibição
-//
-// O e-mail NÃO é editável: é identificador de login, e trocá-lo sem confirmar
-// posse do novo endereço permitiria tomar um endereço alheio.
 router.patch('/auth/me', exigirPapel('user'), (req, res) => {
-  const conta = get('SELECT * FROM users WHERE id = ?', [req.conta.sub])
-  if (!conta) return res.status(401).json({ error: 'A conta desta sessão não existe mais.', code: 'SEM_CONTA' })
+  const conta = contaDaSessao(req, res)
+  if (!conta) return
 
   const nome = String(req.body?.name ?? '').trim().replace(/\s+/g, ' ')
   if (nome.length < 2 || nome.length > 80) {
     return res.status(400).json({ error: 'O nome precisa ter entre 2 e 80 caracteres.', campo: 'name' })
   }
-  if (contaCompartilhada(conta)) return recusaCompartilhada(res)
   run('UPDATE users SET name = ? WHERE id = ?', [nome, conta.id])
   res.json({ user: publico(get('SELECT * FROM users WHERE id = ?', [conta.id])) })
 })
@@ -384,139 +305,48 @@ router.patch('/auth/me', exigirPapel('user'), (req, res) => {
 // PUT /api/auth/senha — troca de senha, com a atual
 //
 // Pede a senha ATUAL mesmo com sessão válida: um token copiado de um navegador
-// destravado não pode bastar para tomar a conta de vez.
-//
-// Toda sessão emitida antes da troca deixa de valer, e esta recebe um token
-// novo — é o que se espera de quem troca a senha por suspeitar de acesso.
-router.put('/auth/senha', exigirPapel('user'), limitar({ max: 5, janelaMs: 10 * 60_000, porConta: true }), async (req, res) => {
-  const conta = get('SELECT * FROM users WHERE id = ?', [req.conta.sub])
-  if (!conta) return res.status(401).json({ error: 'A conta desta sessão não existe mais.', code: 'SEM_CONTA' })
-  if ((conta.auth_provider || 'local') !== 'local') {
-    return res.status(400).json({ error: 'Esta conta entra pelo provedor externo e não tem senha local.' })
-  }
-
-  const atual = String(req.body?.atual || '')
-  const nova = String(req.body?.nova || '')
-  if (!(await senhaConfere(atual, conta.password_salt, conta.password_hash))) {
-    return res.status(400).json({ error: 'A senha atual não confere.', campo: 'atual' })
-  }
-  if (nova.length < SENHA_MINIMA) {
-    return res.status(400).json({ error: `A nova senha precisa de ao menos ${SENHA_MINIMA} caracteres.`, campo: 'nova' })
-  }
-  if (nova === atual) {
-    return res.status(400).json({ error: 'A nova senha é igual à atual.', campo: 'nova' })
-  }
-  if (contaCompartilhada(conta)) return recusaCompartilhada(res)
-
-  const { sal, hash } = await hashSenha(nova)
-  run(
-    'UPDATE users SET password_hash = ?, password_salt = ?, sessoes_desde = ? WHERE id = ?',
-    [hash, sal, Date.now(), conta.id],
-  )
-  const atualizada = get('SELECT * FROM users WHERE id = ?', [conta.id])
-  res.json({ ok: true, user: publico(atualizada), token: emitirToken(atualizada) })
-})
-
-// POST /api/auth/sessoes/encerrar — derruba todas as outras sessões
-//
-// A lista de "dispositivos conectados" foi removida por ser inventada, e com
-// razão: o token é sem estado e o servidor não tem o que listar. Mas o que a
-// pessoa quer daquela lista — cortar um acesso que não reconhece — é possível,
-// e é isto. Esta sessão recebe um token novo e continua.
-router.post('/auth/sessoes/encerrar', exigirPapel('user'), limitar({ max: 5, janelaMs: 10 * 60_000, porConta: true }), (req, res) => {
-  const conta = get('SELECT * FROM users WHERE id = ?', [req.conta.sub])
-  if (!conta) return res.status(401).json({ error: 'A conta desta sessão não existe mais.', code: 'SEM_CONTA' })
-  if (contaCompartilhada(conta)) return recusaCompartilhada(res)
-
-  run('UPDATE users SET sessoes_desde = ? WHERE id = ?', [Date.now(), conta.id])
-  const atualizada = get('SELECT * FROM users WHERE id = ?', [conta.id])
-  res.json({ ok: true, user: publico(atualizada), token: emitirToken(atualizada) })
-})
-
-// ─────────────────────────────────────────────────────────────────────────────
-// GET /api/auth/contas — as contas iniciais do projeto aberto
-//
-// Devolve identificador e papel das contas que a instalação semeia, para que a
-// tela de entrada possa oferecê-las. NÃO devolve senha: a senha é
-// configurável por ambiente, e quem publicar a plataforma para valer vai
-// trocá-la — uma rota que despejasse a senha em uso entregaria a instalação
-// de quem trocou.
-//
-// `senhaPadrao` diz apenas se a conta ainda usa o valor documentado no README.
-// É a informação que importa para quem hospeda: um aviso de que a porta está
-// destrancada, sem dizer qual é a chave quando ela já foi trocada.
-// ─────────────────────────────────────────────────────────────────────────────
-// A SENHA PADRÃO É CONFERIDA NO BANCO, NÃO NA CONFIGURAÇÃO.
-//
-// `senhaPadrao` era `c.senha === c.username` — só dizia se a variável de
-// ambiente foi definida. Um administrador que trocasse a senha pela tela
-// continuaria vendo o atalho oferecido com a senha antiga, e o clique falharia.
-// Agora compara com o hash guardado. Custa um scrypt por conta, e o resultado
-// fica em cache enquanto o hash não muda — trocar a senha muda o hash e o
-// atalho some na consulta seguinte.
-const cacheSenhaPadrao = new Map()
-async function aindaUsaSenhaPadrao(username) {
-  const u = get('SELECT password_salt, password_hash FROM users WHERE username = ?', [username])
-  if (!u) return false
-  const guardado = cacheSenhaPadrao.get(username)
-  if (guardado?.hash === u.password_hash) return guardado.padrao
-  const padrao = await senhaConfere(username, u.password_salt, u.password_hash)
-  cacheSenhaPadrao.set(username, { hash: u.password_hash, padrao })
-  return padrao
-}
-
-router.get('/auth/contas', async (_req, res, next) => {
+// destravado não pode bastar para tomar a conta de vez. Toda sessão emitida
+// antes da troca deixa de valer, e esta recebe um token novo.
+router.put('/auth/senha', exigirPapel('user'), limitar({ max: 5, janelaMs: 10 * 60_000, porConta: true }), async (req, res, next) => {
   try {
-    // ─────────────────────────────────────────────────────────────────────
-    // AS DUAS CONTAS INICIAIS SÃO OFERECIDAS — USUÁRIO PRIMEIRO
-    //
-    // O atalho do administrador saiu numa versão anterior e voltou por decisão
-    // de quem opera a instalação: a plataforma precisa ser percorrível nos dois
-    // papéis sem digitar nada. O atalho só aparece enquanto a senha for a
-    // documentada; trocá-la em Minha conta → Segurança o remove, e o painel do
-    // administrador avisa enquanto isso não acontece.
-    // ─────────────────────────────────────────────────────────────────────
-    const ordem = { user: 0, admin: 1 }
-    const items = []
-    for (const c of [...CONTAS_INICIAIS].sort((a, b) => ordem[a.role] - ordem[b.role])) {
-      const existe = get('SELECT username, role, status FROM users WHERE username = ?', [c.username])
-      if (!existe || (existe.status || 'ativo') !== 'ativo') continue
-      items.push({
-        name: c.name,
-        username: c.username,
-        role: existe.role,
-        descricao: c.descricao,
-        senhaPadrao: await aindaUsaSenhaPadrao(c.username),
-      })
+    const conta = contaDaSessao(req, res)
+    if (!conta) return
+    if ((conta.auth_provider || 'local') !== 'local') {
+      return res.status(400).json({ error: 'Esta conta entra pelo provedor externo e não tem senha local.' })
     }
 
-    res.json({
-      items,
-      nota: 'Contas iniciais de um projeto de código aberto. O acervo que elas mostram é real, '
-        + 'coletado de fontes públicas.',
-      sessaoPersistente: config.auth.segredoFixado,
-      provedoresExternos: [],
-    })
+    const atual = String(req.body?.atual || '')
+    const nova = String(req.body?.nova || '')
+    if (!(await senhaConfere(atual, conta.password_salt, conta.password_hash))) {
+      return res.status(400).json({ error: 'A senha atual não confere.', campo: 'atual' })
+    }
+    const problema = validarSenha(nova, 'nova')
+    if (problema) return res.status(400).json(problema)
+    if (nova === atual) {
+      return res.status(400).json({ error: 'A nova senha é igual à atual.', campo: 'nova' })
+    }
+
+    const { sal, hash } = await hashSenha(nova)
+    run(
+      'UPDATE users SET password_hash = ?, password_salt = ?, sessoes_desde = ? WHERE id = ?',
+      [hash, sal, Date.now(), conta.id],
+    )
+    const atualizada = get('SELECT * FROM users WHERE id = ?', [conta.id])
+    res.json({ ok: true, user: publico(atualizada), token: emitirToken(atualizada) })
   } catch (err) { next(err) }
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GET /api/users — as contas que existem de verdade
+// GOVERNANÇA DE CONTAS (administrador)
 //
-// O console de governança listava os ARQUÉTIPOS de perfil declarados em
-// `src/auth/permissions.js` como se fossem contas: quatro linhas — Visitante,
-// Usuário, Analista, Administrador — com e-mails de pessoas inventadas
-// (`marina.duarte@`, `ana.lima@`, `governanca@`). Era honesto quando não havia
-// cadastro nenhum no servidor; deixou de ser quando as contas passaram a
-// existir de verdade, porque a tela passou a mostrar ficção ao lado de dados
-// reais, sem distinguir uma coisa da outra.
-//
-// Agora vem do banco. Um administrador que criar uma conta pelo cadastro a vê
-// aparecer aqui — que é o mínimo que um console de governança precisa fazer.
-//
-// NUNCA devolve `password_hash` nem `password_salt`: a consulta os deixa de
-// fora explicitamente, em vez de confiar em quem escrever o mapeamento depois.
+// AS DUAS TRAVAS SÃO DO SERVIDOR:
+//   1. Ninguém altera nem remove a própria conta.
+//   2. A plataforma nunca fica sem administrador ativo.
+// A interface também desabilita os botões, mas trava só no navegador não trava.
+// ─────────────────────────────────────────────────────────────────────────────
+
 router.get('/users', exigirPapel('admin'), (_req, res) => {
+  // NUNCA devolve `password_hash` nem `password_salt`: a consulta os deixa de fora.
   const items = all(
     `SELECT id, name, username, email, role, status, auth_provider, created_at, last_login_at
        FROM users ORDER BY CASE role WHEN 'admin' THEN 0 ELSE 1 END, id`
@@ -524,49 +354,17 @@ router.get('/users', exigirPapel('admin'), (_req, res) => {
     id: String(u.id),
     name: u.name,
     username: u.username,
-    // Endereço derivado não é endereço: as contas iniciais usam o domínio
-    // `.invalid` justamente por não existirem como caixa postal. Mostrá-lo
-    // como e-mail faria alguém tentar escrever para ele.
-    email: String(u.email || '').endsWith('@defesabr.invalid') ? null : u.email,
+    email: emailReal(u.email),
     role: u.role,
     authProvider: u.auth_provider || 'local',
-    // Era `status: 'ativo'` fixo, para toda conta, sempre.
     status: u.status || 'ativo',
     since: u.created_at,
     lastAccess: u.last_login_at,
   }))
 
-  res.json({
-    items,
-    total: items.length,
-    nota: 'Contas existentes no banco desta instalação. O papel é verificado no servidor a '
-      + 'cada requisição, não apenas exibido aqui.',
-  })
+  res.json({ items, total: items.length })
 })
 
-// ─────────────────────────────────────────────────────────────────────────────
-// GOVERNANÇA DE CONTAS
-//
-// O console tinha suspender, reativar, remover e trocar papel. Os quatro
-// alteravam uma lista no navegador e anunciavam sucesso. Estas rotas são a
-// metade que faltava, e o efeito é imediato porque `lerConta` consulta o banco
-// a cada requisição.
-//
-// ─────────────────────────────────────────────────────────────────────────────
-// AS DUAS TRAVAS, E POR QUE SÃO DO SERVIDOR
-//
-//   1. Ninguém altera nem remove a própria conta. Um administrador que se
-//      rebaixa por engano não tem mais como desfazer.
-//
-//   2. A plataforma nunca fica sem administrador ativo. Rebaixar, suspender ou
-//      remover o último deixaria a instalação sem ninguém capaz de governá-la —
-//      e sem caminho de volta pela interface.
-//
-// A interface também desabilita os botões, mas isso é conveniência. Uma trava
-// que só existe no navegador não trava nada: basta chamar a rota direto.
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Papéis atribuíveis pela governança. */
 const PAPEIS_ATRIBUIVEIS = new Set(['user', 'admin'])
 const SITUACOES = new Set(['ativo', 'suspenso'])
 
@@ -578,7 +376,7 @@ function alvoDaGovernanca(req, { deixaDeSerAdminAtivo }) {
   const id = Number(req.params.id)
   if (!Number.isInteger(id) || id <= 0) return { status: 400, erro: 'Identificador de conta inválido.' }
 
-  const conta = get('SELECT id, name, role, status FROM users WHERE id = ?', [id])
+  const conta = get('SELECT id, name, username, role, status FROM users WHERE id = ?', [id])
   if (!conta) return { status: 404, erro: 'Conta não encontrada.' }
 
   if (conta.id === req.conta.sub) {
@@ -635,73 +433,24 @@ router.patch('/users/:id', exigirPapel('admin'), (req, res) => {
     })
   }
 
+  // O efeito é imediato: a próxima requisição da pessoa já sai com o novo
+  // papel, ou sem sessão se foi suspensa (ver `lerConta`).
   res.json({
     ok: true,
     conta: { id: String(atual.id), name: atual.name, role: atual.role, status: atual.status },
-    // O efeito é imediato: a próxima requisição da pessoa já sai com o novo
-    // papel, ou sem sessão se foi suspensa.
     efeito: 'imediato',
   })
 })
 
-// DELETE /api/users/:id — remove a conta e o que é dela
+// DELETE /api/users/:id — remove a conta, a pasta e o estado das notificações
 router.delete('/users/:id', exigirPapel('admin'), (req, res) => {
   const alvo = alvoDaGovernanca(req, { deixaDeSerAdminAtivo: true })
   if (alvo.erro) return res.status(alvo.status).json({ error: alvo.erro, code: alvo.code })
 
-  // A pasta pessoal sai junto. Deixá-la no banco guardaria dado de uma pessoa
-  // que não tem mais conta — e que não tem mais como pedir para apagá-lo.
-  run('DELETE FROM bookmarks WHERE client_id = ?', [`conta:${alvo.conta.id}`])
-  // Os resumos gerados com a chave dela também — ver lib/sinteseCache.js.
-  run('DELETE FROM app_config WHERE chave LIKE ?', [`ia_sintese:${alvo.conta.id}:%`])
-  run('DELETE FROM users WHERE id = ?', [alvo.conta.id])
+  removerConta(alvo.conta.id)
   registrarAuditoria(req, { acao: 'Conta removida', alvo: `Conta · ${alvo.conta.name}`, nivel: 'warn' })
 
   res.json({ ok: true, removida: { id: String(alvo.conta.id), name: alvo.conta.name } })
-})
-
-// POST /api/users/:id/senha-temporaria — redefinição por quem administra
-//
-// Sem envio de e-mail não há "esqueci a senha". O caminho que restava a quem
-// esqueceu era o administrador REMOVER a conta, levando a pasta junto. Esta rota
-// gera uma senha aleatória, grava o hash, derruba todas as sessões da conta e
-// devolve a senha UMA vez, para o administrador repassar. A pessoa troca em
-// Minha conta → Segurança.
-//
-// A senha não fica em lugar nenhum além da resposta: o banco guarda só o hash,
-// e a trilha de auditoria registra o ato, não o valor.
-const ALFABETO_SENHA = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-const senhaAleatoria = (tamanho = 12) =>
-  Array.from({ length: tamanho }, () => ALFABETO_SENHA[randomInt(ALFABETO_SENHA.length)]).join('')
-
-router.post('/users/:id/senha-temporaria', exigirPapel('admin'), limitar({ max: 20, janelaMs: 10 * 60_000, porConta: true }), async (req, res, next) => {
-  try {
-    const alvo = alvoDaGovernanca(req, { deixaDeSerAdminAtivo: false })
-    if (alvo.erro) return res.status(alvo.status).json({ error: alvo.erro, code: alvo.code })
-
-    const conta = get('SELECT id, name, username, auth_provider FROM users WHERE id = ?', [alvo.conta.id])
-    if ((conta.auth_provider || 'local') !== 'local') {
-      return res.status(400).json({ error: 'Esta conta entra pelo provedor externo e não tem senha local.' })
-    }
-    // A conta compartilhada tem a senha publicada no README e oferecida na tela
-    // de entrada. Trocá-la trancaria todo mundo do lado de fora sem aviso.
-    if (contaCompartilhada(conta)) {
-      return res.status(409).json({
-        error: 'Esta é a conta de uso compartilhado, com a senha publicada. Para cortar o acesso a ela, suspenda-a.',
-        code: 'CONTA_COMPARTILHADA',
-      })
-    }
-
-    const senha = senhaAleatoria()
-    const { sal, hash } = await hashSenha(senha)
-    run(
-      'UPDATE users SET password_hash = ?, password_salt = ?, sessoes_desde = ? WHERE id = ?',
-      [hash, sal, Date.now(), conta.id],
-    )
-    registrarAuditoria(req, { acao: 'Senha redefinida pelo administrador', alvo: `Conta · ${conta.name}`, nivel: 'warn' })
-
-    res.json({ ok: true, conta: { id: String(conta.id), name: conta.name, username: conta.username }, senhaTemporaria: senha })
-  } catch (err) { next(err) }
 })
 
 export default router

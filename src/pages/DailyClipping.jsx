@@ -17,7 +17,6 @@ import {
   Save,
   ShieldCheck,
   SlidersHorizontal,
-  Sparkles,
   Flag,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -36,16 +35,12 @@ import Can from '../auth/Can'
 import { newsService } from '../services/newsService'
 import { useFontesReais } from '../hooks/useFontesReais'
 import EventosConsolidados from '../components/clipping/EventosConsolidados'
-import PerguntarAoAcervo from '../components/clipping/PerguntarAoAcervo'
-import RelatorioSemanal from '../components/clipping/RelatorioSemanal'
 import { useNewsStore } from '../store/newsStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { URGENCY_LEVELS } from '../data/mockData'
 import { alertMeta, categoryColor, clipboard, urgencyMeta } from '../utils/textUtils'
 import { formatDateBR, formatDateTimeBR, formatFullDate } from '../utils/dateUtils'
 import { exportClippingToPDF } from '../utils/exportUtils'
-import { useIa } from '../hooks/useIa'
-import { gerarSintese } from '../services/ia'
 
 // Quem assina a edição publicada. Creditamos a mesa editorial, e não uma pessoa
 // nomeada, porque não há redação por trás: a seleção é do filtro de relevância,
@@ -74,9 +69,6 @@ export default function DailyClipping() {
   //
   // A edição local continua sendo o estado inicial: se a API estiver fora, a
   // tela abre com ela em vez de vazia, e o selo diz de onde veio o dado.
-  // O carregamento é uma função para poder ser chamado DE NOVO: depois de
-  // gerar a síntese, a edição precisa voltar do servidor com o campo
-  // preenchido. Sem isso o texto só apareceria na próxima visita à tela.
   const recarregarEdicao = useCallback(async () => {
     try {
       const { data, meta } = await newsService.latestClipping()
@@ -208,15 +200,8 @@ export default function DailyClipping() {
               />
             </label>
 
-            {/* Aqui havia um botão "Gerar clipping com IA". Ele não gerava
-                nada: sem chave de modelo, o clique animava quatro etapas
-                falsas por 1,4 s e devolvia um documento escrito à mão. Uma
-                interface que encena trabalho que não acontece é pior que a
-                ausência do recurso, porque quem assiste acredita.
-
-                A edição desta tela é montada pelo SERVIDOR, a partir do que os
-                coletores trouxeram e o filtro aprovou. Não há passo de IA no
-                caminho, e a nota abaixo diz exatamente isso. */}
+            {/* A edição desta tela é montada pelo SERVIDOR, a partir do que os
+                coletores trouxeram e o filtro aprovou. */}
             <PublishedNote at={publishedAt} />
           </>
         }
@@ -241,43 +226,20 @@ export default function DailyClipping() {
           <button onClick={() => window.print()} className="btn-ghost">
             <Printer size={16} /> Imprimir
           </button>
-          {/* A edição em tela e a geração por IA são coisas diferentes, e
-              confundi-las é o que fazia esta nota dizer "demonstrativa" sobre
-              uma edição montada de coleta real. */}
           {result?.source === 'live' && (
             <span className="text-xs muted">
               Edição montada pelo servidor a partir de {result.total_collected ?? 0} item(ns)
               coletados · {result.relevant_total ?? 0} aprovados pelo filtro de relevância.
             </span>
           )}
-          {/* ESTA FRASE ERA PERMANENTE, E PASSOU A SER CONDICIONAL.
-            *
-            * Ela dizia "nenhum texto desta edição foi escrito por máquina" sem
-            * olhar para nada — o que era verdade enquanto a plataforma não
-            * chamava modelo nenhum. Com a síntese ligada, a mesma frase estática
-            * viraria falsa no instante em que alguém gerasse o resumo, e a
-            * declaração mais importante do produto passaria a mentir.
-            *
-            * Agora ela reflete a edição em tela: sem síntese, afirma a ausência;
-            * com síntese, diz o que foi escrito por máquina e o que não foi. */}
-          <span className="text-xs muted">
-            {result?.summary_origem === 'modelo'
-              ? 'Síntese de abertura escrita por modelo e marcada como tal. As matérias, a seleção e as contagens são da coleta.'
-              : 'Sem síntese por IA: nenhum texto desta edição foi escrito por máquina.'}
-          </span>
         </div>
       </PageHeader>
-
-      {/* Aqui ficava o indicador de progresso da "geração por IA": quatro
-          etapas com temporizador fixo, que rodavam mesmo quando não havia
-          modelo nenhum atrás. Saiu junto com o botão. O carregamento real
-          desta tela é o da edição vinda do servidor, e é curto. */}
 
       {!result && !loadingEdition && (
         <EmptyState
           icon={Newspaper}
           title="Nenhuma edição publicada ainda"
-          hint="Assim que a mesa de análise publicar o clipping do dia, ele aparece aqui com resumo executivo e nível de alerta."
+          hint="Assim que a coleta trouxer matérias aprovadas pelo filtro, a edição aparece aqui com o nível de alerta do período."
           action={{ label: 'Ver edições arquivadas', to: '/arquivo', icon: CalendarDays }}
         />
       )}
@@ -298,16 +260,6 @@ export default function DailyClipping() {
         * alto; uma sobre a Russia que nao cita nada brasileiro, zero. Sem
         * nenhum julgamento editorial no meio: o motivo do indice viaja junto
         * do numero, e a tela o mostra. */}
-      {/* A caixa de perguntas vem ANTES da leitura corrida: quem chega com uma
-        * pergunta na cabeça não deveria ter de rolar a edição inteira para
-        * encontrá-la. Some por completo quando não há modelo ligado. */}
-      {/* O resumão da semana antes da caixa de perguntas: quem chega sem
-        * pergunta específica quer o panorama, e quem chega com uma já sabe
-        * onde procurar. Some por completo quando não há modelo ligado. */}
-      <RelatorioSemanal />
-
-      <PerguntarAoAcervo dias={result?.period_days || 30} />
-
       <RelevantesParaOBrasil />
 
       <EventosConsolidados />
@@ -319,12 +271,12 @@ export default function DailyClipping() {
           transition={{ duration: 0.4 }}
           className="space-y-6"
         >
-          {/* Resumo executivo */}
+          {/* Nível de alerta do período */}
           <section
             className={`card border-l-4 p-5 sm:p-6 ${alert?.classes.split(' ').find((c) => c.startsWith('border')) || 'border-gray-300 dark:border-white/15'}`}
           >
             <div className="mb-3 flex flex-wrap items-center gap-3">
-              <h2 className="text-lg font-bold tracking-tight">Resumo executivo</h2>
+              <h2 className="text-lg font-bold tracking-tight">Nível de alerta do período</h2>
               <Badge type="alert" value={result.alert_level} />
             </div>
 
@@ -344,28 +296,6 @@ export default function DailyClipping() {
               score={result.alert_score}
               basis={result.alert_basis}
               distribuicao={result.alert_distribution}
-            />
-            {/* ─────────────────────────────────────────────────────────────
-              * A SÍNTESE POR IA, AGORA COM A MARCA DE QUEM A ESCREVEU
-              *
-              * Este espaço passou a vida reservado e vazio, com a nota
-              * explicando que a versão não gerava síntese. O contrato escrito
-              * em ROADMAP.md era: "o dia em que `summaryExecutive` vier
-              * preenchido, a tela o exibe sem mudança nenhuma".
-              *
-              * Ele veio, e a mudança que a tela precisou é uma só — e é a que
-              * o próprio contrato exigia: DIZER QUEM ESCREVEU. Um parágrafo de
-              * modelo apresentado do mesmo jeito que a apuração da plataforma
-              * apagaria a única distinção que este produto defende.
-              * ───────────────────────────────────────────────────────────── */}
-            <SinteseDoPeriodo
-              texto={result.summary_executive}
-              origem={result.summary_origem}
-              modelo={result.summary_modelo}
-              geradoEm={result.summary_gerado_em}
-              nota={result.summary_note}
-              dias={result.period_days}
-              onGerou={recarregarEdicao}
             />
           </section>
 
@@ -774,100 +704,6 @@ function NivelDeAlerta({ level, score, basis, distribuicao }) {
         {' '}{total} ocorrências da janela, e não sobre a seleção listada abaixo — que vem ordenada por
         urgência e cortada, e por isso é sempre mais grave que o período. Medir a seleção em vez da
         janela era o que fazia este indicador marcar CRÍTICO 100/100 todos os dias.
-      </p>
-    </div>
-  )
-}
-
-/**
- * A síntese do período: o texto quando existe, o caminho para gerá-lo quando
- * não, e a razão da ausência quando não há modelo ligado.
- *
- * Três estados, e nenhum deles é uma tela de erro — não ter modelo configurado
- * é uma decisão de quem hospeda, não uma falha da plataforma.
- */
-function SinteseDoPeriodo({ texto, origem, modelo, geradoEm, nota, dias, onGerou }) {
-  const ia = useIa()
-  const [gerando, setGerando] = useState(false)
-
-  const gerar = async () => {
-    setGerando(true)
-    try {
-      await gerarSintese({ days: dias || 7, forcar: !!texto })
-      await onGerou?.()
-      toast.success('Síntese gerada.')
-    } catch (e) {
-      toast.error(e?.message || 'Não foi possível gerar a síntese.')
-    } finally {
-      setGerando(false)
-    }
-  }
-
-  // ── Já existe texto ──
-  if (texto) {
-    return (
-      <div className="mb-4">
-        {/* A MARCA VEM ANTES DO TEXTO, e não depois.
-          * Um aviso embaixo do parágrafo chega tarde: quem lê já leu. */}
-        <div className="mb-2 flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-500/15 px-2.5 py-1 text-[11px] font-bold text-brand-700 dark:text-brand-300">
-            <Sparkles size={12} /> Escrito por máquina
-          </span>
-          {modelo && <span className="chip font-mono text-[10px]">{modelo}</span>}
-          {geradoEm && <span className="text-[11px] muted">{formatDateTimeBR(geradoEm)}</span>}
-          {ia.configurada && (
-            <button onClick={gerar} disabled={gerando} className="btn-ghost ml-auto px-2 py-0.5 text-[11px]">
-              {gerando ? 'Gerando…' : 'Gerar de novo'}
-            </button>
-          )}
-        </div>
-        {String(texto).split('\n').filter(Boolean).map((p, i) => (
-          <p key={i} className="mb-2 text-sm leading-relaxed text-gray-700 dark:text-gray-300">{p}</p>
-        ))}
-        <p className="mt-2 text-[11px] leading-relaxed muted">
-          {origem === 'modelo'
-            ? 'Resumo produzido por modelo de linguagem a partir das matérias desta edição. Confira as matérias citadas antes de usar como base para decisão.'
-            : 'Resumo da mesa de análise.'}
-        </p>
-      </div>
-    )
-  }
-
-  // ── Há modelo ligado, e ninguém pediu ainda ──
-  if (ia.configurada) {
-    return (
-      <div className="mb-4 rounded-lg border border-dashed border-gray-300 bg-gray-50/60 p-4 dark:border-white/15 dark:bg-white/[0.02]">
-        <p className="flex items-center gap-2 text-sm font-semibold">
-          <Sparkles size={15} className="text-brand-500 dark:text-brand-300" />
-          Síntese do período
-        </p>
-        <p className="mt-1.5 text-xs leading-relaxed muted">
-          Um modelo lê as matérias aprovadas desta edição e escreve o parágrafo de abertura —
-          <strong> marcado como escrito por máquina</strong>. O resultado fica guardado: pedir de
-          novo hoje não gasta outra chamada.
-        </p>
-        <button onClick={gerar} disabled={gerando} className="btn-primary mt-3 text-sm">
-          <Sparkles size={15} /> {gerando ? 'Gerando…' : 'Gerar síntese desta edição'}
-        </button>
-      </div>
-    )
-  }
-
-  // ── Sem modelo ligado ──
-  return (
-    <div className="mb-4 rounded-lg border border-dashed border-gray-300 bg-gray-50/60 p-4 dark:border-white/15 dark:bg-white/[0.02]">
-      <p className="flex items-center gap-2 text-sm font-semibold">
-        <Sparkles size={15} className="text-gray-400" />
-        Sem síntese por IA nesta instalação
-      </p>
-      <p className="mt-1.5 text-xs leading-relaxed muted">
-        {nota || 'Nenhum modelo de linguagem está conectado.'} Quem administra esta instalação
-        pode ligar o recurso em Configurações, com a chave da própria conta — ela fica no
-        servidor, nunca no navegador.
-      </p>
-      <p className="mt-2 text-xs leading-relaxed muted">
-        Até lá o campo fica vazio de propósito: preenchê-lo com texto plausível seria a única
-        coisa que esta plataforma não faz.
       </p>
     </div>
   )

@@ -3,16 +3,13 @@ import { useNavigate, Link } from 'react-router-dom'
 import {
   Menu, Bell, Moon, Sun, LogIn, LogOut, User, PanelLeftClose, PanelLeft,
   UserCog, Settings as SettingsIcon, ShieldCheck, ClipboardList, Search,
-  Repeat, ArrowRight,
 } from 'lucide-react'
 import SearchBar from '../ui/SearchBar'
 import Badge from '../ui/Badge'
 import AuthModal from '../auth/AuthModal'
 import { useAuthStore } from '../../store/authStore'
-import { useContasIniciais } from '../../auth/useContasIniciais'
-import { useNewsStore } from '../../store/newsStore'
+import { useNotificationStore } from '../../store/notificationStore'
 import { useCan, useProfileMeta } from '../../auth/useCan'
-import { ROLE_LABELS } from '../../auth/permissions'
 import { useTheme } from '../../hooks/useTheme'
 import { timeAgo } from '../../utils/dateUtils'
 
@@ -20,13 +17,12 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
   const navigate = useNavigate()
   const { isDark, toggleTheme } = useTheme()
   const { user, isAuthenticated, logout } = useAuthStore()
-  const { contas, entrarComo } = useContasIniciais()
   const can = useCan()
   const profileMeta = useProfileMeta()
-  const notifications = useNewsStore((s) => s.notifications)
-  const unread = useNewsStore((s) => s.unreadCount())
-  const markAllRead = useNewsStore((s) => s.markAllRead)
-  const markRead = useNewsStore((s) => s.markRead)
+  const notifications = useNotificationStore((s) => s.items)
+  const unread = useNotificationStore((s) => s.unread)
+  const markAllRead = useNotificationStore((s) => s.marcarTodasLidas)
+  const markRead = useNotificationStore((s) => s.marcarLida)
 
   const [authAberto, setAuthAberto] = useState(false)
   const [authAba, setAuthAba] = useState('entrar')
@@ -52,16 +48,7 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
     }
   }, [])
 
-  // Entrar na conta compartilhada é um LOGIN de verdade, autenticado no
-  // servidor. Antes isto escrevia `{ role: 'admin' }` no localStorage e nada
-  // verificava.
-  const trocarPerfil = async (papel) => {
-    setUserOpen(false)
-    const r = await entrarComo(papel)
-    if (r?.ok) navigate('/painel')
-  }
-
-  const initials = (user?.name || '')
+  const initials = (user?.name || user?.username || '')
     .split(' ')
     .filter(Boolean)
     .slice(0, 2)
@@ -163,14 +150,12 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
                       {notifications.slice(0, 8).map((n) => (
                         <li key={n.id}>
                           {/* A notificação abre o que ela anuncia: a matéria no
-                              veículo ou a tela dos incidentes. Antes o clique só
-                              a marcava como lida, e o link guardado não servia
-                              para nada. */}
+                              veículo ou a tela correspondente. */}
                           <button
                             onClick={() => {
                               markRead(n.id)
                               if (/^https?:\/\//i.test(n.url || '')) window.open(n.url, '_blank', 'noopener,noreferrer')
-                              else if (n.to) { setNotifOpen(false); navigate(n.to) }
+                              else if (n.route) { setNotifOpen(false); navigate(n.route) }
                             }}
                             className={`flex w-full items-start gap-2.5 px-3 py-2.5 text-left text-sm transition-colors hover:bg-gray-100 dark:hover:bg-white/10 ${
                               n.read ? 'opacity-55' : ''
@@ -181,7 +166,7 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
                             </span>
                             <span className="min-w-0 flex-1">
                               <span className="block truncate font-medium text-gray-800 dark:text-gray-200">{n.title}</span>
-                              <span className="text-xs muted">{timeAgo(n.time)}</span>
+                              <span className="text-xs muted">{timeAgo(n.eventAt || n.createdAt)}</span>
                             </span>
                             {!n.read && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-gold-500" />}
                           </button>
@@ -237,10 +222,7 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
               <div className="card absolute right-0 z-40 mt-2 w-72 origin-top-right animate-scale-in p-2 shadow-dropdown">
                 <div className="px-2 py-1.5">
                   <p className="text-sm font-semibold">{user?.name}</p>
-                  {/* As contas iniciais têm e-mail `.invalid`, que não é endereço de ninguém. */}
-                  <p className="truncate text-xs muted">
-                    {user?.email && !user.email.endsWith('.invalid') ? user.email : user?.username}
-                  </p>
+                  <p className="truncate font-mono text-xs muted">{user?.username}</p>
                   {can('admin.access') && (
                     <span
                       className="mt-1.5 inline-block rounded px-1.5 py-0.5 text-[10px] font-bold uppercase text-white"
@@ -262,30 +244,6 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
                   )}
                   <MenuLink to="/configuracoes" icon={SettingsIcon} label="Configurações" onClick={() => setUserOpen(false)} />
                 </div>
-
-                {/* As contas iniciais — login real, e só a que não é a atual */}
-                {contas.some((c) => c.senhaPadrao && c.username !== user?.username) && (
-                  <div className="mt-1 border-t border-gray-200 pt-2 dark:border-gray-700/40">
-                    <p className="flex items-center gap-1.5 px-2 pb-1 text-[10px] font-bold uppercase tracking-wide muted">
-                      <Repeat size={11} /> Entrar com outra conta
-                    </p>
-                    <div className="space-y-1">
-                      {contas.filter((c) => c.senhaPadrao && c.username !== user?.username).map((c) => (
-                        <button
-                          key={c.username}
-                          onClick={() => trocarPerfil(c.role)}
-                          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-gray-100 dark:hover:bg-white/10"
-                        >
-                          <span className="min-w-0 flex-1">
-                            <span className="block text-xs font-semibold text-gray-900 dark:text-white">{ROLE_LABELS[c.role] || c.role}</span>
-                            <span className="block truncate font-mono text-[10px] muted">{c.username}</span>
-                          </span>
-                          <ArrowRight size={13} className="shrink-0 text-gray-400" />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
 
                 <button
                   onClick={() => { logout(); setUserOpen(false); navigate('/') }}

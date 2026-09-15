@@ -37,7 +37,7 @@ export async function coletarComex() {
   const inicio = Date.now()
   const ano = new Date().getUTCFullYear()
 
-  // O MDIC publica UMA VEZ POR MÊS. Buscar a cada 30 minutos, como as demais
+  // O MDIC publica UMA VEZ POR MÊS. Buscar a cada ciclo, como as demais
   // fontes, não traz nada novo e rende HTTP 429 — foi o que aconteceu em
   // teste, e o efeito é a tela de Indústria ficar vazia até a próxima janela.
   //

@@ -142,8 +142,8 @@ export function textoLimpo(html) {
  *
  * Parte dos feeds entrega a matéria INTEIRA no campo de descrição — medido no
  * acervo: 60 de 300 aprovadas passavam de 600 caracteres, a maior com 8.930.
- * O texto completo continua guardado, porque o filtro de relevância e a IA
- * precisam dele; o que sai para a tela é um trecho, com o link para o original.
+ * O texto completo continua guardado, porque o filtro de relevância e as
+ * correlações precisam dele; o que sai para a tela é um trecho, com o link para o original.
  * Mostrar a matéria inteira enchia o clipping de blocos de texto e reproduzia o
  * trabalho do veículo em vez de apontar para ele.
  *

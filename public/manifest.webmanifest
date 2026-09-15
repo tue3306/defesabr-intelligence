@@ -1,7 +1,7 @@
 {
   "name": "DefesaBR Intelligence — Segurança e Defesa do Brasil",
   "short_name": "DefesaBR",
-  "description": "Acompanhamento de Segurança e Defesa do Brasil a partir de fontes públicas: clipping filtrado por relevância, correlação com incidentes contra organizações brasileiras, indicadores econômicos e assistente por IA com a chave de cada conta.",
+  "description": "Acompanhamento de Segurança e Defesa do Brasil a partir de fontes públicas: clipping filtrado por relevância, correlação com incidentes contra organizações brasileiras, indicadores econômicos e notificações por conta.",
   "lang": "pt-BR",
   "dir": "ltr",
   "start_url": "/",

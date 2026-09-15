@@ -43,9 +43,6 @@ export const adminService = {
 
   /** Remove a conta e a pasta pessoal dela. */
   removerConta: (id) => request(`DELETE /users/${id}`),
-
-  /** Gera senha temporária, derruba as sessões e devolve a senha uma vez. */
-  senhaTemporaria: (id) => request(`POST /users/${id}/senha-temporaria`),
 }
 
 export default adminService

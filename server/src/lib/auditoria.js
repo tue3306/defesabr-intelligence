@@ -6,7 +6,7 @@ import { all, run, agora } from '../db/index.js'
 // A aba "Auditoria" do console prometia "quem fez o quê, quando e sobre qual
 // objeto" e mostrava só as execuções dos coletores. Nenhum ato de governança
 // ficava registrado: suspender uma conta, promover alguém a administrador,
-// desligar uma fonte ou trocar a chave de IA da instalação não deixavam rastro.
+// ou desligar uma fonte não deixavam rastro.
 //
 // Agora cada um desses atos grava uma linha com o autor, lido do banco no
 // momento da requisição — não do token, que pode carregar um nome antigo.

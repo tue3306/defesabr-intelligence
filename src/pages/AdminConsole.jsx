@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import {
   ShieldCheck, Users, Database, PlugZap, ScrollText, HeartPulse,
   Download, Trash2, Ban, RotateCcw, RefreshCw, Search,
-  Play, Pause, Server, TerminalSquare, HardDrive, Eraser, Link2, Lock, Loader2, AlertTriangle, KeyRound, Copy,
+  Play, Pause, Server, TerminalSquare, HardDrive, Eraser, Link2, Lock, Loader2, AlertTriangle, KeyRound,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PageHeader from '../components/ui/PageHeader'
@@ -13,7 +13,6 @@ import DataState from '../components/ui/DataState'
 import EmptyState from '../components/ui/EmptyState'
 import Pagination from '../components/ui/Pagination'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
-import Modal from '../components/ui/Modal'
 import { SkeletonCard } from '../components/ui/Skeleton'
 import Can from '../auth/Can'
 import { useCan } from '../auth/useCan'
@@ -149,17 +148,10 @@ const CONFIRMACOES = {
     tone: 'danger',
     icon: Trash2,
   }),
-  senha: (c) => ({
-    title: 'Gerar senha temporária',
-    description: `A senha atual de ${c.name} deixa de valer e todas as sessões dela caem. A senha nova aparece uma única vez para você repassar; a pessoa a troca em Minha conta → Segurança.`,
-    confirmLabel: 'Gerar senha',
-    tone: 'danger',
-    icon: KeyRound,
-  }),
   papel: (c, role) => ({
     title: role === 'admin' ? 'Promover a administrador' : 'Rebaixar a usuário',
     description: role === 'admin'
-      ? `${c.name} passa a governar contas, fontes, chaves e coleta desta instalação — o mesmo acesso que você tem.`
+      ? `${c.name} passa a governar contas, fontes e coleta desta instalação — o mesmo acesso que você tem.`
       : `${c.name} perde o acesso ao console de governança na próxima requisição.`,
     confirmLabel: role === 'admin' ? 'Promover' : 'Rebaixar',
     tone: role === 'admin' ? 'default' : 'danger',
@@ -178,14 +170,13 @@ function ContasSection() {
   const [page, setPage] = useState(1)
   const [confirm, setConfirm] = useState(null) // { kind, account, role? }
   const [ocupada, setOcupada] = useState(null) // id da conta com ação em andamento
-  const [senhaGerada, setSenhaGerada] = useState(null) // { name, username, senha }
 
   useEffect(() => { setPage(1) }, [q, role, status])
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase()
     return accounts.filter((a) => {
-      const matchQ = !needle || `${a.name} ${a.username || ''} ${a.email || ''}`.toLowerCase().includes(needle)
+      const matchQ = !needle || `${a.name} ${a.username || ''}`.toLowerCase().includes(needle)
       return matchQ && (role === 'todos' || a.role === role) && (status === 'todos' || a.status === status)
     })
   }, [accounts, q, role, status])
@@ -203,10 +194,7 @@ function ContasSection() {
     const { kind, account, role: novoPapel } = confirm
     setOcupada(account.id)
     try {
-      if (kind === 'senha') {
-        const { data: r } = await adminService.senhaTemporaria(account.id)
-        setSenhaGerada({ name: account.name, username: r?.conta?.username || account.username, senha: r?.senhaTemporaria })
-      } else if (kind === 'remover') {
+      if (kind === 'remover') {
         await adminService.removerConta(account.id)
         toast.success(`Conta removida: ${account.name}.`)
       } else if (kind === 'papel') {
@@ -235,7 +223,6 @@ function ContasSection() {
       filtered.map((a) => ({
         Nome: a.name,
         Usuário: a.username || '—',
-        'E-mail': a.email || '—',
         Papel: ROLE_LABELS[a.role] || a.role,
         Situação: USER_STATUS[a.status]?.label || a.status,
         'Criada em': a.since ? formatDateTimeBR(a.since) : '—',
@@ -270,8 +257,8 @@ function ContasSection() {
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Nome, usuário ou e-mail…"
-              aria-label="Buscar contas por nome, usuário ou e-mail"
+              placeholder="Nome ou usuário…"
+              aria-label="Buscar contas por nome ou usuário"
               className="input pl-9"
             />
           </div>
@@ -327,7 +314,6 @@ function ContasSection() {
                         onRole={(value) => setConfirm({ kind: 'papel', account: a, role: value })}
                         onToggleStatus={() => setConfirm({ kind: a.status === 'suspenso' ? 'reativar' : 'suspender', account: a })}
                         onRemove={() => setConfirm({ kind: 'remover', account: a })}
-                        onPassword={() => setConfirm({ kind: 'senha', account: a })}
                       />
                     ))}
                   </tbody>
@@ -343,7 +329,7 @@ function ContasSection() {
         <p className="mt-4 text-xs leading-relaxed muted">
           Não é possível alterar a própria conta nem deixar a instalação sem administrador ativo — as
           duas travas são do servidor. Toda conta nasce pelo cadastro como Usuário e pode ser promovida
-          aqui. Quem esqueceu a senha recebe uma senha temporária pelo botão da chave.
+          aqui. Cada pessoa troca a própria senha em Minha conta → Segurança.
         </p>
       </Section>
 
@@ -357,41 +343,11 @@ function ContasSection() {
         description={dialogo?.description}
         confirmLabel={dialogo?.confirmLabel}
       />
-
-      <Modal open={!!senhaGerada} onClose={() => setSenhaGerada(null)} title="Senha temporária gerada" maxWidth="max-w-md">
-        {senhaGerada && (
-          <div className="space-y-4">
-            <p className="text-sm muted">
-              Repasse a <strong>{senhaGerada.name}</strong> por um canal seguro. Ela não será mostrada de novo —
-              o servidor guarda só o hash.
-            </p>
-            <dl className="space-y-2">
-              <div className="rounded-lg border border-gray-200 p-3 dark:border-white/10">
-                <dt className="text-[10px] font-bold uppercase tracking-wider muted">Usuário</dt>
-                <dd className="font-mono text-sm">{senhaGerada.username}</dd>
-              </div>
-              <div className="flex items-center justify-between gap-3 rounded-lg border border-gold-500/40 bg-gold-500/5 p-3">
-                <div>
-                  <dt className="text-[10px] font-bold uppercase tracking-wider muted">Senha temporária</dt>
-                  <dd className="select-all font-mono text-lg font-bold tracking-wide">{senhaGerada.senha}</dd>
-                </div>
-                <button
-                  onClick={() => navigator.clipboard?.writeText(senhaGerada.senha).then(() => toast.success('Senha copiada.')).catch(() => toast.error('Não foi possível copiar — selecione e copie à mão.'))}
-                  className="btn-ghost shrink-0 text-sm"
-                >
-                  <Copy size={15} /> Copiar
-                </button>
-              </div>
-            </dl>
-            <button onClick={() => setSenhaGerada(null)} className="btn-primary w-full justify-center">Pronto</button>
-          </div>
-        )}
-      </Modal>
     </div>
   )
 }
 
-function AccountRow({ account, isSelf, busy, onRole, onToggleStatus, onRemove, onPassword }) {
+function AccountRow({ account, isSelf, busy, onRole, onToggleStatus, onRemove }) {
   const st = USER_STATUS[account.status] || USER_STATUS.ativo
   const suspensa = account.status === 'suspenso'
   const selfNote = 'A própria conta não pode ser alterada por aqui — nem suspensa, nem rebaixada, nem removida.'
@@ -403,7 +359,7 @@ function AccountRow({ account, isSelf, busy, onRole, onToggleStatus, onRemove, o
           {account.name}
           {isSelf && <span className="ml-2 rounded-full bg-gold-500/15 px-1.5 py-0.5 text-[10px] font-bold text-gold-600 dark:text-gold-400">você</span>}
         </span>
-        <span className="font-mono text-xs muted">{account.username || '—'}{account.email ? ` · ${account.email}` : ''}</span>
+        <span className="font-mono text-xs muted">{account.username || '—'}</span>
       </td>
       <td className="py-2.5 pr-4">
         <select
@@ -439,15 +395,6 @@ function AccountRow({ account, isSelf, busy, onRole, onToggleStatus, onRemove, o
                 className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 text-gray-500 transition-colors enabled:hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10 dark:text-gray-400 dark:enabled:hover:text-white"
               >
                 {suspensa ? <RotateCcw size={15} /> : <Ban size={15} />}
-              </button>
-              <button
-                onClick={onPassword}
-                disabled={isSelf}
-                title={isSelf ? 'A própria senha se troca em Minha conta → Segurança.' : 'Gerar senha temporária'}
-                aria-label={`Gerar senha temporária para ${account.name}`}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 text-gray-500 transition-colors enabled:hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10 dark:text-gray-400 dark:enabled:hover:text-white"
-              >
-                <KeyRound size={15} />
               </button>
               <button
                 onClick={onRemove}
@@ -723,16 +670,15 @@ function SourceRow({ source, check, testando, alternando, ocupado, onToggle, onT
 // =============================================================================
 // INTEGRAÇÕES
 //
-// Era um catálogo escrito à mão, com "SSO institucional (SAML/OIDC)" e um modelo
-// de linguagem "planejado" quando o assistente por IA já funcionava, e um botão
-// "Reconectar" que girava por 900 ms e devolvia um texto fixo. Agora são os
+// Era um catálogo escrito à mão, com "SSO institucional (SAML/OIDC)" planejado
+// e um botão "Reconectar" que girava por 900 ms e devolvia um texto fixo. Agora são os
 // serviços externos que o servidor de fato consulta, com o estado MEDIDO em
 // cada execução — e sem botão que finja testar o que não testa.
 // =============================================================================
 function IntegracoesSection() {
   const { data, loading, error, refetch } = useResource(() => adminService.health(), [])
   const externos = useMemo(
-    () => (data?.services || []).filter((s) => s.group === 'Coleta' || s.group === 'IA'),
+    () => (data?.services || []).filter((s) => s.group === 'Coleta'),
     [data],
   )
 
@@ -795,15 +741,11 @@ function IntegracoesSection() {
         </h2>
         <ul className="space-y-2 text-sm leading-relaxed muted">
           <li>
-            <strong className="text-gray-800 dark:text-gray-200">Chave de IA</strong> — de cada conta ou
-            da instalação, definida em Minha conta → Segurança. Guardada cifrada (AES-256-GCM) no banco;
-            a API devolve só os quatro últimos caracteres e o navegador nunca recebe o valor.
-          </li>
-          <li>
             <strong className="text-gray-800 dark:text-gray-200">Variáveis de ambiente</strong> —
-            <span className="font-mono"> ANTHROPIC_API_KEY</span>, <span className="font-mono">RANSOMWARE_API_KEY</span>,
-            <span className="font-mono"> GNEWS_API_KEY</span>, <span className="font-mono">NEWSDATA_API_KEY</span> e
-            <span className="font-mono"> AUTH_SECRET</span> ficam no painel de quem hospeda, nunca no repositório.
+            <span className="font-mono"> RANSOMWARE_API_KEY</span>, <span className="font-mono">GNEWS_API_KEY</span>,
+            <span className="font-mono"> NEWSDATA_API_KEY</span>, <span className="font-mono">AUTH_SECRET</span>,
+            <span className="font-mono"> ADMIN_USERNAME</span> e <span className="font-mono">ADMIN_PASSWORD</span> ficam
+            no painel de quem hospeda, nunca no repositório. Nenhuma delas chega ao navegador.
           </li>
         </ul>
       </Section>

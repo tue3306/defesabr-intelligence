@@ -56,12 +56,11 @@ const COLUNAS_ADICIONADAS = [
 
   // IDENTIFICADOR DE LOGIN, separado do e-mail.
   //
-  // O projeto e aberto e nasce com duas contas cujo identificador e um nome de
-  // usuario simples (`admin123`, `usuario123`), nao um endereco de e-mail.
+  // O cadastro pede um nome de usuario simples, nao um endereco de e-mail.
   // Forcar isso na coluna `email` funcionaria, mas apagaria a distincao que a
-  // proxima etapa vai precisar: quando entrar autenticacao por Google, o
-  // e-mail passa a vir do provedor e precisa ser um endereco de verdade,
-  // enquanto o identificador local continua sendo o que a pessoa digita.
+  // proxima etapa vai precisar: quando entrar e-mail confirmado ou um provedor
+  // externo, o e-mail precisa ser um endereco de verdade, enquanto o
+  // identificador local continua sendo o que a pessoa digita.
   //
   // Coluna nova em vez de trocar o significado da existente: `email` e NOT
   // NULL UNIQUE, e mudar isso no SQLite exige reconstruir a tabela — risco
@@ -73,17 +72,6 @@ const COLUNAS_ADICIONADAS = [
   // contas tem senha propria e quais delegam ao provedor.
   ['users', 'auth_provider', "TEXT NOT NULL DEFAULT 'local'"],
 
-  // A CHAVE DE MODELO DE LINGUAGEM DA PROPRIA PESSOA, cifrada.
-  //
-  // Cada conta pode trazer a sua: quem usa a plataforma paga o proprio
-  // consumo, e o dono da instalacao nao precisa bancar o de todo mundo. Quando
-  // a conta nao tem uma, vale a da instalacao (variavel de ambiente ou a
-  // gravada pelo administrador) — ver server/src/lib/chaveIa.js.
-  //
-  // Guardada por AES-256-GCM, nunca em texto puro: um backup do banco nao pode
-  // entregar a chave de ninguem. Ver server/src/lib/segredoGuardado.js, que
-  // tambem explica o que essa cifra NAO protege.
-  ['correlations', 'leitura_ia', 'TEXT'],
   // A SITUACAO DA CONTA: 'ativo' ou 'suspenso'.
   //
   // O console de governanca tinha botoes de suspender, reativar e remover
@@ -96,14 +84,10 @@ const COLUNAS_ADICIONADAS = [
   ['users', 'status', "TEXT NOT NULL DEFAULT 'ativo'"],
   // MARCO DE REVOGAÇÃO DAS SESSÕES, em milissegundos.
   //
-  // O token é sem estado, então "encerrar as outras sessões" e "trocar a
-  // senha" não tinham como invalidar o que já foi emitido. Com este marco,
-  // `lerConta` recusa todo token emitido antes dele.
+  // O token é sem estado, então "trocar a senha" não tinha como invalidar o
+  // que já foi emitido. Com este marco, `lerConta` recusa todo token emitido
+  // antes dele.
   ['users', 'sessoes_desde', 'INTEGER'],
-  ['users', 'ia_api_key', 'TEXT'],
-  // O modelo que a pessoa escolheu, se escolheu. Nao e segredo, entao fica em
-  // texto puro.
-  ['users', 'ia_modelo', 'TEXT'],
 
   // INDICE DE RELEVANCIA PARA O BRASIL, de 0 a 100, e a explicacao dele.
   //
@@ -161,6 +145,16 @@ export function migrate() {
   // 4. papeis que deixaram de existir. `analyst` saiu do modelo; uma conta que
   // ainda o tenha vira `user`, o papel de menor privilegio, e nao `admin`.
   db.exec("UPDATE users SET role = 'user' WHERE role NOT IN ('user', 'admin')")
+
+  // 5. o que o assistente por modelo de linguagem deixou no banco. O recurso
+  // saiu; as chaves guardadas (cifradas) e os textos gerados saem junto, em vez
+  // de ficarem num volume montado sem código que os leia.
+  const COLUNAS_REMOVIDAS = [['users', 'ia_api_key'], ['users', 'ia_modelo'], ['correlations', 'leitura_ia']]
+  for (const [tabela, coluna] of COLUNAS_REMOVIDAS) {
+    const existe = db.prepare(`PRAGMA table_info(${tabela})`).all().some((c) => c.name === coluna)
+    if (existe) db.exec(`ALTER TABLE ${tabela} DROP COLUMN ${coluna}`)
+  }
+  db.exec("DELETE FROM app_config WHERE chave LIKE 'ia\\_%' ESCAPE '\\'")
 }
 
 // `DatabaseSync` devolve objetos com protótipo nulo. Isso quebra

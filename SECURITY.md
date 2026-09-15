@@ -3,9 +3,9 @@
 ## Contexto do projeto
 
 O **DefesaBR Intelligence** tem servidor próprio (Node + SQLite) que coleta fontes públicas e guarda
-contas: nome, nome de usuário, e-mail, senha como hash scrypt, papel, situação, pasta de favoritos,
-chave de IA cifrada (AES-256-GCM) e a trilha de atos de administração. Os dados coletados são
-públicos; os de conta, não.
+contas: nome de exibição, nome de usuário, senha como hash scrypt, papel, situação, pasta de
+favoritos, o estado de leitura das notificações e a trilha de atos de administração. Os dados
+coletados são públicos; os de conta, não.
 
 Relatos responsáveis são bem-vindos.
 
@@ -35,26 +35,28 @@ Faremos o possível para responder em tempo razoável e manter você informado s
 
 ## Boas práticas de chaves de API
 
-- 🔑 **Nunca** commite chaves. O `.env` está no `.gitignore`; use `.env.example` como modelo.
-  `AUTH_SECRET`, `ANTHROPIC_API_KEY` e as chaves de agregador ficam no painel de quem hospeda.
-- 🧠 A chave de IA de cada conta vai para o servidor, é guardada cifrada e **nunca volta ao
-  navegador** — a API devolve só os quatro últimos caracteres. Quem chama o provedor é o servidor.
-- 💳 Configure **limite de gasto** na conta do provedor.
+- 🔑 **Nunca** commite chaves nem senhas. O `.env` está no `.gitignore`; use `.env.example` como
+  modelo. `AUTH_SECRET`, `ADMIN_USERNAME`, `ADMIN_PASSWORD` e as chaves de agregador ficam no
+  painel de quem hospeda — este repositório é público.
 - 🧹 Revogue imediatamente qualquer chave exposta.
 
-## Senhas padrão
+## Contas
 
-A instalação semeia `admin123` e `usuario123` com a senha igual ao nome de usuário, para o clone
-funcionar de primeira. **Em qualquer deploy público, defina `AUTH_SEED_ADMIN_PASSWORD` antes do
-primeiro boot ou troque a senha em Minha conta → Segurança.** O painel do administrador mostra um
-alerta enquanto a senha padrão estiver em uso. `usuario123` com a senha padrão é conta de uso
-compartilhado e não permite trocar senha nem guardar chave.
+Não há conta com senha publicada. A conta de administrador da instalação é criada na primeira
+subida a partir de `ADMIN_USERNAME` e `ADMIN_PASSWORD`; sem as duas variáveis, nenhuma conta de
+administrador existe e o servidor avisa no boot. A senha é trocada depois em *Minha conta →
+Segurança*, e a variável não a sobrescreve.
+
+Versões anteriores semeavam `admin123` e `usuario123` com senha igual ao nome de usuário. Ao subir,
+o servidor **remove** essas contas — ou renomeia a de administrador para o `ADMIN_USERNAME`
+configurado, preservando a trilha de auditoria. Instalação antiga com volume montado não fica com a
+porta destrancada depois da atualização.
 
 ## Escopo
 
 Relatos mais úteis envolvem: contorno de `exigirPapel()` ou das travas de governança, sessão que
-sobrevive a suspensão ou troca de senha, vazamento da chave de IA, XSS via conteúdo coletado de
-feeds, injeção de instrução no modelo a partir de matérias, e dependências vulneráveis.
+sobrevive a suspensão ou troca de senha, acesso às notificações ou à pasta de outra conta, XSS via
+conteúdo coletado de feeds, e dependências vulneráveis.
 
 
 ## Dependências: o que `npm audit` acusa, e por quê continua aqui

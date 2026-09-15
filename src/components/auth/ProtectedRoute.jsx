@@ -1,13 +1,10 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  Lock, ShieldCheck, Bot, FileDown, Sparkles, ArrowRight, Check, UserCog, LogIn, UserPlus,
+  Lock, ShieldCheck, LayoutDashboard, FileDown, Bell, ArrowRight, Check, UserCog, LogIn, UserPlus,
 } from 'lucide-react'
-import toast from 'react-hot-toast'
 import { useAuthStore } from '../../store/authStore'
-import { useContasIniciais } from '../../auth/useContasIniciais'
 import { useGate } from '../../auth/useCan'
-import { ROLE_LABELS } from '../../auth/permissions'
 import AuthModal from './AuthModal'
 
 // O que a conta REALMENTE dá. Esta lista prometia "dossiês, cenários e
@@ -15,8 +12,8 @@ import AuthModal from './AuthModal'
 // exibirem texto escrito à mão. Prometer na porta o que não existe lá dentro é
 // a pior hora de mentir: o visitante entra justamente para conferir.
 const BENEFITS = [
-  { icon: Bot, text: 'Painel de situação, correlações entre notícias e clipping diário' },
-  { icon: Sparkles, text: 'Assistente por IA com a sua chave: resumo da semana e análise assistida' },
+  { icon: LayoutDashboard, text: 'Painel de situação, correlações entre notícias e clipping diário' },
+  { icon: Bell, text: 'Notificações de matéria urgente e de ataque a organização brasileira' },
   { icon: FileDown, text: 'Exportação do clipping em PDF e das séries em CSV' },
 ]
 
@@ -37,20 +34,11 @@ const MURO_ADMIN = {
 // Bloqueia o conteúdo até autenticar e, opcionalmente, exige uma capacidade.
 export default function ProtectedRoute({ children, capability }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  // Só consulta as contas iniciais quando o muro de entrada vai aparecer.
-  const { contas, entrarComo } = useContasIniciais({ ativo: !isAuthenticated })
   const gate = useGate(capability)
   const [auth, setAuth] = useState(null) // 'entrar' | 'cadastrar' | null
 
-  const entrar = async (papel) => {
-    const r = await entrarComo(papel)
-    if (r?.ok) toast.success(`Conectado como ${ROLE_LABELS[papel] || papel}`)
-    else toast.error(r?.error || 'Não foi possível entrar.')
-  }
-
-  // 1) Sem sessão → entrar, criar conta ou usar a conta inicial oferecida.
+  // 1) Sem sessão → entrar ou criar conta.
   if (!isAuthenticated) {
-    const atalhos = contas.filter((c) => c.senhaPadrao)
     return (
       <>
         <Wall
@@ -60,9 +48,6 @@ export default function ProtectedRoute({ children, capability }) {
           description="Entre com a sua conta ou crie uma — toda conta alcança a plataforma por completo."
           list={BENEFITS}
         >
-          {/* Havia só os botões das contas iniciais. Numa instalação que trocou
-            * a senha delas, o muro ficava sem saída nenhuma — nem entrar, nem
-            * criar conta. */}
           <div className="mt-6 flex flex-wrap justify-center gap-2">
             <button onClick={() => setAuth('entrar')} className="btn-primary min-w-[9.5rem] justify-center">
               <LogIn size={15} /> Entrar
@@ -71,25 +56,6 @@ export default function ProtectedRoute({ children, capability }) {
               <UserPlus size={15} /> Criar conta
             </button>
           </div>
-          {atalhos.length > 0 && (
-            <>
-              <div className="mt-3 flex flex-wrap justify-center gap-2">
-                {atalhos.map((c) => (
-                  <button
-                    key={c.username}
-                    onClick={() => entrar(c.role)}
-                    className="inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:underline dark:text-brand-300"
-                  >
-                    Entrar como {ROLE_LABELS[c.role] || c.role} <span className="font-mono">({c.username})</span> <ArrowRight size={14} />
-                  </button>
-                ))}
-              </div>
-              <p className="mt-2 text-center text-xs muted">
-                Contas públicas do projeto, com o acervo real. Para ter nome, senha e chave de IA
-                próprios, crie a sua conta.
-              </p>
-            </>
-          )}
         </Wall>
         <AuthModal open={!!auth} onClose={() => setAuth(null)} abaInicial={auth || 'entrar'} />
       </>

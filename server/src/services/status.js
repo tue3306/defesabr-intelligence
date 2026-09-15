@@ -105,17 +105,6 @@ export function capacidades() {
   const artigos = contar('SELECT COUNT(*) AS n FROM articles')
   const relevantes = contar('SELECT COUNT(*) AS n FROM articles WHERE relevant = 1')
 
-  // ── Estado do assistente por IA ──
-  //
-  // Contado do banco, como todo o resto desta tela: quantas contas trouxeram
-  // chave própria, se a instalação tem a de reserva, e quantas sínteses já
-  // foram geradas. Nenhum destes números é estimado.
-  const contasComChave = get('SELECT COUNT(*) AS n FROM users WHERE ia_api_key IS NOT NULL')?.n ?? 0
-  const instalacaoTemChave = !!process.env.ANTHROPIC_API_KEY
-    || !!get("SELECT valor FROM app_config WHERE chave = 'ia_api_key'")?.valor
-  const iaLigada = contasComChave > 0 || instalacaoTemChave
-  const sinteses = get("SELECT COUNT(*) AS n FROM app_config WHERE chave LIKE 'ia_sintese:%'")?.n ?? 0
-
   return [
     // ── COLETA ──
     capacidadeDeColeta({
@@ -337,6 +326,18 @@ export function capacidades() {
       fonte: 'server/src/routes/system.js',
       metricas: { registros: contar('SELECT COUNT(*) AS n FROM bookmarks') },
     },
+    {
+      id: 'notificacoes',
+      nome: 'Notificações',
+      grupo: 'Entrega',
+      estado: 'operacional',
+      detalhe: `${contar('SELECT COUNT(*) AS n FROM notifications')} aviso(s) nos últimos 30 dias`,
+      descricao: 'Gerados pelo servidor ao fim de cada coleta — matéria relevante de urgência alta ou '
+        + 'crítica e organização brasileira com incidente crítico nas últimas 48 horas; falha inteira '
+        + 'de coletor só para administradores. O estado de leitura é guardado por conta.',
+      fonte: 'server/src/lib/notificacoes.js',
+      metricas: { registros: contar('SELECT COUNT(*) AS n FROM notifications') },
+    },
 
     {
       id: 'contas',
@@ -355,26 +356,6 @@ export function capacidades() {
       metricas: {
         contas: get('SELECT COUNT(*) AS n FROM users')?.n ?? 0,
         papeis: 2,
-      },
-    },
-    {
-      id: 'assistente-ia',
-      nome: 'Assistente por IA',
-      grupo: 'IA',
-      estado: iaLigada ? 'operacional' : 'opcional',
-      detalhe: iaLigada
-        ? `Ligado: ${contasComChave} conta(s) com chave própria${instalacaoTemChave ? ', e a chave da instalação configurada' : ''}.`
-        : 'Desligado até alguém configurar uma chave — em Minha conta → Segurança, onde cada conta guarda a própria e o administrador pode definir a da instalação.',
-      descricao: 'Resumo da semana, perguntas ao acervo, análise assistida de até 15 matérias escolhidas '
-        + 'e o guia da plataforma. Todo texto gerado vem marcado como escrito por máquina, e as citações '
-        + 'são conferidas contra o que foi coletado. A chave fica cifrada no servidor e nunca volta ao '
-        + 'navegador; quem usa paga o próprio consumo.',
-      fonte: 'api.anthropic.com — Messages API',
-      pendente: null,
-      metricas: {
-        contasComChave: contasComChave,
-        chaveDaInstalacao: instalacaoTemChave ? 1 : 0,
-        sintesesGuardadas: sinteses,
       },
     },
   ]

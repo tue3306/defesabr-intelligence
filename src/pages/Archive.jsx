@@ -148,7 +148,7 @@ export default function Archive() {
           { label: 'Na pasta', value: String(favorites.length) },
         ]}
       >
-        <div className="flex gap-2 overflow-x-auto border-b border-gray-200 dark:border-white/10" role="tablist">
+        <div className="flex gap-2 overflow-x-auto overflow-y-hidden border-b border-gray-200 dark:border-white/10" role="tablist">
           <TabBtn active={tab === 'clippings'} onClick={() => setTab('clippings')} icon={Newspaper} label="Clippings arquivados" count={clippings.length} />
           <TabBtn active={tab === 'pasta'} onClick={() => setTab('pasta')} icon={Star} label="Minha Pasta" count={favorites.length} />
         </div>
@@ -391,19 +391,6 @@ export default function Archive() {
                 </button>
               </Can>
             </div>
-            {/* A edição arquivada abria com um `<p>` vazio: `summary_executive`
-              * é sempre nulo nesta versão, e um parágrafo em branco sob o
-              * cabeçalho lê-se como conteúdo que não carregou. A nota do
-              * servidor diz o que é — e a prévia guardada no arquivo (as três
-              * primeiras manchetes) dá ao leitor de que edição se trata. */}
-            {openItem.data.summary_executive ? (
-              <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">{openItem.data.summary_executive}</p>
-            ) : (
-              <p className="rounded-lg border border-dashed border-gray-300 p-3 text-xs leading-relaxed muted dark:border-white/15">
-                {openItem.data.summary_note
-                  || 'Sem síntese por IA: nenhum texto desta edição foi escrito por máquina.'}
-              </p>
-            )}
             {openItem.data.news?.map((n, i) => <NewsCard key={i} news={n} variant="full" />)}
           </div>
         )}

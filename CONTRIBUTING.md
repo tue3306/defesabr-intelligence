@@ -50,7 +50,6 @@ Antes de abrir um PR, garanta que compila e que as suítes passam (com a API no 
 npm run build
 npm run check
 npm run check:auth
-npm run check:ia
 ```
 
 ## Padrões de código
@@ -82,7 +81,8 @@ Exemplo: `docs: adiciona seção de troubleshooting no README`
 
 1. Faça um fork e crie uma branch descritiva: `git checkout -b feat/minha-melhoria`
 2. Faça commits pequenos e semânticos.
-3. Rode `npm run build` e as suítes `check`, `check:auth` e `check:ia`.
+3. Rode `npm run build` e as suítes `check` e `check:auth` (as duas leem
+   `ADMIN_USERNAME` e `ADMIN_PASSWORD` do ambiente).
 4. Atualize a documentação afetada (README, CHANGELOG, etc.).
 5. Abra o PR preenchendo o [template](.github/PULL_REQUEST_TEMPLATE.md) e vinculando a issue.
 

@@ -26,7 +26,7 @@ import {
   Crosshair,
   Layers,
   Link2,
-  Sparkles,
+  Bell,
 } from 'lucide-react'
 import NewsCard from '../components/ui/NewsCard'
 import { SkeletonCard } from '../components/ui/Skeleton'
@@ -45,7 +45,7 @@ import { glossary } from '../data/learnData'
 import { USE_CASES, STANDARDS, FAQ, ROADMAP, LANDING_FEATURES } from '../data/landingExtra'
 import { alertMeta } from '../utils/textUtils'
 
-const FEATURE_ICONS = { Newspaper, Globe2, BarChart3, LineChart, GraduationCap, ShieldCheck, Link2, Sparkles }
+const FEATURE_ICONS = { Newspaper, Globe2, BarChart3, LineChart, GraduationCap, ShieldCheck, Link2, Bell }
 
 const USE_CASE_ICONS = { Radar, Building2, ShieldAlert, Landmark, Factory, GraduationCap }
 
@@ -115,7 +115,7 @@ export default function Landing() {
           </h1>
 
           <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300 sm:text-lg">
-            Um servidor lê fontes oficiais e a imprensa a cada 30 minutos, filtra por uma regra
+            Um servidor lê fontes oficiais e a imprensa a cada 15 minutos, filtra por uma regra
             publicada e cruza o resultado com os vazamentos que grupos de extorsão divulgam sobre
             organizações brasileiras. Você recebe o fato consolidado, com a fonte, o país
             envolvido e quem está por trás.
@@ -131,7 +131,7 @@ export default function Landing() {
             <Prova
               valor={v.fontes}
               rotulo="fontes coletadas"
-              detalhe={v.fontesOk != null ? `${v.fontesOk} responderam na última coleta` : 'a cada 30 minutos'}
+              detalhe={v.fontesOk != null ? `${v.fontesOk} responderam na última coleta` : 'a cada 15 minutos'}
             />
             <Prova
               valor={v.artigos}
@@ -223,7 +223,7 @@ export default function Landing() {
                      que é o mesmo evento e mostra quantos veículos o cobriram — corroboração é
                      informação; três manchetes parecidas são ruído."
               numero={v.fontes}
-              unidade="fontes lidas a cada 30 min"
+              unidade="fontes lidas a cada 15 min"
               para="/clipping"
             />
           </div>
@@ -320,7 +320,7 @@ export default function Landing() {
         * vitrine não informa ninguém que precisasse da informação.
         *
         * A entrada continua a um clique: as chamadas do topo levam a telas que
-        * exigem sessão, e a tela de bloqueio oferece a conta inicial.
+        * exigem sessão, e a tela de bloqueio oferece entrar ou criar conta.
         * ───────────────────────────────────────────────────────────────── */}
 
       {/* PRÉVIA DO PRODUTO — números lidos dos módulos, não promessas */}
@@ -551,9 +551,8 @@ export default function Landing() {
         <div className="on-dark flex flex-col items-center gap-4 bg-gradient-to-br from-brand-900/40 via-military-card to-military-darker p-8 text-center sm:p-10">
           <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Pronto para começar?</h2>
           <p className="max-w-xl text-gray-300">
-            Projeto de código aberto. Entre com <code className="font-mono text-gold-400">usuario123</code>{' '}
-            ou <code className="font-mono text-gold-400">admin123</code> — a senha é igual ao usuário —, crie a
-            sua conta ou suba a sua própria instância.
+            Projeto de código aberto. Crie a sua conta com usuário e senha e comece pelo painel,
+            ou suba a sua própria instância.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Link to="/correlacoes" className="btn-primary"><Link2 size={16} /> Ver as correlações</Link>

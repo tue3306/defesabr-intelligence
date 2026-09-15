@@ -10,195 +10,97 @@ mostra o estado real de cada capacidade, contado do banco.
 
 ---
 
-## 1. Síntese por IA — **feita**
-
-**Estado:** implementada, e sob as condições que esta seção fixou quando o
-recurso ainda não existia. Ficam registradas porque foram elas que definiram o
-desenho:
-
-> a chave viverá apenas no servidor e o front chamará um endpoint próprio, que
-> autentica quem pede — e nenhum texto de máquina sai sem estar marcado.
-
-### O que existe
-
-| Peça | Arquivo |
-|---|---|
-| Resolução da chave (ambiente → banco) | `server/src/lib/chaveIa.js` |
-| Chamada ao modelo | `server/src/services/ia.js` |
-| Rotas | `server/src/routes/ia.js` |
-| Cache da síntese | `server/src/lib/sinteseCache.js` |
-| Estado no navegador | `src/hooks/useIa.js`, `src/services/ia.js` |
-| Configuração (admin) | `src/pages/Settings.jsx` → *Síntese por IA* |
-| Síntese na tela | `src/pages/DailyClipping.jsx` → `SinteseDoPeriodo` |
-| Perguntas ao acervo | `src/components/clipping/PerguntarAoAcervo.jsx` |
-
-| Rota | Guarda | O que faz |
-|---|---|---|
-| `GET /ia/estado` | `user` | Se há modelo, qual, de onde veio a chave. **Nunca devolve a chave** |
-| `PUT /ia/minha-chave` | `user` | Grava a chave **da própria conta**, cifrada |
-| `DELETE /ia/minha-chave` | `user` | Remove a chave da conta |
-| `PUT /ia/meu-modelo` | `user` | Modelo da conta |
-| `PUT /ia/chave` | `admin` | Grava a chave de reserva da instalação |
-| `DELETE /ia/chave` | `admin` | Remove a de reserva |
-| `PUT /ia/modelo` | `admin` | Modelo padrão da instalação |
-| `POST /ia/sintese` | `user` | Resumo do período, guardado por conta e dia |
-| `POST /ia/perguntar` | `user` | Pergunta livre sobre o acervo |
-| `POST /ia/correlacao/:id` | `user` | O que uma ligação significa, guardado na linha |
-| `GET /ia/candidatas` | `user` | As matérias que se pode escolher para a análise assistida |
-| `POST /ia/analise` | `user` | Contexto e impacto de até 15 matérias escolhidas, **com a citação conferida** |
-| `POST /ia/semanal` | `user` | O relatório da semana em quatro blocos fixos |
-| `GET /ia/guia` | `user` | O guia da plataforma — **funciona sem chave nenhuma** |
-| `POST /ia/guia` | `user` | Pergunta livre sobre como usar, respondida só a partir do guia |
-
-### As quatro decisões que valem explicação
-
-**A chave é de cada conta, e nunca chega ao navegador.** Houve um campo que a
-guardava em `localStorage` — lido por qualquer extensão — e chamava o provedor
-direto do front. Agora ela é gravada cifrada (AES-256-GCM) no servidor, por
-conta, e `GET /ia/estado` devolve apenas se existe, de onde veio e os quatro
-últimos caracteres.
-
-**O ambiente tem precedência sobre o banco.** `ANTHROPIC_API_KEY` é o caminho de
-produção e a chave não toca o disco da aplicação. Com ela definida, a tela
-mostra o campo desabilitado explicando o motivo, em vez de aceitar um valor que
-o servidor ignoraria — configuração que a tela mostra e o servidor descarta é o
-pior tipo de divergência, porque é silenciosa.
-
-**A síntese é sob demanda e fica guardada.** Preenchê-la dentro de
-`/news/clipping` poria uma chamada paga de alguns segundos em toda abertura da
-tela. Ela é gerada quando alguém pede e guardada por período e dia; a partir daí
-`/news/clipping` a devolve de graça, e o contrato antigo — "o dia em que
-`summaryExecutive` vier preenchido, a tela o exibe sem mudança nenhuma" — vale
-sem que a tela gaste.
-
-**O contexto é montado pelo servidor.** Quem pergunta escolhe a pergunta, não o
-material. Se o front pudesse mandar o contexto, daria para pedir ao modelo que
-comentasse um texto qualquer e a resposta sairia com a mesma aparência de uma
-apurada no acervo.
-
-### A visita guiada, e por que o guia vem antes do modelo
-
-`server/src/lib/guia.js` descreve a plataforma — as telas, os três níveis, os
-conceitos e, principalmente, **o que ela não faz**. É a fonte única, com dois
-consumidores.
-
-A tentação era fazer o assistente só com modelo: um chat que explica a
-plataforma. Não funciona, e o motivo é prático antes de ser de princípio — quem
-precisa de uma visita guiada é quem acabou de chegar, e quem acabou de chegar é
-exatamente quem **ainda não configurou chave nenhuma**. Um assistente que só
-respondesse com IA estaria quebrado para a única pessoa que existe para atender.
-
-Então há dois estados, e os dois servem:
-
-| | |
-|---|---|
-| **Sem chave** | Os tópicos do guia, navegáveis — por onde começar, as telas por nível, os conceitos, os limites |
-| **Com chave** | Os mesmos tópicos, mais pergunta livre. O modelo responde **somente** a partir do guia |
-
-A seção `NAO_FAZ` é a mais importante do arquivo. Sem ela, uma pergunta sobre
-exportar para Excel receberia um caminho inventado — e quem acabou de chegar não
-teria como perceber, porque ainda não conhece a tela. Com ela, recebe "isso não
-existe, e aqui está o que existe no lugar".
-
-O assistente aparece **só para conta de usuário**: quem administra a instalação
-a subiu e leu o README, e uma bolha de ajuda permanente sobre essa pessoa é
-ruído sobre quem menos precisa dela.
-
-### A conferência contra alucinação
-
-A análise assistida faz uma promessa forte — nenhuma entidade brasileira que o
-modelo nomeie aparece na tela sem existir na matéria correspondente — e uma
-promessa dessas não vale nada sem teste.
-
-`conferirCitacoes()` é pura e exportada de propósito. `server/scripts/check-ia.js`
-a exercita com respostas forjadas: entidade inventada, entidade real mas de
-outra matéria, índice de item inexistente, resposta sem lista, campo ausente.
-Não chama a API do modelo, então roda sem chave, sem rede e sem custo — e por
-isso está no CI.
-
-O que não passa é removido **e contado**. A tela mostra o número: zero é o
-esperado, e qualquer outro valor é o aviso de que aquele texto merece leitura
-mais atenta. Uma alucinação silenciosa vira visível.
-
-### E a regra que não mudou
-
-Todo texto de máquina vem marcado. As respostas carregam `origem: 'modelo'` e o
-nome do modelo; a tela exibe o selo **"Escrito por máquina"** antes do texto — e
-não depois, porque um aviso embaixo do parágrafo chega tarde para quem já leu.
-
-A declaração do cabeçalho do Clipping deixou de ser permanente e passou a
-refletir a edição: sem síntese, afirma a ausência; com síntese, diz o que foi
-escrito por máquina e o que continua sendo da coleta.
-
-O prompt do sistema declara que as matérias são **dado, não instrução** — o
-acervo vem de feeds públicos, e qualquer pessoa pode publicar uma notícia com
-ordens escritas para um modelo. O modelo não tem ferramenta nenhuma à
-disposição: a saída é texto exibido, e nada nela dispara ação na plataforma.
-
----
-
-## 2. Entrar com conta Google
+## 1. Ciclo de vida da conta — **parcial**
 
 **Estado:** a autenticação **funciona e é verificada no servidor**. Senha em
 scrypt com sal por conta, comparação em tempo constante, token HMAC-SHA256 com
 validade, papel e situação lidos do banco a cada requisição (suspensão e troca
 de papel valem na hora), `exigirPapel()` por rota devolvendo 401 sem sessão e
-403 com papel insuficiente. `npm run check:auth` percorre cada identidade contra cada
-rota protegida — inclusive as que MUDAM estado, que era a metade que faltava.
+403 com papel insuficiente. `npm run check:auth` percorre cada identidade contra
+cada rota protegida — inclusive as que MUDAM estado.
 
-O projeto é aberto e nasce com **duas contas**: `admin123` e `usuario123`,
-ambas com senha igual ao nome de usuário e ambas trocáveis por variável de
-ambiente. Não são contas de demonstração: não existe modo demonstração aqui.
+O cadastro pede **usuário e senha**, e nada mais: sem e-mail a informar, sem
+confirmação a esperar. A conta de administrador da instalação vem de
+`ADMIN_USERNAME` / `ADMIN_PASSWORD` na primeira subida, e a senha é trocada
+depois pela própria plataforma.
 
-### O que já está pronto para receber o Google
+### O que falta
 
-A estrutura foi construída para que OAuth encaixe **sem remodelar nada**:
+| Peça | Estado | Onde encaixa |
+|---|---|---|
+| Recuperação de senha | **não existe** | depende de envio de e-mail; entra como `POST /auth/recuperar` + token de uso único em tabela nova |
+| Confirmação de e-mail | **não existe** | `users.email` já existe (hoje derivado); `email_verified_at` entra pela migração incremental de colunas |
+| Segundo fator | **não existe** | não há dependência criada contra ele |
+
+Hoje, quem esquece a senha pede a um administrador que remova a conta e se
+cadastra de novo. É pouco, e está declarado na tela e no guia em vez de
+disfarçado.
+
+---
+
+## 2. Entrada por provedor externo
+
+**Estado:** não implementada. A estrutura foi construída para receber sem
+remodelar nada.
 
 | Peça | Onde | Estado |
 |---|---|---|
 | Identificador local | `users.username` | pronto — é o que se digita hoje |
-| Endereço de e-mail | `users.email` | pronto — hoje derivado, amanhã vindo do provedor |
-| Origem da identidade | `users.auth_provider` | pronto — `'local'`, futuramente `'google'` |
+| Endereço de e-mail | `users.email` | pronto — hoje derivado (`@defesabr.invalid`), amanhã vindo do provedor |
+| Origem da identidade | `users.auth_provider` | pronto — `'local'`, futuramente o provedor |
 | Login por identificador | `POST /auth/login` | pronto — aceita usuário **ou** e-mail no mesmo campo |
-| Recusa de senha em conta externa | `routes/auth.js` | pronto — conta não-`local` já responde `PROVEDOR_EXTERNO` |
-| Provedores disponíveis | `GET /auth/contas` → `provedoresExternos` | devolve `[]`; a tela já sabe ler |
-
-O formulário de entrada **não muda** quando o provedor chegar: ele já pede
-"usuário ou e-mail".
+| Recusa de senha em conta externa | `routes/auth.js` | pronto — conta não-`local` responde `PROVEDOR_EXTERNO` |
 
 ### O que fazer
 
-1. `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` em `server/src/config.js`, no
-   mesmo padrão dos agregadores: **sem as variáveis, o recurso não roda e não
-   aparece como falha.** Não configurado não é quebrado.
-2. `POST /auth/google` recebendo o *id token*, validando a assinatura contra as
-   chaves públicas do Google e conferindo `aud` e `iss`.
+1. Variáveis do provedor em `server/src/config.js`, no mesmo padrão dos
+   agregadores: **sem as variáveis, o recurso não roda e não aparece como
+   falha.** Não configurado não é quebrado.
+2. Rota que recebe o *id token*, valida a assinatura contra as chaves públicas
+   do provedor e confere `aud` e `iss`.
 3. Conta encontrada pelo `email` → emite o mesmo token de sessão que o login
-   local emite. Conta nova → cria com papel `user` e `auth_provider = 'google'`.
-4. Preencher `provedoresExternos` em `/auth/contas`, e a tela de entrada passa
-   a mostrar o botão sozinha.
+   local emite. Conta nova → cria com papel `user` e `auth_provider` do
+   provedor.
 
 ### O que não fazer
 
-Não deixar o papel vir do provedor. O Google diz **quem** é a pessoa; **o que
-ela alcança** é decisão desta plataforma, e continua vindo do token que ela
-assina. Confundir autenticação com autorização é como se entrega o
-administrador para quem controla o e-mail.
+Não deixar o papel vir do provedor. Ele diz **quem** é a pessoa; **o que ela
+alcança** é decisão desta plataforma, e continua vindo do token que ela assina.
+Confundir autenticação com autorização é como se entrega o administrador para
+quem controla o e-mail.
 
 Não remover a senha local. Um projeto aberto precisa continuar subindo num
 clone sem credencial de OAuth nenhuma.
 
-### O que continua faltando
+---
 
-| Peça | Estado |
+## 3. Notificações — **feitas**, e o que elas ainda podem receber
+
+**Estado:** geradas pelo servidor ao fim de cada coleta, com estado de leitura
+por conta. Ver `server/src/lib/notificacoes.js`.
+
+| Peça | Arquivo |
 |---|---|
-| Recuperação de senha | **não existe** — depende de envio de e-mail |
-| Confirmação de e-mail | **não existe** — `email_verified_at` entra pela migração incremental |
-| Promoção de papel pela interface | **não existe** — é ato de governança, cabe no Console |
+| Geração e consulta | `server/src/lib/notificacoes.js` |
+| Rotas | `server/src/routes/notificacoes.js` |
+| Estado no navegador | `src/store/notificationStore.js` |
+| Consulta periódica e aviso na tela | `src/hooks/useLiveNotifications.js` |
+| Central | `src/pages/Notifications.jsx` |
+
+O desenho separa **evento** (`notifications`, uma linha por fato, com
+`ref_key` único) de **estado por conta** (`notification_state`). É o que permite
+acrescentar um canal novo sem tocar na geração:
+
+1. **E-mail ou push** — lê a mesma tabela de eventos e marca o que já enviou.
+   Depende de serviço de envio, como a recuperação de senha.
+2. **Regra por conta** — "só CRÍTICO", "só incidentes". O campo `audience` já
+   separa por papel; uma preferência por conta entra ao lado dele.
+3. **Agrupamento** — três matérias do mesmo evento consolidado poderiam virar um
+   aviso só, reaproveitando o agrupador do clipping.
 
 ---
 
-## 3. Correlação: o que a base determinística ainda pode receber
+## 4. Correlação: o que a base determinística ainda pode receber
 
 **Estado:** funcionando. Sete regras, catálogo de entidades brasileiras,
 evidência literal em cada ligação e o método publicado em
@@ -220,26 +122,23 @@ O que faz sentido acrescentar, em ordem de valor:
    vítimas nunca se cruzam. Um PL sobre proteção de dados e um vazamento em
    órgão público são o mesmo assunto; o vínculo seria por setor e por data.
 
-### Onde a IA entra — e onde não entra
-
-Quando houver modelo de linguagem, ele entra **propondo candidatos** que estas
-regras confirmam: sugerir que um trecho menciona uma organização ainda fora do
-catálogo, para revisão. Nunca **criando a ligação** — uma correlação apoiada em
-"o modelo achou" não é auditável, e a plataforma inteira se sustenta em cada
-afirmação poder ser conferida.
+Toda regra nova segue a mesma exigência das sete atuais: **correspondência
+literal, com a evidência à vista**. Uma ligação que o leitor não pode conferir é
+indistinguível de uma inventada.
 
 ---
 
-## 4. Itens menores, já mapeados
+## 5. Itens menores, já mapeados
 
 **Persistência no Railway.** O disco é efêmero: sem volume, o acervo é
-recoletado a cada deploy (~8 s). Para persistir, montar volume e apontar
-`DB_PATH=/data/defesabr.db`. A migração incremental de colunas existe
-justamente para esse cenário — sem ela, o primeiro deploy depois de um volume
-quebraria com "no such column".
+recoletado a cada deploy (~8 s) e as contas criadas pelo cadastro somem. Para
+persistir, montar volume e apontar `DB_PATH=/data/defesabr.db`. A migração
+incremental de colunas existe justamente para esse cenário — sem ela, o primeiro
+deploy depois de um volume quebraria com "no such column".
 
 **`AUTH_SECRET` em produção.** Sem ela o servidor gera um segredo por boot e
-toda sessão cai no reinício. O log avisa em amarelo quando está nesse estado.
+toda sessão cai no reinício. O log avisa em amarelo quando está nesse estado, e
+o painel do administrador mostra o alerta.
 
 **Três fontes bloqueadas por IP de datacenter.** Os dois feeds do Google
 Notícias e o Defesa Aérea & Naval respondem de uma máquina doméstica e recusam
@@ -247,7 +146,7 @@ o Railway. Está documentado em `server/src/collectors/rss.js`. Contornar
 exigiria disfarçar a origem da requisição, o que é evasão de detecção e não
 coleta.
 
-**Recuperação de senha.** A troca de senha existe (Minha conta → Segurança,
-pedindo a atual) e derruba as outras sessões; a recuperação de quem esqueceu
-depende de envio de e-mail, que a instalação não tem. Hoje o caminho é o
-administrador remover a conta para a pessoa se cadastrar de novo.
+**Cadência da coleta.** O ciclo roda a cada 15 minutos e cada coletor tem um
+espaçamento mínimo próprio (`CADENCIA_MINUTOS` em
+`server/src/collectors/index.js`). Fonte nova entra com a cadência da própria
+publicação — diária, mensal — em vez de herdar a das notícias.

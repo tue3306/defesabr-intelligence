@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { KeyRound, Bell, Palette, Star, Sun, Moon, ShieldCheck, ArrowRight } from 'lucide-react'
+import { Bell, Palette, Star, Sun, Moon, ShieldCheck, ArrowRight } from 'lucide-react'
 import { useSettingsStore } from '../store/settingsStore'
 import { useCan } from '../auth/useCan'
 import { useTheme } from '../hooks/useTheme'
@@ -15,7 +15,7 @@ import { categoryColor } from '../utils/textUtils'
 // ferramentas de produção" explicando o papel Analista, que nenhuma conta
 // tinha; e três painéis de administração que repetiam o Console de Governança.
 //
-// Ficou o que muda alguma coisa. Conta, senha e chave de IA ficam em Minha conta.
+// Ficou o que muda alguma coisa. Nome e senha ficam em Minha conta.
 // -----------------------------------------------------------------------------
 
 function Section({ icon: Icon, title, desc, children }) {
@@ -39,7 +39,7 @@ export default function Settings() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Configurações</h1>
         <p className="text-sm muted">
-          Preferências guardadas neste navegador. Nome, senha e chave de IA ficam em{' '}
+          Preferências guardadas neste navegador. Nome e senha ficam em{' '}
           <Link to="/conta" className="font-semibold text-brand-600 hover:underline dark:text-brand-300">Minha conta</Link>.
         </p>
       </div>
@@ -47,16 +47,6 @@ export default function Settings() {
       <AppearanceSection />
       <InterestAreasSection />
       <NotificationsSection />
-
-      <Section icon={KeyRound} title="Assistente por IA">
-        <p className="text-sm muted">
-          A chave do modelo é credencial e fica em{' '}
-          <Link to="/conta" className="font-semibold text-brand-600 hover:underline dark:text-brand-300">
-            Minha conta → Segurança
-          </Link>
-          {isAdmin ? ', onde também se define a chave da instalação.' : '.'}
-        </p>
-      </Section>
 
       {isAdmin && (
         <Section icon={ShieldCheck} title="Administração da instalação">

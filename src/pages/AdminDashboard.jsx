@@ -2,8 +2,8 @@ import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
-  ShieldCheck, Users, Database, Activity, ScrollText, Sparkles, AlertTriangle,
-  HeartPulse, Server, ChevronRight, KeyRound,
+  ShieldCheck, Users, Database, Activity, ScrollText, Bell, AlertTriangle,
+  HeartPulse, Server, ChevronRight,
 } from 'lucide-react'
 import MetricCard from '../components/ui/MetricCard'
 import Badge from '../components/ui/Badge'
@@ -30,9 +30,7 @@ const Section = ({ children, className = '' }) => (
 //
 // Tudo aqui vem do servidor. Este painel já exibiu "Perfis de acesso: 4 —
 // visitante, usuário, analista, admin", "Contas por plano: Institucional 2" e
-// uma lista de integrações escrita à mão com SSO corporativo "planejado" e o
-// modelo de linguagem "não conectado" — ao lado do assistente por IA que
-// funcionava.
+// uma lista de integrações escrita à mão com SSO corporativo "planejado".
 // -----------------------------------------------------------------------------
 export default function AdminDashboard() {
   const [apiViva, setApiViva] = useState(false)
@@ -57,7 +55,7 @@ export default function AdminDashboard() {
   const agendador = saude.data?.scheduler
   const operacionais = saude.data?.operational ?? 0
   const avaliaveis = (saude.data?.total ?? 0) - (saude.data?.optional ?? 0)
-  const ia = servicos.find((s) => s.id === 'assistente-ia')
+  const notificacoes = servicos.find((s) => s.id === 'notificacoes')
 
   const execucoes24h = useMemo(() => {
     const corte = Date.now() - 24 * 3600_000
@@ -149,11 +147,6 @@ export default function AdminDashboard() {
               <div className="min-w-0">
                 <p className="text-sm font-bold">{a.titulo}</p>
                 <p className="mt-0.5 text-xs leading-relaxed muted">{a.detalhe}</p>
-                {a.id === 'senha-padrao-admin' && (
-                  <Link to="/conta" className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:underline dark:text-brand-300">
-                    <KeyRound size={12} /> Trocar a senha agora
-                  </Link>
-                )}
               </div>
             </div>
           ))}
@@ -184,10 +177,10 @@ export default function AdminDashboard() {
             accent="brand"
           />
           <MetricCard
-            icon={Sparkles}
-            label="Assistente por IA"
-            value={ia ? (ia.status === 'operational' ? 'Ligado' : 'Desligado') : '—'}
-            hint={ia?.metrics ? `${ia.metrics.contasComChave ?? 0} conta(s) com chave própria` : ''}
+            icon={Bell}
+            label="Notificações geradas"
+            value={notificacoes?.metrics?.registros != null ? String(notificacoes.metrics.registros) : '—'}
+            hint={agendador?.intervaloMinutos ? `nos últimos 30 dias · coleta a cada ${agendador.intervaloMinutos} min` : 'nos últimos 30 dias'}
             accent="green"
           />
         </div>

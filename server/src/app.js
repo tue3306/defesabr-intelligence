@@ -8,7 +8,8 @@ import dados from './routes/data.js'
 import sistema from './routes/system.js'
 import autenticacao from './routes/auth.js'
 import inteligencia from './routes/intel.js'
-import assistente from './routes/ia.js'
+import guia from './routes/guia.js'
+import notificacoes from './routes/notificacoes.js'
 import { lerConta } from './lib/auth.js'
 
 // -----------------------------------------------------------------------------
@@ -105,7 +106,8 @@ export function criarApp() {
   app.use('/api', noticias)
   app.use('/api', dados)
   app.use('/api', inteligencia)
-  app.use('/api', assistente)
+  app.use('/api', guia)
+  app.use('/api', notificacoes)
   app.use('/api', sistema)
 
   // ── Front compilado ──

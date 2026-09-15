@@ -7,6 +7,55 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Não publicado]
 
+### Versão de demonstração: sem IA, com contas de verdade
+
+**Removido**
+
+- **Todo o assistente por IA** — rotas `/api/ia/*`, chamada ao provedor, chave
+  por conta e da instalação, resumo do período, resumão da semana, perguntas ao
+  acervo, análise assistida e leitura de correlação. Saíram a tela, a API, o
+  cache, as colunas `users.ia_api_key`, `users.ia_modelo` e
+  `correlations.leitura_ia` (removidas na migração), a suíte `check:ia` e as
+  variáveis `ANTHROPIC_*`. A plataforma não depende de nenhum serviço de IA.
+- **As contas públicas `admin123` e `usuario123`.** Eram semeadas com a senha
+  igual ao nome de usuário e oferecidas com um clique na tela de entrada. Ao
+  subir, o servidor remove as duas — ou renomeia a de administrador para o
+  `ADMIN_USERNAME` configurado, preservando a trilha de auditoria.
+- Senha temporária gerada pelo administrador, "encerrar as outras sessões" e a
+  rota `GET /auth/contas`.
+- O e-mail do cadastro: criar conta pede **usuário e senha**, e nada mais.
+
+**Adicionado**
+
+- **Conta de administrador por variável de ambiente** (`ADMIN_USERNAME`,
+  `ADMIN_PASSWORD`), criada na primeira subida. A senha é trocada depois pela
+  própria plataforma, e a variável não a sobrescreve. Nenhuma credencial no
+  repositório.
+- **Notificações no servidor** (`notifications` + `notification_state`): a
+  coleta grava os avisos — matéria de urgência alta ou crítica, organização
+  brasileira com incidente crítico, e falha de coletor só para administradores —
+  e cada conta guarda o próprio estado de leitura, que vale em qualquer
+  navegador. Rotas `/api/notifications*`.
+- **Guia da plataforma** em `GET /api/guia`, servido pelo botão de ajuda.
+
+**Corrigido**
+
+- **As notificações não chegavam.** O navegador consultava o acervo a cada cinco
+  minutos e só avisava o que aparecesse DEPOIS da primeira consulta; recarregar
+  a página zerava a memória, e o que chegava morava no `localStorage` — sair da
+  conta apagava e outro navegador não via nada.
+- **Coleta a cada 15 minutos** (era 30), com o ciclo encadeado: o próximo é
+  agendado quando o anterior termina, então dois nunca se sobrepõem e a
+  "próxima coleta" na tela passa a ser a de verdade. Cada coletor ganhou
+  cadência mínima própria — Câmara e Banco Central a cada hora, Comex a cada
+  12 h, World Bank a cada 24 h —, para o ciclo curto não multiplicar chamadas a
+  serviços que não têm nada novo.
+- Barra de rolagem minúscula ao lado das abas de Minha conta, Arquivo e Séries.
+- README, ROADMAP, SECURITY, ARQUITETURA e a landing descreviam recursos que
+  não existem mais.
+
+---
+
 Auditoria de consistência entre o que a interface promete e o que existe.
 
 ### Adicionado
@@ -16,16 +65,13 @@ Auditoria de consistência entre o que a interface promete e o que existe.
   conta e último administrador no servidor. Papel e situação são lidos do banco
   a cada requisição — a mudança vale na hora.
 - **Trilha de auditoria** de atos de governança (`audit_log`, `GET /api/system/audit`).
-- **Minha conta de verdade**: troca de nome, troca de senha com a atual e
-  encerramento das outras sessões; a senha trocada invalida os tokens antigos.
-- **Alertas de segurança** no painel do administrador: senha padrão em uso e
-  `AUTH_SECRET` ausente.
+- **Minha conta de verdade**: troca de nome e troca de senha com a atual; a
+  senha trocada invalida os tokens antigos.
+- **Alerta de segurança** no painel do administrador quando `AUTH_SECRET` está
+  ausente.
 - Interface desconecta ao receber 401 e avisa a pessoa.
 - Áreas de interesse passam a ordenar as notícias do painel e a filtrar o clipping.
 - Seção "Dados e privacidade" em Sobre.
-- **Senha temporária** gerada pelo administrador para quem esqueceu a própria.
-- Atalho de entrada das duas contas iniciais (usuário e administrador), exibido só
-  enquanto a senha padrão — conferida no hash — estiver em uso.
 - **Regra de domínio das proposições** (`server/src/lib/proposicoes.js`): o Radar
   Legislativo só mostra a proposição cuja ementa tem termo de defesa, e cada
   cartão diz qual. `?todas=true` mostra as de fora, marcadas.
@@ -36,7 +82,6 @@ Auditoria de consistência entre o que a interface promete e o que existe.
 
 - Console de governança: suspender, remover, trocar papel/plano, convidar conta e
   pausar/remover fonte alteravam só a memória do navegador e anunciavam sucesso.
-- Campo da chave de IA da instalação escrevia no mesmo estado do campo pessoal.
 - Painel do usuário exibia "ATENÇÃO 42/100" fixo antes de abrir o clipping.
 - Página Sobre repetia as seções de ciclo e arquitetura dentro de cada cartão.
 - `GET /clipping/latest` ignorava o período pedido (índice "7 dias" era de 30).

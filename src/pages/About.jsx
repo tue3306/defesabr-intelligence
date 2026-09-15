@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import {
   Shield, Cpu, Database, AlertTriangle, Github, Send, Star, GitFork, ExternalLink, Code2,
-  Compass, Radar, Cog, Share2, Layers, PlugZap, Sparkles, Lock,
+  Compass, Radar, Cog, Share2, Layers, PlugZap, Bell, Lock,
 } from 'lucide-react'
 import { APP_VERSION } from '../services/config'
 
@@ -18,12 +18,10 @@ const APIS = [
   { name: 'Comex Stat (MDIC)', use: 'Exportações da indústria de defesa por NCM', custo: 'Gratuita' },
   { name: 'World Bank Open Data', use: 'Gasto militar e PIB, série histórica', custo: 'Gratuita' },
   { name: 'ransomware.live', use: 'Organizações brasileiras divulgadas por grupos de extorsão, e os grupos', custo: 'Chave gratuita' },
-  { name: 'Anthropic (opcional)', use: 'Assistente por IA, com a chave de cada conta', custo: 'Pago por quem usa' },
 ]
 
 // O ciclo clássico tem cinco etapas. A plataforma cobre três — DIREÇÃO e ANÁLISE
-// dependem de julgamento humano. O que o modelo de IA escreve a pedido é apoio
-// à leitura, marcado como tal, e não ocupa o lugar da análise.
+// dependem de julgamento humano.
 const INTEL_CYCLE = [
   { title: 'Coleta', icon: Radar, module: 'Grupos contra o Brasil', to: '/atores',
     text: 'Reunir material de fontes públicas — imprensa, órgãos oficiais, dados abertos e sites de extorsão.' },
@@ -44,7 +42,7 @@ const ARCHITECTURE_NOTES = [
   },
   {
     title: 'O que não existe',
-    text: 'Recuperação de senha por e-mail, verificação em duas etapas e entrada com conta Google.',
+    text: 'Recuperação de senha por e-mail, verificação em duas etapas e entrada por provedor externo.',
   },
 ]
 
@@ -52,11 +50,10 @@ const ARCHITECTURE_NOTES = [
 // Privacidade" do rodapé apontavam para esta página, que não tinha nenhum dos
 // dois. Em vez de um texto jurídico genérico, a lista do que de fato é gravado.
 const DADOS_GUARDADOS = [
-  ['Conta', 'Nome, nome de usuário, e-mail, papel, situação e a senha como hash scrypt com sal — nunca a senha em texto.'],
+  ['Conta', 'Nome de exibição, nome de usuário, papel, situação e a senha como hash scrypt com sal — nunca a senha em texto.'],
   ['Pasta', 'As matérias que você salva, ligadas à sua conta.'],
-  ['Chave de IA', 'Se você cadastrar, cifrada com AES-256-GCM. Nenhuma rota a devolve.'],
-  ['Textos gerados por IA', 'O resumo do período e o da semana de cada conta, e a leitura de cada correlação — guardados para não gerar de novo a mesma leitura.'],
-  ['Auditoria', 'Atos de administração — papel, suspensão, remoção de conta, fontes, chave da instalação — com o nome de quem os fez.'],
+  ['Notificações', 'Quais avisos você leu ou removeu, ligados à sua conta.'],
+  ['Auditoria', 'Atos de administração — papel, suspensão, remoção de conta, fontes, coleta manual — com o nome de quem os fez.'],
   ['Neste navegador', 'A sessão, o tema, as áreas de interesse e o progresso das trilhas, no armazenamento local.'],
 ]
 
@@ -75,7 +72,7 @@ export default function About() {
         </div>
         <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
           O DefesaBR Intelligence coleta, filtra e organiza informação pública sobre Segurança e
-          Defesa do Brasil. Um servidor lê 50 fontes RSS e as APIs listadas abaixo a cada 30 minutos,
+          Defesa do Brasil. Um servidor lê 50 fontes RSS a cada 15 minutos e as APIs listadas abaixo,
           aplica um filtro de relevância auditável, correlaciona as matérias com incidentes contra
           organizações brasileiras e guarda tudo com a procedência de cada item. Nada nas telas é
           dado de exemplo.
@@ -91,12 +88,12 @@ export default function About() {
             correlações seguem sete regras determinísticas, cada uma com a evidência literal à vista.
           </p>
         </Card>
-        <Card icon={Sparkles} title="Onde entra a IA">
+        <Card icon={Bell} title="Notificações">
           <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
-            Só quando alguém pede, com a própria chave: resumo da semana, perguntas ao acervo, análise
-            de até 15 matérias escolhidas e perguntas ao guia. O modelo recebe apenas o que foi
-            coletado, todo texto gerado aparece marcado como escrito por máquina e as citações são
-            conferidas contra as matérias. Filtro, urgência e correlações <strong>não</strong> usam IA.
+            A cada coleta, o servidor grava um aviso para cada matéria relevante de urgência alta ou
+            crítica e para cada organização brasileira com incidente crítico nas últimas 48 horas. Cada
+            conta guarda o próprio estado de leitura, e o administrador recebe também os avisos de
+            falha de coleta.
           </p>
         </Card>
       </div>

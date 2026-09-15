@@ -177,8 +177,8 @@ export const learnConcepts = [
   },
   {
     icon: 'Cpu',
-    title: 'O papel da IA aqui',
-    text: 'O filtro de relevância, a urgência e as correlações são regras declaradas, não IA. O modelo de linguagem só entra quando você pede, com a sua chave: resume a semana, responde perguntas sobre o acervo e analisa matérias que você escolhe. Todo texto gerado vem marcado como escrito por máquina.',
+    title: 'Como a plataforma decide',
+    text: 'O filtro de relevância, a urgência e as correlações são regras escritas e declaradas: cada matéria guarda os termos que a aprovaram, e cada correlação mostra a evidência literal que a sustenta.',
   },
 ]
 

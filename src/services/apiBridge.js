@@ -210,17 +210,6 @@ export const PONTES = new Map([
         : new Date().toLocaleDateString('pt-BR'),
       generatedAt: d.generatedAt,
       source: 'live',
-      // `summary_executive` fica NULO quando não há analista nem modelo de
-      // linguagem. A tela mostra a nota no lugar — que é a diferença entre
-      // "ainda não gerado" e "esta versão não gera isto".
-      summary_executive: d.summaryExecutive,
-      // A MARCA VIAJA COM O TEXTO. `summaryOrigem: 'modelo'` é o que permite à
-      // tela dizer que aquele parágrafo foi escrito por máquina — sem ele, a
-      // síntese apareceria com a mesma aparência da apuração da plataforma.
-      summary_origem: d.summaryOrigem,
-      summary_modelo: d.summaryModelo,
-      summary_gerado_em: d.summaryGeradoEm,
-      summary_note: d.summaryNote,
       // ─────────────────────────────────────────────────────────────────
       // AUSÊNCIA DE OCORRÊNCIA NÃO É CALMA
       //
@@ -329,7 +318,7 @@ export const PONTES = new Map([
   // coletor, com início, duração, quantos itens trouxe e o erro quando falhou.
   // É menos variado que a ficção que substitui, e é auditável.
   // Agora também os atos de governança — papel e situação de conta, remoção,
-  // fonte pausada, chave de IA da instalação, coleta manual —, com o nome de
+  // fonte pausada, coleta manual —, com o nome de
   // quem agiu. `kind` separa os dois tipos.
   ['GET /admin/audit', {
     caminho: '/system/audit',
@@ -591,7 +580,7 @@ function paraFonte(s) {
     enabled: s.enabled,
     status,
     collecting: !!s.enabled,
-    cadence: 'A cada 30 min',
+    cadence: 'A cada 15 min',
 
     // `reliability` no acervo local era um juízo editorial de 0 a 100 sobre a
     // qualidade da fonte. Aqui é DISPONIBILIDADE: quantas vezes ela respondeu

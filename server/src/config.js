@@ -135,11 +135,31 @@ export const config = {
     segredoFixado: (process.env.AUTH_SECRET || '').length >= 16,
     segredoFraco: Boolean(process.env.AUTH_SECRET) && process.env.AUTH_SECRET.length < 16,
     duracaoHoras: num(process.env.AUTH_TTL_HOURS, 12),
+
+    // A CONTA DE ADMINISTRADOR DA INSTALAÇÃO — só por variável de ambiente.
+    //
+    // O repositório é público: credencial escrita no código ou no README é
+    // credencial de qualquer um. `ADMIN_USERNAME` e `ADMIN_PASSWORD` criam a
+    // conta na primeira subida; depois disso a senha é trocada pela própria
+    // plataforma (Minha conta → Segurança) e a variável não a sobrescreve.
+    //
+    // Sem as duas variáveis nenhuma conta de administrador é criada, e o
+    // servidor avisa no boot. As demais contas nascem pelo cadastro, com papel
+    // de usuário; promover alguém é ato do administrador.
+    administrador: {
+      usuario: String(process.env.ADMIN_USERNAME || '').trim().toLowerCase() || null,
+      senha: process.env.ADMIN_PASSWORD || null,
+    },
   },
 
   coleta: {
-    // Intervalo do agendador. 0 desliga — útil em teste automatizado.
-    intervaloMinutos: numOuZero(process.env.COLLECT_INTERVAL_MINUTES, 30),
+    // Intervalo do ciclo de coleta. 0 desliga — útil em teste automatizado.
+    //
+    // 15 minutos vale para as notícias. Fontes que mudam devagar (Câmara,
+    // Banco Central, World Bank, Comex Stat) têm espaçamento mínimo próprio em
+    // `CADENCIA` (collectors/index.js), para o ciclo mais curto não multiplicar
+    // chamadas a APIs que não têm nada novo a cada quarto de hora.
+    intervaloMinutos: numOuZero(process.env.COLLECT_INTERVAL_MINUTES, 15),
     // Coletar assim que o servidor sobe, se o acervo estiver vazio.
     naSubida: process.env.COLLECT_ON_BOOT !== '0',
     timeoutMs: num(process.env.COLLECT_TIMEOUT_MS, 15000),

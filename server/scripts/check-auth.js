@@ -9,15 +9,22 @@
 // administrador responde a quem não tem token, esconder o botão no menu não
 // protegeu nada — bastava saber o endereço.
 //
-//   node server/scripts/check-auth.js [http://localhost:3001]
+//   ADMIN_USERNAME=... ADMIN_PASSWORD=... node server/scripts/check-auth.js [http://localhost:3001]
+//
+// A conta de administrador vem do ambiente — as mesmas variáveis que a criam no
+// servidor. A de usuário é criada pela própria suíte, pelo cadastro, e removida
+// no fim; assim o teste roda em qualquer instalação sem senha no código.
 // -----------------------------------------------------------------------------
 
 const BASE = (process.argv[2] || process.env.API_URL || 'http://localhost:3001').replace(/\/$/, '')
 
+const SENHA_TESTE = `teste-${Math.random().toString(36).slice(2, 12)}`
+const USUARIO_TESTE = `suite-${Date.now().toString(36)}`
+
 const CONTAS = [
   { rotulo: 'sem sessão', usuario: null, senha: null, papel: null },
-  { rotulo: 'usuário', usuario: 'usuario123', senha: 'usuario123', papel: 'user' },
-  { rotulo: 'admin', usuario: 'admin123', senha: 'admin123', papel: 'admin' },
+  { rotulo: 'usuário', usuario: USUARIO_TESTE, senha: SENHA_TESTE, papel: 'user', cadastrar: true },
+  { rotulo: 'admin', usuario: process.env.ADMIN_USERNAME, senha: process.env.ADMIN_PASSWORD, papel: 'admin' },
 ]
 
 // Para cada rota, o papel mínimo. `null` = pública.
@@ -94,8 +101,7 @@ const ROTAS = [
   // ── A PRÓPRIA CONTA ──
   //
   // Corpos invalidos de proposito: nome vazio e senha atual errada param em 400
-  // sem mudar nada. `POST /auth/sessoes/encerrar` fica de fora — autorizado, ele
-  // revogaria a sessao da propria suite.
+  // sem mudar nada.
   { metodo: 'PATCH', caminho: '/api/auth/me', minimo: 'user', corpo: { name: '' }, autorizado: 400, muta: true },
   {
     metodo: 'PUT',
@@ -127,138 +133,34 @@ const ROTAS = [
     autorizado: 404,
     muta: true,
   },
-  {
-    metodo: 'POST',
-    caminho: '/api/users/999999/senha-temporaria',
-    minimo: 'admin',
-    autorizado: 404,
-    muta: true,
-  },
 
-  // ── ASSISTENTE POR IA ──
+  // ── NOTIFICAÇÕES E GUIA ──
   //
-  // `PUT /api/ia/chave` GRAVA UM SEGREDO. E a rota mais sensivel que este
-  // servidor tem: quem a alcanca sem ser administrador troca a chave de API de
-  // quem hospeda — e o consumo e cobrado nessa pessoa.
-  //
-  // As de sintese e pergunta gastam dinheiro a cada chamada. Uma delas aberta
-  // sem sessao seria conta aberta para a internet inteira.
-  //
-  // O corpo enviado a `PUT /ia/chave` e invalido de proposito: o teste quer
-  // saber quem PASSA DA GUARDA, e passar da guarda com corpo invalido devolve
-  // 400 — o que prova a autorizacao sem sobrescrever a chave da instalacao.
-  {
-    metodo: 'PUT',
-    caminho: '/api/ia/chave',
-    minimo: 'admin',
-    corpo: { chave: 'formato-invalido-de-proposito' },
-    autorizado: 400,
-    muta: true,
-  },
-  {
-    metodo: 'PUT',
-    caminho: '/api/ia/modelo',
-    minimo: 'admin',
-    corpo: { modelo: '' },
-    muta: true,
-  },
-  { metodo: 'GET', caminho: '/api/ia/estado', minimo: 'user' },
-  { metodo: 'GET', caminho: '/api/ia/candidatas', minimo: 'user' },
-  // O guia da plataforma. Funciona SEM chave — a visita guiada existe para quem
-  // acabou de chegar, e quem acabou de chegar nao configurou chave nenhuma.
-  { metodo: 'GET', caminho: '/api/ia/guia', minimo: 'user' },
-  // A pergunta livre sobre o guia. Sem chave devolve 409; com cota gasta, 429.
-  {
-    metodo: 'POST',
-    caminho: '/api/ia/guia',
-    minimo: 'user',
-    corpo: { pergunta: 'onde vejo os incidentes?' },
-    autorizado: [200, 409, 429],
-    muta: true,
-  },
-  // Analise em lote. Lista vazia de proposito: 400 prova que a guarda passou,
-  // sem gastar chamada de modelo nem depender de haver chave configurada.
-  {
-    metodo: 'POST',
-    caminho: '/api/ia/analise',
-    minimo: 'user',
-    corpo: { ids: [] },
-    // 429 TAMBEM PROVA QUE A GUARDA PASSOU, e por isso e aceito.
-    //
-    // Esta suite mede autorizacao, nao cota. Quem nao esta autenticado leva 401
-    // em `exigirPapel`, ANTES do limitador — entao so quem passou pela guarda
-    // pode receber 429. Recusa-lo faria a suite falhar na segunda execucao
-    // dentro da mesma hora, e uma suite que nao roda duas vezes nao serve.
-    autorizado: [400, 429],
-    muta: true,
-  },
-  // Relatorio semanal. Sem chave devolve 409 — nao e falha, e recurso
-  // desligado; com chave devolveria 200 do cache. Os dois passam da guarda.
-  {
-    metodo: 'POST',
-    caminho: '/api/ia/semanal',
-    minimo: 'user',
-    corpo: {},
-    // 200 com chave e cache, 409 sem chave, 429 com a cota gasta. Os tres
-    // significam a mesma coisa aqui: a guarda deixou passar.
-    autorizado: [200, 409, 429],
-    muta: true,
-  },
-  // A leitura de uma correlacao. Id inexistente de proposito: 404 prova que a
-  // guarda foi passada, sem gastar chamada de modelo.
-  {
-    metodo: 'POST',
-    caminho: '/api/ia/correlacao/999999',
-    minimo: 'user',
-    autorizado: 404,
-    muta: true,
-  },
-
-  // A CHAVE DA PROPRIA CONTA. Qualquer sessao configura a sua — e ninguem sem
-  // sessao configura a de ninguem. Corpo invalido de proposito: o teste quer
-  // saber quem passa da GUARDA, e passar com corpo invalido devolve 400 sem
-  // sobrescrever a chave de quem estiver rodando a suite.
-  {
-    metodo: 'PUT',
-    caminho: '/api/ia/minha-chave',
-    minimo: 'user',
-    corpo: { chave: 'formato-invalido-de-proposito' },
-    autorizado: 400,
-    muta: true,
-  },
-  {
-    metodo: 'PUT',
-    caminho: '/api/ia/meu-modelo',
-    minimo: 'user',
-    corpo: { modelo: '' },
-    muta: true,
-  },
-  // Sem chave configurada a rota responde 409 (recurso nao ligado), que e
-  // exatamente o estado de uma instalacao recem-clonada. O que se testa aqui e
-  // a guarda: 401 sem sessao, e passar dela com sessao.
-  {
-    metodo: 'POST',
-    caminho: '/api/ia/sintese',
-    minimo: 'user',
-    corpo: { days: 7 },
-    // 429 tambem prova que a guarda passou — ver a nota em /api/ia/analise.
-    autorizado: [409, 429],
-    muta: true,
-  },
-  {
-    metodo: 'POST',
-    caminho: '/api/ia/perguntar',
-    minimo: 'user',
-    corpo: { pergunta: 'o que aconteceu no periodo' },
-    autorizado: [409, 429],
-    muta: true,
-  },
+  // Identificador inexistente de propósito: 404 prova que a guarda passou sem
+  // mexer no estado de leitura de ninguém. `read-all` muda só a conta que chama.
+  { metodo: 'GET', caminho: '/api/notifications', minimo: 'user' },
+  { metodo: 'POST', caminho: '/api/notifications/read-all', minimo: 'user', muta: true },
+  { metodo: 'POST', caminho: '/api/notifications/999999/read', minimo: 'user', autorizado: 404, muta: true },
+  { metodo: 'DELETE', caminho: '/api/notifications/999999/read', minimo: 'user', autorizado: 404, muta: true },
+  { metodo: 'DELETE', caminho: '/api/notifications/999999', minimo: 'user', autorizado: 404, muta: true },
+  { metodo: 'GET', caminho: '/api/guia', minimo: 'user' },
 ]
 
 const NIVEL = { user: 1, admin: 2 }
 
 async function entrar(conta) {
+  if (conta.papel && (!conta.usuario || !conta.senha)) {
+    throw new Error('defina ADMIN_USERNAME e ADMIN_PASSWORD no ambiente para testar o administrador')
+  }
   if (!conta.usuario) return null
+  if (conta.cadastrar) {
+    const c = await fetch(`${BASE}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: conta.usuario, password: conta.senha }),
+    })
+    if (c.status !== 201) throw new Error(`cadastro da conta de teste falhou: HTTP ${c.status}`)
+  }
   const r = await fetch(`${BASE}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -340,6 +242,19 @@ async function main() {
       )
     }
     console.log('')
+  }
+
+  // Remove a conta de teste com a sessão do administrador.
+  try {
+    const admin = CONTAS.find((c) => c.papel === 'admin')
+    const token = await entrar(admin)
+    const lista = await fetch(`${BASE}/api/users`, { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json())
+    const teste = lista.items?.find((u) => u.username === USUARIO_TESTE)
+    if (teste) {
+      await fetch(`${BASE}/api/users/${teste.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } })
+    }
+  } catch {
+    console.log(cor(`  aviso: não foi possível remover a conta de teste ${USUARIO_TESTE}`, 33))
   }
 
   const linha = '─'.repeat(56)
