@@ -39,6 +39,7 @@ import EventosConsolidados from '../components/clipping/EventosConsolidados'
 import PerguntarAoAcervo from '../components/clipping/PerguntarAoAcervo'
 import RelatorioSemanal from '../components/clipping/RelatorioSemanal'
 import { useNewsStore } from '../store/newsStore'
+import { useSettingsStore } from '../store/settingsStore'
 import { URGENCY_LEVELS } from '../data/mockData'
 import { alertMeta, categoryColor, clipboard, urgencyMeta } from '../utils/textUtils'
 import { formatDateBR, formatDateTimeBR, formatFullDate } from '../utils/dateUtils'
@@ -99,6 +100,8 @@ export default function DailyClipping() {
   const [query, setQuery] = useState('')
   const [cats, setCats] = useState([])
   const [urgency, setUrgency] = useState('')
+  // As áreas de interesse escolhidas em Configurações viram um atalho de filtro.
+  const interestAreas = useSettingsStore((s) => s.interestAreas)
 
   // Memoizado porque esta lista entra nas dependências de um `useMemo` abaixo:
   // `result?.news || []` devolveria um array novo a cada render, o que invalidaria o memo
@@ -169,8 +172,8 @@ export default function DailyClipping() {
       <PageHeader
         icon={Newspaper}
         title="Clipping Diário"
-        description="O que a coleta trouxe em segurança e defesa no período, filtrado por relevância, classificado por categoria e urgência, com o nível de alerta do dia."
-        help="O nível de alerta resume a intensidade dos eventos do dia: NORMAL, ATENÇÃO, ALERTA ou CRÍTICO."
+        description="O que a coleta trouxe em segurança e defesa no período, filtrado por relevância, classificado por categoria e urgência, com o nível de alerta do período."
+        help="O nível de alerta é a média ponderada da urgência de todas as matérias relevantes do período (crítico 100, alto 70, médio 40, baixo 15): NORMAL abaixo de 35, ATENÇÃO até 59, ALERTA até 79, CRÍTICO a partir de 80. Sem matérias no período, não há nível."
         breadcrumb={[{ label: 'Tático' }, { label: 'Clipping Diário' }]}
         badges={
           <>
@@ -362,12 +365,6 @@ export default function DailyClipping() {
               dias={result.period_days}
               onGerou={recarregarEdicao}
             />
-            {result.editor_note && (
-              <blockquote className="editorial-quote mt-4">
-                <span className="font-semibold not-italic text-gold-600 dark:text-gold-400">Nota do analista: </span>
-                {result.editor_note}
-              </blockquote>
-            )}
           </section>
 
           {/* Filtros da edição */}
@@ -401,6 +398,14 @@ export default function DailyClipping() {
                   getColor={categoryColor}
                   onToggle={(c) => setCats((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]))}
                 />
+                {interestAreas.some((a) => availableCats.includes(a)) && (
+                  <button
+                    onClick={() => setCats(interestAreas.filter((a) => availableCats.includes(a)))}
+                    className="mt-2 text-xs font-semibold text-brand-600 hover:underline dark:text-brand-300"
+                  >
+                    Só as minhas áreas de interesse
+                  </button>
+                )}
               </div>
             )}
             <div className="flex flex-wrap items-center gap-3 border-t border-gray-200 pt-3 text-sm dark:border-white/[0.07]">
@@ -643,13 +648,13 @@ function SourcesPanel({ open, onToggle }) {
 }
 
 /**
- * As matérias com maior vínculo medido com o Brasil.
+ * As matérias que mais citam entidades brasileiras concretas.
  *
- * Não é "as mais importantes" — importância é juízo. É densidade de vínculo:
- * quantas entidades brasileiras concretas o texto menciona, e quantas ligações
- * diretas ele tem com o acervo. O motivo aparece ao lado do número, sempre,
- * porque um índice sem método declarado é um número que ninguém pode
- * contestar — e portanto não vale nada.
+ * Havia um "índice de vínculo com o Brasil, de 0 a 100" em destaque ao lado de
+ * cada uma. O número soma menções a entidades do catálogo e correlações — é
+ * uma ordenação útil, e um péssimo número para exibir: "82/100" lido por quem
+ * chega parece medir importância ou risco para o país, e não mede. Fica a
+ * ordem e fica, à vista, o que foi reconhecido no texto.
  */
 function RelevantesParaOBrasil() {
   const r = useResource(() => request('GET /intel/brasil', { params: { days: 30 } }), [])
@@ -659,12 +664,11 @@ function RelevantesParaOBrasil() {
     <section className="card p-5">
       <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
         <Flag size={18} className="text-gold-500" />
-        Mais relevantes para o Brasil
-        <InfoTooltip text="Índice de 0 a 100 que mede densidade de vínculo com o país: órgãos, empresas, infraestrutura crítica, unidades da federação e setores brasileiros reconhecidos no texto, mais as correlações diretas com o acervo. Não é importância editorial nem risco." />
+        Mais ligadas a entidades brasileiras
+        <InfoTooltip text="Ordenadas por quantas entidades brasileiras concretas o texto cita — órgãos, empresas, infraestrutura crítica, unidades da federação e setores do catálogo — e por ligações diretas com o acervo. Citação não é importância nem risco." />
       </h2>
       <p className="mt-1 text-sm muted">
-        Inclui matéria estrangeira: o que conta é o quanto o texto toca coisas brasileiras
-        concretas, não de onde ele veio.
+        Inclui matéria estrangeira: o que conta é o que o texto cita, não de onde ele veio.
       </p>
 
       <DataState
@@ -672,17 +676,12 @@ function RelevantesParaOBrasil() {
         error={r.error}
         empty={!itens.length}
         onRetry={r.refetch}
-        emptyProps={{ icon: Flag, title: 'Sem matérias pontuadas no período', hint: 'O índice é calculado a cada coleta.' }}
+        emptyProps={{ icon: Flag, title: 'Nenhuma matéria cita entidade brasileira no período', hint: 'O reconhecimento roda a cada coleta.' }}
       >
         <ul className="mt-4 space-y-2">
           {itens.slice(0, 6).map((m) => (
             <li key={m.id} className="flex items-start gap-3 rounded-lg border border-gray-200 p-3 dark:border-white/10">
-              <span
-                className="mt-0.5 shrink-0 rounded-md bg-gold-500/15 px-2 py-1 font-mono text-sm font-bold tabular-nums text-gold-700 dark:text-gold-300"
-                title="Índice de vínculo com o Brasil, de 0 a 100"
-              >
-                {m.br_score}
-              </span>
+              <Flag size={14} className="mt-1 shrink-0 text-gold-500" />
               <span className="min-w-0">
                 <span className="block text-sm font-semibold leading-snug">{m.title}</span>
                 <span className="mt-0.5 block text-xs leading-relaxed muted">{m.br_motivo}</span>

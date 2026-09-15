@@ -13,10 +13,6 @@ import {
   Brain,
   RotateCcw,
   Check,
-  Linkedin,
-  Twitter,
-  Youtube,
-  Instagram,
   Radar,
   Building2,
   ShieldAlert,
@@ -30,6 +26,7 @@ import {
   Crosshair,
   Layers,
   Link2,
+  Sparkles,
 } from 'lucide-react'
 import NewsCard from '../components/ui/NewsCard'
 import { SkeletonCard } from '../components/ui/Skeleton'
@@ -44,21 +41,14 @@ import { useGastoMilitar, useIndiceDeAlerta } from '../hooks/useDadosReais'
 import { useVitrine } from '../hooks/useVitrine'
 import { useVitrineReal } from '../hooks/useVitrineReal'
 import { useAuthStore } from '../store/authStore'
-import { LANDING_FEATURES } from '../data/plansData'
 import { glossary } from '../data/learnData'
-import { USE_CASES, STANDARDS, FAQ, ROADMAP } from '../data/landingExtra'
+import { USE_CASES, STANDARDS, FAQ, ROADMAP, LANDING_FEATURES } from '../data/landingExtra'
 import { alertMeta } from '../utils/textUtils'
 
-const FEATURE_ICONS = { Newspaper, Globe2, BarChart3, LineChart, GraduationCap, ShieldCheck }
+const FEATURE_ICONS = { Newspaper, Globe2, BarChart3, LineChart, GraduationCap, ShieldCheck, Link2, Sparkles }
 
 const USE_CASE_ICONS = { Radar, Building2, ShieldAlert, Landmark, Factory, GraduationCap }
 
-const SOCIALS = [
-  { icon: Linkedin, label: 'LinkedIn', href: 'https://www.linkedin.com' },
-  { icon: Twitter, label: 'X', href: 'https://x.com' },
-  { icon: Youtube, label: 'YouTube', href: 'https://www.youtube.com' },
-  { icon: Instagram, label: 'Instagram', href: 'https://www.instagram.com' },
-]
 
 const Section = ({ children, className = '' }) => (
   <motion.section
@@ -184,14 +174,6 @@ export default function Landing() {
                 : 'A API não respondeu; os números aparecem quando ela voltar.'}
           </p>
 
-          <div className="mt-6 flex items-center gap-4">
-            <span className="text-xs uppercase tracking-wide text-gray-400">Siga</span>
-            {SOCIALS.map(({ icon: Icon, label, href }) => (
-              <a key={label} href={href} target="_blank" rel="noreferrer" aria-label={label} className="text-gray-300 hover:text-white">
-                <Icon size={18} />
-              </a>
-            ))}
-          </div>
         </div>
       </Section>
 
@@ -247,8 +229,8 @@ export default function Landing() {
           </div>
 
           <p className="mt-4 text-xs muted">
-            O acervo agregado é público. O detalhe — quais organizações, quais órgãos do Estado,
-            quais vulnerabilidades e por qual grupo — exige conta.
+            O acervo agregado é público. O detalhe — quais organizações, quais órgãos do Estado e
+            por qual grupo — exige conta.
           </p>
         </Section>
       )}
@@ -358,7 +340,7 @@ export default function Landing() {
             icon={ShieldCheck}
             value={alerta.level ? alertMeta[alerta.level]?.label || alerta.level : '—'}
             label="Nível de alerta do período"
-            hint={alerta.value != null ? `${alerta.value}/100 na escala de postura` : 'sem dado no período'}
+            hint={alerta.value != null ? `${alerta.value}/100 · média da urgência em 7 dias` : 'sem ocorrências no período'}
           />
           <PreviewStat
             icon={Database}
@@ -406,7 +388,7 @@ export default function Landing() {
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="card p-5 lg:col-span-2">
             <h3 className="mb-1 text-base font-bold tracking-tight">Gastos militares — Brasil</h3>
-            <p className="mb-3 text-xs muted">Série histórica (R$ bi) e % do PIB.</p>
+            <p className="mb-3 text-xs muted">World Bank — série histórica em US$ correntes.</p>
             <MilitarySpendingChart
               data={gasto.data}
               mode={gasto.aoVivo ? 'usd' : 'dual'}
@@ -415,7 +397,7 @@ export default function Landing() {
           </div>
           <div className="card flex flex-col p-5">
             <h3 className="mb-1 text-base font-bold tracking-tight">Índice de alerta</h3>
-            <p className="mb-2 text-xs muted">Resume a tensão de segurança do momento (0–100).</p>
+            <p className="mb-2 text-xs muted">Média da urgência das matérias dos últimos 7 dias (0–100).</p>
             {/* Este medidor exibia `alertIndex`, uma constante escrita à mão,
                 enquanto `useIndiceDeAlerta(7)` — que calcula o índice a partir
                 da edição real do clipping — já estava sendo chamado logo acima
@@ -494,8 +476,8 @@ export default function Landing() {
               ))}
             </div>
             <p className="mt-3 text-sm muted">
-              Glossário completo no <Link to="/aprender" className="font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300">Centro Educacional</Link>{' '}
-              · ou explore o <Link to="/aprender" className="font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300">Centro Educacional</Link>.
+              Glossário completo, trilhas e quiz no{' '}
+              <Link to="/aprender" className="font-semibold text-brand-600 hover:underline dark:text-brand-300">Centro Educacional</Link>.
             </p>
           </div>
 
@@ -568,16 +550,14 @@ export default function Landing() {
       <Section className="card overflow-hidden">
         <div className="on-dark flex flex-col items-center gap-4 bg-gradient-to-br from-brand-900/40 via-military-card to-military-darker p-8 text-center sm:p-10">
           <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Pronto para começar?</h2>
-          {/* A conta de administrador saiu daqui. Ela existe e está documentada
-            * no README, que é onde quem sobe a instância vai procurar — anunciá-la
-            * na página pública não ajuda ninguém que precise dela. */}
           <p className="max-w-xl text-gray-300">
             Projeto de código aberto. Entre com <code className="font-mono text-gold-400">usuario123</code>{' '}
-            — a senha é igual ao usuário —, ou clone o repositório e suba a sua própria instância.
+            ou <code className="font-mono text-gold-400">admin123</code> — a senha é igual ao usuário —, crie a
+            sua conta ou suba a sua própria instância.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Link to="/correlacoes" className="btn-primary"><Link2 size={16} /> Ver as correlações</Link>
-            <Link to="/painel" className="btn-ghost border-white/30 text-white hover:bg-white/10">Explorar painel</Link>
+            <Link to="/painel" className="btn-ghost border-white/30 text-white hover:bg-white/10">Abrir o painel</Link>
           </div>
         </div>
       </Section>

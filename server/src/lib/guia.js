@@ -40,10 +40,11 @@ export const TELAS = [
     nome: 'Painel',
     caminho: '/painel',
     nivel: 'Visão geral',
-    resumo: 'A abertura: o que a coleta trouxe hoje, o nível de alerta do período e os atalhos para o resto.',
-    detalhe: 'Mostra os indicadores econômicos do dia (dólar, IPCA, Selic, do Banco Central), o nível '
-      + 'de alerta calculado sobre as ocorrências do período e as matérias mais recentes. É o ponto '
-      + 'de partida de quem abre a plataforma sem uma pergunta específica.',
+    resumo: 'A abertura: o tamanho do acervo, o nível de alerta dos últimos 7 dias e as matérias mais recentes.',
+    detalhe: 'Mostra quantas matérias o filtro aprovou, o nível de alerta dos últimos 7 dias, os '
+      + 'alertas não lidos, a sua pasta, o câmbio e os indicadores do Banco Central (dólar, euro, '
+      + 'Selic, IPCA) e as notícias recentes — com as suas áreas de interesse primeiro, se você as '
+      + 'escolheu em Configurações.',
   },
   {
     id: 'mapa',
@@ -72,7 +73,9 @@ export const TELAS = [
     nome: 'Base Industrial (BID)',
     caminho: '/industria',
     nivel: 'Estratégico',
-    resumo: 'As empresas brasileiras da base industrial de defesa e o que o acervo diz sobre elas.',
+    resumo: 'O que o Brasil exportou nos capítulos de aeronaves e de armamento, e para onde.',
+    detalhe: 'Dados do Comex Stat (MDIC) por capítulo da NCM e país de destino. O capítulo de '
+      + 'aeronaves inclui aviação civil — a tela avisa isso ao lado do número.',
   },
   {
     id: 'legislativo',
@@ -96,10 +99,11 @@ export const TELAS = [
     caminho: '/clipping',
     nivel: 'Tático',
     resumo: 'A edição do período: o que a coleta trouxe, filtrado por relevância e classificado.',
-    detalhe: 'Traz o nível de alerta com a distribuição por urgência, as matérias mais relevantes '
-      + 'para o Brasil, os eventos consolidados (o mesmo fato coberto por vários veículos) e a '
+    detalhe: 'Traz o nível de alerta com a distribuição por urgência, as matérias que mais citam '
+      + 'entidades brasileiras, os eventos consolidados (o mesmo fato coberto por vários veículos) e a '
       + 'exportação em PDF. Com modelo configurado, traz também o resumo do período e o resumão '
-      + 'da semana. Os filtros por categoria, urgência e busca ficam no topo da edição.',
+      + 'da semana e as perguntas ao acervo. Os filtros por categoria, urgência e busca ficam no '
+      + 'topo da edição, com um atalho para as suas áreas de interesse.',
   },
   {
     id: 'correlacoes',
@@ -114,19 +118,13 @@ export const TELAS = [
       + 'impacto de cada uma.',
   },
   {
-    id: 'fontes',
-    nome: 'Confiabilidade das Fontes',
-    caminho: '/fontes',
-    nivel: 'Tático',
-    resumo: 'Quais fontes responderam, com que frequência falham e quanto cada uma entrega.',
-  },
-  {
     id: 'arquivo',
     nome: 'Arquivo & Pasta',
     caminho: '/arquivo',
     nivel: 'Tático',
-    resumo: 'As edições salvas e os itens que você guardou na pasta pessoal.',
-    detalhe: 'A pasta segue a CONTA, não o navegador: entrar de outro computador traz os salvos junto.',
+    resumo: 'As edições do clipping que você arquivou e os itens que guardou na pasta pessoal.',
+    detalhe: 'A pasta segue a CONTA, não o navegador: entrar de outro computador traz os salvos junto. '
+      + 'As edições arquivadas ficam só neste navegador.',
   },
   {
     id: 'ciberameacas',
@@ -153,28 +151,53 @@ export const TELAS = [
     nome: 'Busca global',
     caminho: '/busca',
     nivel: 'Visão geral',
-    resumo: 'Procura em notícias, proposições e fontes de uma vez.',
-    detalhe: 'Também alcançável pelo atalho Ctrl+K (ou Cmd+K), que abre a paleta de comandos e leva '
-      + 'a qualquer tela pelo nome.',
+    resumo: 'Procura em notícias, proposições e no glossário de uma vez.',
+    detalhe: 'Encontra o trecho digitado sem diferenciar acento nem maiúscula, sem sinônimos. O atalho '
+      + 'Ctrl+K (ou Cmd+K) abre a paleta de comandos, que leva a qualquer tela pelo nome.',
   },
   {
     id: 'conta',
     nome: 'Minha conta',
     caminho: '/conta',
     nivel: 'Conta',
-    resumo: 'Perfil, segurança e preferências. É onde fica a chave do assistente por IA.',
-    detalhe: 'Na aba Segurança você cola a sua chave da Anthropic para ligar os recursos de IA. Ela '
-      + 'é gravada cifrada no servidor e o navegador nunca a lê de volta — o consumo é cobrado na '
-      + 'sua conta do provedor.',
+    resumo: 'Nome, senha, sessões e a chave do assistente por IA.',
+    detalhe: 'Na aba Perfil você troca o nome de exibição. Na aba Segurança cola a sua chave da '
+      + 'Anthropic — gravada cifrada no servidor, o navegador nunca a lê de volta e o consumo é '
+      + 'cobrado na sua conta do provedor —, troca a senha e pode encerrar as sessões abertas em '
+      + 'outros navegadores. A conta compartilhada do projeto não permite essas alterações.',
   },
   {
     id: 'configuracoes',
     nome: 'Configurações',
     caminho: '/configuracoes',
     nivel: 'Conta',
-    resumo: 'Tema, áreas de interesse e notificações.',
-    detalhe: 'O interruptor de notificações silencia os avisos que interrompem a tela; eles continuam '
-      + 'entrando na central de Notificações para serem lidos quando você quiser.',
+    resumo: 'Tema, áreas de interesse e avisos na tela.',
+    detalhe: 'As áreas de interesse sobem para o topo das notícias do painel e viram um atalho de '
+      + 'filtro no clipping. O interruptor de avisos silencia o que interrompe a tela; os avisos '
+      + 'continuam entrando na central de Notificações.',
+  },
+  {
+    id: 'notificacoes',
+    nome: 'Notificações',
+    caminho: '/notificacoes',
+    nivel: 'Conta',
+    resumo: 'Os avisos que chegaram enquanto a plataforma estava aberta.',
+    detalhe: 'Entram quando a coleta traz matéria de urgência alta ou crítica, ou ataque a '
+      + 'organização brasileira nas últimas 48 horas. Ficam neste navegador; sair da conta os apaga.',
+  },
+  {
+    id: 'aprender',
+    nome: 'Centro Educacional',
+    caminho: '/aprender',
+    nivel: 'Recursos',
+    resumo: 'Glossário, trilhas de estudo, documentos oficiais de defesa e quiz por tema.',
+  },
+  {
+    id: 'apresentacao',
+    nome: 'Modo apresentação',
+    caminho: '/apresentacao',
+    nivel: 'Recursos',
+    resumo: 'Os gráficos principais em tela cheia, passando sozinhos, para projetar numa reunião.',
   },
 ]
 
@@ -191,7 +214,7 @@ export const NIVEIS = [
     nome: 'Tático',
     pergunta: 'O que acontece nesta área?',
     explicacao: 'Horizonte médio, por setor ou recorte. Serve a quem acompanha um tema. Telas: '
-      + 'Clipping Diário, Correlações, Confiabilidade das Fontes, Arquivo & Pasta.',
+      + 'Clipping Diário, Correlações, Arquivo & Pasta.',
   },
   {
     nome: 'Operacional',
@@ -225,13 +248,6 @@ export const CONCEITOS = [
       + 'semântica. A FORÇA (de 2 a 5) mede o quanto a ligação é DIRETA, não o quanto ela é perigosa.',
   },
   {
-    termo: 'Índice de vínculo com o Brasil',
-    texto: 'De 0 a 100, mede densidade de vínculo do texto com o país: órgãos, empresas, '
-      + 'infraestrutura crítica, unidades da federação e setores brasileiros reconhecidos, mais as '
-      + 'correlações diretas. Não é importância editorial nem risco. É contado pela plataforma, '
-      + 'nunca escrito por modelo.',
-  },
-  {
     termo: 'Criticidade de um incidente',
     texto: 'Derivada do domínio e do setor da organização atingida. Um domínio .gov.br, .jus.br ou '
       + '.mil.br marca o incidente como contra o Estado brasileiro, que é o recorte que esta '
@@ -259,8 +275,9 @@ export const NAO_FAZ = [
   'Não tem exportação para Excel nem integração com outros sistemas. O que existe é PDF do '
   + 'clipping e CSV das séries.',
   'Não envia e-mail nem notificação fora do navegador. Os avisos aparecem na própria tela.',
-  'Não tem recuperação de senha nem confirmação de e-mail. Quem esquecer a senha não tem por '
-  + 'onde redefini-la nesta versão.',
+  'Não tem recuperação de senha por e-mail nem confirmação de e-mail. A troca de senha existe, '
+  + 'em Minha conta → Segurança, e exige a senha atual; quem a esqueceu pede a um administrador uma '
+  + 'senha temporária.',
   'Não tem entrada por conta Google ainda. Está prevista; hoje só usuário e senha.',
   'Não escreve análise sem marcar. Todo texto produzido por modelo aparece com o selo '
   + '"escrito por máquina" — e sem chave configurada, os campos ficam vazios com a nota '
@@ -274,7 +291,7 @@ export const PRIMEIROS_PASSOS = [
   { passo: 'Depois abra as Correlações', caminho: '/correlacoes', porque: 'É a tela que responde "e daí?" — o que cada notícia tem a ver com o resto do que a plataforma sabe sobre o Brasil.' },
   { passo: 'Veja o Mapa estratégico', caminho: '/mapa', porque: 'Cruza a cobertura noticiosa com os incidentes de cada território. Clicar num país abre o dossiê dele.' },
   { passo: 'Confira os Incidentes no Brasil', caminho: '/ciberameacas', porque: 'As organizações brasileiras com vazamento divulgado, com o recorte do Estado em primeiro plano.' },
-  { passo: 'Ligue o assistente, se quiser', caminho: '/conta', porque: 'Com a sua chave da Anthropic, o clipping ganha resumo do período e resumão da semana, e as correlações ganham a leitura de cada ligação.' },
+  { passo: 'Ligue o assistente, se quiser', caminho: '/conta', porque: 'Com a sua chave da Anthropic, o clipping ganha resumo do período, resumão da semana e perguntas ao acervo, e as correlações ganham a análise assistida de até 15 matérias.' },
 ]
 
 /**

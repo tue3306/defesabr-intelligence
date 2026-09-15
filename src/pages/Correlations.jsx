@@ -22,15 +22,12 @@ import AnaliseAssistida from '../components/correlacoes/AnaliseAssistida'
 // respondem "o que aconteceu"; esta responde "o que isto tem a ver com o
 // resto do que sabemos sobre o país".
 //
-// O QUE ELA MOSTRA, E POR QUE NESSA ORDEM
-//
-// Cada cartão traz quatro coisas, e nenhuma é decoração:
+// O QUE ELA MOSTRA
 //
 //   MOTIVO      a regra que produziu a ligação, em português;
 //   EVIDÊNCIA   o trecho literal que a sustenta — o domínio que casou, o
-//               o termo encontrado no texto, a sigla da UF;
-//   CONTEXTO    o que isso significa no Brasil, com a contagem que o sustenta;
-//   IMPACTO     a consequência POSSÍVEL, em linguagem condicional.
+//               termo encontrado no texto, a sigla da UF;
+//   LEITURA     opcional, escrita por modelo de IA a pedido e marcada como tal.
 //
 // A evidência fica visível de propósito. Uma correlação que o leitor não pode
 // conferir é indistinguível de uma inventada, e este projeto já removeu coisa
@@ -264,17 +261,6 @@ function Correlacao({ c, aberto, onToggle }) {
               {c.artigo.categoria}
             </span>
           )}
-          {/* "Brasil 38" era um número sem unidade, explicado só no `title` —
-            * e quem lê num toque não tem `title`. O rótulo passa a dizer o que
-            * a escala mede, e o motivo continua no dossiê que abre abaixo. */}
-          {c.artigo?.brScore > 0 && (
-            <span
-              className="chip text-[10px]"
-              title={`Índice de vínculo com o Brasil, de 0 a 100. ${c.artigo.brMotivo || ''}`}
-            >
-              vínculo BR <span className="font-mono font-bold">{c.artigo.brScore}</span>/100
-            </span>
-          )}
           <span className="ml-auto font-mono text-[11px] muted">
             {formatDateTimeBR(c.artigo?.publicadoEm)}
           </span>
@@ -310,9 +296,8 @@ function Correlacao({ c, aberto, onToggle }) {
             * "Contexto no Brasil" era o mesmo padrão: setor e data de
             * divulgação montados por gabarito.
             *
-            * E o "Índice de vínculo" já aparece no cabeçalho do cartão, com a
-            * unidade à vista. Repeti-lo aberto, em prosa, era dizer duas vezes
-            * a mesma coisa.
+            * O "Índice de vínculo" saiu junto: um número de 0 a 100 que
+            * parecia medir importância para o país e só somava menções.
             *
             * Texto de gabarito com rótulo de análise é pior que ausência de
             * análise: ocupa o lugar dela e passa por ela. O que fica é o que a

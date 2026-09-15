@@ -1,13 +1,13 @@
 import { lazy, Suspense, useEffect } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
+import toast from 'react-hot-toast'
 import Layout from './components/layout/Layout'
 import PublicLayout from './components/layout/PublicLayout'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import ErrorBoundary from './components/system/ErrorBoundary'
 import { useAuthStore } from './store/authStore'
 import { useSettingsStore, applyTheme } from './store/settingsStore'
-// Registra os resolvedores locais da camada de dados antes do 1º render.
 import './services'
 
 // Escolhe o layout: deslogado (Visitante) usa o PÚBLICO, sem menu lateral;
@@ -41,8 +41,7 @@ const Legislative = lazy(() => import('./pages/Legislative'))
 const SourceReliability = lazy(() => import('./pages/SourceReliability'))
 const CyberThreats = lazy(() => import('./pages/CyberThreats'))
 const ThreatActors = lazy(() => import('./pages/ThreatActors'))
-// Mesa de trabalho (perfil Analista)
-// Console de governança (perfil Administrador)
+// Operação da instalação (administrador)
 const Collection = lazy(() => import('./pages/Collection'))
 const AdminConsole = lazy(() => import('./pages/AdminConsole'))
 
@@ -99,10 +98,20 @@ export default function App() {
   // o portador do token; se a resposta não vier, a sessão cai.
   useEffect(() => { useAuthStore.getState().revalidar() }, [])
 
+  // Quando a sessão cai sem a pessoa pedir — suspensão, troca de senha em outro
+  // aparelho, token vencido —, a tela avisa em vez de só trocar de layout.
+  const motivoSaida = useAuthStore((s) => s.motivoSaida)
+  useEffect(() => {
+    if (motivoSaida === 'expirada') {
+      toast('Sua sessão terminou. Entre novamente para continuar.', { icon: '🔒', id: 'sessao-expirada' })
+      useAuthStore.setState({ motivoSaida: null })
+    }
+  }, [motivoSaida])
+
   return (
     <ErrorBoundary scope="Aplicação">
       <Routes>
-        {/* Modo apresentação (sem layout) — exige plano com apresentação */}
+        {/* Modo apresentação (sem layout) */}
         <Route
           path="/apresentacao"
           element={<Guarded capability="presentation.mode" scope="Apresentação"><Presentation /></Guarded>}
@@ -148,22 +157,20 @@ export default function App() {
           />
           <Route
             path="/fontes"
-            element={<Guarded capability="sources.reliability" scope="Confiabilidade das Fontes"><SourceReliability /></Guarded>}
+            element={<Guarded capability="sources.reliability" scope="Disponibilidade das Fontes"><SourceReliability /></Guarded>}
           />
 
-          {/* ── ANALISTA — produção de inteligência ── */}
-
-          {/* ── ADMINISTRADOR — governança ── */}
+          {/* ── Ameaças cibernéticas ── */}
           <Route
             path="/ciberameacas"
             element={<Guarded scope="Incidentes no Brasil"><CyberThreats /></Guarded>}
           />
           <Route
             path="/atores"
-            element={<Guarded scope="Atores & Vulnerabilidades"><ThreatActors /></Guarded>}
+            element={<Guarded scope="Grupos contra o Brasil"><ThreatActors /></Guarded>}
           />
 
-          {/* ── ANALISTA — monitoramento da coleta ── */}
+          {/* ── ADMINISTRADOR — operação da instalação ── */}
           <Route
             path="/coleta"
             element={

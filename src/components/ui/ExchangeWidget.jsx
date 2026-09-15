@@ -68,11 +68,11 @@ function Cotacao({ icon: Icon, label, serie, carregando }) {
       </span>
       <span className="text-right">
         <span className="block font-mono font-semibold">
-          {carregando ? '…' : ultimo != null ? `R$ ${ultimo.toFixed(3)}` : '—'}
+          {carregando ? '…' : ultimo != null ? `R$ ${ultimo.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}` : '—'}
         </span>
         {pct != null && (
           <span className={`text-xs ${pct >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
-            {pct >= 0 ? '+' : ''}{pct.toFixed(2)}%
+            {pct >= 0 ? '+' : ''}{pct.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%
           </span>
         )}
       </span>

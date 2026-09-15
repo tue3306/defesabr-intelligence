@@ -14,8 +14,6 @@ export const useSettingsStore = create(
       // front-end (sem backend/proxy)" e explicava por que as fontes ao vivo
       // vinham desligadas. Ha um backend desde entao, ele coleta de 50 fontes
       // a cada 30 minutos, e o texto so servia para desorientar quem chegasse.
-      newsPerClipping: 5, // 3-10
-      focusArea: 'empresarial',
       notificationsEnabled: true,
       // Áreas temáticas de maior interesse do usuário (filtra/destaca conteúdo)
       interestAreas: [],
@@ -32,10 +30,6 @@ export const useSettingsStore = create(
         applyTheme(theme)
       },
 
-      setNewsPerClipping: (n) =>
-        set({ newsPerClipping: Math.max(3, Math.min(10, Number(n) || 5)) }),
-
-      setFocusArea: (focusArea) => set({ focusArea }),
       toggleInterestArea: (area) =>
         set({
           interestAreas: get().interestAreas.includes(area)

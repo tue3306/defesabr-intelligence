@@ -1,99 +1,71 @@
 # 🏗️ Arquitetura — DefesaBR Intelligence
 
-Aplicação **SPA estática** (React 18 + Vite 5), sem backend, desenhada para que a ausência do
-servidor seja uma **etapa** e não uma **restrição de projeto**: a fronteira onde o backend entrará
-já existe e está isolada.
+Um processo Node (Express + `node:sqlite`) serve a API em `/api` e a interface compilada
+(React 18 + Vite 5) na mesma porta. O servidor coleta, filtra, correlaciona e guarda; a interface
+lê por uma camada de serviços única e não tem dado local de reserva.
+
+> Este documento descrevia uma SPA estática sem backend, com modo de dados "mock", latência
+> simulada, serviço de fila do analista e dois eixos de permissão (papel × plano). Nada disso
+> existe mais, e o texto foi reescrito para descrever o que existe.
 
 ---
 
 ## 🎯 Princípios
 
-1. **Autorização centralizada.** Nenhum componente verifica papel ou plano diretamente. Todo
-   controle de acesso passa por **capacidades** declarativas resolvidas em `src/auth/permissions.js`.
-2. **Uma única fronteira de dados.** Toda leitura passa por `src/services/`. A interface não sabe —
-   e não deve saber — se o dado veio de um repositório local ou de uma API.
-3. **Quatro estados sempre tratados.** Carregando · erro (com nova tentativa) · vazio · conteúdo.
-   Padronizados em `<DataState>`, para que nenhuma tela invente (ou esqueça) o seu próprio.
-4. **Falha isolada.** `ErrorBoundary` por rota e em blocos de risco: um gráfico quebrado não derruba
-   a página, e a página não derruba a aplicação.
-5. **Honestidade.** Dado demonstrativo é rotulado como tal. Bloqueio explica o motivo e o caminho.
-   Serviço que depende de backend aparece como *planejado*, nunca como pronto.
-6. **Design system centralizado.** Tokens em `tailwind.config.js` + `src/index.css`, tema claro/escuro
-   real (não apenas inversão de cores).
+1. **O servidor protege; a interface só desenha.** Toda rota sensível passa por `exigirPapel()`.
+   O menu esconder um item é conveniência.
+2. **Uma única fronteira de dados.** Toda leitura passa por `src/services/`, que fala com a API e
+   mais nada. Se a API não responde, a tela mostra erro — nunca um número plausível.
+3. **Quatro estados sempre tratados.** Carregando · erro (com nova tentativa) · vazio · conteúdo,
+   padronizados em `<DataState>`.
+4. **Falha isolada.** `ErrorBoundary` por rota: um módulo quebrado não derruba a aplicação.
+5. **Nada escrito por máquina sem marca.** Texto de modelo aparece rotulado; números nunca vêm de
+   modelo.
 
 ---
 
-## 🔐 Modelo de acesso — dois eixos, quatro perfis
+## 🔐 Acesso
 
-O perfil efetivo nasce do cruzamento de dois eixos **independentes**:
+| Quem | Como | Alcança |
+|------|------|---------|
+| **Visitante** | sem sessão | página inicial, centro educacional, sobre |
+| **Usuário** | papel `user` — toda conta do cadastro | leitura do acervo, pasta, assistente por IA com a própria chave |
+| **Administrador** | papel `admin` | tudo, mais governança, método e coleta, disponibilidade das fontes |
 
-| Eixo | Onde vive | Valores | Responde a |
-|------|-----------|---------|------------|
-| **PAPEL** | `authStore` | `user` · `analyst` · `admin` | O que a pessoa pode **fazer** |
-| **PLANO** | `subscriptionStore` | `explorar` · `profissional` · `institucional` | O quanto pode **ver** |
+**No servidor** (`server/src/lib/auth.js`): senha em scrypt com sal; token HMAC-SHA256 que só
+**identifica**. `lerConta` lê papel, situação e `sessoes_desde` do banco a cada requisição — por isso
+suspender, remover ou rebaixar vale na hora, e trocar a senha ou "encerrar as outras sessões" invalida
+os tokens emitidos antes.
 
-```
-caps(perfil) = capsDoPapel(role) ∪ capsDoPlano(plan)
-```
+**Na interface** (`src/auth/permissions.js`): capacidades por papel, consultadas por `useCan()`,
+`<Can>` e `<ProtectedRoute capability>`. Um 401 recebido com token enviado dispara
+`defesabr:sessao-perdida`, e o `authStore` desfaz a sessão local e avisa.
 
-Disso saem os quatro perfis do produto:
+**Governança** (`/api/users/:id`): duas travas no servidor — ninguém altera a própria conta, e a
+instalação nunca fica sem administrador ativo. Cada ato vai para `audit_log`.
 
-| Perfil | Origem | Casa |
-|--------|--------|------|
-| **Visitante** | não autenticado (estado, não papel) | `/` |
-| **Usuário** | papel `user` — consome inteligência | `/painel` |
-| **Analista** | papel `analyst` — **produz** inteligência | `/mesa` |
-| **Administrador** | papel `admin` — governa a plataforma | `/admin` |
-
-O Analista recebe a camada analítica junto com o papel: não faz sentido exigir assinatura de quem
-escreve a análise para que ele possa lê-la.
-
-### API de autorização
-
-```jsx
-const can = useCan();  can('ai.generate')       // boolean
-const gate = useGate('reports.export')          // { allowed, reason, requiredPlan, requiredRole }
-useProfile()      // 'visitor' | 'user' | 'analyst' | 'admin'
-useCapabilities() // lista completa de capacidades ativas
-
-<Can do="tension.edit">…</Can>
-<Can not do="analysis.full"><Upsell /></Can>
-<ProtectedRoute capability="admin.access">…</ProtectedRoute>
-```
-
-Quando algo é negado, `denialReason` distingue **`auth`** (precisa entrar), **`plan`** (precisa de
-plano superior) e **`role`** (precisa de outro papel) — e a interface mostra o muro correspondente.
+**Conta compartilhada**: `usuario123` com a senha documentada não troca nome, senha ou sessões e não
+guarda chave de IA (`contaCompartilhada()` em `server/src/routes/auth.js`).
 
 ---
 
-## 🗂️ Estrutura de diretórios
+## 🗂️ Estrutura
 
 ```
+server/src/
+├── collectors/     rss · camara · indicators · bcb · comex · ransomware · atores · correlacoes · agendador
+├── lib/            auth · auditoria · relevance · correlacao · entidades · chaveIa · segredoGuardado · guia
+├── services/       status (capacidades derivadas do banco) · ia (chamadas ao modelo)
+├── routes/         auth · news · data · intel · ia · system
+└── db/             schema.sql + colunas incrementais (migração idempotente)
+
 src/
-├── services/       ★ CAMADA DE DADOS — a fronteira com a origem do dado
-│   ├── config.js         # DATA_MODE, URL base, latência simulada, REFERENCE_DATE
-│   ├── client.js         # request() → { data, meta }; ApiError normalizado
-│   ├── newsService.js    # notícias, clipping, arquivo, análise semanal, notificações
-│   ├── intelligenceService.js # narrativas, dossiês, fontes, riscos, programas, agenda
-│   ├── taskingService.js # mesa do analista: fila, RFIs, plano de coleta
-│   ├── adminService.js   # contas, fontes, auditoria, saúde, diagnóstico
-│   ├── reportsService.js # modelos, histórico e composição de relatórios
-│   └── searchService.js  # índice global de busca (todos os domínios)
-├── auth/           # permissions.js (fonte de verdade), useCan, <Can>
-├── api/            # Integrações externas diretas, com timeout/retry/fallback
-├── components/
-│   ├── layout/     # Sidebar, Navbar, Footer, Ticker, layouts público/app
-│   ├── charts/     # Recharts + react-simple-maps
-│   ├── ui/         # PageHeader, EmptyState, DataState, Pagination, ConfirmDialog…
-│   ├── system/     # ErrorBoundary
-│   ├── auth/       # ProtectedRoute, LoginModal
-│   ├── tension/    # Painel/editor de nível de tensão
-│   └── learn/      # Quiz do Centro Educacional
-├── pages/          # Uma tela por rota
-├── store/          # Zustand: auth, news, settings, subscription, tension
-├── data/           # Repositórios locais realistas
-├── hooks/          # useResource/useAction, useNews, useClaudeAI, useTheme
-└── utils/          # datas, texto, exportação (PDF/CSV/JSON), busca semântica
+├── services/       client.js (request) · apiBridge.js (endpoint da tela → rota da API) · domínio
+├── auth/           permissions.js · useCan · <Can>
+├── store/          authStore · newsStore (pasta, avisos, clippings arquivados) · settingsStore
+├── hooks/          useResource · useNews · useIa · useDadosReais · useLiveNotifications
+├── components/     layout · ui · charts · clipping · correlacoes · ia · guia · auth · system
+└── pages/          uma tela por rota
 ```
 
 ---
@@ -102,110 +74,52 @@ src/
 
 ```
 Componente
-   │ useResource(() => intelligenceService.risks({ severity }), [severity])
+   │ useResource(() => adminService.users(), [])
    ▼
-Serviço de domínio          ← declara o endpoint: 'GET /intel/risks'
+services/client.js  request('GET /users')
+   ├─ endpoint mapeado em apiBridge ─► fetch('/api/<rota>') + transformação da resposta
+   └─ endpoint direto               ─► fetch('/api/<rota>') com corpo e timeout
    ▼
-services/client.js  request()
-   │
-   ├─ DATA_MODE='mock' ─► resolvedor local (src/data) + latência simulada
-   └─ DATA_MODE='api'  ─► fetch(API_BASE_URL) com timeout e credenciais
-   │
-   ▼
-{ data, meta: { source, endpoint, fetchedAt, latency } }
+{ data, meta }   ou   ApiError { status, code, userMessage }
 ```
 
-`useResource` entrega sempre `{ data, loading, error, refetch, meta }` e **cancela respostas
-obsoletas**: se os parâmetros mudarem no meio do caminho, a resposta antiga é descartada em vez de
-sobrescrever a nova.
-
-### Ligar um backend real
-
-```bash
-VITE_DATA_MODE=api
-VITE_API_BASE_URL=https://sua-api.exemplo.br/v1
-```
-
-Nenhum componente muda. Os contratos (`GET /intel/risks`, `POST /reports/compose`, …) estão
-declarados no topo de cada serviço e listados em **Configurações › Camada de dados**.
-
-### Por que latência simulada
-
-Sem ela, os estados de carregamento nunca aparecem em desenvolvimento — e defeitos de _loading_
-só seriam descobertos em produção. Desligável com `VITE_MOCK_LATENCY=0`.
-
-### Data de referência
-
-O acervo demonstrativo é coerente em torno de `REFERENCE_DATE` (`services/config.js`): prazos da
-fila de produção, agenda, marcos de programas e auditoria se relacionam a ela. Usar `new Date()`
-faria a demonstração envelhecer sozinha — prazos venceriam e a agenda esvaziaria.
+`useResource` entrega `{ data, loading, error, refetch, meta }` e descarta respostas obsoletas.
+Erros chegam como `ApiError`, com mensagem distinta para 401 (sessão terminou), 403 (sem permissão)
+e a mensagem do próprio servidor quando houver.
 
 ---
 
-## 🔎 Busca global
+## 🤖 Assistente por IA
 
-`searchService` normaliza **todos** os domínios num índice único de registros
-`{ id, type, title, subtitle, snippet, to, capability, fields[] }`. A pontuação usa
-`utils/semanticSearch`, que expande sinônimos do domínio — buscar *submarino* também encontra
-*PROSUB* e conteúdo naval.
-
-Cada resultado declara a capacidade necessária para abri-lo. Itens fora do alcance do perfil
-aparecem **marcados como bloqueados**, com o caminho de desbloqueio: a busca informa que a
-informação existe em vez de fingir que não.
+Chave por conta (ou da instalação, como reserva), cifrada com AES-256-GCM e nunca devolvida ao
+navegador. O servidor monta o contexto a partir do acervo, chama a API da Anthropic e confere a
+resposta: entidades brasileiras citadas fora da lista detectada nas matérias são removidas e
+contadas. O guia da plataforma (`lib/guia.js`) é a única fonte que o modelo pode usar para explicar
+as telas.
 
 ---
 
-## 🎨 Camada de apresentação
+## 🎨 Apresentação
 
-- **Roteamento:** `HashRouter` (`/#/rota`). Nasceu por exigência do GitHub Pages,
-  que não reescreve URLs; ficou porque continua útil — com o hash, nenhuma rota
-  depende de o servidor saber devolver `index.html` para caminhos arbitrários, e
-  um link colado no meio de uma apresentação abre sempre.
-- **Tema:** classe `dark` no `<html>`. Superfícies escuras dentro do tema claro usam `.on-dark`.
-- **Acento:** ouro (`#caa733`); base grafite; verde/vermelho reservados a estado, não a decoração.
-- **Ritmo:** `PageHeader` → KPIs → filtros → conteúdo → nota. Espaçamento `space-y-6`.
+- **Roteamento:** `HashRouter` (`/#/rota`) — nenhuma rota depende de o servidor reescrever caminhos.
+- **Tema:** classe `dark` no `<html>`; superfícies escuras no tema claro usam `.on-dark`.
+- **Acento:** ouro (`#caa733`); verde/vermelho reservados a estado.
 
 ---
 
 ## 📦 Build & Deploy
 
-`vite build` com separação manual de vendors:
-
-| Chunk | Conteúdo | Por quê |
-|-------|----------|---------|
-| `vendor-react` | react, react-dom, router | muda raramente; cacheia entre deploys |
-| `vendor-motion` | framer-motion | unidade coesa, usada em quase toda página |
-| `vendor-maps` | react-simple-maps, d3-geo | só o mapa de risco depende |
-| `vendor-icons` | lucide-react | conjunto grande e estável |
-| `index` | código da aplicação | o único que realmente muda a cada versão |
-
-`jspdf` e `html2canvas` (~590 kB somados) são carregados **sob demanda**, dentro das funções que
-geram PDF — quem exporta apenas CSV não paga por eles.
-
-**Deploy: Railway, um processo só.** `npm start` serve a API em `/api` e o `dist/`
-compilado na mesma porta, então `base` é a raiz (`/`). Ver [README](../README.md#deploy-no-railway).
-
-<sub>Houve um deploy estático em GitHub Pages, com `npm run deploy` e
-`base = /defesabr-intelligence/`. Ele saiu porque deixou de fazer sentido no dia
-em que o servidor passou a existir: o Pages entrega arquivo, não roda Node — a
-página abria e toda chamada de API respondia 404. Uma cópia pública quebrada do
-produto, republicada a cada push, é pior que nenhuma cópia.</sub>
+`vite build` separa `vendor-react`, `vendor-motion`, `vendor-maps` e `vendor-icons`; `jspdf` e
+`html2canvas` carregam sob demanda. `npm start` serve API e `dist/` num processo só — é o que roda
+no Railway. `AUTH_SECRET` deve estar definido no ambiente para as sessões sobreviverem a deploys.
 
 ---
 
 ## ⚠️ Limitações conscientes
 
-O que **exige** backend e por isso aparece como *planejado* na interface, nunca como pronto:
-
-| Recurso | Situação | O que falta |
-|---------|----------|-------------|
-| Coleta ao vivo de fontes | desligada por padrão | proxy servidor-side (CORS/limites) |
-| IA (Claude) | fallback demonstrativo | endpoint próprio que guarde a chave |
-| Persistência | `localStorage` | banco de dados e sessão real |
-| Envio de e-mail/alertas | registrado, não enviado | serviço de entrega |
-| SSO institucional | roadmap | provedor SAML/OIDC |
-| Auditoria | dados de exemplo | serviço de trilha append-only |
-
-A chave da Anthropic pode ser informada em Configurações **apenas para demonstração**: ela fica em
-texto puro no navegador e é enviada da máquina de quem usa. O desenho correto — chave no servidor,
-front chamando endpoint próprio — está descrito na própria tela.
+| Recurso | Situação |
+|---------|----------|
+| Recuperação de senha e confirmação de e-mail | não existem — dependem de envio de e-mail |
+| Entrada com conta Google | não implementada; colunas `username` e `auth_provider` já existem |
+| Avisos fora do navegador | não existem; os avisos aparecem na própria tela |
+| Disco no Railway sem volume | efêmero: o acervo é recoletado a cada deploy |

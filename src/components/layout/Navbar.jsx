@@ -2,38 +2,25 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import {
   Menu, Bell, Moon, Sun, LogIn, LogOut, User, PanelLeftClose, PanelLeft,
-  UserCog, Settings as SettingsIcon, Check, ShieldCheck, ClipboardList, Search,
+  UserCog, Settings as SettingsIcon, ShieldCheck, ClipboardList, Search,
   Repeat, ArrowRight,
 } from 'lucide-react'
 import SearchBar from '../ui/SearchBar'
 import Badge from '../ui/Badge'
 import AuthModal from '../auth/AuthModal'
 import { useAuthStore } from '../../store/authStore'
-import { useContasIniciais, ROTULO_PAPEL } from '../../auth/useContasIniciais'
+import { useContasIniciais } from '../../auth/useContasIniciais'
 import { useNewsStore } from '../../store/newsStore'
-import { useSubscriptionStore } from '../../store/subscriptionStore'
 import { useCan, useProfileMeta } from '../../auth/useCan'
-import { PLAN_LABELS } from '../../auth/permissions'
+import { ROLE_LABELS } from '../../auth/permissions'
 import { useTheme } from '../../hooks/useTheme'
 import { timeAgo } from '../../utils/dateUtils'
-
-// Ordem de exibição do seletor de perfil (demonstração): dos 4 perfis do produto.
-const PERSONA_ORDER = ['visitante', 'usuario', 'analista', 'admin']
-
-// Para onde cada perfil é levado ao trocar — a "casa" daquele perfil.
-const PERSONA_HOME = {
-  visitante: '/',
-  usuario: '/painel',
-  analista: '/painel',
-  admin: '/admin',
-}
 
 export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) {
   const navigate = useNavigate()
   const { isDark, toggleTheme } = useTheme()
   const { user, isAuthenticated, logout } = useAuthStore()
   const { contas, entrarComo } = useContasIniciais()
-  const plan = useSubscriptionStore((s) => s.plan)
   const can = useCan()
   const profileMeta = useProfileMeta()
   const notifications = useNewsStore((s) => s.notifications)
@@ -65,9 +52,9 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
     }
   }, [])
 
-  // Trocar de perfil passa a ser um LOGIN de verdade: a conta de exemplo do
-  // papel escolhido, autenticada no servidor. Antes isto escrevia
-  // `{ role: 'admin' }` no localStorage e nada verificava.
+  // Entrar na conta compartilhada é um LOGIN de verdade, autenticado no
+  // servidor. Antes isto escrevia `{ role: 'admin' }` no localStorage e nada
+  // verificava.
   const trocarPerfil = async (papel) => {
     setUserOpen(false)
     const r = await entrarComo(papel)
@@ -116,12 +103,7 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
       </button>
 
       <div className="ml-auto flex items-center gap-1.5">
-        {/* Atalho do Analista.
-            Apontava para /mesa, rota que não existe desde que a mesa de
-            trabalho foi removida — e era guardado por `workbench.access`, uma
-            capacidade que ninguém mais recebe, então nem aparecia para
-            reclamar. Agora leva a Método & Coleta, que é o trabalho real do
-            perfil, sob a capacidade que de fato o governa. */}
+        {/* Atalho de administração: Método & Coleta. */}
         {can('collection.monitor') && (
           <Link
             to="/coleta"
@@ -239,7 +221,7 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
               </span>
               <span className="hidden text-left md:block">
                 <span className="block text-sm font-medium leading-tight">{user?.name}</span>
-                <span className="block text-[10px] font-semibold uppercase tracking-wide muted">{profileMeta.label}</span>
+                <span className="block font-mono text-[10px] muted">{user?.username}</span>
               </span>
             </button>
 
@@ -247,19 +229,18 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
               <div className="card absolute right-0 z-40 mt-2 w-72 origin-top-right animate-scale-in p-2 shadow-dropdown">
                 <div className="px-2 py-1.5">
                   <p className="text-sm font-semibold">{user?.name}</p>
-                  <p className="truncate text-xs muted">{user?.email}</p>
-                  {user?.unit && <p className="mt-0.5 truncate text-[11px] muted">{user.unit}</p>}
-                  <div className="mt-1.5 flex flex-wrap gap-1">
+                  {/* As contas iniciais têm e-mail `.invalid`, que não é endereço de ninguém. */}
+                  <p className="truncate text-xs muted">
+                    {user?.email && !user.email.endsWith('.invalid') ? user.email : user?.username}
+                  </p>
+                  {can('admin.access') && (
                     <span
-                      className="inline-block rounded px-1.5 py-0.5 text-[10px] font-bold uppercase text-white"
+                      className="mt-1.5 inline-block rounded px-1.5 py-0.5 text-[10px] font-bold uppercase text-white"
                       style={{ background: profileMeta.color }}
                     >
-                      {ROTULO_PAPEL[user?.role] || profileMeta.label}
+                      Administrador
                     </span>
-                    <span className="inline-block rounded bg-gold-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase text-gold-600 dark:text-gold-400">
-                      {PLAN_LABELS[plan] || plan}
-                    </span>
-                  </div>
+                  )}
                 </div>
 
                 {/* Atalhos de conta */}
@@ -274,35 +255,26 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
                   <MenuLink to="/configuracoes" icon={SettingsIcon} label="Configurações" onClick={() => setUserOpen(false)} />
                 </div>
 
-                {/* Trocar de perfil — cada item faz um login real */}
-                {contas.length > 0 && (
+                {/* As contas iniciais — login real, e só a que não é a atual */}
+                {contas.some((c) => c.senhaPadrao && c.username !== user?.username) && (
                   <div className="mt-1 border-t border-gray-200 pt-2 dark:border-gray-700/40">
                     <p className="flex items-center gap-1.5 px-2 pb-1 text-[10px] font-bold uppercase tracking-wide muted">
                       <Repeat size={11} /> Entrar com outra conta
                     </p>
                     <div className="space-y-1">
-                      {contas.map((c) => {
-                        const atual = user?.role === c.role
-                        return (
-                          <button
-                            key={c.username}
-                            onClick={() => trocarPerfil(c.role)}
-                            className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors ${
-                              atual ? 'bg-gold-500/10' : 'hover:bg-gray-100 dark:hover:bg-white/10'
-                            }`}
-                          >
-                            <span className="min-w-0 flex-1">
-                              <span className="block text-xs font-semibold text-gray-900 dark:text-white">
-                                {ROTULO_PAPEL[c.role] || c.role}
-                              </span>
-                              <span className="block truncate text-[10px] muted">{c.name}</span>
-                            </span>
-                            {atual
-                              ? <Check size={14} className="shrink-0 text-emerald-500 dark:text-emerald-400" />
-                              : <ArrowRight size={13} className="shrink-0 text-gray-400" />}
-                          </button>
-                        )
-                      })}
+                      {contas.filter((c) => c.senhaPadrao && c.username !== user?.username).map((c) => (
+                        <button
+                          key={c.username}
+                          onClick={() => trocarPerfil(c.role)}
+                          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-gray-100 dark:hover:bg-white/10"
+                        >
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-xs font-semibold text-gray-900 dark:text-white">{ROLE_LABELS[c.role] || c.role}</span>
+                            <span className="block truncate font-mono text-[10px] muted">{c.username}</span>
+                          </span>
+                          <ArrowRight size={13} className="shrink-0 text-gray-400" />
+                        </button>
+                      ))}
                     </div>
                   </div>
                 )}

@@ -34,6 +34,12 @@ async function registrar(nome, fn, gatilho = 'agendado') {
   }
 
   const duracao = Date.now() - inicio
+
+  // Coletor opcional sem chave não executou nada: registrá-lo como "Coleta
+  // concluída — 0 item(ns)" a cada ciclo enchia a trilha de auditoria com
+  // execuções que não aconteceram.
+  if (resultado?.ignorado) return { coletor: nome, duracaoMs: duracao, ...resultado }
+
   run(
     `INSERT INTO collector_runs
        (collector, started_at, finished_at, duration_ms, ok, items_found, items_new, error, trigger)

@@ -1,19 +1,16 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  Bell, CheckCheck, Inbox, Trash2, MailOpen, Mail, SlidersHorizontal,
-  BellRing, Plus, Lock, X, Filter,
+  Bell, CheckCheck, Inbox, Trash2, MailOpen, Mail, BellRing, X,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PageHeader from '../components/ui/PageHeader'
 import Badge from '../components/ui/Badge'
 import EmptyState from '../components/ui/EmptyState'
-import Modal from '../components/ui/Modal'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import Pagination from '../components/ui/Pagination'
-import Can from '../auth/Can'
 import { useNewsStore } from '../store/newsStore'
-import { URGENCY_LEVELS, CATEGORIES } from '../data/mockData'
+import { URGENCY_LEVELS } from '../data/mockData'
 import { urgencyMeta } from '../utils/textUtils'
 import { timeAgo, formatDateTimeBR, formatDateBR, parseDate } from '../utils/dateUtils'
 
@@ -26,50 +23,25 @@ const FILTERS = [
 const PER_PAGE = 20
 
 // ─────────────────────────────────────────────────────────────────────────────
-// AS REGRAS DE ALERTA ERAM TRES LINHAS SEM NADA ATRAS
+// O QUE GERA NOTIFICAÇÃO
 //
-// Havia `SEED_RULES` com "Elevacao da postura nacional", "Ocorrencias em
-// Fronteiras" e "Marcos de programas estrategicos", cada uma com canal
-// declarado ("E-mail + painel", "E-mail semanal") e um interruptor
-// Ativa/Pausada que o usuario podia acionar.
-//
-// Nenhuma era avaliada por coisa alguma. Nao ha motor de regras, nao ha envio
-// de e-mail, e o estado do interruptor vivia so na memoria da aba — sumia no
-// primeiro recarregamento. Alguem podia ativar as tres, fechar o navegador e
-// acreditar que seria avisado quando a postura nacional subisse.
-//
-// Numa plataforma cujo produto e alerta, encenar alerta e o pior defeito
-// possivel: o dano nao aparece na tela, aparece no silencio de um aviso que
-// nunca chega.
-//
-// O QUE SOBROU E O QUE FUNCIONA DE VERDADE: `useLiveNotifications` le o acervo
-// e gera aviso a partir das ocorrencias de urgencia alta que a coleta trouxe.
-// Isso e real, roda a cada ciclo e aparece no painel. O que falta — regra
-// configuravel e disparo por e-mail — esta declarado, nao simulado.
+// Havia três regras semeadas com canal "E-mail + painel" e um botão "Nova
+// regra" que abria um formulário completo — nome, área, urgência, canal — para
+// no fim avisar que nada tinha sido gravado. Não há motor de regras nem envio
+// de e-mail. O que existe está descrito abaixo, e é real.
 // ─────────────────────────────────────────────────────────────────────────────
-const CAPACIDADES_DE_ALERTA = [
+const COMO_FUNCIONA = [
   {
-    id: 'painel',
-    nome: 'Aviso no painel a partir da coleta',
-    detalhe: 'Ocorrencia de urgencia ALTA ou CRITICA no acervo vira notificacao, a cada ciclo.',
-    existe: true,
+    id: 'acervo',
+    nome: 'Matéria de urgência alta ou crítica',
+    detalhe: 'Enquanto a plataforma está aberta, o acervo é consultado a cada 5 minutos; matéria nova com urgência ALTA ou CRÍTICA vira notificação.',
   },
   {
-    id: 'regra',
-    nome: 'Regra configuravel pelo usuario',
-    detalhe: 'Exige um motor de regras no servidor, que avalie cada item coletado contra o que voce definiu.',
-    existe: false,
-  },
-  {
-    id: 'email',
-    nome: 'Disparo por e-mail',
-    detalhe: 'Exige servico de envio e confirmacao de endereco. Nenhum dos dois existe neste projeto.',
-    existe: false,
+    id: 'ciber',
+    nome: 'Organização brasileira atacada',
+    detalhe: 'Vítima brasileira divulgada por grupo de extorsão nas últimas 48 horas. Órgãos do Estado aparecem marcados como tal.',
   },
 ]
-
-
-const CHANNELS = ['Painel', 'E-mail + painel', 'E-mail semanal']
 
 /** Rótulo do grupo do dia: "Hoje", "Ontem" ou a data. */
 function dayLabel(iso) {
@@ -86,31 +58,22 @@ function dayLabel(iso) {
 // -----------------------------------------------------------------------------
 // CENTRAL DE NOTIFICAÇÕES
 //
-// Duas camadas: o HISTÓRICO do que já chegou (agrupado por dia, porque é assim
-// que se relê um período) e as REGRAS que determinam o que deve chegar — esta
-// última é o que separa um feed passivo de um sistema de alerta.
+// O histórico do que chegou, agrupado por dia, e a descrição do que gera aviso.
+// Fica neste navegador: é um registro local, e sair da conta o apaga.
 // -----------------------------------------------------------------------------
 export default function Notifications() {
   const notifications = useNewsStore((s) => s.notifications)
   const markAllRead = useNewsStore((s) => s.markAllRead)
   const markRead = useNewsStore((s) => s.markRead)
+  const markUnread = useNewsStore((s) => s.markUnread)
+  const removeNotification = useNewsStore((s) => s.removeNotification)
 
   const [filter, setFilter] = useState('all')
   const [level, setLevel] = useState('')
   const [page, setPage] = useState(1)
   const [confirm, setConfirm] = useState(null)
-  const [ruleModal, setRuleModal] = useState(false)
-  // O store não expõe "excluir" nem "marcar como não lida"; ambos vivem aqui
-  // como estado local até existir um backend de notificações.
-  const [dismissed, setDismissed] = useState([])
-  const [forcedUnread, setForcedUnread] = useState([])
 
-  const visible = useMemo(
-    () => notifications
-      .filter((n) => !dismissed.includes(n.id))
-      .map((n) => ({ ...n, read: forcedUnread.includes(n.id) ? false : n.read })),
-    [notifications, dismissed, forcedUnread]
-  )
+  const visible = notifications
 
   const unread = visible.filter((n) => !n.read).length
 
@@ -137,39 +100,24 @@ export default function Notifications() {
   }, [pageItems])
 
   const toggleRead = (n) => {
-    if (n.read) {
-      setForcedUnread((prev) => [...prev, n.id])
-      toast('Marcada como não lida', { icon: '📩' })
-    } else {
-      setForcedUnread((prev) => prev.filter((id) => id !== n.id))
-      markRead(n.id)
-    }
+    if (n.read) markUnread(n.id)
+    else markRead(n.id)
   }
 
   const remove = (n) => {
-    setDismissed((prev) => [...prev, n.id])
+    removeNotification(n.id)
     toast.success('Notificação removida')
   }
 
   const clearFilters = () => { setFilter('all'); setLevel(''); setPage(1) }
   const hasFilters = filter !== 'all' || !!level
 
-  // `addRule` criava uma regra no estado local e anunciava "Regra de alerta
-  // criada". Nada a avaliava e ela sumia no recarregamento — a mesma ficcao das
-  // tres regras semeadas. O modal permanece como estrutura do fluxo, e diz o
-  // que acontece de verdade em vez de encenar sucesso.
-  const addRule = () => {
-    setRuleModal(false)
-    toast('Regra configurável ainda não existe: depende de um motor de regras no servidor, '
-      + 'que avalie cada item coletado. Nada foi gravado.', { icon: 'ℹ️', duration: 7000 })
-  }
-
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <PageHeader
         icon={Bell}
         title="Notificações"
-        description="Tudo o que a plataforma sinalizou, agrupado por dia — e as regras que determinam o que chega até você."
+        description="O que a plataforma sinalizou enquanto você a usava, agrupado por dia."
         breadcrumb={[{ label: 'Conta' }, { label: 'Notificações' }]}
         meta={[
           { label: 'Total', value: String(visible.length) },
@@ -178,7 +126,7 @@ export default function Notifications() {
         actions={
           unread > 0 ? (
             <button
-              onClick={() => { markAllRead(); setForcedUnread([]); toast.success('Todas marcadas como lidas') }}
+              onClick={() => { markAllRead(); toast.success('Todas marcadas como lidas') }}
               className="btn-ghost text-sm"
             >
               <CheckCheck size={16} /> Marcar todas como lidas
@@ -243,7 +191,7 @@ export default function Notifications() {
           title={hasFilters ? 'Nada corresponde a este filtro' : 'Nenhuma notificação por enquanto'}
           hint={hasFilters
             ? 'Ajuste o estado de leitura ou o nível de urgência.'
-            : 'Os alertas do monitoramento aparecem aqui assim que chegarem.'}
+            : 'Avisos entram aqui quando a coleta traz matéria urgente ou ataque a organização brasileira enquanto a plataforma está aberta.'}
           action={hasFilters
             ? { label: 'Limpar filtros', onClick: clearFilters, icon: X }
             : { label: 'Ir ao painel', to: '/painel' }}
@@ -302,68 +250,26 @@ export default function Notifications() {
         </div>
       )}
 
-      {/* REGRAS DE ALERTA */}
+      {/* O QUE GERA NOTIFICAÇÃO */}
       <section className="card p-5">
-        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-              <BellRing size={18} className="text-brand-400 dark:text-brand-300" /> Regras de alerta
-            </h2>
-            <p className="mt-0.5 text-sm muted">
-              Defina o que merece interromper o seu dia — o resto fica no histórico.
-            </p>
-          </div>
-          <Can do="alerts.custom">
-            <button onClick={() => setRuleModal(true)} className="btn-ghost text-sm">
-              <Plus size={15} /> Nova regra
-            </button>
-          </Can>
-        </div>
-
-        <Can
-          do="alerts.custom"
-          fallback={
-            <EmptyState
-              icon={Lock}
-              tone="locked"
-              title="Alertas personalizados acima do nível atual"
-              hint="Regras para ser avisado quando a postura nacional subir, quando houver ocorrência grave numa área monitorada ou quando um programa estratégico mudar de status. Toda conta nasce com o nível completo — este aviso só aparece com o nível rebaixado."
-              action={{ label: 'Voltar ao painel', to: '/painel' }}
-              compact
-            />
-          }
-        >
-          <ul className="space-y-2">
-            {CAPACIDADES_DE_ALERTA.map((c) => (
-              <li
-                key={c.id}
-                className="flex flex-col gap-3 rounded-lg border border-gray-200 p-3 sm:flex-row sm:items-center sm:justify-between dark:border-white/10"
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold">{c.nome}</p>
-                  <p className="mt-0.5 text-xs leading-relaxed muted">{c.detalhe}</p>
-                </div>
-                <span
-                  className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold ${
-                    c.existe
-                      ? 'bg-military-green/15 text-emerald-800 dark:text-emerald-300'
-                      : 'border border-gray-300 text-gray-500 dark:border-white/10 dark:text-gray-400'
-                  }`}
-                >
-                  {c.existe ? 'Em operação' : 'Ainda não existe'}
-                </span>
-              </li>
-            ))}
-          </ul>
-
-          <p className="mt-3 text-xs muted">
-            Os avisos do painel vêm do acervo coletado e são reais. Regra configurável e envio por
-            e-mail estão declarados acima como ausentes em vez de simulados — ver{' '}
-            <Link to="/configuracoes" className="font-semibold text-brand-500 hover:underline dark:text-brand-400">
-              Preferências de notificação
-            </Link>
-          </p>
-        </Can>
+        <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
+          <BellRing size={18} className="text-brand-400 dark:text-brand-300" /> O que gera notificação
+        </h2>
+        <ul className="mt-3 space-y-2">
+          {COMO_FUNCIONA.map((c) => (
+            <li key={c.id} className="rounded-lg border border-gray-200 p-3 dark:border-white/10">
+              <p className="text-sm font-semibold">{c.nome}</p>
+              <p className="mt-0.5 text-xs leading-relaxed muted">{c.detalhe}</p>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 text-xs leading-relaxed muted">
+          Não há regra personalizada nem envio por e-mail. Para não ser interrompido pelos avisos na
+          tela — eles continuam registrados aqui —, use{' '}
+          <Link to="/configuracoes" className="font-semibold text-brand-600 hover:underline dark:text-brand-300">
+            Configurações → Avisos na tela
+          </Link>.
+        </p>
       </section>
 
       <ConfirmDialog
@@ -371,92 +277,10 @@ export default function Notifications() {
         onClose={() => setConfirm(null)}
         onConfirm={() => remove(confirm)}
         title="Excluir notificação"
-        description={confirm ? `“${confirm.title}” será removida da sua central. Esta ação não pode ser desfeita.` : ''}
+        description={confirm ? '“' + confirm.title + '” sai da sua central de notificações.' : ''}
         confirmLabel="Excluir"
       />
 
-      <RuleModal open={ruleModal} onClose={() => setRuleModal(false)} onCreate={addRule} />
     </div>
-  )
-}
-
-// ── Criação de regra de alerta ───────────────────────────────────────────────
-function RuleModal({ open, onClose, onCreate }) {
-  const [form, setForm] = useState({ name: '', category: CATEGORIES[0], level: 'ALTO', channel: CHANNELS[0] })
-  const [error, setError] = useState('')
-
-  const submit = (e) => {
-    e.preventDefault()
-    if (!form.name.trim()) { setError('Dê um nome à regra para reconhecê-la depois.'); return }
-    onCreate({
-      name: form.name.trim(),
-      trigger: `Nova ocorrência de urgência ${urgencyMeta[form.level]?.label || form.level} na categoria ${form.category}`,
-      channel: form.channel,
-    })
-    setForm({ name: '', category: CATEGORIES[0], level: 'ALTO', channel: CHANNELS[0] })
-    setError('')
-  }
-
-  return (
-    <Modal open={open} onClose={onClose} title="Nova regra de alerta" maxWidth="max-w-md">
-      <form onSubmit={submit} className="space-y-4">
-        <div>
-          <label htmlFor="regra-nome" className="mb-1 block text-xs font-medium muted">Nome da regra</label>
-          <input
-            id="regra-nome"
-            className="input"
-            value={form.name}
-            onChange={(e) => { setForm((f) => ({ ...f, name: e.target.value })); setError('') }}
-            placeholder="Ex.: Ocorrências graves na Amazônia Azul"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div>
-            <label htmlFor="regra-categoria" className="mb-1 block text-xs font-medium muted">Área monitorada</label>
-            <select
-              id="regra-categoria"
-              className="input"
-              value={form.category}
-              onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-            >
-              {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-          <div>
-            <label htmlFor="regra-nivel" className="mb-1 block text-xs font-medium muted">Urgência mínima</label>
-            <select
-              id="regra-nivel"
-              className="input"
-              value={form.level}
-              onChange={(e) => setForm((f) => ({ ...f, level: e.target.value }))}
-            >
-              {URGENCY_LEVELS.map((l) => (
-                <option key={l} value={l}>{urgencyMeta[l]?.label || l}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label htmlFor="regra-canal" className="mb-1 block text-xs font-medium muted">Canal de entrega</label>
-          <select
-            id="regra-canal"
-            className="input"
-            value={form.channel}
-            onChange={(e) => setForm((f) => ({ ...f, channel: e.target.value }))}
-          >
-            {CHANNELS.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </div>
-
-        {error && <p role="alert" className="text-sm text-red-800 dark:text-red-400">{error}</p>}
-
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <button type="button" onClick={onClose} className="btn-ghost justify-center">Cancelar</button>
-          <button type="submit" className="btn-primary justify-center"><Plus size={15} /> Criar regra</button>
-        </div>
-      </form>
-    </Modal>
   )
 }

@@ -36,12 +36,12 @@ e-mail de confirmação — então a instalação nasce com duas contas:
 | `usuario123` | `usuario123` | Usuário | O acervo já filtrado: clipping, **correlações**, mapas, incidentes, busca |
 | `admin123` | `admin123` | Administrador | \+ saúde da coleta, auditoria do filtro, chave do modelo e console de governança |
 
-> **A conta de administrador não é oferecida na interface.** Ela entra pelo
-> formulário normal, e está documentada aqui — que é onde quem sobe a instância
-> vai procurar. A vitrine chegou a ter três cartões explicando os perfis, com
-> um botão "Entrar como Administrador" e a senha ao lado: isso era organograma
-> para quem quer ler notícia, e um convite para quem não deveria passar.
-> Toda conta criada pelo cadastro nasce com papel `user`.
+> **As duas contas aparecem com um clique na tela de entrada** — primeiro a de
+> usuário, depois a de administrador —, e só enquanto a senha for a documentada.
+> O servidor confere isso contra o hash guardado: trocou a senha em *Minha conta
+> → Segurança*, o atalho some na hora. Enquanto `admin123` usar a senha padrão,
+> o painel do administrador mostra um alerta, porque qualquer visitante pode
+> entrar como administrador. Toda conta criada pelo cadastro nasce com papel `user`.
 
 Elas **não são contas de demonstração**, e a distinção não é de vocabulário:
 não existe modo demonstração nesta plataforma, nenhum dado é simulado, e o que
@@ -56,9 +56,12 @@ conferido no servidor a cada requisição.
 > entrada só oferece o atalho enquanto a senha for a padrão — trocou, o atalho
 > some.
 
-O papel `analyst` continua no modelo de permissão e nas rotas; o
-Administrador o alcança por herança (`admin` > `analyst` > `user`), então
-nenhuma tela fica inacessível por não haver uma terceira conta.
+A conta `usuario123`, enquanto usa a senha documentada, é de **uso
+compartilhado**: qualquer pessoa que leia este README entra nela. Por isso ela
+não troca nome, senha nem sessões e não guarda chave de IA — os outros
+visitantes gastariam o crédito de quem a colou. Quem quer esses controles cria a
+própria conta. O painel do administrador avisa, em vermelho, enquanto
+`admin123` ainda usar a senha padrão.
 
 **Entrar com conta Google está previsto e ainda não existe.** A estrutura já
 está pronta para recebê-lo sem remodelar nada — `users.username` é o
@@ -67,8 +70,9 @@ identificador local, `users.email` recebe o endereço do provedor e
 aceita usuário **ou** e-mail, então o formulário não muda quando o provedor
 chegar. Ver [ROADMAP.md](ROADMAP.md).
 
-O **Cadastro** existe como estrutura e cria conta com papel `user`. Promover
-alguém é ato de governança, não de autoatendimento.
+O **Cadastro** cria conta com papel `user`. Promover, rebaixar, suspender ou
+remover é feito no Console de Governança, com efeito na requisição seguinte da
+pessoa e registro na trilha de auditoria.
 
 ---
 
@@ -178,13 +182,14 @@ publicar.
 Uma correlação forte errada é pior que correlação nenhuma — é justamente a que
 o leitor não vai conferir, porque a força alta diz que não precisa.
 
-### Índice de vínculo com o Brasil
+### Relevância para o Brasil
 
-Cada matéria recebe um índice de 0 a 100 que mede **densidade de vínculo com o
-país**: órgãos, empresas, infraestrutura, UFs e setores reconhecidos, mais as
-correlações diretas com o acervo. Não é importância editorial nem risco. A
-explicação viaja junto do número, sempre — um índice sem método declarado é um
-número que ninguém pode contestar, e portanto não vale nada.
+Cada matéria recebe uma contagem interna de **vínculo com o país** — órgãos,
+empresas, infraestrutura, UFs e setores reconhecidos, mais as correlações
+diretas. Ela **ordena** listas como "Mais ligadas a entidades brasileiras" no
+clipping, e a tela mostra o que foi reconhecido no texto. O número em si não é
+exibido: um "82/100" ao lado da manchete parecia medir importância ou risco para
+o país, e não mede.
 
 ### A correlação não usa IA para ENCONTRAR, e isso é de propósito
 
@@ -228,7 +233,7 @@ resposta serve.
 | Nível | Horizonte | A pergunta | Telas |
 |---|---|---|---|
 | **Estratégico** | longo, agregado, sem nome próprio | *Como está o Brasil?* | **Mapa estratégico** · Economia & Defesa · Base Industrial · Radar Legislativo · Séries |
-| **Tático** | médio, por setor ou recorte | *O que acontece nesta área?* | Clipping Diário · Correlações · Confiabilidade das Fontes · Arquivo |
+| **Tático** | médio, por setor ou recorte | *O que acontece nesta área?* | Clipping Diário · Correlações · Arquivo |
 | **Operacional** | curto, com nome e data | *O que aconteceu, com quem, quando?* | Incidentes no Brasil · Grupos contra o Brasil |
 
 A mesma matéria pode aparecer nos três, em profundidades diferentes: um ataque a
@@ -254,16 +259,12 @@ duzentas, e o mapa deixaria de distinguir qualquer coisa.
 
 ### Notícia de fora que importa aqui
 
-Cada matéria recebe um **índice de vínculo com o Brasil**, de 0 a 100, que mede
-densidade de vínculo e não importância: órgãos, empresas, infraestrutura
-crítica, unidades da federação e setores brasileiros reconhecidos no texto, mais
-as correlações diretas com o acervo.
-
-É o que resolve a pergunta do noticiário estrangeiro. Uma matéria sobre a Rússia
-que cita a Embraer e o Ministério da Defesa pontua alto; uma sobre a Rússia que
-não toca nada brasileiro, zero. Sem julgamento editorial no meio — e o motivo do
-índice viaja ao lado do número na tela, porque índice sem método declarado é
-número que ninguém pode contestar.
+A contagem de vínculo com o Brasil — órgãos, empresas, infraestrutura crítica,
+unidades da federação e setores brasileiros reconhecidos no texto, mais as
+correlações diretas com o acervo — é o que resolve a pergunta do noticiário
+estrangeiro. Uma matéria sobre a Rússia que cita a Embraer e o Ministério da
+Defesa sobe na lista; uma que não toca nada brasileiro, não. Sem julgamento
+editorial no meio, e com as entidades reconhecidas à vista.
 
 ### O que saiu da tela de grupos, e por quê
 
@@ -335,20 +336,17 @@ chave, paga o próprio consumo, e o projeto não intermedeia nada.
 | **Resumo do período** | Um modelo lê as matérias aprovadas da edição e escreve o parágrafo de abertura |
 | **Perguntar ao acervo** | Pergunta livre respondida **somente** com o que a coleta trouxe |
 | **O que esta ligação significa** | A leitura de uma correlação — o salto que a regra não pode dar sem inventar |
-| **Análise assistida** | Você escolhe até 15 matérias; o modelo escreve o *contexto no Brasil* e o *impacto possível* de cada uma |
+| **Análise assistida** | Você escolhe até 15 matérias (pela busca ou à mão); o modelo escreve o *contexto* e o *impacto possível* de cada uma e a leitura do conjunto |
 | **Resumão da semana** | Sete dias em quatro blocos fixos: o que dominou, o que toca o Brasil, o que mudou de estado, o que acompanhar |
 | **Visita guiada** | Um assistente que explica as telas, os conceitos e o que a plataforma **não** faz — e responde pergunta livre quando há chave |
 | **Onde se liga** | Minha conta → *Segurança*, em qualquer conta |
 
-### O índice de vínculo é contado, não escrito
+### O modelo escreve prosa, não números
 
-Na análise assistida o modelo escreve a **prosa** e a plataforma conta o
-**número**. A separação não é detalhe de implementação: um valor saído de um
-modelo é indistinguível de um apurado, e quem lê não tem como saber qual dos
-dois está vendo. `78/100` escrito por máquina parece exatamente com `78/100`
-contado do catálogo de entidades.
-
-Cada campo aparece com o próprio rótulo — *escrito por máquina* ou *contado*.
+Nenhum número da plataforma sai de modelo. O resumo e a análise são texto,
+marcados como *escrito por máquina*; contagens, índices e níveis são calculados
+pelo servidor. Um valor saído de um modelo é indistinguível de um apurado, e
+quem lê não tem como saber qual dos dois está vendo.
 
 ### E a citação é conferida antes de aparecer
 
@@ -463,57 +461,45 @@ coleta — a plataforma abre com dado real dentro, em cerca de 5 segundos.
 
 Não há chave de API a configurar. Não há arquivo `.env` obrigatório.
 
-### Os quatro perfis
+### Os papéis
 
-São quatro, e cada um responde a uma pergunta diferente:
+| Quem | A pergunta dela | O que alcança |
+|---|---|---|
+| **Visitante** | vale a pena entrar? | página inicial, centro educacional, sobre |
+| **Usuário** | o que aconteceu? | painel, clipping, correlações, mapa, dados, ameaças, busca, pasta, assistente por IA com a própria chave |
+| **Administrador** | a instalação está de pé? | tudo o que o usuário alcança, mais Console de Governança, Método & Coleta e Disponibilidade das Fontes |
 
-| Perfil | A pergunta dele | Tela própria | Barrado em |
-|---|---|---|---|
-| **Visitante** | vale a pena entrar? | apresentação, níveis de acesso, centro educacional | todo o resto |
-| **Usuário** | o que aconteceu? | os três níveis de inteligência, mapa, clipping, busca | `/coleta`, `/fontes` e `/admin` |
-| **Analista** | a coleta está saudável? | **Mesa de análise** + **Método & Coleta** | `/admin` |
-| **Administrador** | a plataforma está de pé? | **Console de governança** | — |
-
-As credenciais das duas contas iniciais estão em
-[Entre e veja](#entre-e-veja), no topo. Visitante e Analista são **arquétipos**,
-não contas: descrevem o que cada papel enxerga. O Administrador alcança o
-Analista por herança (`admin` > `analyst` > `user`), então nenhuma tela fica
-inacessível por não existir uma terceira conta.
+Não há terceiro papel. Houve um "Analista" no modelo de permissão, sem nenhuma
+conta dentro, e três planos de assinatura sem cobrança do outro lado — os dois
+saíram da interface e das rotas.
 
 O **Cadastro** cria conta de verdade: senha guardada como hash *scrypt* com sal
-por conta. Toda conta nova nasce com papel `user` — promover alguém é ato de
-governança, não de autoformulário.
+por conta. Toda conta nova nasce com papel `user`.
 
 > **A verificação acontece no SERVIDOR.** O login devolve um token HMAC-SHA256
-> com papel e validade; cada rota protegida passa por `exigirPapel()`, que
-> responde **401** sem sessão e **403** com papel insuficiente. Trocar o papel
-> no `localStorage` não abre nada — ele vem do token assinado, não do cliente.
-> `npm run check:auth` percorre quatro identidades contra cada rota protegida e
-> confere o código de cada resposta — inclusive nas rotas que MUDAM estado, que
-> é onde a ausência de guarda custa caro.
+> que só identifica; papel, situação e marco de revogação são lidos do banco a
+> cada requisição. Cada rota protegida passa por `exigirPapel()`, que responde
+> **401** sem sessão e **403** com papel insuficiente. Suspender, remover ou
+> rebaixar uma conta vale na requisição seguinte, e trocar a senha derruba as
+> outras sessões. `npm run check:auth` percorre cada identidade contra cada rota
+> protegida — inclusive as que MUDAM estado.
 
-#### Não há plano, porque não há cobrança
+#### A própria conta
 
-O modelo de permissão nasceu com **dois eixos** — PAPEL (o que a pessoa faz) e
-PLANO (o quanto ela vê) —, e o segundo existia para sustentar uma assinatura
-que nunca existiu: preços em três colunas, desconto anual de 17%, faturas
-desenhadas no navegador com cartão terminado em 4242.
+Em **Minha conta** a pessoa troca o nome de exibição, troca a senha (pedindo a
+atual) e encerra as sessões abertas em outros navegadores — tudo no servidor.
+E-mail não é editável: é identificador de entrada, e trocá-lo exigiria confirmar
+posse do novo endereço, o que pede envio de e-mail.
 
-Sendo o projeto de código aberto, **toda conta nasce com o nível de leitura
-completo** (`institucional`), e o que separa os perfis é só o papel.
+#### Governança
 
-O eixo do plano continua no código — o servidor devolve a coluna `plan` no login
-e ela viaja no token —, mas **nada na interface o altera**. Houve uma página de
-Níveis de acesso que permitia rebaixá-lo, para ver a plataforma pelos olhos de
-quem alcança menos; ela saiu junto com a última explicação de perfis dirigida a
-quem só quer acompanhar segurança e defesa. Na prática, portanto, nenhum
-bloqueio por nível aparece: os muros continuam implementados para o caso de uma
-instalação semear conta com nível menor, e nesse caso explicam o motivo em vez
-de mostrar tela vazia.
-
-A conta do Usuário tinha nível `profissional`, que liberava POR PLANO
-exatamente o que o Analista tem POR PAPEL. Era essa a razão de as duas visões
-parecerem idênticas, e foi ela que motivou separar os eixos em vez de somá-los.
+O **Console de Governança** promove e rebaixa, suspende e reativa, e remove
+contas (com a pasta e os resumos gerados com a chave delas); gera **senha
+temporária** para quem esqueceu a sua — a senha aparece uma vez, as sessões da
+conta caem e só o ato vai para a auditoria, nunca o valor; pausa e religa
+fontes; dispara coleta completa ou de uma fonte. Duas travas são do servidor:
+ninguém altera a própria conta, e a instalação nunca fica sem administrador
+ativo. Cada ato vai para a **trilha de auditoria** com o nome de quem o fez.
 
 ### Outros comandos
 
@@ -525,7 +511,7 @@ parecerem idênticas, e foi ela que motivou separar os eixos em vez de somá-los
 | `npm start` | Serve API **e** interface compilada num processo só |
 | `npm run collect` | Dispara uma coleta pela linha de comando |
 | `npm run check` | Percorre a API e valida a FORMA de cada resposta, não só o status |
-| `npm run check:auth` | Percorre quatro identidades contra cada rota protegida — inclusive as que mudam estado |
+| `npm run check:auth` | Percorre sem sessão, usuário e administrador contra cada rota protegida — inclusive as que mudam estado |
 | `npm run check:ia` | Conferência contra alucinação, com respostas forjadas. Sem chave, sem rede, sem custo |
 | `npm run reclassify` | Reaplica as regras de relevância ao acervo já coletado |
 | `npm run reset:db` | Apaga o banco (pergunta antes) |
@@ -553,7 +539,7 @@ parecerem idênticas, e foi ela que motivou separar os eixos em vez de somá-los
 São **50 feeds RSS** mais as APIs de governo acima. Um agendador roda a coleta a
 cada 30 minutos, com trava contra sobreposição; cada execução fica registrada
 com duração e resultado — a trilha que a aba **Auditoria** do console exibe e
-que a tela **Método & Coleta** do Analista mostra execução por execução.
+que a tela **Método & Coleta**, do administrador, mostra execução por execução.
 
 **Feeds da raiz do gov.br.** Polícia Federal, Ministério da Justiça, GSI,
 ABIN, Defesa Civil (MIDR) e Itamaraty desativaram o RSS da *pasta* de notícias
@@ -685,7 +671,7 @@ mostra a decisão item a item.
 ## Endpoints
 
 Todos sob `/api`. A coluna **Guarda** diz o papel mínimo: rota sem guarda é
-pública, `user` exige sessão, `analyst` e `admin` exigem o papel. A verificação
+pública, `user` exige sessão, `admin` exige o papel. A verificação
 é do SERVIDOR — 401 sem sessão, 403 com papel insuficiente —, e
 `npm run check:auth` percorre cada identidade contra cada rota protegida,
 inclusive as que MUDAM estado.
@@ -722,13 +708,13 @@ inclusive as que MUDAM estado.
 | Método | Rota | Guarda | O que faz |
 |---|---|---|---|
 | `GET` | `/legislative` | — | Proposições coletadas |
-| `POST` | `/legislative/:id/refresh` | `analyst` | Consulta a tramitação na Câmara, ao vivo |
+| `POST` | `/legislative/:id/refresh` | `admin` | Consulta a tramitação na Câmara, ao vivo |
 | `GET` | `/economy/indicators` | — | Séries do World Bank + câmbio do Banco Central |
 | `GET` | `/economy/bcb` | — | Dólar, euro, IPCA, Selic e IGP-M — atualizados no dia |
 | `GET` | `/economy/exports` | — | Exportações de aeronaves e armamento (Comex Stat) |
 | `GET` | `/economy/comparison?code=` | — | Brasil × vizinhos no mesmo indicador |
 | `GET` | `/sources/summary` | — | Quantas fontes existem e quantas responderam |
-| `GET` | `/sources` | `analyst` | Fontes com telemetria: erro, confiabilidade, contagem |
+| `GET` | `/sources` | `admin` | Fontes com telemetria: erro, disponibilidade, contagem |
 | `PATCH` | `/sources/:id` | `admin` | Habilita/desabilita uma fonte |
 | `GET` | `/search?q=` | — | Busca em notícias, proposições e fontes |
 
@@ -738,16 +724,23 @@ inclusive as que MUDAM estado.
 | `POST` | `/auth/login` | — | Aceita **usuário ou e-mail**; devolve token assinado |
 | `POST` | `/auth/register` | — | Cria conta com papel `user` |
 | `GET` | `/auth/me` | — | Quem é o portador deste token |
-| `GET` | `/auth/contas` | — | As contas iniciais — **sem a senha**, só se ela ainda é a padrão |
+| `GET` | `/auth/contas` | — | As contas iniciais e se ainda usam a senha padrão (conferido no hash) — **nunca a senha** |
+| `PATCH` | `/auth/me` | `user` | Troca o nome de exibição |
+| `PUT` | `/auth/senha` | `user` | Troca a senha com a atual; derruba as outras sessões |
+| `POST` | `/auth/sessoes/encerrar` | `user` | Encerra todas as outras sessões desta conta |
 | `GET` | `/users` | `admin` | As contas que existem no banco desta instalação |
+| `PATCH` | `/users/:id` | `admin` | Papel (`user`/`admin`) e situação (`ativo`/`suspenso`), com efeito imediato |
+| `DELETE` | `/users/:id` | `admin` | Remove a conta, a pasta e os resumos dela |
+| `POST` | `/users/:id/senha-temporaria` | `admin` | Gera senha temporária, derruba as sessões e a devolve uma vez |
 
 ### Sistema
 | Método | Rota | Guarda | O que faz |
 |---|---|---|---|
-| `GET` | `/system/status` | `admin` | Estado de cada capacidade, derivado do banco |
-| `GET` | `/system/runs` | `analyst` | Histórico de execuções da coleta |
-| `GET` | `/system/method` | `analyst` | Como o filtro decide, com amostra do que recusou |
-| `POST` | `/system/method/test` | `analyst` | **Testa a regra num texto qualquer** |
+| `GET` | `/system/status` | `admin` | Estado de cada capacidade, derivado do banco, e alertas de segurança |
+| `GET` | `/system/audit` | `admin` | Trilha de auditoria: atos de governança e execuções de coleta |
+| `GET` | `/system/runs` | `admin` | Histórico de execuções da coleta |
+| `GET` | `/system/method` | `admin` | Como o filtro decide, com amostra do que recusou |
+| `POST` | `/system/method/test` | `admin` | **Testa a regra num texto qualquer** |
 | `POST` | `/system/collect` | `admin` | Dispara a coleta completa |
 | `POST` | `/system/collect/:sourceId` | `admin` | Coleta uma fonte só (diagnóstico) |
 | `GET` | `/health` | — | Sonda de saúde (usada pelo Railway) |
@@ -779,83 +772,20 @@ inclusive as que MUDAM estado.
 └── src/                        Interface — React + Vite
     ├── services/
     │   ├── client.js           única porta para dados
-    │   └── apiBridge.js        ponte: API real ↔ acervo local
-    ├── auth/permissions.js     os quatro perfis e o mapa de capacidades
-    ├── data/                   acervo local + conteúdo editorial
+    │   └── apiBridge.js        ponte: endpoint da tela ↔ rota da API
+    ├── auth/permissions.js     visitante, usuário, administrador e capacidades
+    ├── data/                   taxonomias e conteúdo educacional
     ├── components/
     └── pages/                  uma por rota (30 rotas)
 ```
 
 ### A ponte
 
-O front nasceu antes da API, com 30 telas alimentadas por um acervo local.
-Ligá-lo ao servidor tinha dois caminhos: reescrever as telas uma a uma, ou
-interceptar num ponto só. A ponte é o segundo.
-
-`apiBridge.js` registra os endpoints que o servidor sabe responder. Antes de
-cair no acervo local, `client.js` pergunta se a API está no ar; se estiver, o
-dado vem coletado de verdade e a resposta é marcada como `live`. Se a API
-falhar no meio do caminho, a chamada cai para o acervo e é marcada como
-erro — e a tela diz isso, em vez de desenhar um gráfico plausível.
-
-Não há resolvedor local nem modo alternativo. O cliente já teve três caminhos
-— ponte, acervo local e um "modo demonstração" que era o **padrão** — e restou
-um. Se a API não responde, a consulta falha e a tela mostra erro; nenhum número
-aparece sem ter vindo de uma fonte.
-
-| `meta.source` | O que significa |
-|---|---|
-| `live` | veio da API |
-| `config` | configuração do produto (perfis de acesso, termos sugeridos) |
-
-Nenhuma tela precisou ser reescrita: o projeto já tinha esse ponto de entrada
-(`DATA_MODE` em `client.js`), e era exatamente onde a ponte cabia.
-
-Hoje passam pela ponte: notícias, clipping, volume, radar legislativo, fontes,
-busca, saúde e diagnóstico.
-
-### Decisões que valem explicação
-
-**Um processo serve tudo.** Em produção o mesmo servidor Node entrega a API e a
-interface compilada. É a escolha certa para o Railway: um serviço, uma URL, e
-nenhuma requisição entre origens — portanto nenhum CORS para depurar. Em
-desenvolvimento, o Vite faz proxy de `/api` para a porta 3001, então o front usa
-caminho relativo nos dois casos.
-
-**SQLite pelo módulo nativo do Node.** `node:sqlite` evita `better-sqlite3`, que
-compila binário nativo. `npm install` funciona na primeira tentativa em qualquer
-máquina, sem toolchain de C++ — e no Railway evita builds longos.
-
-**O parser cobre três dialetos porque as fontes usam três.** RSS 2.0, Atom e
-RSS 1.0/RDF. O terceiro custou caro: o feed do gov.br guarda a data em
-`<dc:date>`, e sem lê-la todo item do Ministério da Defesa entrava com data
-nula. A coleta *parecia* funcionar — dezenas de itens gravados, nenhum erro —
-mas o clipping filtra por período e mostrava vazio. Falha silenciosa.
-
-**Carimbos com fuso explícito.** Tudo em ISO-8601 com `Z`. O padrão do SQLite
-(`2026-08-26 22:09:47`) é UTC mas não declara: o JavaScript o lê como hora local
-e, no Brasil, tudo aparece três horas no futuro.
-
-**Fontes que recusam cliente automatizado não ficam cadastradas.** Poder360,
-Marinha e FAB devolvem HTTP 403; o Exército não publica RSS. Cadastrá-las
-encheria o painel de erro permanente que ninguém pode consertar — e erro que não
-se conserta vira erro que se ignora. Estão documentadas em `/fontes`.
-
-**O mapa mede cobertura, não risco — e a legenda passou a dizer isso.**
-As cores eram rotuladas "Baixo · Moderado · Alto · **Crítico**", com vermelho no
-topo, sobre uma escala que conta menções. A interface afirmava o contrário do
-que o código sabia: um país vermelho com "Crítico" ao lado é lido como perigo,
-e a ressalva no rodapé não desfaz o que a cor já disse. A paleta virou rampa de
-intensidade numa cor só, o Brasil recebe a cor da marca com o selo *âncora*
-(fica fora da escala porque, como teto, pintaria o mundo de cinza), e o país é
-escolhido por **clique ou por uma lista com busca** — antes o cursor
-atravessando o mapa trocava o dossiê inteiro, o que tornava a seleção
-inutilizável.
-
- `/mapa` conta menções a unidades da
-federação no texto das notícias. Uma notícia de orçamento citando Brasília pesa
-igual a uma operação de fronteira citando Roraima — e a tela diz isso antes do
-desenho, não depois.
+`apiBridge.js` registra, para cada endpoint que uma tela pede, a rota do servidor
+que o responde e a transformação da resposta para a forma que a tela consome.
+Não há acervo local de reserva: se a API não responde, a consulta falha e a tela
+mostra o erro. Uma resposta **401** com token enviado derruba a sessão na
+interface, e a pessoa vê o aviso de que precisa entrar de novo.
 
 ---
 

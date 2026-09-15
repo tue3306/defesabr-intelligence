@@ -41,6 +41,12 @@ export default function ChaveDaIa() {
   const ia = useIa()
   const [chave, setChave] = useState('')
   const [modelo, setModelo] = useState('')
+  // Estados SEPARADOS para a instalação. O campo da chave da instalação
+  // escrevia no mesmo estado do campo pessoal: o que se digitava num aparecia
+  // no outro, e "Guardar" da conta gravava na conta a chave que era para ser
+  // da instalação.
+  const [chaveInstalacao, setChaveInstalacao] = useState('')
+  const [modeloInstalacao, setModeloInstalacao] = useState('')
   const [salvando, setSalvando] = useState(false)
   const [abrirInstalacao, setAbrirInstalacao] = useState(false)
 
@@ -96,11 +102,22 @@ export default function ChaveDaIa() {
 
       <p className="mt-3 text-sm muted">
         {ia.configurada
-          ? 'O resumo do período no Clipping e as perguntas ao acervo estão disponíveis. Todo texto gerado aparece marcado como escrito por máquina — nenhuma tela o apresenta como apuração da plataforma.'
-          : 'Cole a sua chave da Anthropic para ligar o resumo do período e as perguntas ao acervo. Sem ela, os campos de síntese ficam vazios com a nota explicando o motivo, e nada mais na plataforma muda.'}
+          ? 'Ligados: resumo da semana, perguntas ao acervo, análise assistida de matérias escolhidas e perguntas ao guia. Todo texto gerado aparece marcado como escrito por máquina.'
+          : 'Com uma chave da Anthropic, ligam-se o resumo da semana, as perguntas ao acervo, a análise assistida de matérias escolhidas e as perguntas ao guia. Sem ela, o resto da plataforma funciona igual.'}
       </p>
 
+      {/* CONTA COMPARTILHADA NÃO GUARDA CHAVE — os outros visitantes gastariam
+        * o crédito de quem a colou. O servidor recusa; a tela explica antes. */}
+      {ia.contaCompartilhada && (
+        <p className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm leading-relaxed dark:border-white/10 dark:bg-white/[0.03]">
+          Esta é a conta de <strong>uso compartilhado</strong> do projeto, e não guarda chave própria:
+          qualquer pessoa que entrasse nela usaria o seu crédito. Crie a sua conta pelo cadastro
+          para usar a sua chave.
+        </p>
+      )}
+
       {/* ── A CHAVE DA PRÓPRIA CONTA ── */}
+      {!ia.contaCompartilhada && (
       <div className="mt-4 space-y-4">
         <div>
           <label htmlFor="ia-chave" className="mb-1 block text-sm font-medium">
@@ -161,6 +178,7 @@ export default function ChaveDaIa() {
           <p className="mt-1.5 text-xs muted">Vazio herda o padrão ({ia.modeloPadrao}).</p>
         </div>
       </div>
+      )}
 
       {/* ── A CHAVE DA INSTALAÇÃO, SÓ PARA QUEM ADMINISTRA ── */}
       {ia.podeConfigurarInstalacao && (
@@ -197,15 +215,16 @@ export default function ChaveDaIa() {
                     spellCheck={false}
                     placeholder="sk-ant-… (reserva da instalação)"
                     aria-label="Chave da instalação"
-                    onChange={(e) => setChave(e.target.value)}
+                    value={chaveInstalacao}
+                    onChange={(e) => setChaveInstalacao(e.target.value)}
                     className="min-w-[15rem] flex-1"
                   />
                   <button
                     onClick={() => comAviso(async () => {
-                      await salvarChaveIa(chave.trim())
-                      setChave('')
+                      await salvarChaveIa(chaveInstalacao.trim())
+                      setChaveInstalacao('')
                     }, 'Chave da instalação guardada.')}
-                    disabled={salvando || chave.trim().length < 12}
+                    disabled={salvando || chaveInstalacao.trim().length < 12}
                     className="btn-ghost"
                   >
                     Guardar
@@ -215,11 +234,26 @@ export default function ChaveDaIa() {
                       Remover
                     </button>
                   )}
-                  <button onClick={() => comAviso(() => salvarModeloIa(modelo.trim()), 'Modelo da instalação atualizado.')} className="btn-ghost">
-                    Definir modelo padrão
-                  </button>
                 </div>
               )}
+              <div className="mt-3 flex flex-wrap gap-2">
+                <input
+                  type="text"
+                  spellCheck={false}
+                  placeholder={`modelo padrão (${ia.modeloPadrao})`}
+                  aria-label="Modelo padrão da instalação"
+                  value={modeloInstalacao}
+                  onChange={(e) => setModeloInstalacao(e.target.value)}
+                  className="min-w-[15rem] flex-1"
+                />
+                <button
+                  onClick={() => comAviso(() => salvarModeloIa(modeloInstalacao.trim()), 'Modelo padrão da instalação atualizado.')}
+                  disabled={salvando}
+                  className="btn-ghost"
+                >
+                  Definir modelo padrão
+                </button>
+              </div>
             </div>
           )}
         </div>

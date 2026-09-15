@@ -29,7 +29,9 @@ import { useExportacoes } from '../hooks/useDadosReais'
 // compõe a BID, não métrica inventada.
 // -----------------------------------------------------------------------------
 
-const fmtUSD = (bi) => `US$ ${String(bi).replace('.', ',')} bi`
+const fmtUSD = (bi) => `US$ ${Number(bi).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} bi`
+// Estava `US$ {valor} mi` direto: "US$ 1911.7 mi", com ponto decimal inglês.
+const fmtUSDmi = (mi) => `US$ ${Number(mi).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mi`
 
 export default function DefenseIndustry() {
   const exp = useExportacoes()
@@ -56,7 +58,7 @@ export default function DefenseIndustry() {
           <span className="inline-flex items-center gap-2 rounded-full bg-brand-500/15 px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-200">
             <Factory size={14} /> Base Industrial de Defesa
           </span>
-          <h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Indústria &amp; Exportações</h1>
+          <h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Base Industrial (BID): exportações</h1>
           <p className="mt-2 max-w-2xl text-gray-300">
             O que o Brasil exportou nos capítulos de aeronaves e de armamento, segundo o
             Comex Stat do Ministério do Desenvolvimento, Indústria e Comércio.
@@ -143,7 +145,7 @@ export default function DefenseIndustry() {
                       />
                     </span>
                     <span className="w-24 shrink-0 text-right font-mono text-sm font-bold tabular-nums">
-                      US$ {p.valorUSDmi} mi
+                      {fmtUSDmi(p.valorUSDmi)}
                     </span>
                   </div>
                 )

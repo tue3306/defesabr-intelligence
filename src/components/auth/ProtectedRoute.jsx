@@ -1,202 +1,114 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  Lock, ShieldCheck, Bot, FileDown, Sparkles, ArrowRight, ShieldAlert, Check,
-  UserCog, PenTool,
+  Lock, ShieldCheck, Bot, FileDown, Sparkles, ArrowRight, Check, UserCog, LogIn, UserPlus,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../../store/authStore'
-import { useContasIniciais, ROTULO_PAPEL } from '../../auth/useContasIniciais'
+import { useContasIniciais } from '../../auth/useContasIniciais'
 import { useGate } from '../../auth/useCan'
-import { CAPABILITIES, PLAN_LABELS, PROFILES } from '../../auth/permissions'
+import { ROLE_LABELS } from '../../auth/permissions'
+import AuthModal from './AuthModal'
 
 // O que a conta REALMENTE dá. Esta lista prometia "dossiês, cenários e
 // programas estratégicos" e "mesa do analista" — telas que foram removidas por
 // exibirem texto escrito à mão. Prometer na porta o que não existe lá dentro é
 // a pior hora de mentir: o visitante entra justamente para conferir.
 const BENEFITS = [
-  { icon: Bot, text: 'Painel de situação, cobertura por país e clipping diário' },
-  { icon: Sparkles, text: 'Busca no acervo, arquivo pessoal e séries econômicas' },
+  { icon: Bot, text: 'Painel de situação, correlações entre notícias e clipping diário' },
+  { icon: Sparkles, text: 'Assistente por IA com a sua chave: resumo da semana e análise assistida' },
   { icon: FileDown, text: 'Exportação do clipping em PDF e das séries em CSV' },
 ]
 
-// Textos do bloqueio por PAPEL, por perfil exigido.
-const ROLE_WALL = {
-  // NÃO HÁ CONTA DE ANALISTA, ENTÃO NÃO HÁ BOTÃO.
-  //
-  // O papel existe no modelo de permissão e nas rotas, e o Administrador o
-  // alcança por herança — mas a instalação semeia duas contas, e nenhuma delas
-  // é analista. O botão chamava `entrar('analyst')`, que procura uma conta com
-  // esse papel e não encontra nenhuma: um clique que não podia dar certo.
-  analyst: {
-    icon: PenTool,
-    papel: null,
-    title: 'Área de monitoramento da coleta',
-    desc: 'Esta área é de quem opera a plataforma — inspeciona o filtro de relevância, acompanha as fontes e audita as execuções.',
-    perks: [
-      'Método do filtro de relevância, com teste ao vivo em qualquer texto',
-      'Disponibilidade medida de cada fonte cadastrada',
-      'Histórico de execuções dos coletores, com duração e erro',
-    ],
-    cta: 'Voltar ao painel',
-  },
-  // O BOTÃO DE ENTRAR COMO ADMINISTRADOR SAIU.
-  //
-  // `papel: null` faz o muro descrever a seção sem oferecer a porta — quem
-  // administra a instalação já tem a credencial e entra pelo formulário. O
-  // botão convidava justamente quem não deveria passar.
-  admin: {
-    icon: UserCog,
-    papel: null,
-    title: 'Área de governança da instalação',
-    desc: 'Esta seção é de quem opera a plataforma — fontes de coleta, auditoria do filtro e '
-      + 'saúde dos serviços. Não há nada aqui para quem consulta o acervo.',
-    perks: [
-      'Estado real de cada capacidade da plataforma, derivado do banco',
-      'Disparar coleta manualmente, no total ou por fonte',
-      'Trilha de auditoria e saúde dos serviços',
-    ],
-    cta: 'Voltar ao painel',
-  },
+// O único bloqueio por papel que existe: a área de quem opera a instalação.
+// Sem botão de "entrar como administrador" — quem administra já tem a
+// credencial, e o botão convidaria justamente quem não deveria passar.
+const MURO_ADMIN = {
+  title: 'Área de quem opera a instalação',
+  desc: 'Contas, fontes de coleta, auditoria e saúde dos serviços. Não há nada aqui para quem '
+    + 'consulta o acervo — e a restrição é conferida no servidor, não só no menu.',
+  perks: [
+    'Estado real de cada capacidade da plataforma, derivado do banco',
+    'Disparar coleta manualmente, no total ou por fonte',
+    'Trilha de auditoria e saúde dos serviços',
+  ],
 }
 
 // Bloqueia o conteúdo até autenticar e, opcionalmente, exige uma capacidade.
-// O bloqueio explica se é por PLANO (profundidade) ou por PAPEL (produção /
-// governança) — e sempre oferece o caminho de saída.
-export default function ProtectedRoute({ children, permission, capability }) {
+export default function ProtectedRoute({ children, capability }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  const { contas, entrarComo } = useContasIniciais()
-  // `capability` é o nome novo; `permission` fica por compatibilidade.
-  const required = capability || permission
-  const gate = useGate(required)
+  // Só consulta as contas iniciais quando o muro de entrada vai aparecer.
+  const { contas, entrarComo } = useContasIniciais({ ativo: !isAuthenticated })
+  const gate = useGate(capability)
+  const [auth, setAuth] = useState(null) // 'entrar' | 'cadastrar' | null
 
-  // Login real contra a conta de exemplo do papel escolhido.
   const entrar = async (papel) => {
     const r = await entrarComo(papel)
-    if (r?.ok) toast.success(`Conectado como ${ROTULO_PAPEL[papel]}`)
+    if (r?.ok) toast.success(`Conectado como ${ROLE_LABELS[papel] || papel}`)
     else toast.error(r?.error || 'Não foi possível entrar.')
   }
 
-  // 1) Não autenticado → muro de login com as 3 personas autenticáveis.
+  // 1) Sem sessão → entrar, criar conta ou usar a conta inicial oferecida.
   if (!isAuthenticated) {
+    const atalhos = contas.filter((c) => c.senhaPadrao)
     return (
-      <Wall
-        icon={Lock}
-        chip={{ icon: ShieldCheck, text: 'Área restrita · requer login', tone: 'amber' }}
-        title="Entre para acessar esta seção"
-        description="Projeto de código aberto: entre com uma das contas iniciais, ou crie a sua."
-        list={BENEFITS.map((b) => ({ icon: b.icon, text: b.text }))}
-      >
-        <p className="mt-6 text-xs font-semibold uppercase tracking-wide muted">Contas iniciais</p>
-        {/* CENTRALIZADO, E SEM GRADE FIXA.
-          *
-          * Era `sm:grid-cols-3`, de quando havia TRES contas de exemplo. Com
-          * duas, os botoes ocupavam duas das tres colunas e encostavam a
-          * esquerda, deixando um vao a direita sob um titulo centralizado — o
-          * desalinhamento que denuncia que o layout foi feito para outra
-          * quantidade.
-          *
-          * `flex` com `justify-center` nao depende da contagem: serve para
-          * duas contas hoje e para quantas a instalacao semear amanha.
-          *
-          * A chave era `c.email`, campo que `/auth/contas` deixou de devolver
-          * quando as contas passaram a entrar por nome de usuario — as duas
-          * ficavam com `key={undefined}`. */}
-        <div className="mt-2 flex flex-wrap justify-center gap-2">
-          {contas.map((c, i) => (
-            <button
-              key={c.username || c.role}
-              onClick={() => entrar(c.role)}
-              className={`${i === 0 ? 'btn-primary' : 'btn-ghost'} min-w-[9.5rem] justify-center`}
-            >
-              {ROTULO_PAPEL[c.role] || c.role} {i === 0 && <ArrowRight size={15} />}
+      <>
+        <Wall
+          icon={Lock}
+          chip={{ icon: ShieldCheck, text: 'Área restrita · requer login', tone: 'amber' }}
+          title="Entre para acessar esta seção"
+          description="Entre com a sua conta ou crie uma — toda conta alcança a plataforma por completo."
+          list={BENEFITS}
+        >
+          {/* Havia só os botões das contas iniciais. Numa instalação que trocou
+            * a senha delas, o muro ficava sem saída nenhuma — nem entrar, nem
+            * criar conta. */}
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
+            <button onClick={() => setAuth('entrar')} className="btn-primary min-w-[9.5rem] justify-center">
+              <LogIn size={15} /> Entrar
             </button>
-          ))}
-        </div>
-        <p className="mt-3 text-center text-xs muted">
-          Conta real deste projeto aberto — o acervo que ela mostra é o coletado das fontes
-          públicas, sem nenhum dado simulado. Você também pode criar a sua: toda conta nova
-          alcança a plataforma por completo.
-        </p>
-      </Wall>
+            <button onClick={() => setAuth('cadastrar')} className="btn-ghost min-w-[9.5rem] justify-center">
+              <UserPlus size={15} /> Criar conta
+            </button>
+          </div>
+          {atalhos.length > 0 && (
+            <>
+              <div className="mt-3 flex flex-wrap justify-center gap-2">
+                {atalhos.map((c) => (
+                  <button
+                    key={c.username}
+                    onClick={() => entrar(c.role)}
+                    className="inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:underline dark:text-brand-300"
+                  >
+                    Entrar como {ROLE_LABELS[c.role] || c.role} <span className="font-mono">({c.username})</span> <ArrowRight size={14} />
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-center text-xs muted">
+                Contas públicas do projeto, com o acervo real. Para ter nome, senha e chave de IA
+                próprios, crie a sua conta.
+              </p>
+            </>
+          )}
+        </Wall>
+        <AuthModal open={!!auth} onClose={() => setAuth(null)} abaInicial={auth || 'entrar'} />
+      </>
     )
   }
 
-  // 2) Autenticado, mas sem a capacidade → explica se é PLANO ou PAPEL.
-  if (required && !gate.allowed) {
-    const capLabel = CAPABILITIES[required]?.label
-
-    // ── Bloqueio por PLANO ──
-    if (gate.reason === 'plan') {
-      const planLabel = PLAN_LABELS[gate.requiredPlan] || 'Profissional'
-      return (
-        <Wall
-          icon={ShieldAlert}
-          chip={{ icon: Lock, text: 'Bloqueado pelo plano', tone: 'gold' }}
-          title={`Recurso do plano ${planLabel}`}
-          description={
-            capLabel
-              ? `“${capLabel}” faz parte da profundidade analítica do plano ${planLabel}.`
-              : `Esta seção faz parte da profundidade analítica do plano ${planLabel}.`
-          }
-          list={[
-            { text: 'Radar legislativo e séries econômicas completas' },
-            { text: 'Exportação do clipping em PDF e das séries em CSV' },
-            { text: 'Filtros avançados, alertas e modo apresentação' },
-          ]}
-        >
-          {/* NÃO HÁ O QUE COMPRAR, ENTÃO NÃO HÁ "VER PLANOS".
-            * Toda conta nasce com o nível de leitura completo. Chegar a este
-            * muro significa que o nível foi REBAIXADO de propósito na página
-            * de Níveis de acesso, para ver a plataforma pelos olhos de quem
-            * alcança menos — e o caminho de volta é o mesmo lugar. */}
-          {/* Este muro ficou INALCANÇÁVEL na prática: toda conta nasce com o
-            * nível completo e a tela que permitia rebaixá-lo saiu. Ele fica
-            * porque o eixo continua no modelo de permissão — se uma instalação
-            * semear conta com nível menor, o bloqueio explica o motivo em vez de
-            * mostrar tela vazia. O que não faz é oferecer uma saída que não
-            * existe mais. */}
-          <div className="mt-6 flex flex-wrap justify-center gap-2">
-            <Link to="/painel" className="btn-primary">
-              Voltar ao painel <ArrowRight size={15} />
-            </Link>
-          </div>
-        </Wall>
-      )
-    }
-
-    // ── Bloqueio por PAPEL ──
-    const wall = ROLE_WALL[gate.requiredRole] || ROLE_WALL.admin
-    const target = PROFILES[gate.requiredRole]
+  // 2) Autenticado, mas sem o papel → a área é de administração.
+  if (capability && !gate.allowed) {
     return (
       <Wall
-        icon={wall.icon}
-        chip={{ icon: Lock, text: 'Bloqueado pelo perfil', tone: 'brand' }}
-        title={wall.title}
-        description={wall.desc}
-        list={wall.perks.map((text) => ({ text }))}
+        icon={UserCog}
+        chip={{ icon: Lock, text: 'Restrito a administradores', tone: 'brand' }}
+        title={MURO_ADMIN.title}
+        description={MURO_ADMIN.desc}
+        list={MURO_ADMIN.perks.map((text) => ({ text }))}
       >
-        {/* SÓ HÁ BOTÃO QUANDO EXISTE PORTA.
-          * `wall.papel` é nulo para a governança: quem opera a instalação já
-          * tem a credencial e entra pelo formulário. Um botão "Entrar como
-          * Administrador" numa tela que qualquer visitante alcança convida
-          * exatamente quem não deveria passar. */}
         <div className="mt-6 flex flex-wrap justify-center gap-2">
-          {wall.papel ? (
-            <>
-              <button onClick={() => entrar(wall.papel)} className="btn-primary">
-                {wall.cta} <ArrowRight size={15} />
-              </button>
-              <Link to="/painel" className="btn-ghost">Voltar ao painel</Link>
-            </>
-          ) : (
-            <Link to="/painel" className="btn-primary">{wall.cta} <ArrowRight size={15} /></Link>
-          )}
+          <Link to="/painel" className="btn-primary">Voltar ao painel <ArrowRight size={15} /></Link>
         </div>
-        {wall.papel && (
-          <p className="mt-3 text-xs muted">
-            Perfil exigido: <strong>{target?.label || wall.papel}</strong> — verificado no servidor.
-          </p>
-        )}
       </Wall>
     )
   }
@@ -204,7 +116,7 @@ export default function ProtectedRoute({ children, permission, capability }) {
   return children
 }
 
-// ── Cartão de bloqueio compartilhado pelos três casos ─────────────────────────
+// ── Cartão de bloqueio ──────────────────────────────────────────────────────────
 function Wall({ icon: Icon, chip, title, description, list = [], children }) {
   const chipTone = {
     amber: 'bg-amber-500/10 text-amber-600 dark:text-amber-300',

@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { randomInt } from 'node:crypto'
 import { all, get, run, agora } from '../db/index.js'
 import { hashSenha, senhaConfere, emitirToken, exigirPapel } from '../lib/auth.js'
 import config from '../config.js'
@@ -194,14 +195,14 @@ export async function semearContas() {
 export async function alertasDeSeguranca() {
   const alertas = []
   for (const c of CONTAS_INICIAIS.filter((x) => x.role === 'admin')) {
-    const u = get('SELECT password_salt, password_hash, status FROM users WHERE username = ?', [c.username])
-    if (u && await senhaConfere(c.username, u.password_salt, u.password_hash)) {
+    if (await aindaUsaSenhaPadrao(c.username)) {
       alertas.push({
         id: 'senha-padrao-admin',
         nivel: 'critico',
         titulo: `A conta ${c.username} ainda usa a senha documentada no README`,
-        detalhe: 'Qualquer pessoa que leia o repositório entra como administrador. Troque a senha em '
-          + 'Minha conta → Segurança, ou defina AUTH_SEED_ADMIN_PASSWORD antes do primeiro boot.',
+        detalhe: 'A tela de entrada oferece esta conta com um clique, e qualquer pessoa que a use '
+          + 'governa a instalação. Troque a senha em Minha conta → Segurança — o atalho some na hora — '
+          + 'ou defina AUTH_SEED_ADMIN_PASSWORD antes do primeiro boot.',
       })
     }
   }
@@ -445,46 +446,58 @@ router.post('/auth/sessoes/encerrar', exigirPapel('user'), limitar({ max: 5, jan
 // É a informação que importa para quem hospeda: um aviso de que a porta está
 // destrancada, sem dizer qual é a chave quando ela já foi trocada.
 // ─────────────────────────────────────────────────────────────────────────────
-router.get('/auth/contas', (_req, res) => {
-  const items = CONTAS_INICIAIS
+// A SENHA PADRÃO É CONFERIDA NO BANCO, NÃO NA CONFIGURAÇÃO.
+//
+// `senhaPadrao` era `c.senha === c.username` — só dizia se a variável de
+// ambiente foi definida. Um administrador que trocasse a senha pela tela
+// continuaria vendo o atalho oferecido com a senha antiga, e o clique falharia.
+// Agora compara com o hash guardado. Custa um scrypt por conta, e o resultado
+// fica em cache enquanto o hash não muda — trocar a senha muda o hash e o
+// atalho some na consulta seguinte.
+const cacheSenhaPadrao = new Map()
+async function aindaUsaSenhaPadrao(username) {
+  const u = get('SELECT password_salt, password_hash FROM users WHERE username = ?', [username])
+  if (!u) return false
+  const guardado = cacheSenhaPadrao.get(username)
+  if (guardado?.hash === u.password_hash) return guardado.padrao
+  const padrao = await senhaConfere(username, u.password_salt, u.password_hash)
+  cacheSenhaPadrao.set(username, { hash: u.password_hash, padrao })
+  return padrao
+}
+
+router.get('/auth/contas', async (_req, res, next) => {
+  try {
     // ─────────────────────────────────────────────────────────────────────
-    // A CONTA DE ADMINISTRADOR NÃO É OFERECIDA AQUI
+    // AS DUAS CONTAS INICIAIS SÃO OFERECIDAS — USUÁRIO PRIMEIRO
     //
-    // Esta rota é pública e alimenta a tela de entrada. Ela listava as duas
-    // contas semeadas, e a tela desenhava um botão para cada uma — inclusive
-    // "Entrar como Administrador", com a senha documentada no README.
-    //
-    // Quem administra a instalação é quem a subiu, e essa pessoa já tem a
-    // credencial: oferecer o botão não informava ninguém que precisasse da
-    // informação, e convidava todo o resto. Toda conta criada pelo cadastro
-    // nasce com papel `user`; a governança não é autoatendimento.
-    //
-    // A conta continua existindo e entra normalmente pelo formulário. O que
-    // sai é o convite — não o acesso.
+    // O atalho do administrador saiu numa versão anterior e voltou por decisão
+    // de quem opera a instalação: a plataforma precisa ser percorrível nos dois
+    // papéis sem digitar nada. O atalho só aparece enquanto a senha for a
+    // documentada; trocá-la em Minha conta → Segurança o remove, e o painel do
+    // administrador avisa enquanto isso não acontece.
     // ─────────────────────────────────────────────────────────────────────
-    .filter((c) => c.role !== 'admin')
-    .map((c) => {
-      const existe = get('SELECT username, role FROM users WHERE username = ?', [c.username])
-      if (!existe) return null
-      return {
+    const ordem = { user: 0, admin: 1 }
+    const items = []
+    for (const c of [...CONTAS_INICIAIS].sort((a, b) => ordem[a.role] - ordem[b.role])) {
+      const existe = get('SELECT username, role, status FROM users WHERE username = ?', [c.username])
+      if (!existe || (existe.status || 'ativo') !== 'ativo') continue
+      items.push({
         name: c.name,
         username: c.username,
         role: existe.role,
         descricao: c.descricao,
-        senhaPadrao: c.senha === c.username,
-      }
-    })
-    .filter(Boolean)
+        senhaPadrao: await aindaUsaSenhaPadrao(c.username),
+      })
+    }
 
-  res.json({
-    items,
-    nota: 'Conta inicial de um projeto de código aberto. O acervo que ela mostra é real, '
-      + 'coletado de fontes públicas — não há dado simulado em nenhuma tela.',
-    sessaoPersistente: config.auth.segredoFixado,
-    // Sinaliza à interface que a autenticação por provedor externo ainda não
-    // existe, sem que a tela precise saber o porquê.
-    provedoresExternos: [],
-  })
+    res.json({
+      items,
+      nota: 'Contas iniciais de um projeto de código aberto. O acervo que elas mostram é real, '
+        + 'coletado de fontes públicas.',
+      sessaoPersistente: config.auth.segredoFixado,
+      provedoresExternos: [],
+    })
+  } catch (err) { next(err) }
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -645,6 +658,50 @@ router.delete('/users/:id', exigirPapel('admin'), (req, res) => {
   registrarAuditoria(req, { acao: 'Conta removida', alvo: `Conta · ${alvo.conta.name}`, nivel: 'warn' })
 
   res.json({ ok: true, removida: { id: String(alvo.conta.id), name: alvo.conta.name } })
+})
+
+// POST /api/users/:id/senha-temporaria — redefinição por quem administra
+//
+// Sem envio de e-mail não há "esqueci a senha". O caminho que restava a quem
+// esqueceu era o administrador REMOVER a conta, levando a pasta junto. Esta rota
+// gera uma senha aleatória, grava o hash, derruba todas as sessões da conta e
+// devolve a senha UMA vez, para o administrador repassar. A pessoa troca em
+// Minha conta → Segurança.
+//
+// A senha não fica em lugar nenhum além da resposta: o banco guarda só o hash,
+// e a trilha de auditoria registra o ato, não o valor.
+const ALFABETO_SENHA = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+const senhaAleatoria = (tamanho = 12) =>
+  Array.from({ length: tamanho }, () => ALFABETO_SENHA[randomInt(ALFABETO_SENHA.length)]).join('')
+
+router.post('/users/:id/senha-temporaria', exigirPapel('admin'), limitar({ max: 20, janelaMs: 10 * 60_000, porConta: true }), async (req, res, next) => {
+  try {
+    const alvo = alvoDaGovernanca(req, { deixaDeSerAdminAtivo: false })
+    if (alvo.erro) return res.status(alvo.status).json({ error: alvo.erro, code: alvo.code })
+
+    const conta = get('SELECT id, name, username, auth_provider FROM users WHERE id = ?', [alvo.conta.id])
+    if ((conta.auth_provider || 'local') !== 'local') {
+      return res.status(400).json({ error: 'Esta conta entra pelo provedor externo e não tem senha local.' })
+    }
+    // A conta compartilhada tem a senha publicada no README e oferecida na tela
+    // de entrada. Trocá-la trancaria todo mundo do lado de fora sem aviso.
+    if (contaCompartilhada(conta)) {
+      return res.status(409).json({
+        error: 'Esta é a conta de uso compartilhado, com a senha publicada. Para cortar o acesso a ela, suspenda-a.',
+        code: 'CONTA_COMPARTILHADA',
+      })
+    }
+
+    const senha = senhaAleatoria()
+    const { sal, hash } = await hashSenha(senha)
+    run(
+      'UPDATE users SET password_hash = ?, password_salt = ?, sessoes_desde = ? WHERE id = ?',
+      [hash, sal, Date.now(), conta.id],
+    )
+    registrarAuditoria(req, { acao: 'Senha redefinida pelo administrador', alvo: `Conta · ${conta.name}`, nivel: 'warn' })
+
+    res.json({ ok: true, conta: { id: String(conta.id), name: conta.name, username: conta.username }, senhaTemporaria: senha })
+  } catch (err) { next(err) }
 })
 
 export default router

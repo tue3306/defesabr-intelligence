@@ -194,6 +194,19 @@ export const useNewsStore = create(
             n.id === id ? { ...n, read: true } : n
           ),
         }),
+
+      // "Marcar como não lida" e "Excluir" viviam só no estado da página: a
+      // tela dizia "Esta ação não pode ser desfeita" e a notificação voltava no
+      // recarregamento seguinte.
+      markUnread: (id) =>
+        set({
+          notifications: get().notifications.map((n) =>
+            n.id === id ? { ...n, read: false } : n
+          ),
+        }),
+
+      removeNotification: (id) =>
+        set({ notifications: get().notifications.filter((n) => n.id !== id) }),
     }),
     // Chave nova (-v2). Quem já abriu a plataforma tem as cinco notificações
     // falsas e o arquivo de exemplo gravados no próprio navegador; manter a

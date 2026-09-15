@@ -1,5 +1,5 @@
 import { API_BASE_URL, REQUEST_TIMEOUT, APP_VERSION } from './config'
-import { temPonte, viaPonte, cabecalhoDeSessao } from './apiBridge'
+import { temPonte, viaPonte, cabecalhoDeSessao, avisarSessaoPerdida } from './apiBridge'
 
 // -----------------------------------------------------------------------------
 // CLIENTE DE DADOS — a única fronteira entre a interface e a origem dos dados.
@@ -32,7 +32,15 @@ export class ApiError extends Error {
   get userMessage() {
     if (this.code === 'TIMEOUT') return 'A fonte demorou demais para responder. Tente novamente.'
     if (this.code === 'NO_SOURCE') return 'Esta consulta não tem fonte de dados disponível.'
-    if (this.status === 401 || this.status === 403) return 'Sua sessão não tem permissão para esta consulta.'
+    // 401 e 403 são coisas diferentes e pediam textos diferentes: um é sessão
+    // que acabou, o outro é conta sem o papel. A mensagem do servidor, quando
+    // houver, explica melhor que qualquer genérico.
+    if (this.status === 401) return 'Sua sessão terminou. Entre novamente para continuar.'
+    if (this.status === 403) {
+      return this.message && !this.message.startsWith('Falha na consulta')
+        ? this.message
+        : 'Sua conta não tem permissão para esta ação.'
+    }
     if (this.status === 404) return 'O conteúdo solicitado não foi encontrado.'
     if (this.status >= 500) return 'O serviço de dados está instável no momento.'
     return this.message || 'Não foi possível concluir a consulta.'
@@ -85,8 +93,10 @@ export async function request(endpoint, { params = {}, body, signal, timeout = R
         },
       }
     } catch (err) {
+      // O status do servidor viaja junto. Sem ele, 401, 403 e 404 chegavam à
+      // tela como a mesma falha genérica.
       throw new ApiError(err?.message || 'Falha ao consultar a API.', {
-        endpoint, cause: err, code: 'BRIDGE_FAILED',
+        endpoint, cause: err, status: err?.status || 0, code: err?.code || 'BRIDGE_FAILED',
       })
     }
   }
@@ -110,19 +120,21 @@ export async function request(endpoint, { params = {}, body, signal, timeout = R
   let porTempo = false
   const timer = setTimeout(() => { porTempo = true; controller.abort() }, timeout)
 
+  const sessao = cabecalhoDeSessao()
   try {
     const res = await fetch(`${API_BASE_URL}/api${path}${buildQuery(params)}`, {
       method,
       headers: {
         'Content-Type': 'application/json',
         'X-Client-Version': APP_VERSION,
-        ...cabecalhoDeSessao(),
+        ...sessao,
       },
       body: body ? JSON.stringify(body) : undefined,
       signal: controller.signal,
     })
 
     if (!res.ok) {
+      avisarSessaoPerdida(res.status, !!sessao.Authorization)
       // O CORPO SÓ PODE SER LIDO UMA VEZ.
       //
       // Estava escrito `(await res.json())?.error || (await res.json())?.message`,
@@ -134,12 +146,14 @@ export async function request(endpoint, { params = {}, body, signal, timeout = R
       // (HTTP 500)", justamente nos casos em que o servidor tinha explicado o
       // problema.
       let detail = ''
+      let codigo
       try {
         const corpo = await res.json()
         detail = corpo?.error || corpo?.message || ''
+        codigo = corpo?.code
       } catch { /* corpo não-JSON: fica o genérico */ }
       throw new ApiError(detail || `Falha na consulta (HTTP ${res.status}).`, {
-        status: res.status, endpoint,
+        status: res.status, endpoint, code: codigo || 'REQUEST_FAILED',
       })
     }
 

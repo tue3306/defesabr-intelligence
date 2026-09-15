@@ -1,33 +1,27 @@
 import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import {
-  ShieldAlert, Home, Search, LayoutDashboard, Newspaper, ClipboardList,
-  ShieldCheck, Layers, GraduationCap, Sparkles, ArrowRight,
+  ShieldAlert, Home, Search, LayoutDashboard, Newspaper, Link2,
+  ShieldCheck, GraduationCap, Sparkles, ArrowRight, Activity,
 } from 'lucide-react'
 import { useProfile, useProfileMeta } from '../auth/useCan'
 
-// Atalhos por perfil — quem se perdeu deve ser devolvido à SUA casa, não a uma
-// página genérica. Cada perfil tem um conjunto próprio de destinos úteis.
+// Atalhos — quem se perdeu volta para destinos que existem e que ele alcança.
 const SHORTCUTS = {
   visitor: [
     { to: '/', icon: Home, label: 'Início', hint: 'Conheça a plataforma' },
-    { to: '/aprender', icon: GraduationCap, label: 'Centro Educacional', hint: 'Trilhas e glossário' },
+    { to: '/aprender', icon: GraduationCap, label: 'Centro Educacional', hint: 'Conceitos e glossário' },
     { to: '/mapa', icon: Sparkles, label: 'Mapa estratégico', hint: 'Cobertura por país cruzada com incidentes' },
   ],
   user: [
     { to: '/painel', icon: LayoutDashboard, label: 'Painel', hint: 'Situação do dia' },
     { to: '/clipping', icon: Newspaper, label: 'Clipping Diário', hint: 'Últimas 24 horas' },
-    { to: '/legislativo', icon: Layers, label: 'Radar legislativo', hint: 'Proposições sobre defesa' },
-  ],
-  analyst: [
-    { to: '/dados', icon: ClipboardList, label: 'Dados & Gráficos', hint: 'Séries e comparativos' },
-    { to: '/painel', icon: LayoutDashboard, label: 'Painel', hint: 'Mesa de situação' },
-    { to: '/clipping', icon: Newspaper, label: 'Clipping Diário', hint: 'Produzir a edição do dia' },
+    { to: '/correlacoes', icon: Link2, label: 'Correlações', hint: 'Matérias ligadas ao Brasil' },
   ],
   admin: [
     { to: '/admin', icon: ShieldCheck, label: 'Console de Governança', hint: 'Contas, fontes e auditoria' },
-    { to: '/painel', icon: LayoutDashboard, label: 'Painel', hint: 'Saúde da plataforma' },
-    { to: '/configuracoes', icon: ShieldAlert, label: 'Configurações', hint: 'Sistema e integrações' },
+    { to: '/painel', icon: LayoutDashboard, label: 'Painel', hint: 'Estado da instalação' },
+    { to: '/coleta', icon: Activity, label: 'Método & Coleta', hint: 'Filtro e execuções' },
   ],
 }
 
@@ -77,7 +71,7 @@ export default function NotFound() {
       {/* Atalhos do perfil ativo */}
       <div className="mt-8 w-full">
         <p className="mb-3 text-xs font-bold uppercase tracking-wider muted">
-          Atalhos para o perfil {profileMeta.label}
+          Para onde ir
         </p>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           {shortcuts.map(({ to, icon: Icon, label, hint }) => (

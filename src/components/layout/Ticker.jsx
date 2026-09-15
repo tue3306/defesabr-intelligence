@@ -60,7 +60,7 @@ export default function Ticker() {
       },
       {
         icon: Newspaper,
-        label: 'Acervo',
+        label: 'Aprovadas (12 meses)',
         value: vitrine.aprovados != null ? `${vitrine.aprovados} notícias` : '—',
         to: '/clipping',
       },

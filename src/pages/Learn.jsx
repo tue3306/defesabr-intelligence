@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   GraduationCap, BookOpen, Brain, Search, Shield, Globe2, LineChart, Cpu, ArrowRight,
-  PlayCircle, Clock, Compass, Anchor, ShieldAlert, FileText, ExternalLink, Library, CheckCircle2, Circle, RotateCcw } from 'lucide-react'
+  PlayCircle, Compass, Anchor, ShieldAlert, FileText, ExternalLink, Library, CheckCircle2, Circle, RotateCcw } from 'lucide-react'
 import Quiz from '../components/learn/Quiz'
 import {
   glossary, glossaryCategories, learnConcepts,
@@ -88,11 +88,11 @@ export default function Learn() {
           </span>
           <h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Aprenda sobre Defesa e Inteligência</h1>
           <p className="mt-2 max-w-2xl text-gray-300">
-            Trilhas guiadas, vídeo-aulas, glossário pesquisável, biblioteca oficial e um quiz interativo.
+            Trilhas de estudo, glossário pesquisável, documentos oficiais, buscas sugeridas em vídeo e um quiz.
             Comece do zero e entenda como ler os dados da plataforma.
           </p>
           <div className="mt-5 flex flex-wrap gap-2 text-xs">
-            {[`${glossary.length} termos`, `${videoLessons.length} vídeo-aulas`, `${learningPaths.length} trilhas`, 'Quiz por tema'].map((t) => (
+            {[`${glossary.length} termos`, `${videoLessons.length} buscas em vídeo`, `${learningPaths.length} trilhas`, 'Quiz por tema'].map((t) => (
               <span key={t} className="rounded-full bg-white/10 px-3 py-1 font-semibold text-gray-200">{t}</span>
             ))}
           </div>
@@ -167,7 +167,7 @@ export default function Learn() {
                 })()}
 
                 <div className="mt-3 flex items-center justify-between">
-                  <p className="flex items-center gap-1.5 text-xs muted"><Clock size={12} /> {p.duration}</p>
+                  <span />
                   {(progress.done[p.title] || []).length > 0 && (
                     <button
                       onClick={() => progress.reset(p.title)}
@@ -215,9 +215,9 @@ export default function Learn() {
       {/* VÍDEO-AULAS */}
       <section>
         <h2 className="mb-1 flex items-center gap-2 text-lg font-bold tracking-tight">
-          <PlayCircle size={20} className="text-brand-400 dark:text-brand-300" /> Vídeo-aulas
+          <PlayCircle size={20} className="text-brand-400 dark:text-brand-300" /> Para assistir
         </h2>
-        <p className="mb-4 text-sm muted">Materiais em vídeo de canais oficiais e educacionais (abre em nova aba).</p>
+        <p className="mb-4 text-sm muted">Buscas sugeridas no YouTube, uma por tema — abrem em nova aba. Os resultados são do YouTube, não curadoria desta plataforma.</p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {videoLessons.map((v) => (
             <a
@@ -232,7 +232,6 @@ export default function Learn() {
               </div>
               <div className="flex items-center gap-2 text-[11px]">
                 <span className={`rounded-full px-2 py-0.5 font-bold ${LEVEL_CLR[v.level] || 'bg-white/10'}`}>{v.level}</span>
-                <span className="inline-flex items-center gap-1 muted"><Clock size={11} /> {v.duration}</span>
               </div>
               <h3 className="mt-2 font-bold leading-snug tracking-tight">{v.title}</h3>
               <p className="mt-1 flex-1 text-sm muted">{v.desc}</p>

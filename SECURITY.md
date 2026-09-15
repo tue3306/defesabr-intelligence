@@ -2,17 +2,19 @@
 
 ## Contexto do projeto
 
-O **DefesaBR Intelligence** é um projeto **demonstrativo (proof of concept), 100% front-end**. Ele
-**não possui backend**, não armazena dados de usuários em servidor e não processa informações
-sensíveis reais. A autenticação é **simulada** e todos os dados são **ilustrativos**.
+O **DefesaBR Intelligence** tem servidor próprio (Node + SQLite) que coleta fontes públicas e guarda
+contas: nome, nome de usuário, e-mail, senha como hash scrypt, papel, situação, pasta de favoritos,
+chave de IA cifrada (AES-256-GCM) e a trilha de atos de administração. Os dados coletados são
+públicos; os de conta, não.
 
-Ainda assim, levamos a segurança a sério e agradecemos relatos responsáveis.
+Relatos responsáveis são bem-vindos.
 
 ## Versões suportadas
 
 | Versão | Suportada |
 |--------|-----------|
-| 1.x    | ✅        |
+| 2.x    | ✅        |
+| 1.x    | ❌        |
 
 ## Como reportar uma vulnerabilidade
 
@@ -33,19 +35,26 @@ Faremos o possível para responder em tempo razoável e manter você informado s
 
 ## Boas práticas de chaves de API
 
-Este projeto pode usar chaves de API (ex.: Anthropic, Alpha Vantage) de forma **opcional**:
+- 🔑 **Nunca** commite chaves. O `.env` está no `.gitignore`; use `.env.example` como modelo.
+  `AUTH_SECRET`, `ANTHROPIC_API_KEY` e as chaves de agregador ficam no painel de quem hospeda.
+- 🧠 A chave de IA de cada conta vai para o servidor, é guardada cifrada e **nunca volta ao
+  navegador** — a API devolve só os quatro últimos caracteres. Quem chama o provedor é o servidor.
+- 💳 Configure **limite de gasto** na conta do provedor.
+- 🧹 Revogue imediatamente qualquer chave exposta.
 
-- 🔑 **Nunca** commite chaves. O arquivo `.env` já está no `.gitignore`; use `.env.example` como modelo.
-- 🌐 Em demonstração, a chamada de IA é feita **direto do navegador** — o que **expõe a chave**.
-  Em produção real, **nunca** exponha chaves no front-end: encaminhe as chamadas por um **backend/proxy**.
-- 💳 Utilize apenas **chaves descartáveis** e com **limite de gasto** configurado.
-- 🧹 Revogue imediatamente qualquer chave que tenha sido exposta acidentalmente.
+## Senhas padrão
+
+A instalação semeia `admin123` e `usuario123` com a senha igual ao nome de usuário, para o clone
+funcionar de primeira. **Em qualquer deploy público, defina `AUTH_SEED_ADMIN_PASSWORD` antes do
+primeiro boot ou troque a senha em Minha conta → Segurança.** O painel do administrador mostra um
+alerta enquanto a senha padrão estiver em uso. `usuario123` com a senha padrão é conta de uso
+compartilhado e não permite trocar senha nem guardar chave.
 
 ## Escopo
 
-Por ser um front-end estático com dados mockados, o modelo de ameaça é limitado. Relatos mais úteis
-envolvem: XSS via conteúdo renderizado, vazamento de chaves configuradas pelo usuário, dependências
-com vulnerabilidades conhecidas e problemas de configuração de deploy.
+Relatos mais úteis envolvem: contorno de `exigirPapel()` ou das travas de governança, sessão que
+sobrevive a suspensão ou troca de senha, vazamento da chave de IA, XSS via conteúdo coletado de
+feeds, injeção de instrução no modelo a partir de matérias, e dependências vulneráveis.
 
 
 ## Dependências: o que `npm audit` acusa, e por quê continua aqui

@@ -183,7 +183,7 @@ if (problemas.length) {
 if (status?.capacidades) {
   console.log('\nESTADO DAS CAPACIDADES:')
   for (const c of status.capacidades) {
-    const marca = { operacional: '\x1b[32m●\x1b[0m', degradado: '\x1b[33m●\x1b[0m', nao_implementado: '\x1b[2m○\x1b[0m' }[c.estado]
+    const marca = { operacional: '\x1b[32m●\x1b[0m', degradado: '\x1b[33m●\x1b[0m', nao_implementado: '\x1b[2m○\x1b[0m', opcional: '\x1b[2m◌\x1b[0m' }[c.estado]
     console.log(`  ${marca} ${c.nome.padEnd(38)} \x1b[2m${c.detalhe}\x1b[0m`)
   }
 }

@@ -1,111 +1,107 @@
 import { useState, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import {
-  BadgeCheck, Filter, X, ArrowUpDown, Scale, Gauge, ShieldCheck, AlertTriangle,
-  PenTool, Check, BookOpen, Download,
+  BadgeCheck, X, Gauge, AlertTriangle, Pause, Download, ExternalLink, Newspaper, Radio, BookOpen,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PageHeader from '../components/ui/PageHeader'
 import MetricCard from '../components/ui/MetricCard'
-import EmptyState from '../components/ui/EmptyState'
 import DataState from '../components/ui/DataState'
 import Badge from '../components/ui/Badge'
-import Modal from '../components/ui/Modal'
 import SearchBar from '../components/ui/SearchBar'
-import InfoTooltip from '../components/ui/InfoTooltip'
-import Can from '../auth/Can'
 import { useResource } from '../hooks/useResource'
 import { intelligenceService } from '../services'
-import { RELIABILITY_TIERS, reliabilityTier } from '../data/sourceReliability'
+import { SOURCE_STATUS } from '../data/adminData'
 import { exportCSV } from '../utils/exportUtils'
+import { formatDateTimeBR } from '../utils/dateUtils'
 
-const SOURCE_TYPES = ['Oficial', 'Imprensa', 'Especializada', 'Internacional', 'Redes']
+// -----------------------------------------------------------------------------
+// DISPONIBILIDADE DAS FONTES
+//
+// A tela se chamava "Confiabilidade das Fontes" e rotulava cada veículo como
+// "Muito alta", "Alta" ou "Requer cautela — sempre cruzar com fonte primária".
+// O número por trás era DISPONIBILIDADE: quantas vezes o feed respondeu. Uma
+// fonte que nunca entregou uma matéria aprovada aparecia com "100 · Muito
+// alta", e o rótulo transformava "o servidor respondeu" em juízo sobre o
+// jornalismo. Havia também "Reavaliar fonte", que alterava a nota só na tela
+// e sumia ao recarregar, filtros por tipos ("Internacional", "Redes") que
+// nenhuma fonte tem e um "Como calculamos: cinco critérios" com a lista vazia.
+//
+// Ficou o que é medido, com o nome do que é: se a fonte responde e se o que
+// ela entrega passa pelo filtro. As duas coisas ajudam a decidir se vale
+// manter a fonte ligada — que se faz no Console de Governança.
+// -----------------------------------------------------------------------------
 
 const SORTS = [
-  { id: 'score-desc', label: 'Maior confiabilidade' },
-  { id: 'score-asc', label: 'Menor confiabilidade' },
+  { id: 'disp-asc', label: 'Menor disponibilidade' },
+  { id: 'disp-desc', label: 'Maior disponibilidade' },
+  { id: 'aprov-desc', label: 'Mais matérias aprovadas' },
+  { id: 'aprov-asc', label: 'Menos matérias aprovadas' },
   { id: 'name', label: 'Nome (A–Z)' },
-  { id: 'type', label: 'Tipo de fonte' },
 ]
 
-// -----------------------------------------------------------------------------
-// CONFIABILIDADE DAS FONTES
-//
-// A pontuação não é um veredito sobre o veículo: é uma medida de QUANTA
-// verificação adicional aquele conteúdo exige antes de virar análise. Por isso
-// os critérios ficam expostos e a reavaliação é uma ação do Analista, não um
-// número calculado em silêncio.
-// -----------------------------------------------------------------------------
+const valorOu = (v, padrao) => (v == null ? padrao : v)
+
 export default function SourceReliability() {
   const { data, loading, error, refetch, meta } = useResource(() => intelligenceService.sources(), [])
   const aoVivo = meta?.source === 'live'
+  const sources = useMemo(() => data?.items || [], [data])
 
   const [query, setQuery] = useState('')
-  const [tier, setTier] = useState('')
-  const [type, setType] = useState('')
-  const [sort, setSort] = useState('score-desc')
-  const [rating, setRating] = useState(null)
-  // Reavaliações desta sessão — em produção, persistidas pelo backend.
-  const [overrides, setOverrides] = useState({})
+  const [categoria, setCategoria] = useState('')
+  const [estado, setEstado] = useState('')
+  const [sort, setSort] = useState('disp-asc')
 
-  const criteria = data?.criteria || []
-
-  const sources = useMemo(
-    () => (data?.items || []).map((s) => ({ ...s, ...(overrides[s.id] || {}) })),
-    [data, overrides]
-  )
+  const categorias = useMemo(() => [...new Set(sources.map((s) => s.type).filter(Boolean))].sort(), [sources])
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase()
-    let list = sources.filter((s) => {
-      if (type && s.type !== type) return false
-      if (tier && reliabilityTier(s.score).label !== tier) return false
-      if (needle && !`${s.name} ${s.type || ''} ${s.note || ''} ${s.bias || ''}`.toLowerCase().includes(needle)) return false
+    const list = sources.filter((s) => {
+      if (categoria && s.type !== categoria) return false
+      if (estado && s.status !== estado) return false
+      if (needle && !`${s.name} ${s.domain} ${s.type || ''}`.toLowerCase().includes(needle)) return false
       return true
     })
-    list = [...list].sort((a, b) => {
-      if (sort === 'score-asc') return a.score - b.score
+    const disp = (s) => valorOu(s.availability, -1)
+    return [...list].sort((a, b) => {
+      if (sort === 'disp-desc') return disp(b) - disp(a)
+      if (sort === 'aprov-desc') return (b.relevant_articles || 0) - (a.relevant_articles || 0)
+      if (sort === 'aprov-asc') return (a.relevant_articles || 0) - (b.relevant_articles || 0)
       if (sort === 'name') return a.name.localeCompare(b.name, 'pt-BR')
-      if (sort === 'type') return a.type.localeCompare(b.type, 'pt-BR') || b.score - a.score
-      return b.score - a.score
+      return disp(a) - disp(b)
     })
-    return list
-  }, [sources, query, tier, type, sort])
+  }, [sources, query, categoria, estado, sort])
 
   const stats = useMemo(() => {
-    if (!sources.length) return { avg: 0, high: 0, caution: 0 }
-    const avg = Math.round(sources.reduce((a, s) => a + s.score, 0) / sources.length)
+    const medidas = sources.filter((s) => s.availability != null)
     return {
-      avg,
-      high: sources.filter((s) => s.score >= 85).length,
-      caution: sources.filter((s) => s.score < 50).length,
+      media: medidas.length ? Math.round(medidas.reduce((a, s) => a + s.availability, 0) / medidas.length) : null,
+      falha: sources.filter((s) => s.status === 'indisponivel').length,
+      pausadas: sources.filter((s) => s.status === 'pausada').length,
+      semAprovadas: sources.filter((s) => (s.articles || 0) > 0 && !s.relevant_articles).length,
+      nuncaEntregou: sources.filter((s) => !s.articles).length,
     }
   }, [sources])
 
-  const hasFilters = !!(query || tier || type)
-  const clearFilters = () => { setQuery(''); setTier(''); setType('') }
+  const hasFilters = !!(query || categoria || estado)
+  const clearFilters = () => { setQuery(''); setCategoria(''); setEstado('') }
 
-  const applyRating = (source, scores, note) => {
-    const values = Object.values(scores)
-    const score = Math.round(values.reduce((a, b) => a + b, 0) / values.length)
-    setOverrides((prev) => ({
-      ...prev,
-      [source.id]: { score, note: note || source.note, reassessed: true },
-    }))
-    setRating(null)
-    toast.success(`${source.name}: confiabilidade reavaliada para ${score}/100`)
-  }
-
-  const exportSources = () => {
+  const exportar = () => {
     exportCSV(
       filtered.map((s) => ({
         Fonte: s.name,
-        Tipo: s.type,
-        Pontuação: s.score,
-        Faixa: reliabilityTier(s.score).label,
-        'Viés percebido': s.bias,
-        Observação: s.note,
+        Domínio: s.domain,
+        Categoria: s.type,
+        Estado: SOURCE_STATUS[s.status]?.label || s.status,
+        'Disponibilidade (%)': valorOu(s.availability, ''),
+        Execuções: valorOu(s.total_runs, 0),
+        Falhas: valorOu(s.total_failures, 0),
+        'Artigos coletados': valorOu(s.articles, 0),
+        'Aprovados pelo filtro': valorOu(s.relevant_articles, 0),
+        'Última coleta': s.last_fetch_at ? formatDateTimeBR(s.last_fetch_at) : '',
+        'Último erro': s.last_error || '',
       })),
-      `confiabilidade-fontes-${new Date().toISOString().slice(0, 10)}.csv`
+      `disponibilidade-fontes-${new Date().toISOString().slice(0, 10)}.csv`
     )
     toast.success(`${filtered.length} fonte(s) exportada(s) em CSV`)
   }
@@ -114,80 +110,58 @@ export default function SourceReliability() {
     <div className="space-y-6">
       <PageHeader
         icon={BadgeCheck}
-        title="Confiabilidade das Fontes"
-        description={aoVivo
-          ? 'Disponibilidade medida de cada fonte: quantas vezes respondeu quando o coletor a procurou, e quanto do que entregou passou pelo filtro de relevância.'
-          : 'Quanta verificação adicional cada fonte exige antes de virar análise — por proximidade da informação original, histórico e transparência de método.'}
-        help="Com o servidor no ar, a pontuação é DISPONIBILIDADE medida: a proporção de vezes em que a fonte respondeu quando o coletor a procurou, mais o que ela entregou. Não julga a qualidade do jornalismo — uma fonte excelente que sai do ar pontua baixo, e isso é o que o número quer dizer. Sem servidor, cai para a avaliação editorial do acervo local."
-        breadcrumb={[{ label: 'Tático' }, { label: 'Confiabilidade das Fontes' }]}
+        title="Disponibilidade das Fontes"
+        description="Se cada fonte responde quando o coletor a procura, e quanto do que ela entrega passa pelo filtro de relevância."
+        help="Disponibilidade é a proporção de execuções em que o feed respondeu sem erro. Não é juízo sobre a qualidade do veículo: um jornal excelente com o servidor instável pontua baixo. A taxa de aprovação mostra quanto do que a fonte publica é de fato sobre segurança e defesa."
+        breadcrumb={[{ label: 'Administração' }, { label: 'Disponibilidade das Fontes' }]}
         badges={<Badge type={aoVivo ? 'live' : 'sem-dado'} />}
         actions={
-          <Can do="reports.export">
-            <button onClick={exportSources} className="btn-ghost text-sm" disabled={!filtered.length}>
-              <Download size={15} /> Exportar CSV
-            </button>
-          </Can>
+          <button onClick={exportar} className="btn-ghost text-sm" disabled={!filtered.length}>
+            <Download size={15} /> Exportar CSV
+          </button>
         }
       />
 
-      {/* MÉTRICAS */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <MetricCard icon={Scale} label="Fontes catalogadas" value={String(sources.length || '—')} hint="em avaliação contínua" accent="brand" />
-        <MetricCard icon={Gauge} label="Pontuação média" value={sources.length ? `${stats.avg}/100` : '—'} hint="do acervo monitorado" accent={stats.avg >= 70 ? 'green' : 'amber'} />
-        <MetricCard icon={ShieldCheck} label="Confiabilidade muito alta" value={String(stats.high)} hint="pontuação ≥ 85" accent="green" />
-        <MetricCard icon={AlertTriangle} label="Exigem cautela" value={String(stats.caution)} hint="sempre cruzar com fonte primária" accent={stats.caution ? 'red' : 'green'} />
+        <MetricCard icon={Radio} label="Fontes cadastradas" value={sources.length ? String(sources.length) : '—'} hint={`${stats.pausadas} pausada(s)`} accent="brand" />
+        <MetricCard icon={Gauge} label="Disponibilidade média" value={stats.media != null ? `${stats.media}%` : '—'} hint="das execuções registradas" accent={stats.media != null && stats.media < 90 ? 'amber' : 'green'} />
+        <MetricCard icon={AlertTriangle} label="Com falha agora" value={String(stats.falha)} hint="última tentativa com erro" accent={stats.falha ? 'red' : 'green'} />
+        <MetricCard icon={Newspaper} label="Sem matéria aprovada" value={String(stats.semAprovadas + stats.nuncaEntregou)} hint="não contribuíram ao acervo" accent={stats.semAprovadas + stats.nuncaEntregou ? 'amber' : 'green'} />
       </div>
 
-      {/* FILTROS */}
-      <section className="card space-y-4 p-5">
+      <section className="card space-y-3 p-5">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
           <div className="md:col-span-2">
-            <SearchBar placeholder="Buscar fonte, tipo ou observação…" defaultValue={query} onChange={setQuery} />
+            <SearchBar placeholder="Buscar por nome, domínio ou categoria…" defaultValue={query} onChange={setQuery} />
           </div>
-          <select value={type} onChange={(e) => setType(e.target.value)} className="input" aria-label="Filtrar por tipo de fonte">
-            <option value="">Todos os tipos</option>
-            {SOURCE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+          <select value={categoria} onChange={(e) => setCategoria(e.target.value)} className="input" aria-label="Filtrar por categoria">
+            <option value="">Todas as categorias</option>
+            {categorias.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
           <select value={sort} onChange={(e) => setSort(e.target.value)} className="input" aria-label="Ordenação">
             {SORTS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
           </select>
         </div>
-
-        <div>
-          <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase muted">
-            <Filter size={13} /> Faixa de confiabilidade
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {RELIABILITY_TIERS.map((t) => (
-              <button
-                key={t.label}
-                onClick={() => setTier(tier === t.label ? '' : t.label)}
-                aria-pressed={tier === t.label}
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-all ${t.classes} ${
-                  tier === t.label ? 'ring-2 ring-gold-500/60' : ''
-                }`}
-              >
-                <span className="h-2 w-2 rounded-full" style={{ background: t.ring }} />
-                {t.label}
-                <span className="opacity-70">≥ {t.min}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {hasFilters && (
-          <div className="flex items-center justify-between gap-2 border-t border-gray-200 pt-3 dark:border-white/[0.06]">
-            <p className="flex items-center gap-1.5 text-sm muted">
-              <ArrowUpDown size={14} /> {filtered.length} de {sources.length} fonte(s)
-            </p>
-            <button onClick={clearFilters} className="btn-ghost px-2.5 py-1 text-xs">
-              <X size={13} /> Limpar filtros
+        <div className="flex flex-wrap gap-2">
+          {Object.entries(SOURCE_STATUS).map(([id, meta]) => (
+            <button
+              key={id}
+              onClick={() => setEstado(estado === id ? '' : id)}
+              aria-pressed={estado === id}
+              title={meta.desc}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${meta.classes} ${estado === id ? 'ring-2 ring-gold-500/60' : ''}`}
+            >
+              <span className={`h-2 w-2 rounded-full ${meta.dot}`} /> {meta.label}
             </button>
-          </div>
-        )}
+          ))}
+          {hasFilters && (
+            <button onClick={clearFilters} className="btn-ghost ml-auto px-2.5 py-1 text-xs">
+              <X size={13} /> Limpar filtros ({filtered.length} de {sources.length})
+            </button>
+          )}
+        </div>
       </section>
 
-      {/* LISTA */}
       <DataState
         loading={loading}
         error={error}
@@ -196,204 +170,104 @@ export default function SourceReliability() {
         skeletonCount={4}
         emptyProps={{
           icon: BadgeCheck,
-          tone: 'filter',
-          title: hasFilters ? 'Nenhuma fonte corresponde aos filtros' : 'Nenhuma fonte catalogada',
-          hint: hasFilters
-            ? 'Ajuste a busca, o tipo ou a faixa de confiabilidade.'
-            : 'O catálogo de fontes ainda não foi preenchido.',
+          tone: hasFilters ? 'filter' : 'neutral',
+          title: hasFilters ? 'Nenhuma fonte corresponde aos filtros' : 'Nenhuma fonte cadastrada',
+          hint: hasFilters ? 'Ajuste a busca, a categoria ou o estado.' : 'O servidor semeia as fontes na primeira subida.',
           action: hasFilters ? { label: 'Limpar filtros', onClick: clearFilters, icon: X } : undefined,
         }}
       >
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {filtered.map((s) => {
-            const t = reliabilityTier(s.score)
-            return (
-              <article key={s.id} className="card p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className="text-base font-bold tracking-tight">{s.name}</h3>
-                    <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs muted">
-                      <span className="chip">{s.type}</span>
-                      {/* Viés é juízo humano sobre a linha editorial do veículo;
-                          o servidor não tem como medi-lo. Some quando ausente,
-                          em vez de exibir "viés percebido: null". */}
-                      {s.bias && <span>viés percebido: {s.bias}</span>}
-                    </p>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <p className="font-mono text-2xl font-extrabold leading-none tabular-nums" style={{ color: t.ring }}>
-                      {s.score}
-                    </p>
-                    <p className="text-[10px] font-bold uppercase tracking-wide muted">/100</p>
-                  </div>
-                </div>
-
-                <div className="mt-3">
-                  <span className="block h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-white/10">
-                    <span className="block h-full rounded-full transition-all" style={{ width: `${s.score}%`, background: t.ring }} />
-                  </span>
-                  <div className="mt-1.5 flex items-center justify-between">
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${t.classes}`}>{t.label}</span>
-                    {s.reassessed && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-800 dark:text-emerald-400">
-                        <Check size={11} /> reavaliada nesta sessão
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <p className="mt-3 text-sm leading-relaxed muted">{s.note}</p>
-
-                <Can do="sources.rate">
-                  <button onClick={() => setRating(s)} className="btn-ghost mt-3 px-2.5 py-1 text-xs">
-                    <PenTool size={13} /> Reavaliar fonte
-                  </button>
-                </Can>
-              </article>
-            )
-          })}
+          {filtered.map((s) => <FonteCard key={s.id} s={s} />)}
         </div>
       </DataState>
 
-      {/* METODOLOGIA */}
       <section className="card p-5">
-        <h2 className="mb-1 flex items-center gap-2 text-base font-bold tracking-tight">
-          <BookOpen size={17} className="text-brand-400 dark:text-brand-300" /> Como calculamos
-          <InfoTooltip text="A escala é qualitativa e revisável. Inspira-se na prática de OSINT de avaliar separadamente a fonte e o conteúdo, mas usa critérios próprios, declarados abaixo." />
+        <h2 className="mb-2 flex items-center gap-2 text-base font-bold tracking-tight">
+          <BookOpen size={17} className="text-brand-400 dark:text-brand-300" /> Como ler os números
         </h2>
-        <p className="mb-4 text-sm muted">
-          Cinco critérios, com peso igual. Uma pontuação baixa não invalida a fonte — indica que ela
-          precisa ser corroborada antes de sustentar uma conclusão.
-        </p>
-        <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {criteria.map((c, i) => (
-            <li key={c} className="flex items-start gap-2.5 rounded-lg bg-white/5 px-3 py-2 text-sm">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-gold-500/20 font-mono text-[10px] font-bold text-gold-600 dark:text-gold-400">
-                {i + 1}
-              </span>
-              <span className="text-gray-700 dark:text-gray-300">{c}</span>
-            </li>
-          ))}
+        <ul className="space-y-2 text-sm leading-relaxed text-gray-700 dark:text-gray-300">
+          <li><strong>Disponibilidade</strong> — execuções sem erro ÷ execuções totais, desde que a fonte foi cadastrada.</li>
+          <li><strong>Aprovação</strong> — matérias que passaram pelo filtro de relevância ÷ matérias coletadas da fonte. Fonte generalista aprova pouco, e isso é esperado.</li>
+          <li><strong>Sem matéria aprovada</strong> — a fonte responde mas nada do que publicou entrou no acervo. É candidata a ser pausada.</li>
         </ul>
-
-        <div className="mt-4 flex flex-wrap gap-2 border-t border-gray-200 pt-3 dark:border-white/[0.06]">
-          {RELIABILITY_TIERS.map((t) => (
-            <span key={t.label} className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${t.classes}`}>
-              <span className="h-2 w-2 rounded-full" style={{ background: t.ring }} />
-              {t.label} · {t.min}+
-            </span>
-          ))}
-        </div>
+        <p className="mt-3 text-xs muted">
+          Pausar, religar ou coletar uma fonte agora: <Link to="/admin" className="font-semibold text-brand-600 hover:underline dark:text-brand-300">Console de Governança → Fontes e coleta</Link>.
+        </p>
       </section>
-
-      <p className="text-center text-xs muted">
-        A pontuação é disponibilidade MEDIDA: a proporção de vezes em que a fonte respondeu quando o
-        coletor a procurou. Não julga a qualidade do jornalismo.
-      </p>
-
-      {/* REAVALIAÇÃO (Analista) */}
-      <RatingModal source={rating} criteria={criteria} onClose={() => setRating(null)} onApply={applyRating} />
     </div>
   )
 }
 
-// ── Modal de reavaliação: cada critério vira uma nota, a média é a pontuação ──
-function RatingModal({ source, criteria, onClose, onApply }) {
-  const [scores, setScores] = useState({})
-  const [note, setNote] = useState('')
-
-  // Inicializa cada critério com a pontuação atual da fonte ao abrir.
-  const values = useMemo(() => {
-    if (!source) return {}
-    const base = {}
-    criteria.forEach((c, i) => { base[i] = scores[i] ?? source.score })
-    return base
-     
-  }, [source, criteria, scores])
-
-  const preview = useMemo(() => {
-    const list = Object.values(values)
-    if (!list.length) return source?.score ?? 0
-    return Math.round(list.reduce((a, b) => a + b, 0) / list.length)
-  }, [values, source])
-
-  const close = () => {
-    onClose()
-    setTimeout(() => { setScores({}); setNote('') }, 200)
-  }
-
-  const tier = reliabilityTier(preview)
+function FonteCard({ s }) {
+  const st = SOURCE_STATUS[s.status] || SOURCE_STATUS.configurada
+  const disp = s.availability
+  const aprov = s.articles ? Math.round(((s.relevant_articles || 0) / s.articles) * 100) : null
+  const cor = disp == null ? '#94a3b8' : disp >= 95 ? '#2e7d46' : disp >= 80 ? '#caa733' : '#c0392b'
 
   return (
-    <Modal open={!!source} onClose={close} title="Reavaliar confiabilidade" maxWidth="max-w-lg">
-      {source && (
-        <form
-          onSubmit={(e) => { e.preventDefault(); onApply(source, values, note); setScores({}); setNote('') }}
-          className="space-y-4"
-        >
-          <div className="flex items-center justify-between gap-3 rounded-lg bg-white/5 p-3">
-            <div className="min-w-0">
-              <p className="text-sm font-bold tracking-tight">{source.name}</p>
-              <p className="text-xs muted">{source.type} · pontuação atual {source.score}/100</p>
-            </div>
-            <div className="shrink-0 text-right">
-              <p className="font-mono text-2xl font-extrabold leading-none tabular-nums" style={{ color: tier.ring }}>
-                {preview}
-              </p>
-              <p className={`mt-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${tier.classes}`}>{tier.label}</p>
-            </div>
-          </div>
-
-          <fieldset className="space-y-3">
-            <legend className="text-xs font-bold uppercase tracking-wide muted">
-              Nota por critério (0–100)
-            </legend>
-            {criteria.map((c, i) => (
-              <div key={c}>
-                <label htmlFor={`criterio-${i}`} className="mb-1 flex items-center justify-between gap-3 text-sm">
-                  <span className="min-w-0 leading-snug">{c}</span>
-                  <span className="shrink-0 font-mono text-xs font-bold tabular-nums">{values[i]}</span>
-                </label>
-                <input
-                  id={`criterio-${i}`}
-                  type="range"
-                  min={0}
-                  max={100}
-                  step={5}
-                  value={values[i]}
-                  onChange={(e) => setScores((prev) => ({ ...prev, [i]: Number(e.target.value) }))}
-                  className="w-full accent-gold-500"
-                />
-              </div>
-            ))}
-          </fieldset>
-
-          <div>
-            <label htmlFor="observacao-fonte" className="mb-1 block text-xs font-bold uppercase tracking-wide muted">
-              Observação (opcional)
-            </label>
-            <textarea
-              id="observacao-fonte"
-              rows={2}
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="O que motivou a reavaliação?"
-              className="input resize-y"
-            />
-          </div>
-
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <button type="button" onClick={close} className="btn-ghost justify-center">Cancelar</button>
-            <button type="submit" className="btn-primary justify-center">
-              <Check size={15} /> Salvar reavaliação
-            </button>
-          </div>
-
-          <p className="text-[11px] muted">
-            A reavaliação vale apenas para esta sessão: não há endpoint que a persista.
+    <article className="card p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="flex flex-wrap items-center gap-2 text-base font-bold tracking-tight">
+            {s.name}
+            <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${st.classes}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${st.dot}`} /> {st.label}
+            </span>
+          </h3>
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs muted">
+            {s.type && <span className="chip">{s.type}</span>}
+            <span className="font-mono">{s.domain}</span>
           </p>
-        </form>
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="font-mono text-2xl font-extrabold leading-none tabular-nums" style={{ color: cor }}>
+            {disp == null ? '—' : `${disp}%`}
+          </p>
+          <p className="text-[10px] font-bold uppercase tracking-wide muted">disponível</p>
+        </div>
+      </div>
+
+      <div className="mt-3">
+        <span className="block h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-white/10">
+          <span className="block h-full rounded-full" style={{ width: `${disp || 0}%`, background: cor }} />
+        </span>
+      </div>
+
+      <dl className="mt-3 grid grid-cols-3 gap-2 text-center">
+        <Mini termo="Execuções" valor={`${s.total_runs ?? 0}`} detalhe={`${s.total_failures ?? 0} falha(s)`} />
+        <Mini termo="Coletadas" valor={`${s.articles ?? 0}`} detalhe="matérias" />
+        <Mini termo="Aprovadas" valor={`${s.relevant_articles ?? 0}`} detalhe={aprov == null ? '—' : `${aprov}% do coletado`} />
+      </dl>
+
+      {s.last_error && (
+        <p className="mt-3 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-700 dark:text-red-300">
+          Última falha: {s.last_error}
+        </p>
       )}
-    </Modal>
+      {!s.last_error && s.articles > 0 && !s.relevant_articles && (
+        <p className="mt-3 flex items-center gap-1.5 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+          <Pause size={12} /> Responde, mas nenhuma matéria dela passou pelo filtro.
+        </p>
+      )}
+
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] muted">
+        <span>{s.last_fetch_at ? `última coleta ${formatDateTimeBR(s.last_fetch_at)}` : 'ainda não coletada'}</span>
+        {(s.site_url || s.url) && (
+          <a href={s.site_url || s.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-semibold text-brand-600 hover:underline dark:text-brand-300">
+            Abrir site <ExternalLink size={11} />
+          </a>
+        )}
+      </div>
+    </article>
+  )
+}
+
+function Mini({ termo, valor, detalhe }) {
+  return (
+    <div className="rounded-lg bg-gray-50 px-2 py-1.5 dark:bg-white/5">
+      <dt className="text-[10px] font-bold uppercase tracking-wide muted">{termo}</dt>
+      <dd className="font-mono text-sm font-bold">{valor}</dd>
+      <dd className="text-[10px] muted">{detalhe}</dd>
+    </div>
   )
 }

@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import {
   Search as SearchIcon, Newspaper, Layers, ShieldAlert, Target, Radio,
   BadgeCheck, CalendarDays, Landmark, Archive, BookOpen, Compass,
-  Lock, X, ArrowRight, Sparkles, Database, ChevronRight,
+  X, Sparkles, Database, ChevronRight,
 } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
@@ -23,16 +23,9 @@ const TYPE_ICONS = {
 
 const TYPE_COLOR = {
   noticia: '#2e7d46',
-  dossie: '#8b5cf6',
-  risco: '#c0392b',
-  programa: '#475569',
-  narrativa: '#d4841a',
-  fonte: '#caa733',
-  evento: '#64748b',
   proposicao: '#c0392b',
-  clipping: '#2e7d46',
   termo: '#8b5cf6',
-  modulo: '#5c616a',
+  fonte: '#caa733',
 }
 
 /** Realça as ocorrências da consulta dentro de um trecho de texto. */
@@ -52,10 +45,9 @@ function Highlight({ text = '', query = '' }) {
 // -----------------------------------------------------------------------------
 // BUSCA GLOBAL
 //
-// Uma pergunta de inteligência raramente respeita a divisão por módulo: quem
-// busca "Essequibo" quer o dossiê, o risco, a narrativa e o evento de agenda
-// juntos. Resultados fora do alcance do perfil aparecem marcados — a busca
-// informa que a informação existe, em vez de fingir que não.
+// Notícias, proposições, glossário e — para quem administra — fontes, numa
+// consulta só. Resultado que a conta não pode abrir não aparece: mostrava um
+// selo "bloqueado" com "Ver como desbloquear" que levava ao painel.
 // -----------------------------------------------------------------------------
 export default function Search() {
   const [params, setParams] = useSearchParams()
@@ -79,8 +71,8 @@ export default function Search() {
   }, [input])
 
   const { data, loading, error, refetch } = useResource(
-    () => searchService.query({ q: query, types: type || undefined }),
-    [query, type],
+    () => searchService.query({ q: query }),
+    [query],
     { enabled: query.trim().length > 0, keepPreviousData: true }
   )
 
@@ -89,8 +81,16 @@ export default function Search() {
   // Memoizado porque esta lista entra nas dependências de um `useMemo` abaixo:
   // `data?.items || []` devolveria um array novo a cada render, o que invalidaria o memo
   // em todo render e o tornaria pior que nenhum.
-  const items = useMemo(() => data?.items || [], [data])
-  const groups = data?.groups || []
+  // O filtro por tipo era enviado ao servidor, que o ignorava: clicar num tipo
+  // recarregava a mesma lista. Agora filtra aqui.
+  const permitidos = useMemo(
+    () => (data?.items || []).filter((i) => !i.capability || can(i.capability)),
+    [data, can],
+  )
+  const items = useMemo(() => (type ? permitidos.filter((i) => i.type === type) : permitidos), [permitidos, type])
+  const groups = (data?.groups || [])
+    .map((g) => ({ ...g, count: permitidos.filter((i) => i.type === g.id).length }))
+    .filter((g) => g.count > 0)
 
   // Agrupa por tipo preservando a ordem canônica de SEARCH_TYPES.
   const grouped = useMemo(() => {
@@ -121,17 +121,15 @@ export default function Search() {
     setParams({}, { replace: true })
   }
 
-  const blocked = items.filter((i) => i.capability && !can(i.capability)).length
-
   return (
     <div className="space-y-6">
       <PageHeader
         icon={SearchIcon}
         title="Busca global"
-        description="Procure em tudo o que a plataforma coletou ao mesmo tempo — notícias do acervo, proposições legislativas, fontes cadastradas e o glossário."
-        help="A busca entende termos relacionados do domínio: procurar por “submarino” também encontra PROSUB e conteúdo naval."
+        description="Procure ao mesmo tempo nas notícias do acervo, nas proposições legislativas e no glossário."
+        help="A busca encontra o trecho digitado no título ou no resumo, sem diferenciar acento nem maiúscula. Não usa sinônimos: “submarino” só encontra PROSUB se a palavra estiver no texto."
         breadcrumb={[{ label: 'Busca' }]}
-        meta={[{ label: 'Índice', value: data?.total != null ? `${data.total} resultado(s)` : 'banco de notícias e proposições' }]}
+        meta={[{ label: 'Resultados', value: data ? String(permitidos.length) : '—' }]}
       >
         <form onSubmit={submit} className="flex flex-col gap-2 sm:flex-row">
           <div className="relative flex-1">
@@ -141,7 +139,7 @@ export default function Search() {
               id="busca-global"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ex.: Essequibo, PROSUB, garimpo ilegal, FIMI, ciberataque…"
+              placeholder="Ex.: PROSUB, fronteira, Marinha, FIMI, ciberataque…"
               className="input pl-10 pr-10"
               autoComplete="off"
               autoFocus
@@ -187,21 +185,19 @@ export default function Search() {
               <Database size={17} className="text-brand-400 dark:text-brand-300" /> O que é indexado
             </h2>
             <p className="mt-0.5 text-sm muted">
-              Cada domínio da plataforma entra no mesmo índice, com pesos por campo.
+              Onde a consulta procura.
             </p>
             <ul className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-              {SEARCH_TYPES.map((t) => {
+              {SEARCH_TYPES.filter((t) => !t.capability || can(t.capability)).map((t) => {
                 const Icon = TYPE_ICONS[t.icon] || Compass
-                const locked = t.capability && !can(t.capability)
                 return (
                   <li key={t.id}>
                     <Link
-                      to={locked ? '/painel' : t.to}
-                      className={`flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-sm transition-colors hover:bg-gray-100 dark:hover:bg-white/10 ${locked ? 'opacity-60' : ''}`}
+                      to={t.to}
+                      className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-sm transition-colors hover:bg-gray-100 dark:hover:bg-white/10"
                     >
                       <Icon size={15} style={{ color: TYPE_COLOR[t.id] }} />
                       <span className="min-w-0 flex-1 truncate">{t.label}</span>
-                      {locked && <Lock size={11} className="shrink-0 text-gold-500" />}
                     </Link>
                   </li>
                 )
@@ -226,7 +222,7 @@ export default function Search() {
                     : 'border border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-white/10 dark:text-gray-400 dark:hover:bg-white/5'
                 }`}
               >
-                Tudo <span className="ml-1 tabular-nums opacity-80">{items.length}</span>
+                Tudo <span className="ml-1 tabular-nums opacity-80">{permitidos.length}</span>
               </button>
               {groups.map((g) => {
                 const Icon = TYPE_ICONS[g.icon] || Compass
@@ -259,18 +255,13 @@ export default function Search() {
               icon: SearchIcon,
               tone: 'filter',
               title: `Nada encontrado para “${query}”`,
-              hint: 'Tente um termo mais amplo, o nome de um programa (PROSUB, Gripen) ou uma região (Amazônia, Atlântico Sul).',
+              hint: 'Tente um trecho mais curto ou outra grafia — a busca procura o texto exato, sem sinônimos.',
               action: { label: 'Limpar busca', onClick: clear, icon: X },
             }}
           >
             <div className={`space-y-6 transition-opacity ${loading ? 'opacity-60' : ''}`}>
               <p className="text-sm muted">
                 {items.length} resultado(s) para <strong className="text-gray-800 dark:text-gray-200">“{query}”</strong>
-                {blocked > 0 && (
-                  <span className="text-gold-600 dark:text-gold-400">
-                    {' '}· {blocked} exige{blocked > 1 ? 'm' : ''} um plano ou perfil superior
-                  </span>
-                )}
               </p>
 
               {grouped.map(({ meta, items: list }) => {
@@ -286,7 +277,7 @@ export default function Search() {
                     <ul className="space-y-2">
                       {list.map((item) => (
                         <li key={item.id}>
-                          <ResultRow item={item} query={query} allowed={!item.capability || can(item.capability)} />
+                          <ResultRow item={item} query={query} />
                         </li>
                       ))}
                     </ul>
@@ -302,14 +293,13 @@ export default function Search() {
 }
 
 // ── Um resultado ─────────────────────────────────────────────────────────────
-function ResultRow({ item, query, allowed }) {
+function ResultRow({ item, query }) {
   const color = TYPE_COLOR[item.type] || '#5c616a'
-  const to = allowed ? item.to : '/painel'
 
   return (
     <Link
-      to={to}
-      className={`card flex items-start gap-3 p-4 transition-colors hover:border-gold-500/40 ${allowed ? '' : 'opacity-75'}`}
+      to={item.to}
+      className="card flex items-start gap-3 p-4 transition-colors hover:border-gold-500/40"
     >
       <span className="mt-1 h-2 w-2 shrink-0 rounded-full" style={{ background: color }} />
 
@@ -326,11 +316,6 @@ function ResultRow({ item, query, allowed }) {
               {item.badge}
             </span>
           )}
-          {!allowed && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-gold-500/15 px-1.5 py-0.5 text-[9px] font-bold text-gold-600 dark:text-gold-400">
-              <Lock size={9} /> bloqueado
-            </span>
-          )}
         </div>
 
         {item.subtitle && <p className="mt-0.5 text-xs muted">{item.subtitle}</p>}
@@ -340,11 +325,6 @@ function ResultRow({ item, query, allowed }) {
           </p>
         )}
 
-        {!allowed && (
-          <p className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold text-gold-600 dark:text-gold-400">
-            Ver como desbloquear <ArrowRight size={11} />
-          </p>
-        )}
       </div>
 
       <ChevronRight size={16} className="mt-1 shrink-0 text-gray-400" />

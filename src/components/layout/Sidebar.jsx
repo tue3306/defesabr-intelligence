@@ -9,18 +9,13 @@ import {
 } from 'lucide-react'
 import Logo from '../ui/Logo'
 import { useAuthStore } from '../../store/authStore'
-import { useCan, useProfileMeta } from '../../auth/useCan'
+import { useCan } from '../../auth/useCan'
 
 // -----------------------------------------------------------------------------
 // NAVEGAÇÃO DECLARATIVA — cada item pede uma CAPACIDADE (src/auth/permissions.js).
 //
-// Duas formas de tratar a falta de permissão:
-//   • `capability`      → o item aparece com cadeado (upsell honesto: existe,
-//                         você ainda não tem). Use para profundidade de PLANO.
-//   • `hideWithout`     → o item NEM APARECE sem a capacidade. Use para áreas de
-//                         PAPEL (produção e governança): oferecer o console de
-//                         administração a um leitor não é upsell, é ruído.
-//
+// Item de administração usa `hideWithout`: ele NEM APARECE para quem não tem o
+// papel. Oferecer o console de governança a quem lê o acervo não informa nada.
 // Seções inteiras também podem exigir capacidade (`sectionCapability`).
 // -----------------------------------------------------------------------------
 // ─────────────────────────────────────────────────────────────────────────────
@@ -77,7 +72,7 @@ const NAV_SECTIONS = [
       { to: '/mapa', label: 'Mapa estratégico', icon: Globe2, requiresAuth: true },
       { to: '/economia', label: 'Economia & Defesa', icon: DollarSign, requiresAuth: true },
       { to: '/industria', label: 'Base Industrial (BID)', icon: Factory, requiresAuth: true },
-      { to: '/legislativo', label: 'Radar Legislativo', icon: Landmark, requiresAuth: true, capability: 'legislative.access' },
+      { to: '/legislativo', label: 'Radar Legislativo', icon: Landmark, requiresAuth: true },
       { to: '/dados', label: 'Séries e indicadores', icon: LineChart, requiresAuth: true },
     ],
   },
@@ -87,9 +82,6 @@ const NAV_SECTIONS = [
     items: [
       { to: '/clipping', label: 'Clipping Diário', icon: Newspaper, requiresAuth: true },
       { to: '/correlacoes', label: 'Correlações', icon: Link2, requiresAuth: true },
-      // `hideWithout` porque a capacidade vem do PAPEL: mostrar cadeado
-      // sugeriria que existe um nível que a destrava, e não existe.
-      { to: '/fontes', label: 'Confiabilidade das Fontes', icon: BadgeCheck, requiresAuth: true, capability: 'sources.reliability', hideWithout: true },
       { to: '/arquivo', label: 'Arquivo & Pasta', icon: Archive, requiresAuth: true },
     ],
   },
@@ -113,33 +105,23 @@ const NAV_SECTIONS = [
     ],
   },
   {
-    // Só existe para o Analista e acima: monitorar a coleta e auditar o filtro.
-    title: 'Produção',
-    sectionCapability: 'collection.monitor',
-    items: [
-      {
-        to: '/coleta',
-        label: 'Método & Coleta',
-        icon: FlaskConical,
-        requiresAuth: true,
-        capability: 'collection.monitor',
-        hideWithout: true,
-      },
-    ],
-  },
-  {
     title: 'Recursos',
     items: [
       { to: '/aprender', label: 'Centro Educacional', icon: GraduationCap },
-      { to: '/apresentacao', label: 'Apresentação', icon: Tv, requiresAuth: true, capability: 'presentation.mode' },
+      { to: '/apresentacao', label: 'Apresentação', icon: Tv, requiresAuth: true },
     ],
   },
   {
-    // Só existe para o Administrador.
-    title: 'Governança',
+    // Só existe para o Administrador: operar a instalação.
+    title: 'Administração',
     sectionCapability: 'admin.access',
     items: [
       { to: '/admin', label: 'Console de Governança', icon: ShieldCheck, requiresAuth: true, capability: 'admin.access', hideWithout: true },
+      { to: '/coleta', label: 'Método & Coleta', icon: FlaskConical, requiresAuth: true, capability: 'collection.monitor', hideWithout: true },
+      // Era "Confiabilidade das Fontes" no nível tático. O número exibido é
+      // disponibilidade — quantas vezes a fonte respondeu —, não juízo sobre o
+      // veículo, e a rota por trás exige administrador.
+      { to: '/fontes', label: 'Disponibilidade das Fontes', icon: BadgeCheck, requiresAuth: true, capability: 'sources.reliability', hideWithout: true },
     ],
   },
 ]
@@ -154,7 +136,7 @@ export default function Sidebar({ open, onClose, collapsed }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const user = useAuthStore((s) => s.user)
   const can = useCan()
-  const profileMeta = useProfileMeta()
+  const isAdmin = can('admin.access')
 
   // Monta a navegação efetiva do perfil: remove seções e itens que não fazem
   // sentido oferecer, mantendo os que valem como upsell.
@@ -213,24 +195,16 @@ export default function Sidebar({ open, onClose, collapsed }) {
           ))}
         </nav>
 
-        {/* Selo do perfil ativo — deixa claro "de onde" a pessoa está vendo o produto */}
+        {/* QUEM ESTÁ CONECTADO — o nome, e não um "perfil ativo". Quem lê o
+          * acervo não precisa do organograma de permissões; só o administrador
+          * vê a marca do papel, porque para ele a diferença importa. */}
         {isAuthenticated && !collapsed && (
           <div className="mx-3 mb-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-white/[0.06] dark:bg-white/[0.03]">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Perfil ativo</p>
-            <p className="mt-0.5 flex items-center gap-1.5 text-sm font-bold tracking-tight">
-              <span className="h-2 w-2 rounded-full" style={{ background: profileMeta.color }} />
-              {profileMeta.label}
+            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Conectado como</p>
+            <p className="mt-0.5 truncate text-sm font-bold tracking-tight">{user?.name || '—'}</p>
+            <p className="truncate font-mono text-[11px] muted">
+              {user?.username || '—'}{isAdmin ? ' · administrador' : ''}
             </p>
-            {/* O IDENTIFICADOR, e nao o "plano". Num projeto aberto nao ha
-              * cobranca, e "Plano institucional" sob o nome de quem entrou
-              * sugeria uma assinatura que nao existe. O papel ja esta na linha
-              * de cima; aqui vai quem esta logado, que e o que falta saber. */}
-            <p className="font-mono text-[11px] muted">{user?.username || '—'}</p>
-          </div>
-        )}
-        {isAuthenticated && collapsed && (
-          <div className="mb-2 flex justify-center" title={`Perfil: ${profileMeta.label}`}>
-            <span className="h-2.5 w-2.5 rounded-full" style={{ background: profileMeta.color }} />
           </div>
         )}
 
@@ -253,7 +227,7 @@ export default function Sidebar({ open, onClose, collapsed }) {
 
 function Item({ item, collapsed, onClick, locked, restricted }) {
   const { to, label, icon: Icon, badge, end } = item
-  const hint = locked ? `${label} (requer login)` : restricted ? `${label} (acima do nível de leitura atual)` : label
+  const hint = locked ? `${label} (requer login)` : restricted ? `${label} (restrito a administradores)` : label
 
   return (
     <NavLink

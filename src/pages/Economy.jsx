@@ -149,7 +149,7 @@ export default function Economy() {
       {/* PIB + ORÇAMENTO DE DEFESA BRASIL */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="card p-5">
-          <h2 className="mb-3 text-base font-bold tracking-tight">PIB — América do Sul (US$ bi)</h2>
+          <h2 className="mb-3 text-base font-bold tracking-tight">PIB — Brasil, vizinhos e potências (US$ bi{pib.data[0]?.period ? `, ${pib.data[0].period}` : ''})</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>

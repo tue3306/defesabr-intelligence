@@ -110,7 +110,10 @@ router.post('/system/method/test', exigirPapel('admin'), (req, res) => {
     termosFracos: r.fracos,
     exclusoes: r.excluidos,
     forteNaAbertura: r.naAbertura,
-    classificacao: classificar(texto),
+    // Texto recusado não entra no acervo e não recebe categoria: classificá-lo
+    // mesmo assim exibia "Forças Armadas, urgência CRÍTICO" para uma previsão
+    // de tempestade que o próprio filtro tinha acabado de recusar.
+    classificacao: r.relevante ? classificar(texto) : null,
     porque: r.relevante
       ? (r.naAbertura
         ? 'Termo inequívoco na abertura do texto.'
@@ -146,18 +149,25 @@ router.get('/meta', (req, res) => {
     ambiente: config.ambiente,
     deploy: config.deploy,
     agendador: estadoDoAgendador(),
+    // Era uma lista escrita à mão com cinco fontes — duas de RSS, quando o
+    // catálogo tem dezenas — e sem o Comex Stat nem o ransomware.live.
     fontes: [
-      { nome: 'Ministério da Defesa', tipo: 'RSS', url: 'https://www.gov.br/defesa' },
-      { nome: 'Agência Brasil / Agência Gov (EBC)', tipo: 'RSS', url: 'https://agenciabrasil.ebc.com.br' },
+      {
+        nome: `Feeds RSS (${get('SELECT COUNT(*) AS n FROM sources WHERE enabled = 1')?.n ?? 0} ativos)`,
+        tipo: 'RSS',
+        url: null,
+      },
       { nome: 'Dados Abertos da Câmara', tipo: 'API', url: 'https://dadosabertos.camara.leg.br' },
-      { nome: 'World Bank Open Data', tipo: 'API', url: 'https://data.worldbank.org' },
       { nome: 'Banco Central do Brasil — SGS', tipo: 'API', url: 'https://dadosabertos.bcb.gov.br' },
+      { nome: 'Comex Stat (MDIC)', tipo: 'API', url: 'https://comexstat.mdic.gov.br' },
+      { nome: 'World Bank Open Data', tipo: 'API', url: 'https://data.worldbank.org' },
+      { nome: 'ransomware.live', tipo: 'API', url: 'https://www.ransomware.live' },
     ],
     // O que a plataforma AINDA NÃO faz — contado, não escrito à mão.
     //
     // A lista era fixa e dizia `['Análise por IA', 'Contas e permissões',
     // 'Dossiês de analista']`. As contas passaram a existir — senha em scrypt,
-    // token assinado, papel verificado por rota, 48 checagens em
+    // token assinado, papel verificado por rota, checagens em
     // `npm run check:auth` — e a rota pública continuou anunciando que elas
     // não existiam. Uma lista escrita à mão sobre o que falta envelhece
     // exatamente quando a coisa deixa de faltar, que é o pior momento

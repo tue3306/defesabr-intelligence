@@ -1,26 +1,30 @@
 {
-  "name": "DefesaBR Intelligence — Inteligência Estratégica",
+  "name": "DefesaBR Intelligence — Segurança e Defesa do Brasil",
   "short_name": "DefesaBR",
-  "description": "Plataforma demonstrativa de inteligência estratégica, análise de riscos e apoio à decisão no contexto brasileiro de Segurança e Defesa.",
+  "description": "Acompanhamento de Segurança e Defesa do Brasil a partir de fontes públicas: clipping filtrado por relevância, correlação com incidentes contra organizações brasileiras, indicadores econômicos e assistente por IA com a chave de cada conta.",
   "lang": "pt-BR",
   "dir": "ltr",
-  "start_url": "/defesabr-intelligence/",
-  "scope": "/defesabr-intelligence/",
-  "id": "/defesabr-intelligence/",
+  "start_url": "/",
+  "scope": "/",
+  "id": "/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#f7f8fa",
   "theme_color": "#15191e",
-  "categories": ["business", "productivity", "government", "news"],
+  "categories": [
+    "news",
+    "productivity",
+    "government"
+  ],
   "icons": [
     {
-      "src": "/defesabr-intelligence/favicon.svg",
+      "src": "/favicon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/defesabr-intelligence/favicon.svg",
+      "src": "/favicon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "maskable"

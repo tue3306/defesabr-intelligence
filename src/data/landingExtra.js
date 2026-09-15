@@ -15,7 +15,7 @@ export const USE_CASES = [
   { icon: 'ShieldAlert', title: 'Acompanhamento de conjuntura', text: 'Volume de cobertura por país e região, com as manchetes que sustentam cada contagem.' },
   { icon: 'Landmark', title: 'Setor público & planejamento', text: 'Acompanhamento da agenda legislativa de defesa e dos indicadores de orçamento.' },
   { icon: 'Factory', title: 'Indústria de defesa (BID)', text: 'Exportações brasileiras por capítulo da NCM e país de destino, do Comex Stat.' },
-  { icon: 'GraduationCap', title: 'Pesquisa & academia', text: 'Glossário, trilhas e dados estruturados para estudo de geopolítica e segurança.' },
+  { icon: 'GraduationCap', title: 'Pesquisa & academia', text: 'Glossário, trilhas de estudo e séries com a fonte declarada para estudo de geopolítica e segurança.' },
 ]
 
 // Referências conceituais (NÃO afirmam conformidade).
@@ -38,7 +38,7 @@ export const FAQ = [
   },
   {
     q: 'Como funciona a análise por IA?',
-    a: 'Não funciona: nenhum texto desta plataforma foi escrito por máquina. O resumo executivo do clipping aparece vazio, com a nota explicando por quê. A integração com um modelo de linguagem é a próxima etapa, e até lá a ausência fica declarada em vez de preenchida.',
+    a: 'Com a sua chave da Anthropic, guardada cifrada no servidor e nunca devolvida ao navegador. Ela liga o resumo da semana, as perguntas ao acervo, a análise de até 15 matérias que você escolhe e as perguntas ao guia da plataforma. O modelo só recebe o que foi coletado, todo texto gerado vem marcado como escrito por máquina e as citações são conferidas contra as matérias. Sem chave, o resto da plataforma funciona igual.',
   },
   {
     q: 'É um sistema oficial de algum órgão público?',
@@ -46,15 +46,15 @@ export const FAQ = [
   },
   {
     q: 'O que a plataforma NÃO faz?',
-    a: 'Não gera análise por IA — nenhum texto aqui foi escrito por máquina — e não produz avaliação de risco nem dossiê, que são juízo humano; as telas que fingiam fazê-lo foram removidas. A autenticação, essa passou a ser real: senha em scrypt, token assinado e papel conferido no servidor a cada rota. O console de administração lista o estado de cada capacidade.',
+    a: 'Não produz avaliação de risco nem dossiê assinado por analista — isso é juízo humano, e as telas que fingiam fazê-lo foram removidas. Não publica texto de IA sem marcação, não recupera senha por e-mail e não tem entrada com conta Google.',
   },
   {
     q: 'O que a plataforma faz que um leitor de RSS não faz?',
-    a: 'Correlaciona. Cada matéria é cruzada com as organizações brasileiras que tiveram vazamento divulgado, e com os grupos criminosos que as atacaram. São sete regras determinísticas, e cada ligação mostra o motivo, a evidência literal que a sustenta e o impacto possível — nada nasce de semelhança semântica ou de estimativa.',
+    a: 'Correlaciona. Cada matéria é cruzada com as organizações brasileiras que tiveram vazamento divulgado e com os grupos que as atacaram. São sete regras determinísticas, e cada ligação mostra o motivo e a evidência literal que a sustenta — nada nasce de semelhança semântica ou de estimativa.',
   },
   {
     q: 'Quanto custa?',
-    a: 'Nada, e não há como custar: o projeto é de código aberto, sem cobrança, sem assinatura e sem plano pago. Qualquer pessoa pode clonar o repositório e subir a própria instância. A página de níveis descreve o que cada nível de leitura destrava — é documentação do modelo de permissão, não tabela de preços.',
+    a: 'Nada: o projeto é de código aberto, sem cobrança, assinatura ou plano pago. Qualquer pessoa pode clonar o repositório e subir a própria instância. O único custo possível é o do modelo de IA, cobrado pela Anthropic na conta de quem cadastra a chave.',
   },
 ]
 
@@ -71,9 +71,27 @@ export const FAQ = [
 // A correlacao tambem estava reduzida a "geografica", que era o que ela era
 // quando o item foi escrito.
 export const ROADMAP = [
-  { phase: 'Disponível', title: 'Coleta e clipping', text: '50 fontes RSS e quatro APIs de governo, com filtro de relevância auditável e coleta a cada 30 minutos.', done: true },
+  { phase: 'Disponível', title: 'Coleta e clipping', text: '50 fontes RSS, a Câmara, o Banco Central, o Comex Stat, o World Bank e o ransomware.live, com filtro de relevância auditável e coleta a cada 30 minutos.', done: true },
   { phase: 'Disponível', title: 'Correlação com o Brasil', text: 'Sete regras determinísticas ligam matérias a organizações atacadas, grupos, municípios, UFs e setores — cada uma com a evidência à vista.', done: true },
-  { phase: 'Disponível', title: 'Autenticação no servidor', text: 'Senha em scrypt, token assinado e papel conferido por rota: 401 sem sessão, 403 com papel insuficiente.', done: true },
+  { phase: 'Disponível', title: 'Assistente por IA', text: 'Com a chave de cada conta: resumo da semana, perguntas ao acervo e análise assistida de matérias escolhidas, com as citações conferidas.', done: true },
+  { phase: 'Disponível', title: 'Contas e governança', text: 'Senha em scrypt, papel e situação conferidos no servidor a cada requisição, troca de senha, suspensão com efeito imediato e trilha de auditoria.', done: true },
   { phase: 'Planejado', title: 'Entrar com conta Google', text: 'As colunas `username` e `auth_provider` já existem para receber o provedor externo sem remodelar nada.', done: false },
-  { phase: 'Planejado', title: 'Análise por modelo de linguagem', text: 'Resumo executivo do clipping e síntese de período, hoje declarados como ausentes em vez de preenchidos.', done: false },
+  { phase: 'Planejado', title: 'Recuperação de senha por e-mail', text: 'Depende de um serviço de envio de e-mail, que a instalação ainda não tem.', done: false },
+]
+
+// "Por que usar este site?" — diferenciais exibidos na landing.
+export const LANDING_FEATURES = [
+  // A CORRELACAO VEM PRIMEIRO porque e o que a plataforma tem e um leitor de
+  // RSS nao tem. Ela ficou de fora desta lista quando foi construida, e a
+  // vitrine seguiu anunciando o produto anterior: clipping, mapa e graficos —
+  // tudo verdade, e nada que explique por que alguem usaria isto em vez de
+  // acompanhar as fontes direto.
+  { icon: 'Link2', title: 'Correlação com o Brasil', text: 'Cada matéria é cruzada com as organizações brasileiras atacadas e os grupos do acervo. Sete regras determinísticas, e cada ligação mostra o motivo e a evidência literal que a sustenta.' },
+  { icon: 'Newspaper', title: 'Clipping consolidado', text: 'O mesmo fato coberto por vários veículos vira uma linha, com o selo de quantos o corroboraram e as fontes originais visíveis.' },
+  { icon: 'Globe2', title: 'Mapa navegável', text: 'Cada país abre um dossiê: cobertura noticiosa com tendência, categorias e as vítimas de ransomware do território, cruzadas pelo código ISO.' },
+  { icon: 'BarChart3', title: 'Método auditável', text: 'A regra que decide o que entra no acervo é publicada e pode ser aplicada a qualquer texto, com os termos que casaram.' },
+  { icon: 'LineChart', title: 'Dados militares e econômicos', text: 'Gastos de defesa, câmbio e indicadores setoriais em gráficos atualizados.' },
+  { icon: 'Sparkles', title: 'Assistente por IA, com a sua chave', text: 'Resumo da semana, perguntas ao acervo e análise de até 15 matérias escolhidas. Todo texto gerado vem marcado, e as citações são conferidas contra o que foi coletado.' },
+  { icon: 'GraduationCap', title: 'Centro educacional', text: 'Glossário, trilhas de estudo e quiz para quem está começando em defesa, geopolítica e cibersegurança.' },
+  { icon: 'ShieldCheck', title: 'Fontes confiáveis', text: 'Agregação de fontes públicas e institucionais de Segurança e Defesa do Brasil.' },
 ]

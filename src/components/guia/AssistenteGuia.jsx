@@ -47,6 +47,15 @@ const ABAS = [
   { id: 'limites', rotulo: 'O que não faz', icone: Ban },
 ]
 
+/** Os grupos de telas, na ordem da navegação: visão geral, os três níveis, conta e recursos. */
+function gruposDeTelas(g) {
+  const niveis = g.niveis.map((n) => n.nome)
+  const extras = [...new Set(g.telas.map((t) => t.nivel))].filter((n) => !niveis.includes(n))
+  const antes = extras.filter((n) => n === 'Visão geral').map((nome) => ({ nome }))
+  const depois = extras.filter((n) => n !== 'Visão geral').map((nome) => ({ nome }))
+  return [...antes, ...g.niveis, ...depois]
+}
+
 export default function AssistenteGuia() {
   const papel = useAuthStore((s) => s.user?.role)
   const autenticado = useAuthStore((s) => s.isAuthenticated)
@@ -85,7 +94,7 @@ export default function AssistenteGuia() {
         onClick={() => setAberto((v) => !v)}
         aria-label={aberto ? 'Fechar o guia' : 'Abrir o guia da plataforma'}
         aria-expanded={aberto}
-        className="fixed bottom-5 left-5 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-brand-500 text-white shadow-lg transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
+        className="fixed bottom-5 right-5 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-brand-500 text-white shadow-lg transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
       >
         {aberto ? <X size={20} /> : <LifeBuoy size={20} />}
       </button>
@@ -99,7 +108,7 @@ export default function AssistenteGuia() {
             transition={{ duration: 0.18 }}
             role="dialog"
             aria-label="Guia da plataforma"
-            className="card fixed bottom-20 left-5 z-40 flex max-h-[min(32rem,calc(100vh-7rem))] w-[min(23rem,calc(100vw-2.5rem))] flex-col overflow-hidden p-0"
+            className="card fixed bottom-20 right-5 z-40 flex max-h-[min(32rem,calc(100vh-7rem))] w-[min(23rem,calc(100vw-2.5rem))] flex-col overflow-hidden p-0"
           >
             <div className="shrink-0 border-b border-gray-200 p-4 dark:border-white/10">
               <p className="flex items-center gap-2 text-sm font-bold tracking-tight">
@@ -109,7 +118,7 @@ export default function AssistenteGuia() {
               <p className="mt-0.5 text-xs muted">
                 {g?.perguntaDisponivel
                   ? 'Navegue pelos tópicos ou pergunte com as suas palavras.'
-                  : 'Um guia dos três níveis, das telas e do que a plataforma não faz.'}
+                  : 'Por onde começar, o que cada tela faz e o que a plataforma não faz.'}
               </p>
             </div>
 
@@ -157,10 +166,13 @@ export default function AssistenteGuia() {
 
               {g && aba === 'telas' && (
                 <div className="space-y-4">
-                  {g.niveis.map((n) => (
+                  {/* Agrupava só pelos três níveis de inteligência, e as telas de
+                    * "Visão geral", "Conta" e "Recursos" — o painel, a busca, Minha
+                    * conta — nunca apareciam na lista. */}
+                  {gruposDeTelas(g).map((n) => (
                     <div key={n.nome}>
                       <p className="text-[11px] font-bold uppercase tracking-wider text-gold-600 dark:text-gold-400">
-                        {n.nome} — {n.pergunta}
+                        {n.nome}{n.pergunta ? ` — ${n.pergunta}` : ''}
                       </p>
                       <ul className="mt-1.5 space-y-1.5">
                         {g.telas.filter((t) => t.nivel === n.nome).map((t) => (

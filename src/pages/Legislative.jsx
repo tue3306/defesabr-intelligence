@@ -18,7 +18,6 @@ import { LEG_STAGE } from '../data/legislative'
 import { exportCSV } from '../utils/exportUtils'
 import { formatDateBR, timeAgo } from '../utils/dateUtils'
 
-const HOUSES = ['Todas', 'Câmara', 'Senado']
 
 const RELEVANCE_CLR = {
   Alta: 'bg-military-red/20 text-red-700 dark:text-red-300',
@@ -66,6 +65,9 @@ export default function Legislative() {
   // `data?.items || []` devolveria um array novo a cada render, o que invalidaria o memo
   // em todo render e o tornaria pior que nenhum.
   const items = useMemo(() => data?.items || [], [data])
+  // As casas vêm do que foi coletado. Havia "Senado" fixo no filtro, e a coleta
+  // só consulta a Câmara: escolher o Senado esvaziava a lista sem explicação.
+  const casas = useMemo(() => [...new Set(items.map((i) => i.house).filter(Boolean))], [items])
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase()
@@ -119,7 +121,7 @@ export default function Legislative() {
       <PageHeader
         icon={Landmark}
         title="Radar Legislativo"
-        description="Proposições em tramitação no Congresso Nacional que alteram capacidade, orçamento ou regras de emprego das Forças Armadas."
+        description="Proposições da Câmara dos Deputados que tocam defesa, Forças Armadas e segurança, encontradas por palavra-chave, com o estágio de tramitação."
         help="As proposições vêm da API de Dados Abertos da Câmara dos Deputados, buscadas por 13 palavras-chave de defesa. O estágio de tramitação é derivado do texto oficial de situação. A RELEVÂNCIA para a defesa não é preenchida: classificá-la exige ler a proposição e decidir o que ela significa, e o servidor não faz esse juízo."
         breadcrumb={[{ label: 'Estratégico' }, { label: 'Radar Legislativo' }]}
         badges={<Badge type={meta?.source === 'live' ? 'live' : 'sem-dado'} />}
@@ -142,11 +144,14 @@ export default function Legislative() {
 
       {/* FILTROS */}
       <section className="card space-y-4 p-5">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <div className={`grid grid-cols-1 gap-3 ${casas.length > 1 ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
           <SearchBar placeholder="Buscar por número, título ou tema…" defaultValue={query} onChange={setQuery} />
-          <select value={house} onChange={(e) => setHouse(e.target.value)} className="input" aria-label="Filtrar por casa legislativa">
-            {HOUSES.map((h) => <option key={h} value={h}>{h === 'Todas' ? 'Todas as casas' : h}</option>)}
-          </select>
+          {casas.length > 1 && (
+            <select value={house} onChange={(e) => setHouse(e.target.value)} className="input" aria-label="Filtrar por casa legislativa">
+              <option value="Todas">Todas as casas</option>
+              {casas.map((h) => <option key={h} value={h}>{h}</option>)}
+            </select>
+          )}
           <select value={sort} onChange={(e) => setSort(e.target.value)} className="input" aria-label="Ordenação">
             {SORTS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
           </select>

@@ -127,6 +127,13 @@ const ROTAS = [
     autorizado: 404,
     muta: true,
   },
+  {
+    metodo: 'POST',
+    caminho: '/api/users/999999/senha-temporaria',
+    minimo: 'admin',
+    autorizado: 404,
+    muta: true,
+  },
 
   // ── ASSISTENTE POR IA ──
   //

@@ -141,8 +141,9 @@ disposição: a saída é texto exibido, e nada nela dispara ação na plataform
 
 **Estado:** a autenticação **funciona e é verificada no servidor**. Senha em
 scrypt com sal por conta, comparação em tempo constante, token HMAC-SHA256 com
-papel e validade, `exigirPapel()` por rota devolvendo 401 sem sessão e 403 com
-papel insuficiente. `npm run check:auth` percorre cada identidade contra cada
+validade, papel e situação lidos do banco a cada requisição (suspensão e troca
+de papel valem na hora), `exigirPapel()` por rota devolvendo 401 sem sessão e
+403 com papel insuficiente. `npm run check:auth` percorre cada identidade contra cada
 rota protegida — inclusive as que MUDAM estado, que era a metade que faltava.
 
 O projeto é aberto e nasce com **duas contas**: `admin123` e `usuario123`,
@@ -246,8 +247,7 @@ o Railway. Está documentado em `server/src/collectors/rss.js`. Contornar
 exigiria disfarçar a origem da requisição, o que é evasão de detecção e não
 coleta.
 
-**Contas de teste na suíte de autorização.** Com duas contas semeadas, a
-suíte cobre três identidades (sem sessão, `user`, `admin`). O degrau do meio —
-`analyst` recebendo 200 nas rotas de analista e 403 nas de admin — deixou de
-ser exercitado quando a terceira conta saiu. O papel continua correto no
-código e é alcançado por herança; o que falta é o teste.
+**Recuperação de senha.** A troca de senha existe (Minha conta → Segurança,
+pedindo a atual) e derruba as outras sessões; a recuperação de quem esqueceu
+depende de envio de e-mail, que a instalação não tem. Hoje o caminho é o
+administrador remover a conta para a pessoa se cadastrar de novo.

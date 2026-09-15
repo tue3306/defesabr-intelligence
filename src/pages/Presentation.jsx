@@ -4,7 +4,6 @@ import { motion } from 'framer-motion'
 import { Shield, X, ChevronLeft, ChevronRight, Pause, Play, ShieldAlert, Activity, Target } from 'lucide-react'
 import MilitarySpendingChart from '../components/charts/MilitarySpendingChart'
 import NewsVolumeChart from '../components/charts/NewsVolumeChart'
-import GaugeChart from '../components/charts/GaugeChart'
 import GlobalHeatmap from '../components/charts/GlobalHeatmap'
 import ComparisonBarChart from '../components/charts/ComparisonBarChart'
 import BrazilDefenseBudget from '../components/charts/BrazilDefenseBudget'
@@ -26,7 +25,7 @@ function PostureSlide() {
   const alert = alertMeta[a.level] || alertMeta.NORMAL
   return (
     <div className="flex flex-col items-center py-6 text-center sm:py-10">
-      <span className="text-xs font-bold uppercase tracking-[0.3em] text-gold-400">Postura nacional</span>
+      <span className="text-xs font-bold uppercase tracking-[0.3em] text-gold-400">Nível de alerta · 7 dias</span>
       <p className="mt-4 text-5xl font-extrabold tracking-tight sm:text-7xl" style={{ color: '#caa733' }}>
         {a.value != null ? alert.label : '—'}
       </p>
@@ -37,6 +36,9 @@ function PostureSlide() {
       <div className="mt-2 flex w-full max-w-xl justify-between text-xs uppercase tracking-wide muted">
         <span>Normal</span><span>Crítico</span>
       </div>
+      <p className="mt-4 max-w-xl text-xs muted">
+        {a.basis ? `Média ponderada da urgência — ${a.basis}.` : 'Sem ocorrências no período para calcular.'}
+      </p>
     </div>
   )
 }
@@ -130,28 +132,13 @@ function VolumePorCategoriaSlide({ height }) {
   )
 }
 
-function AlertaSlide({ height }) {
-  const a = useIndiceDeAlerta(7)
-  return (
-    <div className="flex h-full flex-col">
-      <GaugeChart value={a.value} height={height} />
-      <p className="mt-2 text-center text-[11px] muted">
-        {a.aoVivo && a.basis
-          ? `Média ponderada das urgências — ${a.basis}.`
-          : 'Sem valor: o servidor não respondeu.'}
-      </p>
-    </div>
-  )
-}
-
 const SLIDES = [
-  { title: 'Postura nacional do período', icon: Activity, render: () => <PostureSlide /> },
+  { title: 'Nível de alerta do período', icon: Activity, render: () => <PostureSlide /> },
   { title: 'Gastos militares — Brasil', render: (h) => <GastoSlide height={h} /> },
   { title: 'Gastos militares globais (US$ bi)', render: (h) => <GlobalSlide height={h} /> },
   { title: 'América do Sul — % do PIB em defesa', render: (h) => <ComparacaoSlide height={h} /> },
   { title: 'Volume de notícias — 14 dias', render: (h) => <VolumeSlide height={h} /> },
   { title: 'Volume por categoria — 30 dias', render: (h) => <VolumePorCategoriaSlide height={h} /> },
-  { title: 'Índice de alerta nacional', render: (h) => <AlertaSlide height={h} /> },
   { title: 'Cobertura noticiosa por país — o Brasil como âncora', render: (h) => <GlobalHeatmap height={h} withNews={false} /> },
 ]
 

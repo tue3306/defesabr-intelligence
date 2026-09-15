@@ -1,47 +1,47 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { API_BASE_URL } from '../services/config'
-import { useSubscriptionStore } from './subscriptionStore'
 import { useNewsStore } from './newsStore'
+import { ROLE_LABELS } from '../auth/permissions'
 
 // -----------------------------------------------------------------------------
 // SESSÃO
 //
-// Este store guardava um objeto de usuário inventado no navegador: escolher uma
-// persona escrevia `{ role: 'admin' }` no localStorage, e pronto — você era
-// administrador. Nada verificava.
+// O papel vem de um token assinado pelo servidor, e é o servidor que decide o
+// que aquele token alcança — a cada requisição, lendo papel e situação da conta
+// no banco. Editar o localStorage muda o que a INTERFACE desenha e não abre
+// nenhuma rota.
 //
-// Agora ele conversa com `/api/auth`. O papel vem de um token assinado pelo
-// servidor, e é o servidor que decide o que aquele token alcança. Editar o
-// localStorage à mão continua mudando o que a INTERFACE mostra, mas os
-// endpoints protegidos respondem 403 — que é a diferença entre esconder um
-// botão e controlar acesso.
-//
-// O token é guardado junto da sessão porque toda consulta precisa dele. Fica
-// no localStorage, com a limitação que isso implica (um XSS o alcança); a
-// alternativa correta é cookie httpOnly, que exige o mesmo domínio e uma
-// camada de CSRF — trabalho que faz sentido quando houver dado sensível.
+// O token fica no localStorage, com a limitação que isso implica (um XSS o
+// alcança); a alternativa correta é cookie httpOnly, que exige o mesmo domínio
+// e uma camada de CSRF.
 // -----------------------------------------------------------------------------
 
 const api = (caminho) => `${API_BASE_URL}/api${caminho}`
 
-/** Papéis do produto. A ordem é a hierarquia. */
+/** Evento disparado pela camada de dados quando o servidor responde 401. */
+export const EVENTO_SESSAO_PERDIDA = 'defesabr:sessao-perdida'
+
+/** Papéis do produto — os mesmos que o servidor atribui. */
 export const ROLES = {
-  user: { id: 'user', label: 'Usuário' },
-  analyst: { id: 'analyst', label: 'Analista' },
-  admin: { id: 'admin', label: 'Administrador' },
+  user: { id: 'user', label: ROLE_LABELS.user },
+  admin: { id: 'admin', label: ROLE_LABELS.admin },
 }
 
-async function postar(caminho, corpo) {
+async function chamar(metodo, caminho, corpo, token) {
   const r = await fetch(api(caminho), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(corpo),
+    method: metodo,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: corpo ? JSON.stringify(corpo) : undefined,
   })
   const dados = await r.json().catch(() => ({}))
   if (!r.ok) {
     const err = new Error(dados?.error || 'Não foi possível concluir.')
     err.campo = dados?.campo
+    err.code = dados?.code
     err.status = r.status
     throw err
   }
@@ -49,16 +49,10 @@ async function postar(caminho, corpo) {
 }
 
 /**
- * A pasta de favoritos passa a seguir a CONTA, e não o navegador.
+ * A pasta de favoritos segue a CONTA, e não o navegador.
  *
- * Chamado nos três pontos em que uma sessão se estabelece — entrar, cadastrar
- * e revalidar na subida. Sem isto, `/api/bookmarks` continuaria existindo sem
- * que nenhum caminho de usuário o alcançasse, e "Minha Pasta" seria uma pasta
- * por navegador.
- *
- * Não é aguardado: a sincronização é um efeito colateral bem-vindo do login,
- * não uma condição dele. Um servidor lento não pode atrasar a entrada, e uma
- * falha aqui não pode transformar um login correto em erro na tela.
+ * Não é aguardado: a sincronização é efeito colateral bem-vindo do login, não
+ * condição dele. Um servidor lento não pode atrasar a entrada.
  */
 function sincronizarPasta() {
   useNewsStore.getState().sincronizarFavoritos?.()
@@ -71,28 +65,20 @@ export const useAuthStore = create(
       token: null,
       isAuthenticated: false,
       carregando: false,
+      /** Por que a última sessão terminou sem a pessoa pedir, para a tela avisar. */
+      motivoSaida: null,
 
-      /**
-       * Entra com IDENTIFICADOR e senha.
-       *
-       * O parametro deixou de se chamar `email` porque deixou de ser um
-       * e-mail: as contas do projeto aberto entram por nome de usuario
-       * (`admin123`), e o servidor aceita nome de usuario OU endereco no mesmo
-       * campo. Manter o nome `email` aqui faria a proxima pessoa acreditar que
-       * so endereco funciona — e e justamente esse campo que vai receber o
-       * e-mail do Google quando o provedor externo entrar.
-       */
+      /** Entra com nome de usuário OU e-mail e senha. */
       login: async (identificador, password) => {
         set({ carregando: true })
         try {
-          const { user, token } = await postar('/auth/login', { username: identificador, password })
-          useSubscriptionStore.getState().setPlan(user.plan)
-          set({ user, token, isAuthenticated: true, carregando: false })
+          const { user, token } = await chamar('POST', '/auth/login', { username: identificador, password })
+          set({ user, token, isAuthenticated: true, carregando: false, motivoSaida: null })
           sincronizarPasta()
           return { ok: true, user }
         } catch (err) {
           set({ carregando: false })
-          return { ok: false, error: err.message, campo: err.campo }
+          return { ok: false, error: err.message, campo: err.campo, code: err.code }
         }
       },
 
@@ -100,9 +86,8 @@ export const useAuthStore = create(
       register: async ({ name, email, password }) => {
         set({ carregando: true })
         try {
-          const { user, token } = await postar('/auth/register', { name, email, password })
-          useSubscriptionStore.getState().setPlan(user.plan)
-          set({ user, token, isAuthenticated: true, carregando: false })
+          const { user, token } = await chamar('POST', '/auth/register', { name, email, password })
+          set({ user, token, isAuthenticated: true, carregando: false, motivoSaida: null })
           sincronizarPasta()
           return { ok: true, user }
         } catch (err) {
@@ -111,54 +96,95 @@ export const useAuthStore = create(
         }
       },
 
-      logout: () => {
-        useSubscriptionStore.getState().setPlan('explorar')
-        set({ user: null, token: null, isAuthenticated: false })
+      logout: (motivo = null) => {
+        // O que é da pessoa sai junto: a pasta (cópia da que está no servidor),
+        // os avisos e os clippings arquivados. Deixá-los faria a próxima conta
+        // a entrar neste navegador herdá-los — e enviar a pasta anterior para a
+        // própria, na sincronização do login.
+        useNewsStore.setState({ favorites: [], notifications: [], clippings: [], latestClipping: null })
+        set({ user: null, token: null, isAuthenticated: false, motivoSaida: motivo })
       },
 
       /**
-       * Revalida a sessão guardada contra o servidor.
+       * Revalida a sessão guardada contra o servidor, na subida.
        *
-       * Chamado na subida. Sem isto, um token vencido (ou assinado com um
-       * segredo que o servidor não usa mais, o que acontece a cada deploy sem
-       * AUTH_SECRET) manteria a interface parecendo autenticada enquanto toda
-       * consulta protegida falhava.
+       * Só descarta a sessão quando o servidor RECUSA o token (401). Descartava
+       * em qualquer falha — e um servidor reiniciando por dez segundos
+       * desconectava todo mundo que abrisse a página nesse intervalo.
        */
       revalidar: async () => {
         const token = get().token
         if (!token) return
         try {
           const r = await fetch(api('/auth/me'), { headers: { Authorization: `Bearer ${token}` } })
-          if (!r.ok) throw new Error('sessão inválida')
+          if (r.status === 401) {
+            get().logout('expirada')
+            return
+          }
+          if (!r.ok) return
           const { user } = await r.json()
-          useSubscriptionStore.getState().setPlan(user.plan)
           set({ user, isAuthenticated: true })
           sincronizarPasta()
-        } catch {
-          set({ user: null, token: null, isAuthenticated: false })
+        } catch { /* sem rede: mantém a sessão; a próxima consulta decide */ }
+      },
+
+      /** Troca o nome de exibição — no servidor. */
+      atualizarNome: async (name) => {
+        try {
+          const { user } = await chamar('PATCH', '/auth/me', { name }, get().token)
+          set({ user })
+          return { ok: true, user }
+        } catch (err) {
+          return { ok: false, error: err.message, campo: err.campo, code: err.code }
         }
       },
 
-      /** Edição de perfil — só o que o cliente pode mudar sem o servidor. */
-      updateProfile: (patch) =>
-        set((s) => ({ user: s.user ? { ...s.user, ...patch } : s.user })),
+      /** Troca a senha. As outras sessões caem; esta recebe token novo. */
+      trocarSenha: async (atual, nova) => {
+        try {
+          const { user, token } = await chamar('PUT', '/auth/senha', { atual, nova }, get().token)
+          set({ user, token })
+          // A senha padrão pode ter deixado de valer: o atalho de entrada muda.
+          window.dispatchEvent(new CustomEvent('defesabr:contas-iniciais-mudaram'))
+          return { ok: true }
+        } catch (err) {
+          return { ok: false, error: err.message, campo: err.campo, code: err.code }
+        }
+      },
 
-      // ── Helpers de autorização ──
-      // Delegam a src/auth/permissions.js; nenhum componente checa papel cru.
-      authContext: () => ({
-        isAuthenticated: get().isAuthenticated,
-        role: get().user?.role,
-        plan: useSubscriptionStore.getState().plan,
-      }),
+      /** Derruba todas as outras sessões desta conta. */
+      encerrarOutrasSessoes: async () => {
+        try {
+          const { user, token } = await chamar('POST', '/auth/sessoes/encerrar', null, get().token)
+          set({ user, token })
+          return { ok: true }
+        } catch (err) {
+          return { ok: false, error: err.message, code: err.code }
+        }
+      },
     }),
     {
       name: 'defesabr-auth-v5',
-      // O token entra na persistência porque toda consulta precisa dele; sem
-      // isso, recarregar a página derrubaria a sessão.
       partialize: (s) => ({ user: s.user, token: s.token, isAuthenticated: s.isAuthenticated }),
     },
   ),
 )
+
+// ─────────────────────────────────────────────────────────────────────────────
+// A SESSÃO CAI QUANDO O SERVIDOR DIZ QUE CAIU
+//
+// Suspensão, remoção, troca de senha em outro aparelho ou token vencido fazem
+// o servidor responder 401. A interface continuava desenhando o menu de quem
+// estava logado, com toda consulta falhando por baixo — e a mensagem era
+// "Sua sessão não tem permissão para esta consulta".
+//
+// A camada de dados dispara o evento; aqui a sessão local é desfeita.
+// ─────────────────────────────────────────────────────────────────────────────
+if (typeof window !== 'undefined') {
+  window.addEventListener(EVENTO_SESSAO_PERDIDA, () => {
+    if (useAuthStore.getState().isAuthenticated) useAuthStore.getState().logout('expirada')
+  })
+}
 
 /** Token atual, para o cliente HTTP anexar às consultas. */
 export const tokenAtual = () => useAuthStore.getState().token

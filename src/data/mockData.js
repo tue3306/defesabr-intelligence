@@ -51,14 +51,3 @@ export const ALERT_LEVELS = ['NORMAL', 'ATENCAO', 'ALERTA', 'CRITICO']
 //
 // As fontes reais, com estado medido, vem de /api/sources/summary.
 
-// -----------------------------------------------------------------------------
-// NOTÍCIAS DE HOJE (brutas, antes da IA)
-// -----------------------------------------------------------------------------
-
-export const FOCUS_AREAS = [
-  { id: 'academico', label: 'Acadêmica', icon: 'GraduationCap' },
-  { id: 'investimento', label: 'Investimentos', icon: 'TrendingUp' },
-  { id: 'comercial', label: 'Comercial/Ind.', icon: 'Factory' },
-  { id: 'empresarial', label: 'Empresarial', icon: 'Briefcase' },
-  { id: 'diplomatico', label: 'Diplomática', icon: 'Globe' },
-]

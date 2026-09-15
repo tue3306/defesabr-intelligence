@@ -44,7 +44,7 @@ export function useVitrine() {
         if (!vivo) return
 
         // Resumo público: só total e quantas responderam. A lista completa,
-        // com erro por fonte, é do Analista — e pedi-la aqui devolvia 401 na
+        // com erro por fonte, é do administrador — e pedi-la aqui devolvia 401 na
         // primeira dobra da página inicial.
         setEstado({
           fontes: fontes?.total || null,

@@ -18,6 +18,7 @@ import {
   Home,
   DollarSign,
   Factory,
+  FlaskConical,
   Landmark,
   BadgeCheck,
   Compass,
@@ -81,22 +82,24 @@ export default function CommandPalette() {
       { id: 'mapa', group: 'Estratégico', label: 'Abrir Mapa estratégico', icon: Globe2, run: go('/mapa'), auth: true },
       { id: 'economia', group: 'Estratégico', label: 'Abrir Economia & Defesa', icon: DollarSign, run: go('/economia'), auth: true },
       { id: 'industria', group: 'Estratégico', label: 'Abrir Base Industrial (BID)', icon: Factory, run: go('/industria'), auth: true },
-      { id: 'legislativo', group: 'Estratégico', label: 'Abrir Radar Legislativo', icon: Landmark, run: go('/legislativo'), auth: true, cap: 'legislative.access' },
+      { id: 'legislativo', group: 'Estratégico', label: 'Abrir Radar Legislativo', icon: Landmark, run: go('/legislativo'), auth: true },
       { id: 'dados', group: 'Estratégico', label: 'Abrir Séries e indicadores', icon: LineChart, run: go('/dados'), auth: true },
 
       // Tático — setores e correlação.
       { id: 'clipping', group: 'Tático', label: 'Abrir Clipping Diário', icon: Newspaper, run: go('/clipping'), auth: true },
       { id: 'correlacoes', group: 'Tático', label: 'Abrir Correlações', icon: Link2, run: go('/correlacoes'), auth: true },
-      { id: 'fontes', group: 'Tático', label: 'Abrir Confiabilidade das Fontes', icon: BadgeCheck, run: go('/fontes'), auth: true, cap: 'sources.reliability' },
       { id: 'arquivo', group: 'Tático', label: 'Abrir Arquivo & Pasta', icon: ArchiveIcon, run: go('/arquivo'), auth: true },
 
       // Operacional — o incidente, com nome e data.
       { id: 'ciberameacas', group: 'Operacional', label: 'Abrir Incidentes no Brasil', icon: ShieldAlert, run: go('/ciberameacas'), auth: true },
       { id: 'atores', group: 'Operacional', label: 'Abrir Grupos contra o Brasil', icon: Crosshair, run: go('/atores'), auth: true },
 
-      // Produção
-      { id: 'apresentacao', group: 'Produção', label: 'Iniciar modo apresentação', icon: Tv, run: go('/apresentacao'), auth: true, cap: 'presentation.mode' },
-      { id: 'admin', group: 'Produção', label: 'Abrir Console de Governança', icon: ShieldCheck, run: go('/admin'), auth: true, cap: 'admin.access', hideWithout: true },
+      { id: 'apresentacao', group: 'Ações', label: 'Iniciar modo apresentação', icon: Tv, run: go('/apresentacao'), auth: true },
+
+      // Administração — só aparece para quem administra
+      { id: 'admin', group: 'Administração', label: 'Abrir Console de Governança', icon: ShieldCheck, run: go('/admin'), auth: true, cap: 'admin.access', hideWithout: true },
+      { id: 'coleta', group: 'Administração', label: 'Abrir Método & Coleta', icon: FlaskConical, run: go('/coleta'), auth: true, cap: 'collection.monitor', hideWithout: true },
+      { id: 'fontes', group: 'Administração', label: 'Abrir Disponibilidade das Fontes', icon: BadgeCheck, run: go('/fontes'), auth: true, cap: 'sources.reliability', hideWithout: true },
 
       // Conta
       { id: 'conta', group: 'Conta', label: 'Minha conta', icon: UserCircle, run: go('/conta'), auth: true },
@@ -105,12 +108,14 @@ export default function CommandPalette() {
 
       // Ações
       { id: 'tema', group: 'Ações', label: isDark ? 'Mudar para tema claro' : 'Mudar para tema escuro', icon: isDark ? Sun : Moon, run: toggleTheme },
-      { id: 'tour', group: 'Ações', label: 'Rever tour guiado', icon: Compass, run: () => window.dispatchEvent(new Event('defesabr:open-tour')), auth: true },
+      { id: 'tour', group: 'Ações', label: 'Rever as boas-vindas', icon: Compass, run: () => window.dispatchEvent(new Event('defesabr:open-tour')), auth: true, soUsuario: true },
     ]
 
     return items
       .filter((c) => !c.hideWithout || can(c.cap))
       .filter((c) => !c.auth || isAuthenticated)
+      // As boas-vindas são de conta de usuário; o administrador não as recebe.
+      .filter((c) => !c.soUsuario || !can('admin.access'))
       .map((c) => ({ ...c, locked: c.cap ? !can(c.cap) : false }))
   }, [navigate, isDark, toggleTheme, isAuthenticated, can])
 

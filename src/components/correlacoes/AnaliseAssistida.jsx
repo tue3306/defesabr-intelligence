@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Sparkles, Check, Flag, AlertTriangle, ExternalLink, ListChecks, Search, X } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Sparkles, Check, Flag, AlertTriangle, ExternalLink, ListChecks, Search, X, KeyRound } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useIa } from '../../hooks/useIa'
 import { useResource } from '../../hooks/useResource'
@@ -20,21 +21,12 @@ import InfoTooltip from '../ui/InfoTooltip'
 // coincidência de nome. Esse salto é interpretativo, e é o que falta.
 //
 // Aqui a escolha é humana — até quinze matérias, selecionadas por quem lê — e o
-// modelo escreve o Contexto no Brasil e o Impacto possível de cada uma, mais a
-// leitura do conjunto.
+// modelo escreve o contexto e o impacto possível de cada uma, mais a leitura do
+// conjunto, sempre rotulados como escritos por máquina.
 //
-// ─────────────────────────────────────────────────────────────────────────────
-// O ÍNDICE DE VÍNCULO CONTINUA SENDO CONTADO, NÃO ESCRITO
-//
-// O pedido original incluía deixar o modelo produzir também o índice. Não dá,
-// e a razão é a mesma que governa o resto do projeto: um número saído de um
-// modelo é indistinguível de um número apurado, e quem lê não tem como saber
-// qual dos dois está vendo. "78/100" escrito por máquina parece exatamente com
-// "78/100" contado do catálogo de entidades.
-//
-// Então a divisão é: o modelo escreve a PROSA, a plataforma conta o NÚMERO. As
-// duas coisas aparecem lado a lado e rotuladas, e quem lê pode conferir uma
-// contra a outra.
+// O "índice de vínculo com o Brasil" saiu desta tela: um número de 0 a 100
+// contado por menções a entidades, ao lado de prosa de modelo, parecia medir o
+// que o texto afirmava — e não media.
 //
 // ─────────────────────────────────────────────────────────────────────────────
 // E A RESPOSTA É CONFERIDA ANTES DE APARECER
@@ -60,10 +52,30 @@ export default function AnaliseAssistida() {
     { enabled: ia.configurada },
   )
 
-  // Sem modelo ligado o bloco não aparece. A tela de Configurações já explica o
-  // recurso a quem quiser ligá-lo; repetir a oferta aqui seria propaganda
-  // dentro do produto.
-  if (!ia.configurada) return null
+  // SEM MODELO LIGADO, A TELA DIZ COMO LIGAR. O bloco sumia por completo, e
+  // quem abria Correlações não tinha como saber que a análise existia.
+  if (!ia.configurada) {
+    if (ia.carregando) return null
+    return (
+      <section className="card flex flex-wrap items-center justify-between gap-3 p-5">
+        <div className="min-w-0">
+          <h2 className="flex items-center gap-2 text-base font-bold tracking-tight">
+            <ListChecks size={17} className="text-brand-500 dark:text-brand-300" /> Análise assistida
+          </h2>
+          <p className="mt-1 max-w-2xl text-sm muted">
+            {ia.contaCompartilhada
+              ? 'Escolha até 15 matérias e um modelo de IA escreve o contexto e o impacto possível de cada uma. A conta compartilhada não guarda chave: crie a sua conta para usar a sua.'
+              : 'Escolha até 15 matérias, busque por assunto, e um modelo de IA escreve o contexto e o impacto possível de cada uma. Precisa de uma chave da Anthropic.'}
+          </p>
+        </div>
+        {!ia.contaCompartilhada && (
+          <Link to="/conta" className="btn-ghost shrink-0 text-sm">
+            <KeyRound size={15} /> Configurar a chave
+          </Link>
+        )}
+      </section>
+    )
+  }
 
   const itens = candidatas.data?.items || []
 
@@ -113,12 +125,12 @@ export default function AnaliseAssistida() {
       <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
         <ListChecks size={18} className="text-brand-500 dark:text-brand-300" />
         Análise assistida
-        <InfoTooltip text="Você escolhe as matérias; o modelo escreve o contexto e o impacto de cada uma. O índice de vínculo com o Brasil continua sendo contado pela plataforma, não escrito pelo modelo." />
+        <InfoTooltip text="Você escolhe as matérias; o modelo escreve o contexto e o impacto possível de cada uma e a leitura do conjunto. As entidades brasileiras que ele cita são conferidas contra as matérias enviadas." />
       </h2>
       <p className="mt-1 text-sm muted">
-        Escolha até {MAXIMO} matérias dos últimos 14 dias. O modelo escreve o <strong>contexto no
-        Brasil</strong> e o <strong>impacto possível</strong> de cada uma, e a leitura do conjunto.
-        O <strong>índice de vínculo</strong> continua vindo da contagem de entidades — não do modelo.
+        Escolha até {MAXIMO} matérias dos últimos 14 dias. O modelo escreve o <strong>contexto</strong> e
+        o <strong>impacto possível</strong> de cada uma, e a leitura do conjunto — tudo marcado como
+        escrito por máquina.
       </p>
 
       {/* A busca fica FORA do DataState: some junto com a lista quando não há
@@ -201,9 +213,6 @@ export default function AnaliseAssistida() {
                             {m.categoria}
                           </span>
                         )}
-                        <span className="chip text-[10px]" title={m.brMotivo || 'Índice de vínculo com o Brasil'}>
-                          vínculo {m.brScore ?? 0}
-                        </span>
                         {m.ligacoes > 0 && <span className="chip text-[10px]">{m.ligacoes} ligação(ões)</span>}
                       </span>
                     </span>
@@ -299,20 +308,8 @@ function Resultado({ r }) {
             </p>
 
             <dl className="mt-3 space-y-2.5">
-              <Campo rotulo="Contexto no Brasil" texto={m.contexto} deMaquina />
+              <Campo rotulo="Contexto" texto={m.contexto} deMaquina />
               <Campo rotulo="Impacto possível" texto={m.impacto} deMaquina />
-              <div>
-                <dt className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider muted">
-                  Índice de vínculo com o Brasil
-                  <span className="rounded bg-gray-200 px-1 py-px text-[9px] font-bold normal-case tracking-normal text-gray-700 dark:bg-white/10 dark:text-gray-300">
-                    contado
-                  </span>
-                </dt>
-                <dd className="mt-0.5 text-sm leading-relaxed">
-                  <span className="font-mono font-bold tabular-nums">{m.brScore ?? 0}</span>
-                  <span className="muted">/100 — {m.brMotivo || 'sem vínculo medido'}</span>
-                </dd>
-              </div>
               {m.entidadesDetectadas?.length > 0 && (
                 <div>
                   <dt className="text-[11px] font-bold uppercase tracking-wider muted">

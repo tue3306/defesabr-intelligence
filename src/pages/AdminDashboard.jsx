@@ -2,8 +2,8 @@ import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
-  ShieldCheck, Users, Database, Activity, PlugZap, ScrollText,
-  ArrowRight, Settings as SettingsIcon, HeartPulse, Server, ChevronRight,
+  ShieldCheck, Users, Database, Activity, ScrollText, Sparkles, AlertTriangle,
+  HeartPulse, Server, ChevronRight, KeyRound,
 } from 'lucide-react'
 import MetricCard from '../components/ui/MetricCard'
 import Badge from '../components/ui/Badge'
@@ -11,32 +11,30 @@ import { apiOnline } from '../services/apiBridge'
 import { useResource } from '../hooks/useResource'
 import { adminService } from '../services'
 import { useAuthStore } from '../store/authStore'
-// Só as TAXONOMIAS de estado sobrevivem daqui. Os dados que este painel
-// mostrava — `systemHealth`, `ingestion`, `platformMetrics`, `auditLog` —
-// eram escritos à mão e foram trocados pelo que o servidor mede.
-import { HEALTH_STATUS, AUDIT_LEVEL, integrations } from '../data/adminData'
-import { SOURCE_STATUS } from '../data/monitoredSources'
+import { HEALTH_STATUS, AUDIT_LEVEL, SOURCE_STATUS } from '../data/adminData'
 import { formatDateTimeBR } from '../utils/dateUtils'
 
 const Section = ({ children, className = '' }) => (
   <motion.section
     initial={{ opacity: 0, y: 16 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true, margin: '-60px' }}
-    transition={{ duration: 0.4 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.3 }}
     className={className}
   >
     {children}
   </motion.section>
 )
 
-// Dashboard do perfil ADMINISTRADOR — governança e observabilidade:
-// saúde da plataforma, usuários, fontes, integrações, ingestão, métricas e logs.
-// Estrutura pronta para backend; dados demonstrativos e honestos.
+// -----------------------------------------------------------------------------
+// PAINEL DO ADMINISTRADOR — o estado da instalação num relance.
+//
+// Tudo aqui vem do servidor. Este painel já exibiu "Perfis de acesso: 4 —
+// visitante, usuário, analista, admin", "Contas por plano: Institucional 2" e
+// uma lista de integrações escrita à mão com SSO corporativo "planejado" e o
+// modelo de linguagem "não conectado" — ao lado do assistente por IA que
+// funcionava.
+// -----------------------------------------------------------------------------
 export default function AdminDashboard() {
-  // O selo seguia fixo em demonstração. Fontes, coleta e saúde deste painel
-  // vêm da API há vários commits; anunciar-se como demonstração ensina a não
-  // olhar o selo, que é o oposto do que ele serve.
   const [apiViva, setApiViva] = useState(false)
   useEffect(() => {
     let vivo = true
@@ -44,75 +42,51 @@ export default function AdminDashboard() {
     return () => { vivo = false }
   }, [])
 
-  // Saude e fontes vem do servidor — os mesmos endpoints do console de
-  // governanca, para os dois nao divergirem.
   const saude = useResource(() => adminService.health(), [])
   const fontes = useResource(() => adminService.sources(), [])
-  const auditoria = useResource(() => adminService.audit({ limit: 12 }), [])
+  const auditoria = useResource(() => adminService.audit({ limit: 80 }), [])
   const usuarios = useResource(() => adminService.users(), [])
 
-  // Contas por plano, contadas do que o servidor devolve.
-  // Memoizado porque esta lista entra nas dependências de um `useMemo` abaixo:
-  // `usuarios.data?.items || []` devolveria um array novo a cada render, o que invalidaria o memo
-  // em todo render e o tornaria pior que nenhum.
   const contas = useMemo(() => usuarios.data?.items || [], [usuarios.data])
-  const contasPorPlano = useMemo(() => {
-    const conta = {}
-    for (const u of contas) conta[u.plan || 'sem plano'] = (conta[u.plan || 'sem plano'] || 0) + 1
-    return Object.entries(conta).sort((a, b) => b[1] - a[1])
-  }, [contas])
-
-  const acervo = saude.data?.archive
-  const agendador = saude.data?.scheduler
-  // Execuções nas últimas 24h, do histórico real de coleta.
-  const execucoes24h = useMemo(() => {
-    const itens = auditoria.data?.items || []
-    const corte = Date.now() - 24 * 3600_000
-    return itens.filter((e) => new Date(e.time || e.started_at || 0).getTime() >= corte).length
-  }, [auditoria.data])
+  const listaFontes = useMemo(() => fontes.data?.items || [], [fontes.data])
+  const eventos = useMemo(() => auditoria.data?.items || [], [auditoria.data])
 
   const servicos = saude.data?.services || []
-  const operacionais = servicos.filter((x) => x.status === 'operational').length
-  // Memoizado porque esta lista entra nas dependências de um `useMemo` abaixo:
-  // `fontes.data?.items || []` devolveria um array novo a cada render, o que invalidaria o memo
-  // em todo render e o tornaria pior que nenhum.
-  const listaFontes = useMemo(() => fontes.data?.items || [], [fontes.data])
-  const fontesOk = listaFontes.filter((f) => f.last_status === 'ok').length
+  const alertas = saude.data?.alerts || []
+  const acervo = saude.data?.archive
+  const agendador = saude.data?.scheduler
+  const operacionais = saude.data?.operational ?? 0
+  const avaliaveis = (saude.data?.total ?? 0) - (saude.data?.optional ?? 0)
+  const ia = servicos.find((s) => s.id === 'assistente-ia')
 
-  const user = useAuthStore((s) => s.user)
-  const firstName = user?.name?.split(' ')[0] || 'Administrador'
+  const execucoes24h = useMemo(() => {
+    const corte = Date.now() - 24 * 3600_000
+    return eventos.filter((e) => e.kind === 'coleta' && new Date(e.time || 0).getTime() >= corte).length
+  }, [eventos])
 
-  // Este painel resumia `monitoredSources.js`: um catálogo de 12 fontes com
-  // status escritos à mão. O servidor tem 21 cadastradas e mede o estado de
-  // cada uma a cada coleta — e a página já buscava esses dados três linhas
-  // acima, para exibi-los na frase de rodapé. Duas contagens diferentes da
-  // mesma coisa, uma ao lado da outra, e a estática por cima.
   const resumoFontes = useMemo(() => {
-    // `status` já vem normalizado pela ponte (paraFonte) para as chaves de
-    // SOURCE_STATUS. Ler `lastStatus` aqui — o campo cru da API — fazia todas
-    // as 21 caírem em 'configurada', e o painel exibia "21 sem coleta ainda"
-    // logo acima da própria frase que dizia "21 responderam na última coleta".
-    const r = { ativa: 0, indisponivel: 0, configurada: 0, pendente: 0 }
-    for (const f of listaFontes) {
-      if (r[f.status] !== undefined) r[f.status] += 1
-    }
+    const r = Object.fromEntries(Object.keys(SOURCE_STATUS).map((k) => [k, 0]))
+    for (const f of listaFontes) if (r[f.status] !== undefined) r[f.status] += 1
     return r
   }, [listaFontes])
 
   const porCategoria = useMemo(() => {
     const mapa = new Map()
     for (const f of listaFontes) {
-      // `category` é a categoria fixa do CATÁLOGO ('inst-br'); a categoria
-      // real da fonte — Oficial, Agência pública, Legislativo — vem em `type`.
       const cat = f.type || 'Sem categoria'
       mapa.set(cat, (mapa.get(cat) || 0) + 1)
     }
     return [...mapa.entries()].sort((a, b) => b[1] - a[1])
   }, [listaFontes])
 
+  const admins = contas.filter((c) => c.role === 'admin' && c.status === 'ativo').length
+  const suspensas = contas.filter((c) => c.status === 'suspenso').length
+
+  const user = useAuthStore((s) => s.user)
+  const firstName = user?.name?.split(' ')[0] || 'Administrador'
+
   return (
     <div className="space-y-6 sm:space-y-8">
-      {/* CABEÇALHO — governança */}
       <Section className="card overflow-hidden">
         <div className="on-dark relative bg-gradient-to-br from-military-darker via-military-card to-brand-900/40 p-6 sm:p-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
@@ -121,92 +95,116 @@ export default function AdminDashboard() {
                 <span className="inline-flex items-center gap-2 rounded-full bg-brand-500/15 px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-300">
                   <ShieldCheck size={14} /> Governança da plataforma
                 </span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-gold-500/15 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-gold-600 dark:text-gold-400">
-                  Administrador
-                </span>
                 <Badge type={apiViva ? 'live' : 'sem-dado'} />
               </div>
               <h1 className="mt-3 text-2xl font-extrabold tracking-tight sm:text-3xl">
                 {greetingByHour()}, {firstName}.
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-gray-300 sm:text-base">
-                Saúde dos serviços, status das fontes e trilha de auditoria — tudo derivado do
-                estado do servidor, não de valores escritos à mão.
+                Saúde dos serviços, fontes, contas e trilha de auditoria — tudo derivado do estado do
+                servidor.
               </p>
               <div className="mt-5 flex flex-wrap gap-3">
-                <Link to="/configuracoes" className="btn-primary">
-                  <SettingsIcon size={16} /> Configurações do sistema
+                <Link to="/admin" className="btn-primary">
+                  <ShieldCheck size={16} /> Console de governança
                 </Link>
-                <Link to="/fontes" className="btn-ghost border-white/20 text-white hover:bg-white/10">
-                  <Database size={16} /> Fontes monitoradas
+                <Link to="/coleta" className="btn-ghost border-white/20 text-white hover:bg-white/10">
+                  <Activity size={16} /> Método e coleta
                 </Link>
               </div>
             </div>
 
-            {/* Saúde global */}
             <div className="w-full shrink-0 rounded-xl border border-white/10 bg-white/5 p-4 lg:w-64">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Saúde global</span>
-                <HeartPulse size={15} className="text-emerald-700 dark:text-emerald-400" />
+                <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Serviços</span>
+                <HeartPulse size={15} className="text-emerald-400" />
               </div>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-3xl font-extrabold tracking-tight text-emerald-700 dark:text-emerald-400">{operacionais}/{servicos.length || '—'}</span>
+                <span className="text-3xl font-extrabold tracking-tight text-emerald-400">
+                  {saude.data ? `${operacionais}/${avaliaveis}` : '—'}
+                </span>
                 <span className="font-mono text-sm text-gray-400">operacionais</span>
               </div>
               <p className="mt-2 text-xs text-gray-400">
-                Capacidades ainda não implementadas aparecem como <strong>planejadas</strong>, e o
-                cálculo não as conta como falha.
+                Recursos que dependem de uma chave não configurada aparecem como
+                <strong> não configurados</strong> e ficam fora da conta.
               </p>
             </div>
           </div>
         </div>
       </Section>
 
-      {/* KPIs de governança */}
+      {/* ALERTAS DE SEGURANÇA — só aparecem quando há algo a fazer */}
+      {alertas.length > 0 && (
+        <Section className="space-y-2">
+          {alertas.map((a) => (
+            <div
+              key={a.id}
+              role="alert"
+              className={`flex items-start gap-3 rounded-xl border p-4 ${
+                a.nivel === 'critico' ? 'border-red-500/30 bg-red-500/5' : 'border-amber-500/30 bg-amber-500/5'
+              }`}
+            >
+              <AlertTriangle size={18} className={`mt-0.5 shrink-0 ${a.nivel === 'critico' ? 'text-red-500' : 'text-amber-500'}`} />
+              <div className="min-w-0">
+                <p className="text-sm font-bold">{a.titulo}</p>
+                <p className="mt-0.5 text-xs leading-relaxed muted">{a.detalhe}</p>
+                {a.id === 'senha-padrao-admin' && (
+                  <Link to="/conta" className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:underline dark:text-brand-300">
+                    <KeyRound size={12} /> Trocar a senha agora
+                  </Link>
+                )}
+              </div>
+            </div>
+          ))}
+        </Section>
+      )}
+
       <Section>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {/* Os quatro indicadores vinham de `platformMetrics`: "128 contas no
-              plano Explorar", "82 relatórios emitidos" — de um recurso que já
-              nem existe. Agora contam o que o servidor sabe. */}
           <MetricCard
             icon={Database}
             label="Fontes cadastradas"
-            value={String(listaFontes.length || '—')}
-            hint={`${fontesOk} responderam na última execução`}
+            value={listaFontes.length ? String(listaFontes.length) : '—'}
+            hint={`${resumoFontes.ativa} no ar · ${resumoFontes.indisponivel} com falha`}
             accent="amber"
           />
           <MetricCard
-            icon={Server}
-            label="Capacidades operacionais"
-            value={`${operacionais}/${servicos.length || '—'}`}
-            hint="derivado do estado do banco"
-            accent="green"
-          />
-          <MetricCard
             icon={Users}
-            label="Perfis de acesso"
-            value="4"
-            hint="visitante, usuário, analista, admin"
+            label="Contas"
+            value={contas.length ? String(contas.length) : '—'}
+            hint={`${admins} administrador(es) · ${suspensas} suspensa(s)`}
             accent="brand"
           />
           <MetricCard
             icon={ScrollText}
             label="Artigos no acervo"
-            value={String(saude.data?.archive?.artigos ?? saude.data?.acervo?.artigos ?? '—')}
-            hint="coletados e guardados"
+            value={acervo?.artigos != null ? String(acervo.artigos) : '—'}
+            hint={acervo ? `${acervo.artigosRelevantes} aprovados pelo filtro` : 'coletados e guardados'}
             accent="brand"
+          />
+          <MetricCard
+            icon={Sparkles}
+            label="Assistente por IA"
+            value={ia ? (ia.status === 'operational' ? 'Ligado' : 'Desligado') : '—'}
+            hint={ia?.metrics ? `${ia.metrics.contasComChave ?? 0} conta(s) com chave própria` : ''}
+            accent="green"
           />
         </div>
       </Section>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Coluna primária */}
         <div className="space-y-6 lg:col-span-2">
-          {/* Saúde dos serviços */}
           <Section className="card p-5">
-            <h2 className="mb-4 flex items-center gap-2 text-lg font-bold tracking-tight">
-              <Server size={18} className="text-brand-400 dark:text-brand-300" /> Saúde dos serviços
-            </h2>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
+                <Server size={18} className="text-brand-400 dark:text-brand-300" /> Saúde dos serviços
+              </h2>
+              <Link to="/admin" className="inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:underline dark:text-brand-300">
+                Diagnóstico <ChevronRight size={15} />
+              </Link>
+            </div>
+            {saude.error && <p className="text-sm muted">Não foi possível consultar a saúde dos serviços.</p>}
             <div className="space-y-2">
               {servicos.map((s) => {
                 const st = HEALTH_STATUS[s.status] || HEALTH_STATUS.planned
@@ -216,82 +214,40 @@ export default function AdminDashboard() {
                       <p className="truncate text-sm font-semibold">{s.name}</p>
                       <p className="truncate text-xs muted">{s.note}</p>
                     </div>
-                    <div className="flex shrink-0 items-center gap-3 text-right">
-                      <span className="hidden font-mono text-xs muted sm:inline">{s.uptime || '—'} · {s.latency || '—'}</span>
-                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${st.classes}`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${st.dot}`} /> {st.label}
-                      </span>
-                    </div>
+                    <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${st.classes}`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${st.dot}`} /> {st.label}
+                    </span>
                   </div>
                 )
               })}
             </div>
           </Section>
 
-          {/* Status das fontes (resumo + por categoria) */}
           <Section className="card p-5">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-                <Database size={18} className="text-brand-400 dark:text-brand-300" /> Status das fontes
+                <ScrollText size={18} className="text-brand-400 dark:text-brand-300" /> Últimos eventos
               </h2>
-              <Link to="/fontes" className="inline-flex items-center gap-1 text-sm font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300">
-                Detalhes <ChevronRight size={15} />
+              <Link to="/admin" className="inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:underline dark:text-brand-300">
+                Trilha completa <ChevronRight size={15} />
               </Link>
             </div>
-            <div className="mb-3 flex flex-wrap gap-2">
-              {Object.entries(resumoFontes).filter(([, n]) => n > 0).map(([chave, quantas]) => {
-                const meta = SOURCE_STATUS[chave]
-                if (!meta) return null
-                return (
-                  <span key={chave} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${meta.classes}`}>
-                    <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} /> {quantas} {meta.label.toLowerCase()}
-                  </span>
-                )
-              })}
-            </div>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-              {porCategoria.map(([categoria, quantas]) => (
-                <div key={categoria} className="rounded-lg bg-white/5 p-3">
-                  <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{categoria}</p>
-                  <p className="mt-1 font-mono text-2xl font-extrabold">{quantas}</p>
-                  <p className="text-[11px] muted">fonte(s) cadastrada(s)</p>
-                </div>
-              ))}
-            </div>
-            <p className="mt-3 text-xs muted">
-              {listaFontes.length
-                ? `${listaFontes.length} fonte(s) cadastrada(s) · ${fontesOk} responderam na última coleta.`
-                : 'Sem resposta do servidor de coleta.'}
-            </p>
-          </Section>
-
-          {/* Trilha de auditoria */}
-          <Section className="card p-5">
-            <h2 className="mb-4 flex items-center gap-2 text-lg font-bold tracking-tight">
-              <ScrollText size={18} className="text-brand-400 dark:text-brand-300" /> Trilha de auditoria
-            </h2>
+            {!eventos.length && (
+              <p className="text-sm muted">{auditoria.loading ? 'Consultando…' : 'Nenhum evento registrado ainda.'}</p>
+            )}
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200 text-left text-xs uppercase muted dark:border-white/10">
-                    <th className="py-2 pr-4 font-semibold">Quando</th>
-                    <th className="py-2 pr-4 font-semibold">Ator</th>
-                    <th className="py-2 pr-4 font-semibold">Ação</th>
-                    <th className="py-2 font-semibold">Nível</th>
-                  </tr>
-                </thead>
                 <tbody>
-                  {(auditoria.data?.items || []).slice(0, 12).map((ev) => {
+                  {eventos.slice(0, 10).map((ev) => {
                     const lvl = AUDIT_LEVEL[ev.level] || AUDIT_LEVEL.info
                     return (
                       <tr key={ev.id} className="border-b border-gray-100 dark:border-white/[0.06]">
-                        <td className="py-2 pr-4 font-mono text-xs muted">{formatDateTimeBR(ev.time)}</td>
-                        <td className="py-2 pr-4 text-xs">{ev.actor}</td>
+                        <td className="whitespace-nowrap py-2 pr-4 font-mono text-xs muted">{formatDateTimeBR(ev.time)}</td>
                         <td className="py-2 pr-4">
                           <span className="block">{ev.action}</span>
-                          <span className="text-xs muted">{ev.target}</span>
+                          <span className="text-xs muted">{ev.actor} · {ev.target}</span>
                         </td>
-                        <td className="py-2">
+                        <td className="py-2 text-right">
                           <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${lvl.classes}`}>{lvl.label}</span>
                         </td>
                       </tr>
@@ -300,83 +256,54 @@ export default function AdminDashboard() {
                 </tbody>
               </table>
             </div>
-            <p className="mt-2 text-xs muted">Trilha real de execuções dos coletores — início, duração, itens e erro.</p>
           </Section>
         </div>
 
-        {/* Trilho lateral */}
         <div className="space-y-6">
-          {/* Contas por plano.
-
-              Vinha de `platformMetrics.contasPorPlano`, escrito à mão: 128
-              contas no plano Explorar, 34 no Profissional, 6 no Institucional.
-              Existem duas. Num painel de GOVERNANÇA, cuja função é
-              responder "qual é o estado real da plataforma", um número de
-              usuários inventado é a informação que menos pode ser inventada. */}
           <Section className="card p-5">
-            <h2 className="mb-3 flex items-center gap-2 text-base font-bold tracking-tight">
-              <Users size={17} className="text-brand-400 dark:text-brand-300" /> Contas por plano
-            </h2>
-            {contas.length === 0 ? (
-              <p className="text-sm italic muted">
-                {usuarios.loading ? 'Consultando…' : 'Não foi possível ler as contas.'}
-              </p>
-            ) : (
-              <ul className="space-y-2.5">
-                {contasPorPlano.map(([plano, quantas]) => (
-                  <li key={plano} className="flex items-center justify-between gap-3">
-                    <span className="text-sm capitalize muted">{plano}</span>
-                    <span className="font-mono text-sm font-bold">{quantas}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <p className="mt-3 text-[11px] muted">
-              {contas.length} conta(s) cadastrada(s) no servidor.
-            </p>
-          </Section>
-
-          {/* Integrações */}
-          <Section className="card p-5">
-            <h2 className="mb-3 flex items-center gap-2 text-base font-bold tracking-tight">
-              <PlugZap size={17} className="text-brand-400 dark:text-brand-300" /> Integrações
-            </h2>
-            <ul className="space-y-2.5">
-              {integrations.map((i) => {
-                const st = HEALTH_STATUS[i.status] || HEALTH_STATUS.planned
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-base font-bold tracking-tight">
+                <Database size={17} className="text-brand-400 dark:text-brand-300" /> Fontes
+              </h2>
+              <Link to="/fontes" className="inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:underline dark:text-brand-300">
+                Disponibilidade <ChevronRight size={15} />
+              </Link>
+            </div>
+            <div className="mb-3 flex flex-wrap gap-2">
+              {Object.entries(resumoFontes).filter(([, n]) => n > 0).map(([chave, quantas]) => {
+                const meta = SOURCE_STATUS[chave]
                 return (
-                  <li key={i.id} className="flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{i.name}</p>
-                      <p className="truncate text-[11px] muted">{i.kind} · {i.note}</p>
-                    </div>
-                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${st.classes}`}>{st.label}</span>
-                  </li>
+                  <span key={chave} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${meta.classes}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} /> {quantas} {meta.label}
+                  </span>
                 )
               })}
+            </div>
+            <ul className="space-y-1.5">
+              {porCategoria.map(([categoria, quantas]) => (
+                <li key={categoria} className="flex items-center justify-between gap-3 text-sm">
+                  <span className="truncate muted">{categoria}</span>
+                  <span className="font-mono font-bold">{quantas}</span>
+                </li>
+              ))}
             </ul>
+            {fontes.error && <p className="mt-2 text-xs muted">Não foi possível ler as fontes.</p>}
           </Section>
 
-          {/* Ingestão */}
           <Section className="card p-5">
             <h2 className="mb-3 flex items-center gap-2 text-base font-bold tracking-tight">
-              <Activity size={17} className="text-brand-400 dark:text-brand-300" /> Ingestão (24h)
+              <Activity size={17} className="text-brand-400 dark:text-brand-300" /> Coleta
             </h2>
-            {/* Estes quatro números eram constantes de `ingestion`: 15 fontes
-                configuradas, 0 coletas, 0 normalizados, 0 na fila — imóveis,
-                coletasse a plataforma o que coletasse. "Na fila" sumiu junto:
-                não existe fila, a coleta é síncrona por ciclo, e um contador
-                sempre em zero sugere um mecanismo que não existe. */}
             <div className="grid grid-cols-2 gap-3">
               <Stat label="Execuções (24h)" value={execucoes24h} />
-              <Stat label="Artigos no acervo" value={acervo?.artigos ?? '—'} />
-              <Stat label="Aprovados" value={acervo?.artigosRelevantes ?? '—'} />
-              <Stat label="Fontes ativas" value={acervo?.fontes ?? '—'} />
+              <Stat label="Proposições" value={acervo?.proposicoes ?? '—'} />
+              <Stat label="Indicadores" value={acervo?.indicadores ?? '—'} />
+              <Stat label="Na pasta das contas" value={acervo?.favoritos ?? '—'} />
             </div>
             <p className="mt-3 text-[11px] muted">
               {agendador?.ativo
-                ? `Agendador a cada ${agendador.intervaloMinutos} min.`
-                : 'Agendador desligado.'}
+                ? `Agendador a cada ${agendador.intervaloMinutos} min${agendador.proximaExecucao ? ` · próxima às ${new Date(agendador.proximaExecucao).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : ''}.`
+                : agendador ? 'Agendador desligado (COLLECT_INTERVAL_MINUTES=0).' : ''}
             </p>
           </Section>
         </div>

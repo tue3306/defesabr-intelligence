@@ -173,12 +173,12 @@ export const learnConcepts = [
   {
     icon: 'LineChart',
     title: 'Como ler os indicadores?',
-    text: 'Gastos em % do PIB mostram a prioridade dada à defesa; o índice de alerta resume a tensão do momento; o volume de notícias revela quais temas estão em alta na semana.',
+    text: 'Gastos em % do PIB mostram a prioridade dada à defesa; o índice de alerta é a média ponderada da urgência das matérias do período; o volume de notícias mostra quais temas estão sendo mais cobertos.',
   },
   {
     icon: 'Cpu',
     title: 'O papel da IA aqui',
-    text: 'A inteligência artificial resume grandes volumes de notícias, classifica urgência e gera cenários. Ela acelera a análise, mas não substitui o julgamento humano especializado.',
+    text: 'O filtro de relevância, a urgência e as correlações são regras declaradas, não IA. O modelo de linguagem só entra quando você pede, com a sua chave: resume a semana, responde perguntas sobre o acervo e analisa matérias que você escolhe. Todo texto gerado vem marcado como escrito por máquina.',
   },
 ]
 
@@ -348,56 +348,54 @@ export const quizQuestions = [
 export const quizCategories = [...new Set(quizQuestions.map((q) => q.category))]
 
 // -----------------------------------------------------------------------------
-// VÍDEO-AULAS e MATERIAIS — busca em canais oficiais/educacionais (abre externo).
-// Usamos links de busca para não fixar vídeos que podem sair do ar.
+// BUSCAS SUGERIDAS EM VÍDEO
+//
+// Eram apresentadas como "vídeo-aulas" de "canais oficiais", com duração
+// ("8 min") e fonte ("Marinha do Brasil"). São links de BUSCA no YouTube —
+// escolha feita para não apontar para vídeo que sai do ar —, então não têm
+// duração nem autor. A tela passou a dizer o que são.
 // -----------------------------------------------------------------------------
 export const videoLessons = [
   {
     title: 'O que é a Amazônia Azul?',
     desc: 'Entenda a importância estratégica do mar brasileiro e por que a Marinha o protege.',
-    duration: '8 min',
     level: 'Básico',
-    source: 'Marinha do Brasil',
+    source: 'Busca no YouTube',
     url: 'https://www.youtube.com/results?search_query=amaz%C3%B4nia+azul+marinha+do+brasil',
   },
   {
     title: 'PROSUB — Programa de Submarinos',
     desc: 'Do submarino convencional ao de propulsão nuclear: como funciona o maior programa naval do país.',
-    duration: '12 min',
     level: 'Intermediário',
-    source: 'Marinha do Brasil',
+    source: 'Busca no YouTube',
     url: 'https://www.youtube.com/results?search_query=prosub+submarino+marinha+do+brasil',
   },
   {
     title: 'C-390 Millennium e a Embraer Defesa',
     desc: 'O cargueiro multimissão que coloca o Brasil no mercado global de defesa.',
-    duration: '10 min',
     level: 'Básico',
-    source: 'Embraer',
+    source: 'Busca no YouTube',
     url: 'https://www.youtube.com/results?search_query=embraer+c-390+millennium',
   },
   {
     title: 'Estratégia Nacional de Defesa explicada',
     desc: 'PND, END e LBDN: como o Brasil planeja sua defesa em documentos oficiais.',
-    duration: '15 min',
     level: 'Avançado',
-    source: 'Ministério da Defesa',
+    source: 'Busca no YouTube',
     url: 'https://www.youtube.com/results?search_query=estrat%C3%A9gia+nacional+de+defesa+brasil',
   },
   {
     title: 'Introdução à inteligência e OSINT',
     desc: 'Como dados de fontes abertas viram inteligência acionável.',
-    duration: '9 min',
     level: 'Intermediário',
-    source: 'Educacional',
+    source: 'Busca no YouTube',
     url: 'https://www.youtube.com/results?search_query=osint+intelig%C3%AAncia+fontes+abertas',
   },
   {
     title: 'Cibersegurança e infraestrutura crítica',
     desc: 'Por que energia, água e finanças são alvos prioritários e como protegê-los.',
-    duration: '11 min',
     level: 'Intermediário',
-    source: 'Educacional',
+    source: 'Busca no YouTube',
     url: 'https://www.youtube.com/results?search_query=ciberseguran%C3%A7a+infraestrutura+cr%C3%ADtica',
   },
 ]
@@ -410,28 +408,25 @@ export const learningPaths = [
     icon: 'Compass',
     title: 'Fundamentos de Defesa',
     level: 'Iniciante',
-    duration: '~30 min',
     color: '#2e7d46',
-    steps: ['Conceitos-chave', 'Glossário essencial (10 termos)', 'Quiz: trilha Básica'],
+    steps: ['Conceitos-chave', 'Glossário: Dissuasão, Soberania, PND, END e LBDN', 'Quiz: Estratégia'],
     summary: 'Comece do zero: o que é inteligência estratégica, por que monitorar defesa e como ler os indicadores.',
   },
   {
     icon: 'Anchor',
     title: 'Brasil no Atlântico Sul',
     level: 'Intermediário',
-    duration: '~45 min',
     color: '#475569',
-    steps: ['Amazônia Azul & pré-sal', 'PROSUB e poder naval', 'Boletim Geocorrente', 'Quiz: Forças Armadas'],
+    steps: ['Glossário: Amazônia Azul, Pré-sal e SisGAAz', 'Glossário: PROSUB e ZOPACAS', 'Biblioteca: Livro Branco de Defesa Nacional', 'Quiz: Forças Armadas'],
     summary: 'Aprofunde a dimensão marítima: soberania, recursos e os programas que sustentam a dissuasão.',
   },
   {
     icon: 'ShieldAlert',
     title: 'Ameaças do século XXI',
     level: 'Avançado',
-    duration: '~50 min',
     color: '#8b5cf6',
-    steps: ['Guerra híbrida', 'Cibersegurança', 'Desinformação & FIMI', 'Quiz: Inteligência'],
-    summary: 'Entenda ciberataques, manipulação informacional e como a IA apoia a análise de ameaças.',
+    steps: ['Glossário: Guerra Híbrida e C4ISR', 'Glossário: Infraestrutura Crítica, CERT e ComDCiber', 'Glossário: Desinformação e FIMI', 'Quiz: Cibersegurança'],
+    summary: 'Entenda ciberataques, infraestrutura crítica e manipulação informacional.',
   },
 ]
 

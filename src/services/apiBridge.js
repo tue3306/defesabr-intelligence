@@ -1,29 +1,31 @@
 // -----------------------------------------------------------------------------
-// PONTE PARA O BACKEND REAL
+// PONTE PARA A API
 //
-// O front nasceu com uma fronteira única de dados (`src/services/client.js`) e
-// dois modos: resolvedor local ou HTTP. Este arquivo acrescenta um terceiro
-// comportamento, HÍBRIDO, que é o que o projeto precisa hoje:
+// Traduz os endpoints que a interface pede ('GET /admin/sources') para as rotas
+// do servidor ('/sources') e a resposta para a forma que as telas consomem.
 //
-//   endpoint com backend real  →  HTTP contra a API (meta.source = 'live')
-//   endpoint sem backend       →  resolvedor local  (meta.source = 'demo')
-//
-// Por que híbrido e não tudo-ou-nada: parte do produto já tem fonte pública
-// verificável (notícias, proposições, indicadores, saúde do sistema) e parte
-// não tem e não terá enquanto não houver analista ou modelo de linguagem
-// (dossiês, matriz de riscos, análise semanal). Forçar tudo para a API deixaria
-// metade da plataforma vazia; forçar tudo para local esconderia o backend que
-// existe.
-//
-// A interface já sabe distinguir os dois: `meta.source` alimenta os selos
-// "AO VIVO" e "DEMO" que aparecem nas telas. Nenhum componente precisou mudar.
-//
-// Se a API estiver fora do ar, a ponte cai no resolvedor local em vez de
-// quebrar a tela — e marca `meta.source = 'fallback'`, que é honesto sobre o
-// que aconteceu.
+// Não há resolvedor local nem modo de demonstração: se a API não responde, a
+// consulta falha e a tela mostra o erro. Este cabeçalho já descreveu um modo
+// "híbrido" que caía em dados escritos à mão quando o servidor não respondia —
+// esse caminho foi removido.
 // -----------------------------------------------------------------------------
 
 import { API_BASE_URL } from './config'
+
+/** Mesmo nome que `authStore` escuta. Duplicado para não criar ciclo de import. */
+const EVENTO_SESSAO_PERDIDA = 'defesabr:sessao-perdida'
+
+/**
+ * Avisa a interface de que o servidor recusou a sessão.
+ *
+ * Só quando um token FOI enviado: 401 sem token é só uma rota que pede login,
+ * e não há sessão para derrubar.
+ */
+export function avisarSessaoPerdida(status, enviouToken) {
+  if (status === 401 && enviouToken && typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(EVENTO_SESSAO_PERDIDA))
+  }
+}
 
 /**
  * Cabeçalho de sessão.
@@ -110,19 +112,16 @@ async function buscar(caminho, params) {
   }
   const c = new AbortController()
   const t = setTimeout(() => c.abort(), 20_000)
+  // Lido a cada consulta, e não capturado no módulo: o token muda quando alguém
+  // troca de conta.
+  const sessao = cabecalhoDeSessao()
   try {
     const r = await fetch(url, {
       signal: c.signal,
-      headers: {
-        Accept: 'application/json',
-        // Sem o token, os endpoints de analista e administrador respondem 401.
-        // A leitura é feita a cada consulta, e não capturada no módulo: o token
-        // muda quando alguém troca de conta, e um valor capturado na primeira
-        // importação continuaria sendo o da sessão anterior.
-        ...cabecalhoDeSessao(),
-      },
+      headers: { Accept: 'application/json', ...sessao },
     })
     if (!r.ok) {
+      avisarSessaoPerdida(r.status, !!sessao.Authorization)
       const corpo = await r.json().catch(() => null)
       const err = new Error(corpo?.error || `HTTP ${r.status}`)
       err.status = r.status
@@ -199,7 +198,9 @@ export const PONTES = new Map([
 
   ['GET /clipping/latest', {
     caminho: '/news/clipping',
-    parametros: () => ({ days: 30, limit: 30 }),
+    // Ignorava o que era pedido e mandava sempre 30 dias: o índice exibido como
+    // "últimos 7 dias" no ticker, na vitrine e na apresentação era de 30.
+    parametros: ({ days = 30, limit = 30 } = {}) => ({ days, limit }),
     // Os nomes dos campos abaixo espelham `mockDailyClipping` de propósito: a
     // tela de clipping já sabe renderizar esse documento, e trocar os nomes
     // exigiria mexer numa página que funciona.
@@ -327,23 +328,24 @@ export const PONTES = new Map([
   // O que aconteceu de verdade está em `collector_runs` — toda execução de
   // coletor, com início, duração, quantos itens trouxe e o erro quando falhou.
   // É menos variado que a ficção que substitui, e é auditável.
+  // Agora também os atos de governança — papel e situação de conta, remoção,
+  // fonte pausada, chave de IA da instalação, coleta manual —, com o nome de
+  // quem agiu. `kind` separa os dois tipos.
   ['GET /admin/audit', {
-    caminho: '/system/runs',
+    caminho: '/system/audit',
     parametros: ({ limit = 60 } = {}) => ({ limit }),
     transformar: (d) => ({
-      items: (d.items || []).map((r) => ({
-        id: r.id,
-        time: r.started_at,
-        // Quem agiu: o agendador ou uma pessoa que clicou "coletar agora".
-        actor: r.trigger === 'manual' ? 'operador (manual)' : 'agendador',
-        action: r.ok
-          ? `Coleta concluída — ${r.items_found ?? 0} item(ns) encontrado(s), ${r.items_new ?? 0} novo(s)`
-          : `Coleta falhou — ${r.error || 'erro não registrado'}`,
-        target: `Coletor · ${r.collector}`,
-        level: r.ok ? 'info' : 'error',
-        durationMs: r.duration_ms,
+      items: (d.items || []).map((e) => ({
+        id: e.id,
+        kind: e.tipo,
+        time: e.quando,
+        actor: e.ator,
+        action: e.acao,
+        target: e.alvo,
+        level: e.nivel,
+        durationMs: e.duracaoMs ?? null,
       })),
-      total: d.items?.length ?? 0,
+      total: d.total ?? 0,
     }),
   }],
 
@@ -473,7 +475,8 @@ export const PONTES = new Map([
         name: c.nome,
         group: c.grupo,
         status: c.estado === 'operacional' ? 'operational'
-          : c.estado === 'degradado' ? 'degraded' : 'planned',
+          : c.estado === 'degradado' ? 'degraded'
+            : c.estado === 'opcional' ? 'optional' : 'planned',
         note: c.detalhe,
         description: c.descricao,
         source: c.fonte,
@@ -491,29 +494,12 @@ export const PONTES = new Map([
       operational: d.resumo?.operacional ?? 0,
       degraded: d.resumo?.degradado ?? 0,
       planned: d.resumo?.naoImplementado ?? 0,
+      optional: d.resumo?.opcional ?? 0,
       total: d.resumo?.total ?? 0,
+      alerts: d.alertas || [],
       health: d.resumo?.saude ?? 0,
       scheduler: d.agendador,
       archive: d.acervo,
-      environment: d.ambiente,
-    }),
-  }],
-
-  ['GET /admin/overview', {
-    caminho: '/system/status',
-    transformar: (d) => ({
-      metrics: {
-        artigos: d.acervo?.artigos ?? 0,
-        artigosRelevantes: d.acervo?.artigosRelevantes ?? 0,
-        proposicoes: d.acervo?.proposicoes ?? 0,
-        indicadores: d.acervo?.indicadores ?? 0,
-        fontes: d.acervo?.fontes ?? 0,
-        fontesComErro: d.acervo?.fontesComErro ?? 0,
-        favoritos: d.acervo?.favoritos ?? 0,
-        saude: d.resumo?.saude ?? 0,
-      },
-      health: d.resumo,
-      scheduler: d.agendador,
       environment: d.ambiente,
     }),
   }],
@@ -575,7 +561,7 @@ function estagioDe(texto) {
  * descreve o que acontece.
  */
 function paraFonte(s) {
-  const status = !s.enabled ? 'pendente'
+  const status = !s.enabled ? 'pausada'
     : s.lastStatus === 'erro' ? 'indisponivel'
     : s.lastStatus === 'ok' ? 'ativa'
     : 'configurada'
@@ -598,7 +584,7 @@ function paraFonte(s) {
     kind: s.kind,
     enabled: s.enabled,
     status,
-    collecting: status === 'ativa',
+    collecting: !!s.enabled,
     cadence: 'A cada 30 min',
 
     // `reliability` no acervo local era um juízo editorial de 0 a 100 sobre a

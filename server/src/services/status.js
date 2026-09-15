@@ -62,7 +62,7 @@ function confiabilidade(coletor, ultimas = 10) {
   return Math.round((linhas.filter((l) => l.ok).length / linhas.length) * 100)
 }
 
-function capacidadeDeColeta({ id, nome, coletor, descricao, evidencia, contagem, fonte }) {
+function capacidadeDeColeta({ id, nome, coletor, descricao, evidencia, contagem, fonte, grupo = 'Coleta' }) {
   const execucao = ultimaExecucao(coletor)
   const total = contagem()
 
@@ -85,7 +85,7 @@ function capacidadeDeColeta({ id, nome, coletor, descricao, evidencia, contagem,
   return {
     id,
     nome,
-    grupo: 'Coleta',
+    grupo,
     estado,
     detalhe,
     descricao,
@@ -199,6 +199,7 @@ export function capacidades() {
       coletor: 'correlacoes',
       descricao: 'Vínculos por entidade em comum (país, organização, programa) entre matérias aprovadas.',
       fonte: 'server/src/collectors/correlacoes.js',
+      grupo: 'Processamento',
       contagem: () => contar('SELECT COUNT(*) AS n FROM correlations'),
       evidencia: (t) => `${t} correlação(ões) calculadas`,
     }),
@@ -274,7 +275,7 @@ export function capacidades() {
       ...(() => {
         const s = estadoDoAgendador()
         return {
-          estado: s.ativo ? 'operacional' : 'nao_implementado',
+          estado: s.ativo ? 'operacional' : 'opcional',
           detalhe: s.ativo
             ? `A cada ${s.intervaloMinutos} min · próxima em ${s.proximaExecucao ? new Date(s.proximaExecucao).toLocaleTimeString('pt-BR') : '—'}`
             : 'Desligado por configuração (COLLECT_INTERVAL_MINUTES=0).',
@@ -317,7 +318,7 @@ export function capacidades() {
       grupo: 'Entrega',
       estado: artigos > 0 ? 'operacional' : 'degradado',
       detalhe: artigos > 0
-        ? 'Busca por texto em notícias e proposições, no banco.'
+        ? 'Busca por texto em notícias, proposições e fontes, no banco.'
         : 'Sem acervo para buscar.',
       descricao: 'LIKE sobre título, resumo e ementa. Suficiente para este volume; um índice FTS5 '
         + 'seria o próximo passo se o acervo crescer uma ordem de grandeza.',
@@ -367,7 +368,7 @@ export function capacidades() {
         + 'e o guia da plataforma. Todo texto gerado vem marcado como escrito por máquina, e as citações '
         + 'são conferidas contra o que foi coletado. A chave fica cifrada no servidor e nunca volta ao '
         + 'navegador; quem usa paga o próprio consumo.',
-      fonte: 'server/src/services/ia.js · server/src/routes/ia.js · server/src/lib/chaveIa.js',
+      fonte: 'api.anthropic.com — Messages API',
       pendente: null,
       metricas: {
         contasComChave: contasComChave,

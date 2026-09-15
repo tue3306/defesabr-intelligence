@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { LogIn, UserPlus, Loader2, ShieldCheck, PenTool, UserCircle, AlertCircle } from 'lucide-react'
+import { LogIn, UserPlus, Loader2, ShieldCheck, UserCircle, AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Modal from '../ui/Modal'
 import { useAuthStore } from '../../store/authStore'
 import { API_BASE_URL } from '../../services/config'
+import { ROLE_LABELS as ROTULO_PAPEL } from '../../auth/permissions'
+import { carregarContasIniciais } from '../../auth/useContasIniciais'
 
 // -----------------------------------------------------------------------------
 // ENTRAR E CADASTRAR
@@ -13,17 +15,15 @@ import { API_BASE_URL } from '../../services/config'
 // inventado no localStorage — inclusive um com `role: 'admin'`. Agora as duas
 // abas falam com `/api/auth`, e o papel vem assinado pelo servidor.
 //
-// As contas de exemplo continuam sendo oferecidas, e a senha delas aparece na
-// tela de propósito: são contas públicas de um projeto acadêmico, e a
-// plataforma precisa ser percorrível sem cadastro. O que mudou é que entrar
-// nelas é um POST de verdade, com senha conferida por scrypt.
+// A conta de usuário compartilhada continua sendo oferecida, com a senha na
+// tela de propósito: a plataforma precisa ser percorrível sem cadastro. Entrar
+// nela é um POST de verdade, com senha conferida por scrypt.
 //
 // O CADASTRO cria conta com papel Usuário — sempre. Escolher o próprio papel
 // no formulário faria de "Administrador" um campo de texto.
 // -----------------------------------------------------------------------------
 
-const ICONE_PAPEL = { admin: ShieldCheck, analyst: PenTool, user: UserCircle }
-const ROTA_INICIAL = { admin: '/painel', analyst: '/painel', user: '/painel' }
+const ICONE_PAPEL = { admin: ShieldCheck, user: UserCircle }
 
 export default function AuthModal({ open, onClose, abaInicial = 'entrar' }) {
   const navigate = useNavigate()
@@ -47,17 +47,14 @@ export default function AuthModal({ open, onClose, abaInicial = 'entrar' }) {
   useEffect(() => {
     if (!open) return
     let vivo = true
-    fetch(`${API_BASE_URL}/api/auth/contas`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (vivo && d?.items) setContas(d.items) })
-      .catch(() => {})
+    carregarContasIniciais().then((itens) => { if (vivo) setContas(itens) })
     return () => { vivo = false }
   }, [open])
 
   const concluir = (user) => {
     toast.success(`Bem-vindo, ${user.name.split(' ')[0]}.`)
     onClose?.()
-    navigate(ROTA_INICIAL[user.role] || '/painel')
+    navigate('/painel')
   }
 
   const entrarCom = async (email, password) => {
@@ -210,19 +207,19 @@ export default function AuthModal({ open, onClose, abaInicial = 'entrar' }) {
                 >
                   <Icon size={18} className="shrink-0 text-brand-400 dark:text-brand-300" />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-bold">{c.name}</span>
+                    <span className="block truncate text-sm font-bold">{ROTULO_PAPEL[c.role] || c.name}</span>
                     <span className="block truncate font-mono text-xs muted">
-                      {c.username} · {c.username}
+                      usuário {c.username} · senha {c.username}
                     </span>
                   </span>
-                  <span className="chip shrink-0">{ROTULO_PAPEL[c.role] || c.role}</span>
+                  <LogIn size={15} className="shrink-0 text-gray-400" />
                 </button>
               )
             })}
           </div>
           <p className="mt-3 text-center text-[11px] muted">
-            Projeto de código aberto: estas contas são reais e o acervo que elas mostram é o
-            coletado das fontes públicas. Quem hospedar a plataforma deve trocar as senhas.
+            Contas públicas do projeto, com o acervo real. A de usuário é compartilhada e não
+            guarda nome, senha nem chave de IA próprios — para isso, crie a sua conta.
           </p>
         </div>
       )}
@@ -230,4 +227,3 @@ export default function AuthModal({ open, onClose, abaInicial = 'entrar' }) {
   )
 }
 
-const ROTULO_PAPEL = { admin: 'Administrador', analyst: 'Analista', user: 'Usuário' }

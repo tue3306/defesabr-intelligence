@@ -1,8 +1,8 @@
 # 🤝 Guia de contribuição — DefesaBR Intelligence
 
-Obrigado pelo interesse em contribuir! Este é um projeto **demonstrativo** (proof of concept),
-100% front-end. As contribuições devem preservar esse caráter e **não** alterar a lógica que já
-funciona sem necessidade.
+Obrigado pelo interesse em contribuir! O projeto tem servidor (Node + SQLite) e interface (React +
+Vite) no mesmo repositório. Contribuições devem preservar a regra central: nada aparece na tela sem
+ter vindo de uma fonte, e nada escrito por modelo aparece sem marca.
 
 ## 📋 Índice
 
@@ -35,19 +35,22 @@ descrevendo o problema que a sugestão resolve e o comportamento desejado.
 
 ## Ambiente de desenvolvimento
 
-Pré-requisito: **Node.js 18+**.
+Pré-requisito: **Node.js 24+** (o servidor usa `node:sqlite`).
 
 ```bash
 git clone https://github.com/tue3306/defesabr-intelligence.git
 cd defesabr-intelligence
 npm install
-npm run dev      # http://localhost:5173
+npm run dev      # interface + API
 ```
 
-Antes de abrir um PR, **sempre** garanta que o projeto compila:
+Antes de abrir um PR, garanta que compila e que as suítes passam (com a API no ar):
 
 ```bash
 npm run build
+npm run check
+npm run check:auth
+npm run check:ia
 ```
 
 ## Padrões de código
@@ -55,7 +58,8 @@ npm run build
 - **React 18 + Vite** com componentes funcionais e hooks.
 - Mantenha o **design system** existente (tokens do `tailwind.config.js` e `src/index.css`).
 - Organize por domínio, seguindo a estrutura de `src/` descrita em [ARCHITECTURE.md](docs/ARCHITECTURE.md).
-- **Degradação graciosa:** toda integração externa deve ter `timeout`, `retry` e **fallback mockado**.
+- **Falha declarada:** integração externa tem `timeout` e, quando falha, a tela mostra a ausência — nunca um valor de reserva inventado.
+- **Autorização no servidor:** rota nova que lê dado de conta ou muda estado precisa de `exigirPapel()` e de uma linha em `server/scripts/check-auth.js`.
 - Evite introduzir dependências pesadas sem necessidade.
 - Não commite segredos. `.env` está no `.gitignore` — use `.env.example` como referência.
 
@@ -78,7 +82,7 @@ Exemplo: `docs: adiciona seção de troubleshooting no README`
 
 1. Faça um fork e crie uma branch descritiva: `git checkout -b feat/minha-melhoria`
 2. Faça commits pequenos e semânticos.
-3. Rode `npm run build` e confirme que compila sem erros.
+3. Rode `npm run build` e as suítes `check`, `check:auth` e `check:ia`.
 4. Atualize a documentação afetada (README, CHANGELOG, etc.).
 5. Abra o PR preenchendo o [template](.github/PULL_REQUEST_TEMPLATE.md) e vinculando a issue.
 

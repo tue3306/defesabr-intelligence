@@ -28,10 +28,10 @@ const PER_PAGE = 8
 // -----------------------------------------------------------------------------
 // ARQUIVO & MINHA PASTA
 //
-// Três acervos com propósitos distintos:
-//   • Clippings arquivados — o que a plataforma publicou, dia a dia.
-//   • Minha Pasta — o que ESTA pessoa marcou como relevante.
-//   • Meus relatórios — o que foi emitido a partir desse material.
+// Dois acervos com propósitos distintos:
+//   • Clippings arquivados — edições que a pessoa salvou, neste navegador.
+//   • Minha Pasta — matérias marcadas com "Salvar", guardadas na conta.
+// Havia uma terceira aba anunciada, "Meus relatórios", que nunca existiu.
 // -----------------------------------------------------------------------------
 export default function Archive() {
   const clippings = useNewsStore((s) => s.clippings)
@@ -40,7 +40,7 @@ export default function Archive() {
   const removeFavorite = useNewsStore((s) => s.removeFavorite)
   const [params] = useSearchParams()
 
-  const [tab, setTab] = useState('clippings') // 'clippings' | 'pasta' | 'relatorios'
+  const [tab, setTab] = useState('clippings') // 'clippings' | 'pasta'
   const [query, setQuery] = useState(params.get('q') || '')
   const [cats, setCats] = useState([])
   const [alert, setAlert] = useState('')
@@ -138,7 +138,7 @@ export default function Archive() {
       <PageHeader
         icon={ArchiveIcon}
         title="Arquivo & Minha Pasta"
-        description="Reveja clippings publicados, consulte o que você salvou e acompanhe os relatórios emitidos."
+        description="As edições do clipping que você arquivou neste navegador e as matérias da sua pasta, que acompanha a sua conta."
         breadcrumb={[{ label: 'Tático' }, { label: 'Arquivo & Pasta' }]}
         meta={[
           { label: 'Clippings', value: String(clippings.length) },
@@ -340,7 +340,7 @@ export default function Archive() {
             <p className="flex items-center gap-2 text-sm">
               <FolderOpen size={16} className="text-brand-400 dark:text-brand-300" />
               <span className="font-semibold">{favorites.length}</span> notícia(s) na sua pasta
-              <InfoTooltip text="Sua pasta reúne as notícias marcadas com “Salvar”. Fica guardada neste navegador." />
+              <InfoTooltip text="Sua pasta reúne as notícias marcadas com “Salvar”. Fica guardada na sua conta, no servidor: aparece em qualquer navegador em que você entrar." />
             </p>
             {favorites.length > 0 && (
               <span className="text-xs muted">Salve qualquer notícia clicando em “Salvar” no Clipping Diário.</span>

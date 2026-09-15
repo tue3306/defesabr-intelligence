@@ -11,20 +11,15 @@ import { request } from '../services/client'
 import { formatDateTimeBR } from '../utils/dateUtils'
 
 // -----------------------------------------------------------------------------
-// MÉTODO & COLETA — a tela do Analista
+// MÉTODO & COLETA — auditoria do filtro e das execuções, para quem administra
 //
-// Os três perfis estavam praticamente iguais porque o que os separava eram
-// telas de conteúdo redigido, todas removidas. Esta existe para dar ao Analista
-// um trabalho REAL e exclusivo: monitorar a coleta e auditar o filtro que
-// decide o que entra no acervo.
-//
-// Tudo aqui vem de endpoints que exigem papel `analyst` no servidor:
+// Tudo aqui vem de endpoints que exigem papel `admin` no servidor:
 //
 //   GET  /system/method        a regra do filtro, com a amostra do que recusou
 //   POST /system/method/test   aplica a regra a qualquer texto
 //   GET  /system/runs          histórico de execuções dos coletores
 //
-// Um Usuário que digitar o endereço desta tela vê a parede de perfil; se
+// Um usuário que digitar o endereço desta tela vê o bloqueio; se
 // contornar a interface e chamar o endpoint direto, recebe 403. É essa a
 // diferença entre esconder um menu e controlar acesso.
 // -----------------------------------------------------------------------------
@@ -70,8 +65,8 @@ export default function Collection() {
         icon={FlaskConical}
         title="Método & Coleta"
         description="A regra que decide o que entra no acervo, aplicável a qualquer texto, e o histórico das execuções dos coletores."
-        help="Esta área é do perfil Analista. Os endpoints por trás dela exigem esse papel no servidor — não é o menu que a protege."
-        breadcrumb={[{ label: 'Produção' }, { label: 'Método & Coleta' }]}
+        help="Restrita a administradores. Os endpoints por trás dela exigem esse papel no servidor — não é o menu que a protege."
+        breadcrumb={[{ label: 'Administração' }, { label: 'Método & Coleta' }]}
         badges={<Badge type={metodo.meta?.source === 'live' ? 'live' : 'sem-dado'} />}
       />
 
@@ -123,7 +118,7 @@ export default function Collection() {
           )}
 
           {/* A metade que costuma ficar invisível. É ela que prova que o
-              filtro filtra alguma coisa — e o Analista é quem a audita. */}
+              filtro filtra alguma coisa. */}
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             <Amostra
               titulo="Últimos aprovados"

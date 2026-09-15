@@ -35,7 +35,6 @@ import {
 } from '../hooks/useDadosReais'
 import { useResource } from '../hooks/useResource'
 import { request } from '../services/client'
-import { useGate } from '../auth/useCan'
 import { exportCSV } from '../utils/exportUtils'
 
 // -----------------------------------------------------------------------------
@@ -73,22 +72,8 @@ const TABS = [
 // O grafico consome `useNewsVolume(14)` direto, que e medido.
 
 
-/** Exportação de uma série em CSV — capacidade `reports.export`. */
+/** Exportação de uma série em CSV. A tela exige sessão, e toda conta exporta. */
 function ExportCSVButton({ rows, filename, label }) {
-  const gate = useGate('reports.export')
-
-  if (!gate.allowed) {
-    return (
-      <Link
-        to="/painel"
-        className="chip transition-colors hover:border-gold-500/40 hover:text-gold-600 dark:hover:text-gold-400"
-        aria-label={`Exportar ${label} em CSV requer plano com exportação de relatórios`}
-      >
-        <Lock size={12} /> CSV
-      </Link>
-    )
-  }
-
   return (
     <button
       type="button"
@@ -227,7 +212,7 @@ export default function DataCharts() {
       <PageHeader
         icon={BarChart3}
         title="Séries e indicadores"
-        description="As séries que sustentam a leitura de conjuntura: volume noticioso, esforço orçamentário e exposição a risco. Cada gráfico declara o que mostra e de onde vem."
+        description="As séries que sustentam a leitura de conjuntura: volume noticioso, gasto militar comparado, cobertura por país e índice de alerta. Cada gráfico declara o que mostra e de onde vem."
         help="Cada painel declara a sua fonte e o que ela mede. Quando o servidor não responde, o painel mostra a ausência — nenhuma série é substituída por valores de exemplo."
         breadcrumb={[{ label: 'Estratégico' }, { label: 'Séries e indicadores' }]}
         badges={<Badge type={gasto.aoVivo ? 'live' : 'sem-dado'} />}
@@ -448,9 +433,9 @@ export default function DataCharts() {
 
           <ChartPanel
             badge={alerta.aoVivo ? 'live' : 'sem-dado'}
-            title="Índice de alerta nacional"
-            subtitle="Resumo de 0 a 100 da tensão de segurança do Brasil no momento."
-            method="Combina o volume de eventos, a gravidade atribuída e a concentração geográfica das ocorrências das últimas duas semanas. É um resumo, não um veredito."
+            title="Índice de alerta — 7 dias"
+            subtitle="Média ponderada, de 0 a 100, da urgência das matérias relevantes dos últimos 7 dias."
+            method="Cada matéria relevante do período pesa pela urgência atribuída pelo filtro: crítica 100, alta 70, média 40, baixa 15. O índice é a média. NORMAL abaixo de 35, ATENÇÃO até 59, ALERTA até 79, CRÍTICO a partir de 80. Mede a urgência do que foi noticiado, não o risco real."
             rows={[{ indicador: 'Índice de alerta nacional', valor: alerta.value, escala: '0–100' }]}
             filename="indice-de-alerta.csv"
           >

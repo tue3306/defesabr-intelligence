@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         Obrigado por reportar! Preencha os campos abaixo para ajudarmos a reproduzir o problema.
-        Lembre-se: este é um projeto **demonstrativo** com dados **ilustrativos**.
+        Vulnerabilidade de segurança? Não abra issue pública — veja o SECURITY.md.
   - type: textarea
     id: description
     attributes:

@@ -43,13 +43,15 @@ export default function StatusFAB() {
 
   const degraded = d?.degraded ?? 0
   const operational = d?.operational ?? 0
-  const total = d?.total ?? 0
+  // Recurso sem chave configurada é opcional e fica fora do denominador.
+  const total = (d?.total ?? 0) - (d?.optional ?? 0)
+  const alertas = d?.alerts?.length ?? 0
   const totalFontes = d?.archive?.fontes ?? 0
   const fontesComErro = d?.archive?.fontesComErro ?? 0
 
   const overall = saude.error ? 'red'
     : saude.loading ? 'amber'
-      : (degraded > 0 || fontesComErro > 0) ? 'amber'
+      : (degraded > 0 || fontesComErro > 0 || alertas > 0) ? 'amber'
         : 'green'
   const dotColor = { green: 'bg-military-green', amber: 'bg-military-amber', red: 'bg-military-red' }[overall]
 
@@ -70,9 +72,14 @@ export default function StatusFAB() {
       note: total ? `${operational}/${total} operacionais` : '—',
     },
     {
-      name: 'Síntese por IA',
+      name: 'Alertas de segurança',
+      ok: !saude.error && alertas === 0,
+      note: alertas ? `${alertas} pendente(s)` : 'nenhum',
+    },
+    {
+      name: 'Assistente por IA (sua conta)',
       ok: ia.configurada,
-      note: ia.configurada ? `${ia.modelo} conectado` : 'não conectada',
+      note: ia.configurada ? ia.modelo : 'sem chave',
     },
   ]
 
