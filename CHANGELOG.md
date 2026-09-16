@@ -40,6 +40,15 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 **Adicionado**
 
+- **O banco encontra o volume sozinho.** O Railway injeta
+  `RAILWAY_VOLUME_MOUNT_PATH` em serviço com volume montado; o servidor passa a
+  guardar o banco ali sem `DB_PATH`. Montar o volume vira uma ação só — antes
+  eram duas, e esquecer a segunda deixava tudo como estava, sem erro na tela.
+  O boot avisa em amarelo quando está sem volume em produção, o painel marca a
+  capacidade como DISCO EFÊMERO e `/api/meta` responde `armazenamento`.
+- **O cadastro entra na trilha de auditoria.** Conta nova aparecia na lista sem
+  quando nem por quem; agora "Conta criada pelo cadastro" fica ao lado dos atos
+  de governança, na mesma ordem cronológica.
 - **Adoção da instalação**: se a plataforma subir sem nenhum administrador — o
   que acontece quando as variáveis não chegam ao serviço, e se repete a cada
   publicação num disco efêmero —, a tela de entrada ganha a aba

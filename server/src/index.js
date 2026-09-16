@@ -45,7 +45,13 @@ const servidor = app.listen(config.port, config.host, async () => {
   console.log(`  API           http://localhost:${config.port}/api`)
   console.log(`  Ambiente      ${config.ambiente}`)
   console.log(`  Node          ${process.version}`)
-  console.log(`  Banco         ${config.dbPath}`)
+  console.log(`  Banco         ${config.dbPath}${config.armazenamento.volume ? ' (volume montado)' : ''}`)
+  if (config.armazenamento.efemero) {
+    // Amarelo, e não cinza: quem publica precisa saber que as contas somem na
+    // próxima publicação — inclusive a de administrador.
+    console.log('  [33mBanco         SEM VOLUME: o banco é recriado a cada publicação e as contas somem[0m')
+    console.log('  [2m              Monte um volume no serviço; o caminho é detectado sozinho[0m')
+  }
   if (fontesCriadas) console.log(`  Fontes        ${fontesCriadas} cadastradas`)
   if (contas.criadas) console.log(`  Contas        conta de administrador criada (ADMIN_USERNAME)`)
   if (contas.assumidas) console.log(`  Contas        conta de administrador assumida pelo ambiente`)

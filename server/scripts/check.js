@@ -151,9 +151,11 @@ await checar('GET /auth/adocao', '/api/auth/adocao',
   (b) => b?.disponivel === false && 'fechada: a instalação já tem administrador')
 await checar('POST /auth/adotar (com administrador)', '/api/auth/adotar', (b) => b?.code === 'JA_TEM_ADMINISTRADOR' && 'recusa correta',
   { method: 'POST', body: { codigo: 'nao-importa', username: 'nao.criado', password: 'nao-importa-9' }, status: 409 })
-await checar('GET /meta (contas)', '/api/meta',
+await checar('GET /meta (contas e disco)', '/api/meta',
   (b) => b?.contas && typeof b.contas.variaveis?.ADMIN_USERNAME === 'boolean'
-    && `${b.contas.administradoresAtivos} administrador(es) ativo(s) de ${b.contas.total} conta(s)`)
+    && typeof b.armazenamento?.persistente === 'boolean'
+    && `${b.contas.administradoresAtivos} administrador(es) ativo(s) de ${b.contas.total} conta(s)`
+      + ` · banco ${b.armazenamento.persistente ? 'persistente' : 'EFÊMERO'}`)
 await checar('GET /guia', '/api/guia', (b) => b?.telas?.length && b?.naoFaz?.length && `${b.telas.length} telas no guia`)
 
 console.log('\nFILTRO AO VIVO')

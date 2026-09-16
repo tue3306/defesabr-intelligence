@@ -150,6 +150,13 @@ router.get('/meta', (req, res) => {
     ambiente: config.ambiente,
     deploy: config.deploy,
     agendador: estadoDoAgendador(),
+    // O banco sobrevive à próxima publicação? Sem volume num serviço de
+    // produção, não — e é a pergunta que explica contas que "somem sozinhas".
+    armazenamento: {
+      persistente: !config.armazenamento.efemero,
+      volumeMontado: Boolean(config.armazenamento.volume),
+      caminhoDefinido: config.armazenamento.caminhoEscolhido,
+    },
     // ─────────────────────────────────────────────────────────────────────
     // A CONTA DE ADMINISTRADOR CHEGOU AO SERVIÇO?
     //

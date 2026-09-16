@@ -154,7 +154,10 @@ const ROTAS = [
     caminho: '/api/auth/adotar',
     minimo: null,
     corpo: { codigo: 'nao-importa', username: 'nao.criado', password: 'nao-importa-9' },
-    autorizado: 409,
+    // 429 diz a mesma coisa que 409 aqui: a guarda passou e nada foi criado. O
+    // teto é de 5 por IP a cada 10 minutos, e a suíte chama a rota uma vez por
+    // identidade — rodá-la duas vezes seguidas gasta a cota.
+    autorizado: [409, 429],
     muta: true,
   },
 ]

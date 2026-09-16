@@ -303,8 +303,17 @@ administrador.
 O **Console de Governança** promove e rebaixa, suspende e reativa, e remove
 contas (com a pasta e o estado das notificações); pausa e religa fontes;
 dispara coleta completa ou de uma fonte. Duas travas são do servidor: ninguém
-altera a própria conta, e a instalação nunca fica sem administrador ativo. Cada
-ato vai para a **trilha de auditoria** com o nome de quem o fez.
+altera a própria conta, e a instalação nunca fica sem administrador ativo.
+
+A **trilha de auditoria** (aba *Auditoria*) registra tudo o que acontece com as
+contas, na mesma ordem cronológica das execuções de coleta:
+
+| Evento | Ator registrado |
+|---|---|
+| Conta criada pelo cadastro | a própria pessoa |
+| Instalação adotada (primeiro administrador) | a conta criada |
+| Papel alterado, conta suspensa, reativada ou removida | o administrador que agiu |
+| Fonte pausada, religada ou testada; coleta disparada à mão | o administrador que agiu |
 
 #### Notificações
 
@@ -625,7 +634,7 @@ Para subir a sua, basta conectar o repositório:
 |---|---|
 | `ADMIN_USERNAME` e `ADMIN_PASSWORD` | **Obrigatórias para haver administrador.** Criam (ou assumem) a conta na subida; depois a senha é trocada pela plataforma |
 | `AUTH_SECRET` | Assina as sessões. Sem ela, quem estava logado cai a cada deploy |
-| `DB_PATH` | Opcional. Aponte para um volume (`/data/defesabr.db`) para o acervo persistir entre deploys |
+| `DB_PATH` | Opcional. Só se você quiser escolher o caminho do banco — com um volume montado, ele é detectado sozinho |
 | `COLLECT_INTERVAL_MINUTES` | Opcional. Padrão 15; `0` desliga o agendador |
 
 Gerar um `AUTH_SECRET`:
@@ -658,9 +667,24 @@ nome está errado, foi criada em outro ambiente, ou o deploy ainda é o anterior
 `administradoresAtivos: 0` com as variáveis `true` significa que o processo
 ainda não subiu depois de criá-las.
 
-**Sobre persistência:** o disco do Railway é efêmero. Sem um volume montado, o
-acervo é recoletado a cada deploy e as contas criadas pelo cadastro somem; a de
-administrador volta a ser criada pelas variáveis.
+### Persistência: monte um volume
+
+O disco do contêiner é **efêmero**. Sem volume, cada publicação sobe um
+contêiner novo e o banco nasce vazio: o acervo se recoleta em segundos, mas as
+**contas somem** — inclusive a de administrador, se ela não vier das variáveis.
+
+No serviço: **Settings → Volumes → Add volume**, ponto de montagem `/data`. Só
+isso. O Railway injeta `RAILWAY_VOLUME_MOUNT_PATH`, o servidor detecta e passa a
+guardar o banco lá — não é preciso definir `DB_PATH`.
+
+Como conferir, em `GET /api/meta`:
+
+```json
+"armazenamento": { "persistente": true, "volumeMontado": true, "caminhoDefinido": false }
+```
+
+Com `persistente: false`, o boot avisa em amarelo e o painel do administrador
+marca a capacidade *Persistência (SQLite)* como **DISCO EFÊMERO**.
 
 ### Qual commit está no ar
 

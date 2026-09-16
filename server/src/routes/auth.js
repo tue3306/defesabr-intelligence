@@ -200,6 +200,16 @@ export async function semearContas() {
  */
 export async function alertasDeSeguranca() {
   const alertas = []
+  if (config.armazenamento.efemero) {
+    alertas.push({
+      id: 'sem-volume',
+      nivel: 'critico',
+      titulo: 'O banco é recriado a cada publicação',
+      detalhe: 'Este serviço está sem volume montado: contas, pasta pessoal e estado das '
+        + 'notificações somem no próximo deploy. Monte um volume no serviço — o caminho é '
+        + 'detectado sozinho, sem definir DB_PATH.',
+    })
+  }
   if (!config.auth.segredoFixado) {
     alertas.push({
       id: 'auth-secret',
@@ -269,6 +279,19 @@ router.post('/auth/register', limitar({ max: 5, janelaMs: 10 * 60_000 }), async 
 
     const conta = get('SELECT * FROM users WHERE id = ?', [info.lastInsertRowid])
     run('UPDATE users SET last_login_at = ? WHERE id = ?', [agora(), conta.id])
+
+    // O CADASTRO ENTRA NA TRILHA DE AUDITORIA.
+    //
+    // Ela registrava só o que o administrador fazia — promover, suspender,
+    // remover. Conta nova aparecia do nada na lista, sem quando nem por quem,
+    // e a única pista era a data de criação na linha. Quem governa a
+    // instalação precisa ver a criação junto do resto, na mesma ordem
+    // cronológica. O ator é a própria pessoa: ninguém a criou por ela.
+    registrarAuditoria(
+      { conta: { sub: conta.id, name: conta.name } },
+      { acao: 'Conta criada pelo cadastro', alvo: `Conta · ${conta.username}` },
+    )
+
     res.status(201).json({ user: publico(conta), token: emitirToken(conta) })
   } catch (err) { next(err) }
 })

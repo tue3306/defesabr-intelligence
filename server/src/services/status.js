@@ -284,9 +284,16 @@ export function capacidades() {
       // diretórios da máquina de quem roda ("C:\Users\fulano\Desktop\...") numa
       // tela que qualquer administrador abre — e num deploy o caminho do
       // contêiner não diz nada a ninguém.
-      detalhe: `${all("SELECT name FROM sqlite_master WHERE type='table'").length} tabelas · ${caminhoRelativo(config.dbPath)}`,
+      detalhe: `${all("SELECT name FROM sqlite_master WHERE type='table'").length} tabelas · ${caminhoRelativo(config.dbPath)}`
+        + (config.armazenamento.efemero ? ' · DISCO EFÊMERO' : config.armazenamento.volume ? ' · volume montado' : ''),
       descricao: 'Módulo nativo node:sqlite — sem compilação de binário nativo, o que faz `npm install` '
-        + 'funcionar na primeira tentativa em qualquer máquina.',
+        + 'funcionar na primeira tentativa em qualquer máquina.'
+        + (config.armazenamento.efemero
+          ? ' Este serviço está sem volume: o banco é recriado a cada publicação, e as contas somem junto.'
+          : ''),
+      pendente: config.armazenamento.efemero
+        ? 'Monte um volume no serviço para o banco sobreviver aos deploys. O caminho é detectado sozinho.'
+        : null,
       fonte: 'node:sqlite',
       metricas: { registros: artigos + contar('SELECT COUNT(*) AS n FROM bills') },
     },
