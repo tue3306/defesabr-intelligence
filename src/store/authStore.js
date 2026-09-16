@@ -97,6 +97,25 @@ export const useAuthStore = create(
         }
       },
 
+      /**
+       * Adota uma instalação que subiu sem administrador.
+       *
+       * Só funciona enquanto não houver nenhum: o servidor recusa com 409
+       * depois que o primeiro existe. Ver server/src/lib/adocao.js.
+       */
+      adotar: async ({ codigo, username, password }) => {
+        set({ carregando: true })
+        try {
+          const { user, token } = await chamar('POST', '/auth/adotar', { codigo, username, password })
+          set({ user, token, isAuthenticated: true, carregando: false, motivoSaida: null })
+          sincronizarPasta()
+          return { ok: true, user }
+        } catch (err) {
+          set({ carregando: false })
+          return { ok: false, error: err.message, campo: err.campo, code: err.code }
+        }
+      },
+
       logout: (motivo = null) => {
         // O que é da pessoa sai junto: a pasta (cópia da que está no servidor),
         // os avisos e os clippings arquivados. Deixá-los faria a próxima conta

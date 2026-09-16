@@ -38,6 +38,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
   navegador. Rotas `/api/notifications*`.
 - **Guia da plataforma** em `GET /api/guia`, servido pelo botão de ajuda.
 
+**Adicionado**
+
+- **Adoção da instalação**: se a plataforma subir sem nenhum administrador — o
+  que acontece quando as variáveis não chegam ao serviço, e se repete a cada
+  publicação num disco efêmero —, a tela de entrada ganha a aba
+  *Administrador*, que cria o primeiro com um **código de adoção**. A rota
+  `POST /api/auth/adotar` só responde enquanto não houver administrador ativo e
+  se fecha sozinha depois. O repositório guarda só o hash scrypt do código;
+  `ADMIN_CLAIM_DISABLED=1` desliga.
+
 **Adicionado (diagnóstico)**
 
 - `GET /api/meta` passa a dizer, em `contas`, se `ADMIN_USERNAME`,

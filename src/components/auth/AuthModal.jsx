@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { LogIn, UserPlus, Loader2, AlertCircle } from 'lucide-react'
+import { LogIn, UserPlus, Loader2, AlertCircle, ShieldPlus } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Modal from '../ui/Modal'
 import { useAuthStore } from '../../store/authStore'
+import { request } from '../../services/client'
 
 // -----------------------------------------------------------------------------
 // ENTRAR E CADASTRAR
@@ -17,13 +18,17 @@ import { useAuthStore } from '../../store/authStore'
 
 const RX_USUARIO = /^[a-z0-9._-]{3,32}$/
 const SENHA_MINIMA = 6
-const FORM_VAZIO = { username: '', password: '', confirmacao: '' }
+const FORM_VAZIO = { username: '', password: '', confirmacao: '', codigo: '' }
 
 export default function AuthModal({ open, onClose, abaInicial = 'entrar' }) {
   const navigate = useNavigate()
   const login = useAuthStore((s) => s.login)
   const register = useAuthStore((s) => s.register)
+  const adotar = useAuthStore((s) => s.adotar)
   const carregando = useAuthStore((s) => s.carregando)
+
+  // A instalação subiu sem administrador? Só então a adoção aparece.
+  const [adocao, setAdocao] = useState(false)
 
   const [aba, setAba] = useState(abaInicial)
   const [erro, setErro] = useState(null)
@@ -34,6 +39,15 @@ export default function AuthModal({ open, onClose, abaInicial = 'entrar' }) {
   useEffect(() => { setErro(null); setCampoComErro(null) }, [aba])
   // Fechar e abrir de novo não deixa a senha digitada no campo.
   useEffect(() => { if (!open) setForm(FORM_VAZIO) }, [open])
+
+  useEffect(() => {
+    if (!open) return undefined
+    let vivo = true
+    request('GET /auth/adocao')
+      .then(({ data }) => { if (vivo) setAdocao(!!data?.disponivel) })
+      .catch(() => { /* sem resposta: a opção simplesmente não aparece */ })
+    return () => { vivo = false }
+  }, [open])
 
   const falhar = (mensagem, campo = null) => { setErro(mensagem); setCampoComErro(campo) }
 
@@ -50,6 +64,20 @@ export default function AuthModal({ open, onClose, abaInicial = 'entrar' }) {
 
     if (aba === 'entrar') {
       const r = await login(username, form.password)
+      return r.ok ? concluir(r.user) : falhar(r.error, r.campo)
+    }
+
+    if (aba === 'adotar') {
+      if (!form.codigo.trim()) return falhar('Informe o código de adoção.', 'codigo')
+      if (!RX_USUARIO.test(username)) {
+        return falhar('Use 3 a 32 caracteres: letras minúsculas, números, ponto, hífen ou sublinhado.', 'username')
+      }
+      if (form.password.length < SENHA_MINIMA) {
+        return falhar(`A senha precisa de ao menos ${SENHA_MINIMA} caracteres.`, 'password')
+      }
+      if (form.password !== form.confirmacao) return falhar('As senhas não conferem.', 'confirmacao')
+
+      const r = await adotar({ codigo: form.codigo.trim(), username, password: form.password })
       return r.ok ? concluir(r.user) : falhar(r.error, r.campo)
     }
 
@@ -76,11 +104,17 @@ export default function AuthModal({ open, onClose, abaInicial = 'entrar' }) {
   })
 
   return (
-    <Modal open={open} onClose={onClose} title={aba === 'entrar' ? 'Entrar' : 'Criar conta'} maxWidth="max-w-md">
-      <div className="mb-5 grid grid-cols-2 gap-1 rounded-lg bg-gray-100 p-1 dark:bg-white/5">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={aba === 'adotar' ? 'Criar o administrador' : aba === 'entrar' ? 'Entrar' : 'Criar conta'}
+      maxWidth="max-w-md"
+    >
+      <div className={`mb-5 grid gap-1 rounded-lg bg-gray-100 p-1 dark:bg-white/5 ${adocao ? 'grid-cols-3' : 'grid-cols-2'}`}>
         {[
           { id: 'entrar', label: 'Entrar', icon: LogIn },
           { id: 'cadastrar', label: 'Criar conta', icon: UserPlus },
+          ...(adocao ? [{ id: 'adotar', label: 'Administrador', icon: ShieldPlus }] : []),
         ].map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -99,6 +133,28 @@ export default function AuthModal({ open, onClose, abaInicial = 'entrar' }) {
       </div>
 
       <form onSubmit={aoEnviar} className="space-y-3" noValidate>
+        {aba === 'adotar' && (
+          <>
+            <p className="rounded-lg bg-brand-500/10 px-3 py-2 text-xs leading-relaxed text-brand-800 dark:text-brand-200">
+              Esta instalação ainda não tem administrador. Com o código de adoção, você cria o
+              primeiro — e esta opção some assim que ele existir.
+            </p>
+            <div>
+              <label htmlFor="auth-codigo" className="mb-1 block text-sm font-medium">Código de adoção</label>
+              <input
+                id="auth-codigo"
+                type="text"
+                autoComplete="off"
+                spellCheck={false}
+                placeholder="XXXX-XXXX-XXXX-XXXX"
+                maxLength={40}
+                required
+                {...campo('codigo')}
+              />
+            </div>
+          </>
+        )}
+
         <div>
           <label htmlFor="auth-usuario" className="mb-1 block text-sm font-medium">Usuário</label>
           <input
@@ -111,7 +167,7 @@ export default function AuthModal({ open, onClose, abaInicial = 'entrar' }) {
             required
             {...campo('username')}
           />
-          {aba === 'cadastrar' && (
+          {aba !== 'entrar' && (
             <p className="mt-1 text-xs muted">3 a 32 caracteres: letras minúsculas, números, ponto, hífen ou sublinhado.</p>
           )}
         </div>
@@ -126,10 +182,10 @@ export default function AuthModal({ open, onClose, abaInicial = 'entrar' }) {
             required
             {...campo('password')}
           />
-          {aba === 'cadastrar' && <p className="mt-1 text-xs muted">Ao menos {SENHA_MINIMA} caracteres.</p>}
+          {aba !== 'entrar' && <p className="mt-1 text-xs muted">Ao menos {SENHA_MINIMA} caracteres.</p>}
         </div>
 
-        {aba === 'cadastrar' && (
+        {aba !== 'entrar' && (
           <div>
             <label htmlFor="auth-confirmacao" className="mb-1 block text-sm font-medium">Confirme a senha</label>
             <input
@@ -154,13 +210,21 @@ export default function AuthModal({ open, onClose, abaInicial = 'entrar' }) {
             ? <><Loader2 size={16} className="animate-spin" /> Aguarde…</>
             : aba === 'entrar'
               ? <><LogIn size={16} /> Entrar</>
-              : <><UserPlus size={16} /> Criar conta</>}
+              : aba === 'adotar'
+                ? <><ShieldPlus size={16} /> Criar administrador</>
+                : <><UserPlus size={16} /> Criar conta</>}
         </button>
 
         {aba === 'cadastrar' && (
           <p className="text-center text-xs muted">
             A conta criada aqui acessa a plataforma por completo: clipping, correlações, mapa
             estratégico, incidentes, notificações e busca no acervo.
+          </p>
+        )}
+        {aba === 'adotar' && (
+          <p className="text-center text-xs muted">
+            O caminho recomendado continua sendo definir `ADMIN_USERNAME` e `ADMIN_PASSWORD` no
+            ambiente: com elas, o administrador volta a existir a cada subida.
           </p>
         )}
       </form>

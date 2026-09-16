@@ -48,6 +48,23 @@ Depois disso, a senha é trocada pela própria plataforma, em *Minha conta →
 Segurança*, e a variável **não** a sobrescreve: enquanto a conta for
 administradora, quem manda na senha é o que foi definido na tela.
 
+### E se a instalação subir sem administrador?
+
+Acontece quando as variáveis não chegam ao serviço — e, num disco efêmero, se
+repete a cada publicação. Nesse caso a tela de entrada mostra uma terceira aba,
+**Administrador**, que pede o **código de adoção** da instalação e cria o
+primeiro administrador ali mesmo.
+
+A aba só aparece enquanto **não houver nenhum administrador ativo**, e a rota
+(`POST /api/auth/adotar`) se fecha sozinha assim que ele existe. O código não
+está neste repositório: o que está versionado é o **hash scrypt** dele, em
+`server/src/lib/adocao.js` — quem lê o repositório não consegue adotar nada.
+Para desligar de vez, defina `ADMIN_CLAIM_DISABLED=1`.
+
+É uma saída de emergência, não o caminho normal: com `ADMIN_USERNAME` e
+`ADMIN_PASSWORD` no ambiente, o administrador volta a existir a cada subida sem
+ninguém digitar nada.
+
 São contas de verdade — senha em *scrypt* com sal por conta, token HMAC-SHA256,
 papel e situação conferidos no servidor a cada requisição.
 
@@ -497,6 +514,8 @@ SERVIDOR — 401 sem sessão, 403 com papel insuficiente.
 | `POST` | `/auth/register` | — | Cria conta com **usuário e senha**, papel `user` |
 | `POST` | `/auth/login` | — | Devolve token assinado |
 | `GET` | `/auth/me` | — | Quem é o portador deste token |
+| `GET` | `/auth/adocao` | — | Esta instalação está sem administrador? |
+| `POST` | `/auth/adotar` | — | Cria o primeiro administrador, com o código de adoção. 409 se já houver um |
 | `PATCH` | `/auth/me` | `user` | Troca o nome de exibição |
 | `PUT` | `/auth/senha` | `user` | Troca a senha com a atual; as outras sessões caem |
 | `GET` | `/users` | `admin` | As contas que existem no banco desta instalação |

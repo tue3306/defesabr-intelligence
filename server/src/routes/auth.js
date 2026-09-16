@@ -5,12 +5,15 @@ import config from '../config.js'
 import { limitar } from '../lib/limite.js'
 import { registrarAuditoria } from '../lib/auditoria.js'
 import { apagarEstadoDaConta } from '../lib/notificacoes.js'
+import { adocaoDisponivel, codigoConfere, adotarInstalacao } from '../lib/adocao.js'
 
 const router = Router()
 
 // -----------------------------------------------------------------------------
 // CONTAS E SESSÃO
 //
+//   GET    /api/auth/adocao     a instalação está sem administrador?
+//   POST   /api/auth/adotar     cria o primeiro administrador, com código
 //   POST   /api/auth/register   cria conta (usuário e senha; papel 'user')
 //   POST   /api/auth/login      devolve token assinado
 //   GET    /api/auth/me         quem é o portador deste token
@@ -266,6 +269,66 @@ router.post('/auth/register', limitar({ max: 5, janelaMs: 10 * 60_000 }), async 
 
     const conta = get('SELECT * FROM users WHERE id = ?', [info.lastInsertRowid])
     run('UPDATE users SET last_login_at = ? WHERE id = ?', [agora(), conta.id])
+    res.status(201).json({ user: publico(conta), token: emitirToken(conta) })
+  } catch (err) { next(err) }
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADOÇÃO DA INSTALAÇÃO
+//
+//   GET  /api/auth/adocao   esta instalação está sem administrador?
+//   POST /api/auth/adotar   cria o administrador, com o código de adoção
+//
+// Existe para o deploy em que `ADMIN_USERNAME`/`ADMIN_PASSWORD` não chegaram ao
+// serviço: sem administrador, não há como governar a instalação nem como criar
+// um pela interface. Ver server/src/lib/adocao.js.
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/auth/adocao', (_req, res) => {
+  res.json({
+    disponivel: adocaoDisponivel(),
+    // A instrução some junto com a disponibilidade: numa instalação governada,
+    // a tela não fala de código nenhum.
+    nota: adocaoDisponivel()
+      ? 'Esta instalação ainda não tem administrador. Quem tem o código de adoção pode criar o primeiro.'
+      : null,
+  })
+})
+
+router.post('/auth/adotar', limitar({ max: 5, janelaMs: 10 * 60_000 }), async (req, res, next) => {
+  try {
+    // A ordem importa: a indisponibilidade é respondida ANTES de olhar o
+    // código. Numa instalação com administrador, a rota não é um oráculo que
+    // diz se um código está certo.
+    if (!adocaoDisponivel()) {
+      return res.status(409).json({
+        error: 'Esta instalação já tem administrador. A adoção só vale enquanto não há nenhum.',
+        code: 'JA_TEM_ADMINISTRADOR',
+      })
+    }
+
+    const usuario = String(req.body?.username || '').trim().toLowerCase()
+    const senha = String(req.body?.password || '')
+
+    if (!(await codigoConfere(req.body?.codigo))) {
+      return res.status(401).json({ error: 'Código de adoção incorreto.', campo: 'codigo' })
+    }
+    if (!RX_USUARIO.test(usuario)) {
+      return res.status(400).json({
+        error: 'O nome de usuário aceita 3 a 32 caracteres entre letras, números, ponto, hífen e sublinhado.',
+        campo: 'username',
+      })
+    }
+    if (RESERVADOS.has(usuario)) {
+      return res.status(409).json({ error: 'Este nome de usuário está reservado. Escolha outro.', campo: 'username' })
+    }
+    const problema = validarSenha(senha, 'password')
+    if (problema) return res.status(400).json(problema)
+
+    const conta = await adotarInstalacao({ username: usuario, password: senha, emailDerivado })
+    registrarAuditoria(
+      { conta: { sub: conta.id } },
+      { acao: 'Instalação adotada: primeiro administrador criado', alvo: `Conta · ${conta.username}`, nivel: 'warn' },
+    )
     res.status(201).json({ user: publico(conta), token: emitirToken(conta) })
   } catch (err) { next(err) }
 })

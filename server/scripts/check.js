@@ -145,6 +145,15 @@ if (avisos?.items?.[0]) {
   }
 }
 await checar('POST /notifications/:id/read (inexistente)', '/api/notifications/99999999/read', () => 'recusa correta', { method: 'POST', status: 404 })
+// A adoção só existe enquanto a instalação não tem administrador. Aqui tem —
+// a suíte entrou como um —, então a rota precisa dizer que está fechada.
+await checar('GET /auth/adocao', '/api/auth/adocao',
+  (b) => b?.disponivel === false && 'fechada: a instalação já tem administrador')
+await checar('POST /auth/adotar (com administrador)', '/api/auth/adotar', (b) => b?.code === 'JA_TEM_ADMINISTRADOR' && 'recusa correta',
+  { method: 'POST', body: { codigo: 'nao-importa', username: 'nao.criado', password: 'nao-importa-9' }, status: 409 })
+await checar('GET /meta (contas)', '/api/meta',
+  (b) => b?.contas && typeof b.contas.variaveis?.ADMIN_USERNAME === 'boolean'
+    && `${b.contas.administradoresAtivos} administrador(es) ativo(s) de ${b.contas.total} conta(s)`)
 await checar('GET /guia', '/api/guia', (b) => b?.telas?.length && b?.naoFaz?.length && `${b.telas.length} telas no guia`)
 
 console.log('\nFILTRO AO VIVO')

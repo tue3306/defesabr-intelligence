@@ -47,6 +47,12 @@ partir de `ADMIN_USERNAME` e `ADMIN_PASSWORD`; sem as duas variáveis, nenhuma c
 existe e o servidor avisa no boot. A senha é trocada depois em *Minha conta → Segurança*, e a
 variável não a sobrescreve enquanto a conta for administradora.
 
+Se a instalação subir **sem nenhum administrador** — variáveis ausentes, banco recriado —, a tela de
+entrada oferece a **adoção**: quem tem o código de adoção cria o primeiro administrador. A rota
+(`POST /api/auth/adotar`) só responde enquanto não houver administrador ativo, é limitada por IP e
+fecha sozinha depois do primeiro. O repositório versiona apenas o **hash scrypt** do código
+(`server/src/lib/adocao.js`), nunca o código; `ADMIN_CLAIM_DISABLED=1` desliga o mecanismo.
+
 O identificador configurado em `ADMIN_USERNAME` é **reservado no cadastro**, e uma conta comum com
 esse nome — criada antes de as variáveis existirem — é **assumida** na subida seguinte: vira
 administradora, recebe a senha da variável e tem as sessões anteriores revogadas. Quem controla as
