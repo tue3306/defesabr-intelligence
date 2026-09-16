@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
-  ShieldCheck, Users, Database, Activity, ScrollText, Bell, AlertTriangle,
+  ShieldCheck, Users, Database, Activity, ScrollText, Bell, AlertTriangle, Info,
   HeartPulse, Server, ChevronRight,
 } from 'lucide-react'
 import MetricCard from '../components/ui/MetricCard'
@@ -132,7 +132,8 @@ export default function AdminDashboard() {
         </div>
       </Section>
 
-      {/* ALERTAS DE SEGURANÇA — só aparecem quando há algo a fazer */}
+      {/* ALERTAS — vermelho para o que quebra, âmbar para o que pede atenção,
+          azul para a nota de configuração que não indica defeito. */}
       {alertas.length > 0 && (
         <Section className="space-y-2">
           {alertas.map((a) => (
@@ -140,10 +141,14 @@ export default function AdminDashboard() {
               key={a.id}
               role="alert"
               className={`flex items-start gap-3 rounded-xl border p-4 ${
-                a.nivel === 'critico' ? 'border-red-500/30 bg-red-500/5' : 'border-amber-500/30 bg-amber-500/5'
+                a.nivel === 'critico' ? 'border-red-500/30 bg-red-500/5'
+                  : a.nivel === 'info' ? 'border-brand-500/30 bg-brand-500/5'
+                    : 'border-amber-500/30 bg-amber-500/5'
               }`}
             >
-              <AlertTriangle size={18} className={`mt-0.5 shrink-0 ${a.nivel === 'critico' ? 'text-red-500' : 'text-amber-500'}`} />
+              {a.nivel === 'info'
+                ? <Info size={18} className="mt-0.5 shrink-0 text-brand-500 dark:text-brand-300" />
+                : <AlertTriangle size={18} className={`mt-0.5 shrink-0 ${a.nivel === 'critico' ? 'text-red-500' : 'text-amber-500'}`} />}
               <div className="min-w-0">
                 <p className="text-sm font-bold">{a.titulo}</p>
                 <p className="mt-0.5 text-xs leading-relaxed muted">{a.detalhe}</p>

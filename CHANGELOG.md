@@ -67,6 +67,18 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 **Corrigido**
 
+- **O menu público mostrava três links e escondia o produto.** Quem chegava à
+  página inicial via "Início · Centro Educacional · Sobre" e não tinha por onde
+  ver as telas que dão nome à plataforma. Clipping, Correlações e Incidentes
+  entram no menu com um cadeado: o clique leva à tela que explica o que a conta
+  alcança e oferece entrar ou criar conta.
+- **Dois alertas para a mesma causa.** O painel do administrador acusava "sem
+  volume" e "AUTH_SECRET não definido" como problemas separados. Sem
+  `AUTH_SECRET`, o segredo das sessões é gerado e guardado no banco — com
+  volume montado ele sobrevive a deploy, e não há nada a avisar. O alerta de
+  disco efêmero passa a dizer o efeito completo (contas, pasta, notificações e
+  sessões), e a ausência de `AUTH_SECRET` com banco persistente vira nota de
+  configuração, em azul, em vez de alerta.
 - **O administrador podia ficar sem existir para sempre.** Se alguém se
   cadastrasse com o nome configurado em `ADMIN_USERNAME` antes de as variáveis
   existirem — o que aconteceu num deploy real —, a conta nascia como usuário

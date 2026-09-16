@@ -200,23 +200,33 @@ export async function semearContas() {
  */
 export async function alertasDeSeguranca() {
   const alertas = []
+  // UM PROBLEMA, UM ALERTA.
+  //
+  // Eram dois avisos para a mesma causa: "sem volume" e "AUTH_SECRET não
+  // definido". Sem `AUTH_SECRET`, o segredo das sessões é gerado e GUARDADO NO
+  // BANCO — então ele sobrevive a reinício e a deploy sempre que o banco
+  // sobreviver. Com volume montado, não há nada a avisar; sem volume, o que se
+  // perde não é só a sessão: são as contas inteiras.
   if (config.armazenamento.efemero) {
     alertas.push({
       id: 'sem-volume',
       nivel: 'critico',
       titulo: 'O banco é recriado a cada publicação',
-      detalhe: 'Este serviço está sem volume montado: contas, pasta pessoal e estado das '
-        + 'notificações somem no próximo deploy. Monte um volume no serviço — o caminho é '
-        + 'detectado sozinho, sem definir DB_PATH.',
+      detalhe: 'Este serviço está sem volume montado: contas, pasta pessoal, estado das '
+        + 'notificações e o segredo das sessões somem no próximo deploy — por isso as sessões '
+        + 'caem e o administrador precisa ser criado de novo. Monte um volume no serviço; o '
+        + 'caminho é detectado sozinho, sem definir DB_PATH.',
     })
-  }
-  if (!config.auth.segredoFixado) {
+  } else if (!config.auth.segredoFixado) {
+    // Banco persistente e segredo no banco: as sessões sobrevivem. Fica como
+    // nota de configuração, não como alerta de que algo está quebrado.
     alertas.push({
       id: 'auth-secret',
-      nivel: 'aviso',
-      titulo: 'AUTH_SECRET não está definido no ambiente',
-      detalhe: 'O segredo das sessões fica no banco. Onde o disco é efêmero (Railway sem volume), '
-        + 'cada deploy gera outro e todas as sessões caem.',
+      nivel: 'info',
+      titulo: 'AUTH_SECRET não definido — o segredo das sessões vive no banco',
+      detalhe: 'As sessões sobrevivem a reinício e a deploy porque o banco é persistente. '
+        + 'Definir AUTH_SECRET no ambiente é o passo seguinte: aí o segredo deixa de depender '
+        + 'do arquivo do banco.',
     })
   }
   return alertas
