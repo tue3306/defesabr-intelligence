@@ -2,7 +2,7 @@
 // CONTEÚDO DA LANDING — público-alvo, padrões, FAQ e roadmap.
 //
 // Isto é texto institucional: descreve o produto, não mede nada. Os números da
-// landing vêm do acervo em tempo real (ver `useVitrine`), não daqui.
+// landing vêm do acervo em tempo real (ver `useVitrineReal`), não daqui.
 //
 // Padrões e normas são citados como inspiração conceitual; nada afirma
 // conformidade ou certificação.

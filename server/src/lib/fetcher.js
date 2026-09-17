@@ -42,21 +42,58 @@ function hostDe(url) {
   try { return new URL(url).host } catch { return 'desconhecido' }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// A VAGA É PASSADA DE MÃO EM MÃO, E NÃO DEVOLVIDA AO BALCÃO
+//
+// A versão anterior liberava assim:
+//
+//     fila.ativos -= 1
+//     const proximo = fila.espera.shift()
+//     if (proximo) proximo()          // acorda quem esperava…
+//                                     // …que só retoma na microtarefa seguinte
+//
+// e quem acordava fazia `fila.ativos += 1` depois de retomar. Entre o
+// decremento e essa retomada existe uma janela, e QUEM CHEGAR NELA passa direto
+// pela conferência — o contador já foi reduzido. Aí entram os dois: o recém
+// chegado e o que estava na fila.
+//
+// Reproduzido em teste isolado: duas vagas ocupadas, uma requisição na espera,
+// uma quarta chegando no mesmo tick da liberação — TRÊS conexões ativas para um
+// teto de duas. Não é hipótese: a coleta dispara 50 feeds de uma vez, oito
+// deles no mesmo `www.gov.br`, e requisição terminando enquanto outra chega é
+// o caso comum, não a exceção. O teto existe justamente porque o gov.br recusa
+// conexões simultâneas do mesmo IP de datacenter — estourá-lo em silêncio traz
+// de volta o defeito que este módulo foi escrito para resolver.
+//
+// A correção não precisa de trava: quem libera PASSA a vaga adiante sem nunca
+// devolvê-la ao contador. Não havendo ninguém na espera, aí sim ela é
+// desocupada. O contador nunca desce abaixo do que está de fato em uso, e não
+// existe janela para alguém se aproveitar dela.
+// ─────────────────────────────────────────────────────────────────────────────
+
 /** Espera uma vaga no host e devolve a função que a libera. */
 async function vaga(host) {
   let fila = filas.get(host)
   if (!fila) { fila = { ativos: 0, espera: [] }; filas.set(host, fila) }
 
   if (fila.ativos >= MAX_POR_HOST) {
+    // A vaga já vem CONTADA por quem a passou — não se incrementa de novo.
     await new Promise((libera) => fila.espera.push(libera))
+  } else {
+    fila.ativos += 1
   }
-  fila.ativos += 1
 
+  let devolvida = false
   return () => {
-    fila.ativos -= 1
+    // `buscar()` chama isto no `finally`; uma segunda chamada não pode liberar
+    // uma vaga que já não é dela.
+    if (devolvida) return
+    devolvida = true
+
     const proximo = fila.espera.shift()
-    if (proximo) proximo()
-    else if (fila.ativos === 0) filas.delete(host)
+    if (proximo) { proximo(); return }
+    fila.ativos -= 1
+    if (fila.ativos === 0 && !fila.espera.length) filas.delete(host)
   }
 }
 

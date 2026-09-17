@@ -528,7 +528,25 @@ export async function coletarFonte(fonte) {
             // procedência justamente na fonte em que ela mais importa.
             fonte.id, item.guid, item.titulo, chave, chaveDeBusca(item.titulo, resumo), endereco, resumo,
             item.veiculo || item.autor,
-            item.publicadoEm, categoria, urgencia,
+            // SEM DATA NO FEED, A DATA É A DA COLETA — e não NULL.
+            //
+            // Toda janela do produto é `published_at >= strftime(...)`, e uma
+            // comparação com NULL não dá falso: dá NULO. O efeito é que a
+            // matéria some de TUDO o que tem recorte de tempo — feed, clipping,
+            // gráficos, nível de alerta, mapa de países — inclusive pedindo
+            // 3650 dias. Ela continua contada em `relevantTotal`, que não
+            // filtra data, e é por isso que os dois números divergiam: o
+            // clipping afirmava 339 aprovadas e media 333 ocorrências, com as 6
+            // de diferença sendo exatamente as que chegaram sem data.
+            //
+            // Coletadas, classificadas como relevantes e inalcançáveis. A busca
+            // global as encontrava (ela não filtra data) e o link levava ao
+            // clipping, onde não estavam.
+            //
+            // O coletor de agregadores já fazia este mesmo fallback; este não.
+            // "Quando foi vista pela primeira vez" é a aproximação honesta para
+            // um item que a fonte publicou sem carimbo nenhum.
+            item.publicadoEm || agora(), categoria, urgencia,
             r.relevante ? 1 : 0, r.pontos, r.termos.slice(0, 8).join(', ') || null,
           ]
         )

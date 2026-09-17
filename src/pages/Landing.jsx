@@ -38,7 +38,6 @@ import GaugeChart from '../components/charts/GaugeChart'
 import { useNews } from '../hooks/useNews'
 import { useNewsVolume } from '../hooks/useNewsVolume'
 import { useGastoMilitar, useIndiceDeAlerta } from '../hooks/useDadosReais'
-import { useVitrine } from '../hooks/useVitrine'
 import { useVitrineReal } from '../hooks/useVitrineReal'
 import { useAuthStore } from '../store/authStore'
 import { glossary } from '../data/learnData'
@@ -70,7 +69,8 @@ export default function Landing() {
   const volume = useNewsVolume(14)
   const gasto = useGastoMilitar()
   const alerta = useIndiceDeAlerta(7)
-  const vitrine = useVitrine()
+  // UM hook para os números da vitrine. Eram dois, e eles repetiam as mesmas
+  // quatro consultas — ver o cabeçalho de useVitrineReal.
   const v = useVitrineReal()
   const feed = news.slice(0, 3)
 
@@ -327,7 +327,7 @@ export default function Landing() {
       <Section className="card p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-bold tracking-tight">O que já está monitorado agora</h2>
-          <Badge type={vitrine.aoVivo ? 'live' : 'sem-dado'} />
+          <Badge type={v.aoVivo ? 'live' : 'sem-dado'} />
         </div>
         <p className="mt-1 text-sm muted">
           Contagens lidas do acervo neste instante — o que a coleta trouxe, não texto de vitrine.
@@ -344,19 +344,19 @@ export default function Landing() {
           />
           <PreviewStat
             icon={Database}
-            value={vitrine.fontes != null ? String(vitrine.fontes) : '—'}
+            value={v.fontes != null ? String(v.fontes) : '—'}
             label="Fontes coletadas"
-            hint={vitrine.fontesOk != null ? `${vitrine.fontesOk} responderam na última execução` : 'oficiais e especializadas'}
+            hint={v.fontesOk != null ? `${v.fontesOk} responderam na última execução` : 'oficiais e especializadas'}
           />
           <PreviewStat
             icon={Newspaper}
-            value={vitrine.aprovados != null ? String(vitrine.aprovados) : '—'}
+            value={v.artigos != null ? String(v.artigos) : '—'}
             label="Notícias no acervo"
-            hint={vitrine.coletados != null ? `de ${vitrine.coletados} coletadas, após o filtro` : 'coleta contínua'}
+            hint={v.coletados != null ? `de ${v.coletados} coletadas, após o filtro` : 'coleta contínua'}
           />
           <PreviewStat
             icon={Landmark}
-            value={vitrine.proposicoes != null ? String(vitrine.proposicoes) : '—'}
+            value={v.proposicoes != null ? String(v.proposicoes) : '—'}
             label="Proposições acompanhadas"
             hint="Câmara dos Deputados, dados abertos"
           />
@@ -367,7 +367,7 @@ export default function Landing() {
       <Section className="card p-5 sm:p-6">
         <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-bold tracking-tight">Cobertura por país</h2>
-          <Badge type={vitrine.aoVivo ? 'live' : 'sem-dado'} />
+          <Badge type={v.aoVivo ? 'live' : 'sem-dado'} />
         </div>
         {/* "Panorama global de risco" prometia uma medida de risco que ninguém
             faz. O mapa conta menções em notícia coletada — que é útil, e é

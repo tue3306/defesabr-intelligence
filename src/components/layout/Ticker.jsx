@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { TrendingUp, Activity, Newspaper } from 'lucide-react'
 import { alertMeta } from '../../utils/textUtils'
 import { useIndiceDeAlerta, useIndicadoresBcb } from '../../hooks/useDadosReais'
-import { useVitrine } from '../../hooks/useVitrine'
+import { useAcervoAprovado } from '../../hooks/useVitrineReal'
 
 // -----------------------------------------------------------------------------
 // FAIXA DE INDICADORES — leitura rápida do estado do produto.
@@ -21,7 +21,11 @@ import { useVitrine } from '../../hooks/useVitrine'
 export default function Ticker() {
   const alerta = useIndiceDeAlerta(7)
   const bcb = useIndicadoresBcb()
-  const vitrine = useVitrine()
+  // UM número, UMA consulta. Antes vinha de `useVitrine`, que disparava quatro
+  // agregados (fontes, acervo, Radar e mapa de países) para preencher só a
+  // contagem de matérias aprovadas — e esta faixa vive no layout, então isso
+  // acontecia em TODA página aberta.
+  const acervo = useAcervoAprovado()
 
   // O relógio existe só para a marquise não congelar quando nada muda.
   const [, setTick] = useState(0)
@@ -61,11 +65,11 @@ export default function Ticker() {
       {
         icon: Newspaper,
         label: 'Aprovadas (12 meses)',
-        value: vitrine.aprovados != null ? `${vitrine.aprovados} notícias` : '—',
+        value: acervo.aprovados != null ? `${acervo.aprovados} notícias` : '—',
         to: '/clipping',
       },
     ]
-  }, [bcb.series, alerta.level, alerta.value, vitrine.aprovados])
+  }, [bcb.series, alerta.level, alerta.value, acervo.aprovados])
 
   // Duplicado para o laço contínuo da marquise.
   const loop = [...items, ...items]

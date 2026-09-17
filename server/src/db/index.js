@@ -3,6 +3,7 @@ import { readFileSync, mkdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import config from '../config.js'
+import { chaveDeBusca } from '../lib/relevance.js'
 
 // -----------------------------------------------------------------------------
 // BANCO — SQLite pelo módulo nativo do Node.
@@ -153,6 +154,40 @@ export function migrate() {
   for (const [tabela, coluna] of COLUNAS_REMOVIDAS) {
     const existe = db.prepare(`PRAGMA table_info(${tabela})`).all().some((c) => c.name === coluna)
     if (existe) db.exec(`ALTER TABLE ${tabela} DROP COLUMN ${coluna}`)
+  }
+
+  // 6. artigos que entraram SEM data de publicacao.
+  //
+  // Toda janela do produto compara `published_at` com um limite, e comparacao
+  // com NULL nao da falso: da NULO. A materia some de tudo o que tem recorte de
+  // tempo — feed, clipping, graficos, nivel de alerta, mapa de paises — mesmo
+  // pedindo 3650 dias, e continua contada nos totais que nao filtram data.
+  // Medido no acervo: o clipping afirmava 339 aprovadas e media 333
+  // ocorrencias, e as 6 de diferenca eram exatamente estas.
+  //
+  // `fetched_at` e quando a materia entrou no acervo, que e a melhor
+  // aproximacao para algo que a fonte publicou sem carimbo nenhum. O coletor ja
+  // nao grava mais NULL (ver collectors/rss.js); isto cuida do que ja estava.
+  db.exec('UPDATE articles SET published_at = fetched_at WHERE published_at IS NULL AND fetched_at IS NOT NULL')
+
+  // 7. proposicoes sem a chave de busca sem acento.
+  //
+  // `bills.search_key` guarda a forma normalizada de codigo e ementa, e e o que
+  // permite a busca global achar "orcamento" em "orçamento". O coletor da
+  // Camara nunca a gravava: as 177 proposicoes do acervo estavam com a coluna
+  // NULA, e "exercito" devolvia zero proposicoes contra uma de "exército" com
+  // acento. O coletor ja grava; isto preenche o que ficou para tras, uma vez.
+  const semChave = db.prepare('SELECT id, code, summary FROM bills WHERE search_key IS NULL').all()
+  if (semChave.length) {
+    const atualizar = db.prepare('UPDATE bills SET search_key = ? WHERE id = ?')
+    db.exec('BEGIN')
+    try {
+      for (const b of semChave) atualizar.run(chaveDeBusca(b.code, b.summary), b.id)
+      db.exec('COMMIT')
+    } catch (err) {
+      db.exec('ROLLBACK')
+      throw err
+    }
   }
   db.exec("DELETE FROM app_config WHERE chave LIKE 'ia\\_%' ESCAPE '\\'")
 }

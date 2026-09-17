@@ -1,6 +1,7 @@
 import { get, run, transacao } from '../db/index.js'
 import { buscarJson } from '../lib/fetcher.js'
 import { avaliarProposicao } from '../lib/proposicoes.js'
+import { chaveDeBusca } from '../lib/relevance.js'
 
 // -----------------------------------------------------------------------------
 // DADOS ABERTOS DA CÂMARA DOS DEPUTADOS
@@ -93,12 +94,29 @@ export async function coletarCamara() {
   const proposicoes = [...vistos.values()]
   let novos = 0
 
+  // A CHAVE DE BUSCA SEM ACENTO, QUE NUNCA ERA GRAVADA.
+  //
+  // `bills.search_key` existe para a busca global achar "orcamento" em
+  // "orçamento": o LIKE do SQLite dobra a caixa do ASCII e nada mais, então sem
+  // essa coluna toda consulta digitada sem acento — o caso comum — devolve
+  // zero. O coletor de notícias gravava a sua; este nunca gravou a dele.
+  //
+  // Medido contra o acervo: as 177 proposições coletadas estavam com
+  // `search_key` NULA, e a busca por "exercito" devolvia ZERO proposições
+  // contra UMA de "exército"; "operacao", zero contra duas de "operação". O
+  // Radar Legislativo era invisível para quem não acentua.
+  //
+  // O que já estava gravado é corrigido na subida — ver `migrate()` em
+  // server/src/db/index.js.
+
   transacao(() => {
     for (const p of proposicoes) {
       if (get('SELECT id FROM bills WHERE external_id = ?', [p.externalId])) continue
       run(
-        'INSERT INTO bills (external_id, code, house, summary, url, keyword) VALUES (?, ?, ?, ?, ?, ?)',
-        [p.externalId, p.code, 'Câmara', p.summary, p.url, p.keyword]
+        `INSERT INTO bills (external_id, code, house, summary, url, keyword, search_key)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [p.externalId, p.code, 'Câmara', p.summary, p.url, p.keyword,
+          chaveDeBusca(p.code, p.summary)]
       )
       novos += 1
     }

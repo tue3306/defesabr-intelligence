@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { ComposableMap, Geographies, Geography } from 'react-simple-maps'
 import { Search, MapPin, X } from 'lucide-react'
-import { apiOnline, viaPonte } from '../../services/apiBridge'
+import { apiOnline } from '../../services/apiBridge'
+import { coberturaPorPais } from '../../hooks/useVitrineReal'
 import CountryDossier from './CountryDossier'
 
 const geoUrl = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json'
@@ -77,7 +78,10 @@ function useCoberturaPorPais(dias) {
     ;(async () => {
       try {
         if (!(await apiOnline())) return
-        const d = await viaPonte('GET /news/countries', { days: dias })
+        // Pela memória curta compartilhada: na página inicial este mapa e a
+        // vitrine pedem a MESMA janela ao mesmo tempo, e cada consulta roda o
+        // detector de países sobre o acervo inteiro do período.
+        const d = await coberturaPorPais(dias)
         if (vivo && d?.items?.length) setDados(d)
       } catch {
         // Sem API o mapa fica cinza e o rodapé diz que está sem dados.
