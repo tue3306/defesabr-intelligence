@@ -23,7 +23,7 @@ const STEPS = [
   {
     icon: Shield,
     title: 'Bem-vindo ao DefesaBR Intelligence',
-    text: 'Segurança e Defesa do Brasil a partir de fontes públicas: 50 feeds de notícia, a Câmara, o Banco Central, o Comex Stat e os sites onde grupos de extorsão divulgam vítimas. Cada número mostra de onde veio.',
+    text: 'Segurança e Defesa do Brasil a partir de fontes públicas: mais de 60 feeds de notícia do Brasil e do mundo, a Câmara, o Banco Central, o Comex Stat e os sites onde grupos de extorsão divulgam vítimas. Cada número mostra de onde veio.',
   },
   {
     icon: Newspaper,

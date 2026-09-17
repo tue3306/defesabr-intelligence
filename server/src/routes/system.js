@@ -83,8 +83,13 @@ router.get('/system/method', exigirPapel('admin'), (req, res) => {
     ...METODO_RELEVANCIA,
     // Amostra do que o filtro RECUSOU. É a metade que costuma ficar
     // invisível — e é ela que prova que o filtro filtra alguma coisa.
+    //
+    // Sem o que a lente mundial aprovou: depois dela, as oito matérias mais
+    // novas com `relevant = 0` eram quase todas cobertura internacional
+    // gravada de propósito por outra régua — a amostra deixava de mostrar o
+    // que o filtro do Brasil joga fora e passava a mostrar a área Mundo.
     amostraRecusada: all(
-      `SELECT title, category FROM articles WHERE relevant = 0
+      `SELECT title, category FROM articles WHERE relevant = 0 AND mundo = 0
        ORDER BY id DESC LIMIT 8`
     ).map((a) => a.title),
     amostraAprovada: all(
@@ -272,7 +277,12 @@ router.get('/bookmarks', (req, res) => {
 router.post('/bookmarks/:articleId', (req, res) => {
   const cliente = donoDe(req)
   if (!cliente) return res.status(400).json({ error: 'Entre na plataforma ou envie o cabeçalho X-Client-Id.' })
-  if (!get('SELECT id FROM articles WHERE id = ?', [req.params.articleId])) {
+  const artigo = get('SELECT id, relevant, mundo FROM articles WHERE id = ?', [req.params.articleId])
+  // Só-mundial exige conta, como em /api/mundo/*. E há um segundo motivo: a
+  // retenção de 180 dias poupa o que está em `bookmarks`, então sem esta trava
+  // qualquer visitante anônimo anulava a retenção marcando as matérias velhas
+  // na "pasta" — conferido com 1.539 POST sem sessão.
+  if (!artigo || (!req.conta && !artigo.relevant && artigo.mundo)) {
     return res.status(404).json({ error: 'Notícia não encontrada.' })
   }
   run(

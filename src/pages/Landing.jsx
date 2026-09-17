@@ -219,7 +219,7 @@ export default function Landing() {
             <Diferencial
               icone={Layers}
               titulo="O fato, não a repetição dele"
-              texto="Cinquenta fontes publicam a mesma coisa de formas diferentes. O clipping agrupa o
+              texto="Dezenas de fontes publicam a mesma coisa de formas diferentes. O clipping agrupa o
                      que é o mesmo evento e mostra quantos veículos o cobriram — corroboração é
                      informação; três manchetes parecidas são ruído."
               numero={v.fontes}

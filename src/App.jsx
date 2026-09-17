@@ -23,6 +23,10 @@ const Home = lazy(() => import('./pages/Home'))
 const DailyClipping = lazy(() => import('./pages/DailyClipping'))
 const Correlations = lazy(() => import('./pages/Correlations'))
 const StrategicMap = lazy(() => import('./pages/StrategicMap'))
+// Mundo & Conflitos — o que a lente internacional grava além do recorte Brasil
+const World = lazy(() => import('./pages/World'))
+const WorldCountry = lazy(() => import('./pages/WorldCountry'))
+const WorldTheater = lazy(() => import('./pages/WorldTheater'))
 const DataCharts = lazy(() => import('./pages/DataCharts'))
 const Economy = lazy(() => import('./pages/Economy'))
 const Archive = lazy(() => import('./pages/Archive'))
@@ -140,6 +144,9 @@ export default function App() {
           <Route path="/clipping" element={<Guarded scope="Clipping Diário"><DailyClipping /></Guarded>} />
           <Route path="/correlacoes" element={<Guarded scope="Correlações"><Correlations /></Guarded>} />
           <Route path="/mapa" element={<Guarded scope="Mapa estratégico"><StrategicMap /></Guarded>} />
+          <Route path="/mundo" element={<Guarded scope="Mundo & Conflitos"><World /></Guarded>} />
+          <Route path="/mundo/pais/:nome" element={<Guarded scope="País no mundo"><WorldCountry /></Guarded>} />
+          <Route path="/mundo/teatro/:id" element={<Guarded scope="Teatro de conflito"><WorldTheater /></Guarded>} />
           <Route path="/dados" element={<Guarded scope="Séries e indicadores"><DataCharts /></Guarded>} />
           <Route path="/economia" element={<Guarded scope="Economia & Defesa"><Economy /></Guarded>} />
           <Route path="/arquivo" element={<Guarded scope="Arquivo & Pasta"><Archive /></Guarded>} />

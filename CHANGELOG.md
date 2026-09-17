@@ -7,6 +7,39 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Não publicado]
 
+### Mundo & Conflitos
+
+**Adicionado**
+
+- **Área `/mundo`**, com páginas por país e por teatro de conflito: destaques
+  (Estados Unidos primeiro), 16 teatros, mapa no escopo mundial, feed filtrável
+  por idioma, urgência e busca, gráfico por dia e notícias paginadas.
+- **Lente de segurança internacional** na coleta (`lib/mundo.js`), em português e
+  inglês. As editorias internacionais descartavam tudo o que não tocava a defesa
+  do Brasil — a BBC Brasil tinha zero matérias gravadas.
+- **12 fontes novas**: RFI Brasil, ONU News, Euronews, RTP — Mundo, Defense News,
+  Breaking Defense, Departamento de Defesa dos EUA, Al Jazeera, BBC World,
+  The Guardian e duas buscas do Google Notícias (conflitos; Estados Unidos).
+- **Derivação de países e teatros** em tabelas (`article_paises`,
+  `article_teatros`), com índices, rederivação quando o vocabulário muda e
+  retenção de 180 dias para o só-mundial.
+
+**Corrigido na revisão**
+
+- O feed internacional contava 98 matérias de defesa doméstica do Brasil; o
+  escopo passou a ser só o que a lente mundial aprovou.
+- Matéria só-mundial saía sem sessão por `/news?includeIrrelevant`, `/news/:id`
+  e pela pasta anônima — que também permitia anular a retenção.
+- Retenção de 180 dias e coleta de até 365 apagavam e regravavam a mesma
+  matéria a cada ciclo.
+- A deduplicação por título descartava a cópia relevante para o Brasil quando a
+  só-mundial chegava antes.
+- Descrições dos teatros afirmavam à mão que havia guerra em curso.
+- Variação de +845% por comparar com um período sem coleta internacional; o
+  gráfico por dia escondia os dias sem matéria; filtro de parâmetro em forma de
+  objeto derrubava a rota com 500; falha da derivação não avisava o
+  administrador; fontes internacionais apareciam como "não contribuíram".
+
 ### Versão de demonstração: sem IA, com contas de verdade
 
 **Removido**

@@ -82,7 +82,16 @@ const agregados = {
   acervo: () => memoizar('acervo', () => viaPonte('GET /news/volume', { days: 365 })),
   ciber: () => memoizar('ciber', () => viaPonte('GET /cyber/ransomware', { days: 3650 })),
   legis: () => memoizar('legis', () => viaPonte('GET /strategic/legislative', {})),
-  paises: (dias = 365) => memoizar(`paises:${dias}`, () => viaPonte('GET /news/countries', { days: dias })),
+  // O ESCOPO ENTRA NA CHAVE. `/news/countries?escopo=mundo` conta o acervo que
+  // fala do mundo inteiro, não só o que passou no filtro de defesa do Brasil —
+  // é outra resposta para a mesma janela. Com a chave antiga (`paises:90`), o
+  // mapa da área Mundo e o do Mapa estratégico se serviriam um do outro por um
+  // minuto, e o número de um país mudaria de tela para tela sem motivo. No
+  // escopo `brasil` o parâmetro nem viaja: a consulta é a mesma de antes.
+  paises: (dias = 365, escopo = 'brasil') => memoizar(
+    `paises:${escopo}:${dias}`,
+    () => viaPonte('GET /news/countries', { days: dias, escopo: escopo === 'brasil' ? undefined : escopo }),
+  ),
 }
 
 /**
@@ -91,9 +100,10 @@ const agregados = {
  * O mapa-múndi da página inicial pedia `/news/countries?days=365` por conta
  * própria, ao lado da vitrine, que pedia a mesma coisa — duas varreduras do
  * detector de países sobre o acervo inteiro para pintar uma tela só. A janela
- * entra na chave porque o mapa alterna entre 90 dias e 1 ano.
+ * entra na chave porque o mapa alterna entre 90 dias e 1 ano; o escopo, porque
+ * a área Mundo & Conflitos pede a contagem do acervo mundial.
  */
-export const coberturaPorPais = (dias = 365) => agregados.paises(dias)
+export const coberturaPorPais = (dias = 365, escopo = 'brasil') => agregados.paises(dias, escopo)
 
 const INICIAL = {
   fontes: null,

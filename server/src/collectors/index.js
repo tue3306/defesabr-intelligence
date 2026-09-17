@@ -9,6 +9,7 @@ import { coletarAtores } from './atores.js'
 import { coletarComex } from './comex.js'
 import { coletarBcb } from './bcb.js'
 import { calcularCorrelacoes } from './correlacoes.js'
+import { derivarGeografia } from './geografia.js'
 import { gerarNotificacoes } from '../lib/notificacoes.js'
 
 // -----------------------------------------------------------------------------
@@ -43,6 +44,7 @@ export const CADENCIA_MINUTOS = {
   worldbank: 24 * 60,
   comex: 12 * 60,    // o próprio coletor também pula dado com menos de 12 h
   atores: 30,        // renova só perfis com mais de 24 h, em lotes
+  geografia: 0,      // derivação local, sem rede
   correlacoes: 0,    // derivação local, sem rede
 }
 
@@ -168,6 +170,16 @@ export async function coletarTudo(gatilho = 'agendado') {
   // de coleta e elimina a corrida.
   const atores = await registrar('atores', coletarAtores, gatilho)
 
+  // ── PAÍSES E TEATROS DO QUE ACABOU DE ENTRAR ──
+  //
+  // Depende de `rss` e `agregadores`, que gravam os artigos: rodando junto
+  // deles no `Promise.all`, a derivação acharia o acervo de antes da coleta e
+  // os artigos novos ficariam sem país até o ciclo seguinte — no mapa, a
+  // matéria mais recente seria justamente a que não aparece. Roda antes de
+  // `correlacoes` para o ciclo terminar com as duas derivações sobre o mesmo
+  // acervo.
+  const geografia = await registrar('geografia', derivarGeografia, gatilho)
+
   // ── POR ULTIMO, O QUE DEPENDE DE TODOS ──
   //
   // A correlacao cruza artigos com vitimas e com perfis de ator. Precisa dos
@@ -192,7 +204,7 @@ export async function coletarTudo(gatilho = 'agendado') {
   // de entrar. Falha aqui não pode derrubar o resultado da coleta.
   let notificacoes = { criadas: 0 }
   try {
-    notificacoes = gerarNotificacoes({ noticias, legislativo, indicadores, comex, bcb, agregadores, ransomware, atores, correlacoes })
+    notificacoes = gerarNotificacoes({ noticias, legislativo, indicadores, comex, bcb, agregadores, ransomware, atores, geografia, correlacoes })
   } catch (err) {
     console.error('[coleta] notificações falharam:', err?.message || err)
   }
@@ -213,6 +225,7 @@ export async function coletarTudo(gatilho = 'agendado') {
     agregadores,
     ransomware,
     atores,
+    geografia,
     correlacoes,
     notificacoes,
   }

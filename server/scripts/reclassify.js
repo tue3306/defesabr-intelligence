@@ -11,6 +11,7 @@ import { all, run, migrate, transacao } from '../src/db/index.js'
 import { avaliarRelevancia, classificar, limparRodape } from '../src/lib/relevance.js'
 import { ehNaoNoticia } from '../src/collectors/rss.js'
 import { urlSegura, dominioSeguro } from '../src/lib/saneamento.js'
+import { derivarGeografia } from '../src/collectors/geografia.js'
 
 migrate()
 
@@ -104,6 +105,28 @@ transacao(() => {
   }
 })
 
+// ─────────────────────────────────────────────────────────────────────────────
+// A LENTE MUNDIAL E A GEOGRAFIA DERIVADA
+//
+// `mundo`, os países e os teatros de cada artigo também são resultado de regra
+// (lib/mundo.js, lib/geo.js), e o motivo de rodar este script — uma regra
+// mudou — vale igual para eles. Zerar `geo_at` e `mundo_score` marca o acervo
+// como pendente; a derivação refaz tudo, em lotes de 3.000, até não sobrar
+// pendente. Em simulação nada disso roda: a derivação grava.
+// ─────────────────────────────────────────────────────────────────────────────
+let geografia = null
+if (!simular) {
+  run('UPDATE articles SET geo_at = NULL, mundo_score = NULL')
+  geografia = { avaliados: 0, paises: 0, teatros: 0, removidos: 0, ciclos: 0 }
+  for (;;) {
+    const r = await derivarGeografia()
+    if (!r.ok) { console.error(`  derivação geográfica falhou: ${r.erro}`); break }
+    geografia.ciclos += 1
+    for (const k of ['avaliados', 'paises', 'teatros', 'removidos']) geografia[k] += r[k]
+    if (!r.encontrados) break
+  }
+}
+
 const relevantes = all('SELECT COUNT(*) AS n FROM articles WHERE relevant = 1')[0].n
 
 console.log(simular ? 'Simulação (nada foi gravado)' : 'Reclassificação concluída')
@@ -115,6 +138,12 @@ console.log(`  reclassificados       : ${reclassificados}`)
 console.log(`  passaram a relevante  : ${viraramRelevantes}`)
 console.log(`  deixaram de ser       : ${deixaramDeSer}`)
 console.log(`  relevantes agora      : ${relevantes} de ${artigos.length - descartados.length}`)
+if (geografia) {
+  const mundo = all('SELECT COUNT(*) AS n FROM articles WHERE mundo = 1')[0].n
+  console.log(`  lente mundial         : ${mundo} artigo(s) com mundo = 1 (${geografia.avaliados} reavaliados)`)
+  console.log(`  países / teatros      : ${geografia.paises} / ${geografia.teatros} vínculo(s) derivados`)
+  console.log(`  retenção internacional: ${geografia.removidos} removido(s)`)
+}
 
 for (const t of entraram.slice(0, 10)) console.log(`    + ${t.slice(0, 92)}`)
 for (const t of descartados.slice(0, 10)) console.log(`    − ${String(t).slice(0, 92)}`)

@@ -12,7 +12,7 @@ const TECH_STACK = ['React 18', 'Vite', 'Tailwind CSS', 'Zustand', 'Recharts', '
 // que alimenta duas telas inteiras, e o texto de abertura falava em "quatro
 // APIs de governo" contando o World Bank, que não é governo.
 const APIS = [
-  { name: 'Feeds RSS', use: '50 fontes: gov.br, Agência Brasil/EBC, Senado e imprensa', custo: 'Gratuita' },
+  { name: 'Feeds RSS', use: 'Mais de 60 fontes: gov.br, Agência Brasil/EBC, Senado e imprensa do Brasil e do exterior', custo: 'Gratuita' },
   { name: 'Câmara dos Deputados', use: 'Proposições de defesa, via Dados Abertos', custo: 'Gratuita' },
   { name: 'Banco Central — SGS', use: 'Dólar, euro, Selic, IPCA e IGP-M', custo: 'Gratuita' },
   { name: 'Comex Stat (MDIC)', use: 'Exportações da indústria de defesa por NCM', custo: 'Gratuita' },
@@ -72,7 +72,7 @@ export default function About() {
         </div>
         <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
           O DefesaBR Intelligence coleta, filtra e organiza informação pública sobre Segurança e
-          Defesa do Brasil. Um servidor lê 50 fontes RSS a cada 15 minutos e as APIs listadas abaixo,
+          Defesa do Brasil. Um servidor lê mais de 60 fontes RSS a cada 15 minutos e as APIs listadas abaixo,
           aplica um filtro de relevância auditável, correlaciona as matérias com incidentes contra
           organizações brasileiras e guarda tudo com a procedência de cada item. Nada nas telas é
           dado de exemplo.

@@ -26,7 +26,10 @@ const PUBLIC_NAV = [
   { to: '/clipping', label: 'Clipping', restrito: true },
   { to: '/correlacoes', label: 'Correlações', restrito: true },
   { to: '/ciberameacas', label: 'Incidentes', restrito: true },
-  { to: '/aprender', label: 'Centro Educacional' },
+  { to: '/mundo', label: 'Mundo', restrito: true },
+  // `curto` é o rótulo entre 1024 e 1280 px, onde o cabeçalho não comporta
+  // oito itens por extenso ao lado de Cadastrar e Entrar (ver `linkClass`).
+  { to: '/aprender', label: 'Centro Educacional', curto: 'Aprender' },
   { to: '/sobre', label: 'Sobre' },
 ]
 
@@ -44,8 +47,14 @@ export default function PublicLayout() {
   // Fecha o menu ao navegar (evita menu preso aberto no mobile).
   useEffect(() => { setMenuOpen(false) }, [pathname])
 
+  // O CABEÇALHO NÃO CABIA EM 1024 PX. Medido no navegador a 1024 px, com o item
+  // Mundo recém-entrado: a linha pedia 1143 px para 1014 disponíveis (a barra
+  // de rolagem come o resto), e Cadastrar/Entrar vazavam para fora da tela —
+  // sem o item novo já eram 1072, ou seja, o estouro vinha de antes. Entre lg e
+  // xl os links ficam mais justos e "Centro Educacional" usa o rótulo curto; de
+  // 1280 px para cima volta tudo ao espaçamento original.
   const linkClass = ({ isActive }) =>
-    `whitespace-nowrap rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
+    `whitespace-nowrap rounded-lg px-1.5 py-2 text-sm font-medium transition-colors xl:px-2.5 ${
       isActive
         ? 'text-gold-600 dark:text-gold-400'
         : 'text-gray-500 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'
@@ -55,12 +64,12 @@ export default function PublicLayout() {
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-30 border-b border-gray-200 bg-white/80 backdrop-blur-xl dark:border-white/[0.06] dark:bg-military-darker/80">
-        <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
+        <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6 xl:gap-4">
           <Link to="/" aria-label="DefesaBR Intelligence — início">
             <Logo size="md" />
           </Link>
 
-          <nav className="ml-4 hidden items-center gap-0.5 lg:ml-6 lg:flex lg:gap-1" aria-label="Navegação pública">
+          <nav className="ml-4 hidden items-center gap-0.5 lg:ml-2 lg:flex xl:ml-6 xl:gap-1" aria-label="Navegação pública">
             {PUBLIC_NAV.map((n) => (
               <NavLink
                 key={n.to}
@@ -70,7 +79,12 @@ export default function PublicLayout() {
                 title={n.restrito ? 'Requer conta — a tela explica e oferece entrar' : undefined}
               >
                 <span className="inline-flex items-center gap-1">
-                  {n.label}
+                  {n.curto ? (
+                    <>
+                      <span className="xl:hidden" title={n.label}>{n.curto}</span>
+                      <span className="hidden xl:inline">{n.label}</span>
+                    </>
+                  ) : n.label}
                   {n.restrito && <Lock size={11} className="text-gray-400" aria-label="requer conta" />}
                 </span>
               </NavLink>

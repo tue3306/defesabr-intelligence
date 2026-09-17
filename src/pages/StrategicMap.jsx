@@ -1,4 +1,5 @@
-import { Globe2, Info, TrendingUp, ShieldAlert, Newspaper } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Globe2, Info, TrendingUp, ShieldAlert, Newspaper, Swords, ArrowRight } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import GlobalHeatmap from '../components/charts/GlobalHeatmap'
 import InfoTooltip from '../components/ui/InfoTooltip'
@@ -68,6 +69,28 @@ export default function StrategicMap() {
       <section className="card p-5">
         <GlobalHeatmap height={460} />
       </section>
+
+      {/* ── O RESTO DO MUNDO TEM ÁREA PRÓPRIA ──
+        *
+        * Este mapa conta só o que passou no filtro de defesa do Brasil. Quem
+        * chega aqui querendo a guerra na Ucrânia ou o Pentágono não encontra —
+        * e não por falta de cobertura: a lente é outra. A chamada diz onde
+        * ela está. */}
+      <Link
+        to="/mundo"
+        className="card card-interactive flex items-center gap-3 p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60"
+      >
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gold-500/15 text-gold-600 dark:text-gold-400">
+          <Swords size={20} aria-hidden="true" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-bold">Ver notícias do mundo e conflitos</span>
+          <span className="block text-xs muted">
+            Estados Unidos, guerras e teatros em curso — inclusive o que não toca a defesa do Brasil.
+          </span>
+        </span>
+        <ArrowRight size={18} className="shrink-0 text-gold-600 dark:text-gold-400" aria-hidden="true" />
+      </Link>
 
       {/* ── O QUE O MAPA NÃO MOSTRA SOZINHO ──
         *

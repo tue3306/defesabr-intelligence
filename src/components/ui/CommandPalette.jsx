@@ -29,6 +29,7 @@ import {
   Globe2,
   Link2,
   Crosshair,
+  Swords,
 } from 'lucide-react'
 import { useTheme } from '../../hooks/useTheme'
 import { useAuthStore } from '../../store/authStore'
@@ -80,6 +81,7 @@ export default function CommandPalette() {
 
       // Estratégico — o quadro do país. O mapa vem primeiro porque é o centro.
       { id: 'mapa', group: 'Estratégico', label: 'Abrir Mapa estratégico', icon: Globe2, run: go('/mapa'), auth: true },
+      { id: 'mundo', group: 'Estratégico', label: 'Abrir Mundo & Conflitos', icon: Swords, run: go('/mundo'), auth: true },
       { id: 'economia', group: 'Estratégico', label: 'Abrir Economia & Defesa', icon: DollarSign, run: go('/economia'), auth: true },
       { id: 'industria', group: 'Estratégico', label: 'Abrir Base Industrial (BID)', icon: Factory, run: go('/industria'), auth: true },
       { id: 'legislativo', group: 'Estratégico', label: 'Abrir Radar Legislativo', icon: Landmark, run: go('/legislativo'), auth: true },

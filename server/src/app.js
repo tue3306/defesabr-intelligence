@@ -10,6 +10,7 @@ import autenticacao from './routes/auth.js'
 import inteligencia from './routes/intel.js'
 import guia from './routes/guia.js'
 import notificacoes from './routes/notificacoes.js'
+import mundo from './routes/mundo.js'
 import { lerConta } from './lib/auth.js'
 
 // -----------------------------------------------------------------------------
@@ -108,6 +109,7 @@ export function criarApp() {
   app.use('/api', inteligencia)
   app.use('/api', guia)
   app.use('/api', notificacoes)
+  app.use('/api', mundo)
   app.use('/api', sistema)
 
   // ── Front compilado ──

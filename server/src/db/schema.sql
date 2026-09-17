@@ -351,6 +351,40 @@ CREATE INDEX IF NOT EXISTS idx_corr_alvo   ON correlations(alvo_tipo, alvo_id);
 
 
 -- -----------------------------------------------------------------------------
+-- GEOGRAFIA DERIVADA — países e teatros de conflito citados em cada artigo
+--
+-- Mais duas tabelas que não guardam fato novo: guardam o resultado de aplicar
+-- `detectarPaises` (lib/geo.js) e `detectarTeatros` (lib/mundo.js) ao texto de
+-- cada artigo. Quem as preenche é collectors/geografia.js.
+--
+-- O mapa e o dossiê de país detectavam o país por regex A CADA REQUISIÇÃO,
+-- sobre todas as matérias da janela. Com o acervo só de defesa do Brasil eram
+-- algumas centenas de linhas; com a lente mundial gravando a cobertura
+-- internacional, passam a ser milhares, e `node:sqlite` é síncrono — o tempo
+-- da regex é event loop parado, para todo mundo. Contar por JOIN num índice
+-- custa o mesmo com cem ou com cem mil matérias.
+--
+-- A chave primária impede o mesmo país duas vezes no mesmo artigo, e o índice
+-- invertido (país → artigo) é o caminho de toda consulta das telas.
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS article_paises (
+  article_id  INTEGER NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+  pais        TEXT NOT NULL,   -- nome do world-atlas, como PAISES em lib/geo.js
+  PRIMARY KEY (article_id, pais)
+);
+
+CREATE INDEX IF NOT EXISTS idx_article_paises_pais ON article_paises(pais, article_id);
+
+CREATE TABLE IF NOT EXISTS article_teatros (
+  article_id  INTEGER NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+  teatro      TEXT NOT NULL,   -- id de TEATROS em lib/mundo.js
+  PRIMARY KEY (article_id, teatro)
+);
+
+CREATE INDEX IF NOT EXISTS idx_article_teatros_teatro ON article_teatros(teatro, article_id);
+
+
+-- -----------------------------------------------------------------------------
 -- CONFIGURACAO PERSISTIDA
 --
 -- Pares chave/valor que precisam sobreviver ao reinicio do processo e que NAO

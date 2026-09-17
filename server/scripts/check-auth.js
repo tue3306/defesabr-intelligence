@@ -145,6 +145,19 @@ const ROTAS = [
   { metodo: 'DELETE', caminho: '/api/notifications/999999', minimo: 'user', autorizado: 404, muta: true },
   { metodo: 'GET', caminho: '/api/guia', minimo: 'user' },
 
+  // ── MUNDO & CONFLITOS ──
+  //
+  // A cobertura internacional é da área logada. O mapa em escopo mundial entra
+  // junto: a mesma rota em escopo `brasil` segue pública (vitrine), e é
+  // justamente essa diferença de guarda por parâmetro que merece um teste.
+  { metodo: 'GET', caminho: '/api/mundo/panorama', minimo: 'user' },
+  { metodo: 'GET', caminho: '/api/mundo/pais/Russia', minimo: 'user' },
+  { metodo: 'GET', caminho: '/api/mundo/teatro/israel-gaza', minimo: 'user' },
+  { metodo: 'GET', caminho: '/api/mundo/feed', minimo: 'user' },
+  { metodo: 'GET', caminho: '/api/mundo/metodo', minimo: 'user' },
+  { metodo: 'GET', caminho: '/api/news/countries?escopo=mundo', minimo: 'user' },
+  { metodo: 'GET', caminho: '/api/news/countries', minimo: null },
+
   // A adoção é pública de propósito — ela existe para quando não há ninguém
   // para autenticar. Com administrador na instalação, responde 409 a qualquer
   // um, com ou sem sessão.

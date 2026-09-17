@@ -189,6 +189,35 @@ entidades mais citadas. O Brasil sai da escala de cor e ganha o selo *âncora*:
 ele é citado em quase toda matéria, e usá-lo como teto pintaria o resto do mundo
 de cinza.
 
+### Mundo & Conflitos: o que acontece fora do Brasil
+
+Em **`/mundo`** fica a cobertura internacional — Estados Unidos em primeiro
+lugar, as outras potências e os teatros de conflito. Cada país tem página própria
+(`/mundo/pais/:nome`) e cada teatro também (`/mundo/teatro/:id`): matérias por
+dia, fontes, países citados junto, filtros por idioma e urgência, lista paginada.
+
+Ela depende de uma **segunda lente** na coleta. O filtro de relevância é sobre a
+defesa *do Brasil*, e as editorias internacionais só gravavam o que passava nele:
+matéria sobre o Pentágono ou sobre a Ucrânia era descartada na entrada. A lente
+mundial (`server/src/lib/mundo.js`) aprova segurança internacional por
+vocabulário em português e inglês — medida à mão em amostras de 80 a 90
+matérias, com precisão em torno de 90% — e as fontes em inglês (Defense News,
+Breaking Defense, Departamento de Defesa dos EUA, Al Jazeera, BBC World,
+The Guardian) aparecem marcadas **EN**.
+
+Três regras valem ali:
+
+- **Separação.** Matéria que só a lente mundial aprovou nunca entra em clipping,
+  nível de alerta, estatísticas nem notificações — essas telas são do Brasil.
+- **Cobertura, não risco.** Os 16 teatros são vocabulário de detecção; toda
+  contagem vem do acervo, e teatro com zero aparece como *sem cobertura no
+  período*, nunca como calmo. A tela mostra as regras de cada teatro.
+- **Sem variação inventada.** Enquanto o período anterior começar antes de a
+  coleta internacional existir, a variação fica em branco.
+
+As matérias só-mundiais ficam 180 dias no acervo (`MUNDO_RETENCAO_DIAS`), exceto
+as que alguém guardou na pasta.
+
 ---
 
 ## O que ela entrega
@@ -196,7 +225,7 @@ de cinza.
 | | |
 |---|---|
 | **Correlações com o Brasil** | Cada matéria cruzada com as organizações atacadas e os grupos do acervo — com o motivo e a evidência literal de cada ligação |
-| **Clipping consolidado** | Matérias de 50 fontes agrupadas por evento, com selo de quantos veículos cobriram cada fato e as fontes originais visíveis |
+| **Clipping consolidado** | Matérias de mais de 60 fontes agrupadas por evento, com selo de quantos veículos cobriram cada fato e as fontes originais visíveis |
 | **Clipping em PDF** | Documento agrupado por categoria, com o nível de alerta e sua distribuição, e cada matéria trazendo fonte, data, endereço original e os termos que a aprovaram |
 | **Incidentes no Brasil** | Organizações brasileiras divulgadas por grupos de ransomware, com criticidade derivada de domínio e setor, e o recorte do Estado em primeiro plano |
 | **Grupos contra o Brasil** | Quem ataca, quantas organizações brasileiras já expôs e se atingiu o Estado — com técnicas MITRE ATT&CK e ferramentas no perfil de cada grupo |
@@ -370,7 +399,7 @@ do ambiente; a conta de usuário é criada pela própria suíte e removida no fi
 | [Comex Stat (MDIC)](https://comexstat.mdic.gov.br) | API | Exportações de aeronaves e armamento, por país |
 | [ransomware.live](https://www.ransomware.live) | API | Vítimas divulgadas por grupos de extorsão e os perfis dos grupos |
 
-São **50 feeds RSS** mais as APIs acima.
+São **mais de 60 feeds RSS** — do Brasil e, na área Mundo & Conflitos, do exterior — mais as APIs acima.
 
 ### O ciclo de coleta: 15 minutos, com cadência por fonte
 
@@ -494,6 +523,16 @@ SERVIDOR — 401 sem sessão, 403 com papel insuficiente.
 | `GET` | `/news/pais/:nome` | `user` | Dossiê de um país, cruzado com vítimas de ransomware |
 | `GET` | `/news/geo` | — | Menções a unidades da federação |
 | `GET` | `/news/:id` | — | Uma notícia, **com a explicação do filtro** |
+
+### Mundo & Conflitos
+
+| Método | Rota | Papel | O que faz |
+|---|---|---|---|
+| `GET` | `/mundo/panorama?days=` | `user` | Totais, os 16 teatros, países mais citados e os destaques (EUA primeiro) |
+| `GET` | `/mundo/pais/:nome?days=&page=&teatro=&idioma=` | `user` | Cobertura do país, teatros, países citados junto, notícias paginadas, ransomware |
+| `GET` | `/mundo/teatro/:id?days=&page=&pais=&idioma=` | `user` | Cobertura do teatro, países, notícias paginadas e as regras de detecção |
+| `GET` | `/mundo/feed?days=&page=&pais=&teatro=&idioma=&urgencia=&q=` | `user` | Feed internacional filtrável |
+| `GET` | `/mundo/metodo` | `user` | Como a lente decide, teatros e fontes internacionais |
 
 ### Ameaças cibernéticas
 | Método | Rota | Guarda | O que faz |

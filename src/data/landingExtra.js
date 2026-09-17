@@ -30,7 +30,7 @@ export const STANDARDS = ['ISO/IEC 27001', 'ISO 31000', 'NIST CSF', 'MITRE ATT&C
 export const FAQ = [
   {
     q: 'Os dados exibidos são reais?',
-    a: 'Sim. As notícias vêm de 50 fontes RSS — órgãos oficiais, agências públicas e imprensa; as proposições, da API de Dados Abertos da Câmara; os indicadores, do Banco Central e do World Bank; as exportações, do Comex Stat do MDIC; e as organizações brasileiras com vazamento divulgado, do ransomware.live. Cada tela declara a origem, e o que não tem fonte não é exibido.',
+    a: 'Sim. As notícias vêm de mais de 60 fontes RSS — órgãos oficiais, agências públicas e imprensa do Brasil e do exterior; as proposições, da API de Dados Abertos da Câmara; os indicadores, do Banco Central e do World Bank; as exportações, do Comex Stat do MDIC; e as organizações brasileiras com vazamento divulgado, do ransomware.live. Cada tela declara a origem, e o que não tem fonte não é exibido.',
   },
   {
     q: 'A plataforma precisa de servidor ou banco de dados?',
@@ -71,7 +71,7 @@ export const FAQ = [
 // A correlacao tambem estava reduzida a "geografica", que era o que ela era
 // quando o item foi escrito.
 export const ROADMAP = [
-  { phase: 'Disponível', title: 'Coleta e clipping', text: '50 fontes RSS, a Câmara, o Banco Central, o Comex Stat, o World Bank e o ransomware.live, com filtro de relevância auditável e coleta de notícias a cada 15 minutos.', done: true },
+  { phase: 'Disponível', title: 'Coleta e clipping', text: 'Mais de 60 fontes RSS, a Câmara, o Banco Central, o Comex Stat, o World Bank e o ransomware.live, com filtro de relevância auditável e coleta de notícias a cada 15 minutos.', done: true },
   { phase: 'Disponível', title: 'Correlação com o Brasil', text: 'Sete regras determinísticas ligam matérias a organizações atacadas, grupos, municípios, UFs e setores — cada uma com a evidência à vista.', done: true },
   { phase: 'Disponível', title: 'Notificações por conta', text: 'Gerados a cada coleta — matéria urgente e ataque a organização brasileira —, com o estado de leitura guardado na conta.', done: true },
   { phase: 'Disponível', title: 'Contas e governança', text: 'Senha em scrypt, papel e situação conferidos no servidor a cada requisição, troca de senha, suspensão com efeito imediato e trilha de auditoria.', done: true },

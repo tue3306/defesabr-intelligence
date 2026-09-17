@@ -396,7 +396,11 @@ router.get('/sources/summary', (req, res) => {
 router.get('/sources', exigirPapel('admin'), (req, res) => {
   const itens = all(
     `SELECT s.*, (SELECT COUNT(*) FROM articles a WHERE a.source_id = s.id) AS artigos,
-            (SELECT COUNT(*) FROM articles a WHERE a.source_id = s.id AND a.relevant = 1) AS relevantes
+            -- Aprovadas por QUALQUER uma das duas lentes. Contando só o filtro
+            -- do Brasil, Defense News, Al Jazeera e as demais fontes
+            -- internacionais apareciam como "nenhuma matéria passou" com todas
+            -- as suas matérias na área Mundo.
+            (SELECT COUNT(*) FROM articles a WHERE a.source_id = s.id AND (a.relevant = 1 OR a.mundo = 1)) AS relevantes
      FROM sources s ORDER BY s.name`
   ).map((s) => ({
     id: s.id,

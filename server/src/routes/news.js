@@ -1,13 +1,13 @@
 import { Router } from 'express'
 import { all, get } from '../db/index.js'
-import { nomeDaVitima } from '../lib/vitima.js'
+import { ransomwareDoPais } from '../lib/ransomwarePais.js'
 import { METODO_RELEVANCIA } from '../lib/relevance.js'
 import { avaliarRelevancia, classificar } from '../lib/relevance.js'
 import { UFS, REGIOES_ESTRATEGICAS, PAISES, detectarLugares, detectarPaises, nomePtDoPais, foraDaEscala, isoDoPais } from '../lib/geo.js'
 import { consolidar, LIMIAR_SIMILARIDADE, JANELA_HORAS } from '../lib/eventos.js'
 import { dias, limite } from '../lib/parametros.js'
 import { exigirPapel } from '../lib/auth.js'
-import { resumoCurto } from '../lib/saneamento.js'
+import { resumoCurto, urlSegura } from '../lib/saneamento.js'
 
 const router = Router()
 
@@ -93,6 +93,10 @@ router.get('/news', (req, res) => {
   const onde = []
   const params = []
   if (includeIrrelevant !== 'true') onde.push('a.relevant = 1')
+  // `/news` é o feed do BRASIL, com ou sem os recusados. O só-mundial
+  // (`relevant = 0 AND mundo = 1`) saía por aqui sem sessão, enquanto as
+  // rotas da área Mundo exigem conta.
+  else onde.push('NOT (a.relevant = 0 AND a.mundo = 1)')
   if (category) { onde.push('a.category = ?'); params.push(category) }
   if (urgency) { onde.push('a.urgency = ?'); params.push(urgency) }
   if (source) { onde.push('s.slug = ?'); params.push(source) }
@@ -117,7 +121,8 @@ router.get('/news', (req, res) => {
   res.json({
     items: itens,
     total: itens.length,
-    totalCollected: get('SELECT COUNT(*) AS n FROM articles')?.n ?? 0,
+    // Denominador do filtro do Brasil — ver `filtro` em /news/stats.
+    totalCollected: get('SELECT COUNT(*) AS n FROM articles WHERE NOT (relevant = 0 AND mundo = 1)')?.n ?? 0,
     totalRelevant: get('SELECT COUNT(*) AS n FROM articles WHERE relevant = 1')?.n ?? 0,
     lastFetchAt: get('SELECT MAX(last_fetch_at) AS t FROM sources')?.t || null,
     categories: all(
@@ -183,7 +188,8 @@ router.get('/news/clipping', (req, res) => {
     suggestedWindow: artigos.length === 0
       ? (janelas.find((w) => w.days > days && w.count > 0) || null)
       : null,
-    totalCollected: get('SELECT COUNT(*) AS n FROM articles')?.n ?? 0,
+    // Denominador do filtro do Brasil — ver `filtro` em /news/stats.
+    totalCollected: get('SELECT COUNT(*) AS n FROM articles WHERE NOT (relevant = 0 AND mundo = 1)')?.n ?? 0,
     relevantTotal: get('SELECT COUNT(*) AS n FROM articles WHERE relevant = 1')?.n ?? 0,
     // Fontes que RESPONDERAM na última execução — não as que estão cadastradas.
     // A tela do clipping mostra este número como "fontes ativas", e ativa aqui
@@ -235,8 +241,18 @@ router.get('/news/stats', (req, res) => {
     ),
     // A taxa de aprovação do filtro é um dado sobre o SISTEMA, não sobre o
     // mundo: mostra o quanto a coleta bruta precisa ser filtrada.
+    //
+    // O que só a lente mundial gravou (`relevant = 0 AND mundo = 1`) fica fora
+    // do denominador. Antes da lente, as editorias internacionais descartavam
+    // essas matérias na entrada; contá-las faria a taxa despencar sem o filtro
+    // do Brasil ter mudado em nada. Medido na cópia do acervo, logo depois da
+    // primeira coleta com a lente: 406 aprovados de 1.211 artigos (34%) com
+    // elas, 406 de 888 (46%) sem — e antes da lente eram 384 de 906 (42%).
     filtro: {
-      coletados: get(`SELECT COUNT(*) AS n FROM articles WHERE published_at >= ${corte}`)?.n ?? 0,
+      coletados: get(
+        `SELECT COUNT(*) AS n FROM articles
+          WHERE published_at >= ${corte} AND NOT (relevant = 0 AND mundo = 1)`
+      )?.n ?? 0,
       aprovados: get(`SELECT COUNT(*) AS n FROM articles WHERE relevant = 1 AND published_at >= ${corte}`)?.n ?? 0,
     },
   })
@@ -331,7 +347,27 @@ router.get('/news/eventos', exigirPapel('user'), (req, res) => {
 // brasileira escreveu mais sobre ele, o que nao e a mesma coisa que ser mais
 // perigoso — e a interface precisa dizer isso, senao o leitor completa a
 // frase sozinho, errado.
-router.get('/news/countries', (req, res) => {
+//
+// ─────────────────────────────────────────────────────────────────────────────
+// ESCOPO: `brasil` (padrão) ou `mundo`
+//
+// `brasil` é o comportamento de sempre, intacto: só `relevant = 1`, detecção
+// por regex na hora. A vitrine pública e o Mapa estratégico dependem dele.
+//
+// `mundo` é o acervo inteiro que fala do mundo — `relevant = 1 OR mundo = 1` —
+// e conta pelas tabelas derivadas (collectors/geografia.js), porque com a
+// cobertura internacional o volume passa de centenas para milhares e a regex
+// por requisição pararia o servidor. Exige sessão, como toda a área Mundo &
+// Conflitos: a cobertura internacional não é parte da vitrine pública.
+// A forma da resposta é a mesma nos dois.
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/news/countries', (req, res, next) => {
+  const escopo = req.query.escopo === undefined ? 'brasil' : String(req.query.escopo)
+  if (!['brasil', 'mundo'].includes(escopo)) {
+    return res.status(400).json({ error: 'Escopo inválido. Use `brasil` ou `mundo`.', campo: 'escopo' })
+  }
+  if (escopo === 'mundo') return exigirPapel('user')(req, res, () => paisesDoMundo(req, res, next))
+
   const days = dias(req.query.days, 180)
   const artigos = all(
     `SELECT id, title, summary, category, urgency, published_at, url
@@ -362,7 +398,56 @@ router.get('/news/countries', (req, res) => {
   }
 
   const items = [...porPais.values()].sort((x, y) => y.total - x.total)
+  res.json(respostaDePaises({ days, items, totalAnalisado: artigos.length, semPais }))
+})
 
+/**
+ * O escopo mundial de /news/countries, contado pelas tabelas derivadas.
+ *
+ * `semPaisIdentificado` inclui o artigo ainda não derivado (`geo_at` nulo):
+ * para a contagem, ele de fato ainda não tem país identificado.
+ */
+function paisesDoMundo(req, res, next) {
+  try {
+    const days = dias(req.query.days, 180)
+    const corte = `strftime('%Y-%m-%dT%H:%M:%SZ','now', '-${days} days')`
+    const escopo = `(a.relevant = 1 OR a.mundo = 1) AND a.published_at >= ${corte}`
+
+    const totalAnalisado = get(`SELECT COUNT(*) AS n FROM articles a WHERE ${escopo}`)?.n ?? 0
+    const semPais = get(
+      `SELECT COUNT(*) AS n FROM articles a
+        WHERE ${escopo} AND NOT EXISTS (SELECT 1 FROM article_paises p WHERE p.article_id = a.id)`
+    )?.n ?? 0
+    const totais = all(
+      `SELECT p.pais AS nome, COUNT(*) AS total
+         FROM article_paises p JOIN articles a ON a.id = p.article_id
+        WHERE ${escopo}
+        GROUP BY p.pais ORDER BY total DESC, p.pais`
+    )
+    // Cinco manchetes por país, as mais recentes — numa consulta só.
+    const exemplos = all(
+      `SELECT * FROM (
+         SELECT p.pais, a.id, a.title, a.category, a.urgency, a.published_at, a.url,
+                ROW_NUMBER() OVER (PARTITION BY p.pais ORDER BY a.published_at DESC, a.id DESC) AS ordem
+           FROM article_paises p JOIN articles a ON a.id = p.article_id
+          WHERE ${escopo}
+       ) WHERE ordem <= 5`
+    )
+    const porPais = new Map(totais.map((t) => [t.nome, {
+      nome: t.nome, pt: nomePtDoPais(t.nome), foraDaEscala: foraDaEscala(t.nome), total: t.total, exemplos: [],
+    }]))
+    for (const e of exemplos) {
+      porPais.get(e.pais)?.exemplos.push({
+        id: e.id, title: e.title, category: e.category, urgency: e.urgency, date: e.published_at, url: urlSegura(e.url),
+      })
+    }
+
+    res.json(respostaDePaises({ days, items: [...porPais.values()], totalAnalisado, semPais }))
+  } catch (err) { next(err) }
+}
+
+/** Corpo comum aos dois escopos de /news/countries. */
+function respostaDePaises({ days, items, totalAnalisado, semPais }) {
   // `maximo` normaliza a cor do mapa. O Brasil fica de fora dele: e mencionado
   // em quase toda materia do acervo, e usa-lo como teto pintaria o mapa
   // inteiro de cinza — a Venezuela com seis mencoes viraria 3% do Brasil com
@@ -370,11 +455,11 @@ router.get('/news/countries', (req, res) => {
   // define a escala dos outros.
   const escalaveis = items.filter((p) => !p.foraDaEscala)
 
-  res.json({
+  return {
     periodDays: days,
     items,
     maximo: Math.max(...escalaveis.map((p) => p.total), 0),
-    totalAnalisado: artigos.length,
+    totalAnalisado,
     semPaisIdentificado: semPais,
     paisesReconhecidos: PAISES.length,
 
@@ -398,8 +483,8 @@ router.get('/news/countries', (req, res) => {
     nota: 'Contagem de MENCOES a paises no texto das noticias coletadas. Mede volume de '
       + 'cobertura, nao risco, tensao ou atividade militar. Um pais aparece mais porque a '
       + 'imprensa escreveu mais sobre ele no periodo.',
-  })
-})
+  }
+}
 
 // GET /api/news/pais/:nome — dossie de um pais
 //
@@ -455,20 +540,6 @@ router.get('/news/pais/:nome', exigirPapel('user'), (req, res) => {
     return [...m.entries()].map(([nome_, total]) => ({ nome: nome_, total })).sort((x, y) => y.total - x.total)
   }
 
-  // Ransomware, quando o pais tem codigo ISO conhecido.
-  const vitimas = iso ? all(
-    `SELECT victim, website, "group", sector, discovered_at, criticality, nature
-       FROM ransomware_victims WHERE country = ? ORDER BY discovered_at DESC LIMIT 15`,
-    [iso]
-  ).map((v) => {
-    // Ver `lib/vitima.js`: o campo da fonte é o título do post do criminoso.
-    const { nome, bruto, limpo } = nomeDaVitima(v.victim, v.website)
-    return { ...v, victim: nome, victimBruto: limpo ? bruto : null }
-  }) : []
-  const totalVitimas = iso
-    ? get('SELECT COUNT(*) AS n FROM ransomware_victims WHERE country = ?', [iso])?.n ?? 0
-    : 0
-
   res.json({
     pais: nome,
     pt,
@@ -488,13 +559,9 @@ router.get('/news/pais/:nome', exigirPapel('user'), (req, res) => {
       id: a.id, titulo: a.title, resumo: resumoCurto(a.summary), categoria: a.category,
       urgencia: a.urgency, publicadoEm: a.published_at, url: a.url, fonte: a.fonte,
     })),
-    ransomware: {
-      total: totalVitimas,
-      itens: vitimas,
-      // Sem ISO nao ha como cruzar: a interface precisa distinguir "nenhuma
-      // vitima" de "nao da para saber".
-      disponivel: !!iso,
-    },
+    // Ransomware, quando o pais tem codigo ISO conhecido. Sem ISO nao ha como
+    // cruzar, e `disponivel` diz isso. Ver lib/ransomwarePais.js.
+    ransomware: ransomwareDoPais(iso),
     nota: 'Um pais so aparece ligado a uma noticia quando o detector encontrou um termo dele '
       + 'no texto — nome, gentilico ou capital. Mencao e o que se mede; relacao causal, nao.',
   })
@@ -559,7 +626,9 @@ router.get('/news/geo', (req, res) => {
 // GET /api/news/:id
 router.get('/news/:id', (req, res) => {
   const a = get(`${SELECT_BASE} WHERE a.id = ?`, [req.params.id])
-  if (!a) return res.status(404).json({ error: 'Notícia não encontrada.' })
+  // Cobertura só-mundial é conteúdo de conta, como em /api/mundo/*. Sem
+  // sessão, a resposta é a mesma de quem pede um id que não existe.
+  if (!a || (!req.conta && !a.relevant && a.mundo)) return res.status(404).json({ error: 'Notícia não encontrada.' })
 
   // Reavalia na hora para mostrar POR QUE este item passou (ou não) no filtro.
   const palheiro = `${a.title} ${a.summary || ''}`

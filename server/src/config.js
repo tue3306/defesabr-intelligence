@@ -195,6 +195,15 @@ export const config = {
       || 'DefesaBR-Intelligence/2.0 (agregador academico de fontes publicas)',
   },
 
+  // A cobertura internacional que só a lente mundial aprovou (relevant = 0 e
+  // mundo = 1) é volumosa — as editorias de mundo publicam centenas de itens
+  // por dia — e não tem o valor de arquivo do acervo de defesa do Brasil.
+  // Passados estes dias ela sai do banco; a de defesa do Brasil não. Ver
+  // collectors/geografia.js, que também poupa o que alguém guardou na pasta.
+  mundo: {
+    retencaoDias: num(process.env.MUNDO_RETENCAO_DIAS, 180),
+  },
+
   versao: process.env.npm_package_version || '2.0.0',
 
   // ───────────────────────────────────────────────────────────────────────────

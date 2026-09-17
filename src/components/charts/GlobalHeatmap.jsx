@@ -68,7 +68,7 @@ const chave = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀
 // cada país e devolve as manchetes que sustentam cada contagem. A escala é
 // relativa ao máximo observado no período.
 // -----------------------------------------------------------------------------
-function useCoberturaPorPais(dias) {
+function useCoberturaPorPais(dias, escopo) {
   const [dados, setDados] = useState(null)
   const [carregando, setCarregando] = useState(true)
 
@@ -81,8 +81,12 @@ function useCoberturaPorPais(dias) {
         // Pela memória curta compartilhada: na página inicial este mapa e a
         // vitrine pedem a MESMA janela ao mesmo tempo, e cada consulta roda o
         // detector de países sobre o acervo inteiro do período.
-        const d = await coberturaPorPais(dias)
-        if (vivo && d?.items?.length) setDados(d)
+        const d = await coberturaPorPais(dias, escopo)
+        // RESPOSTA VAZIA TAMBÉM SUBSTITUI A ANTERIOR. Só se trocava quando havia
+        // itens, o que com janelas de 90 dias e 1 ano nunca aparecia; com a
+        // janela de 7 dias da área Mundo, um período sem menção deixava pintado
+        // o mapa da janela anterior, com os números dela, sob o rótulo da nova.
+        if (vivo) setDados(Array.isArray(d?.items) ? d : null)
       } catch {
         // Sem API o mapa fica cinza e o rodapé diz que está sem dados.
       } finally {
@@ -90,7 +94,7 @@ function useCoberturaPorPais(dias) {
       }
     })()
     return () => { vivo = false }
-  }, [dias])
+  }, [dias, escopo])
 
   return { dados, carregando }
 }
@@ -100,7 +104,24 @@ const JANELAS = [
   { id: 365, rotulo: '1 ano' },
 ]
 
-export default function GlobalHeatmap({ height = 380, withNews = true }) {
+// ─────────────────────────────────────────────────────────────────────────────
+// O MESMO MAPA SERVE A DUAS PERGUNTAS
+//
+// `escopo="brasil"` (o padrão) conta só o acervo que passou no filtro de defesa
+// do Brasil — é o mapa de sempre, e sem as props novas ele se comporta igual.
+// `escopo="mundo"` conta também o que só a lente internacional aprovou: a
+// guerra na Ucrânia, o Pentágono, o Mar Vermelho. São respostas diferentes, e
+// por isso a chave da memória compartilhada inclui o escopo.
+//
+// `onSelecionarPais` existe para a área Mundo & Conflitos, em que clicar num
+// país abre a página dele em vez do dossiê embutido. `dias` fixa a janela pela
+// página que contém o mapa: com o seletor próprio (90 dias / 1 ano) ao lado do
+// seletor da página (7 / 30 / 90), a tela mostraria duas janelas ao mesmo tempo
+// e os números do mapa não bateriam com os cartões logo acima.
+// ─────────────────────────────────────────────────────────────────────────────
+export default function GlobalHeatmap({
+  height = 380, withNews = true, escopo = 'brasil', dias: diasDaPagina, onSelecionarPais,
+}) {
   // ───────────────────────────────────────────────────────────────────────────
   // HOVER E SELEÇÃO DEIXARAM DE SER A MESMA COISA
   //
@@ -114,12 +135,25 @@ export default function GlobalHeatmap({ height = 380, withNews = true }) {
   // a seleção, e ela só muda por clique ou pela lista ao lado.
   // ───────────────────────────────────────────────────────────────────────────
   const [hover, setHover] = useState(null)
-  const [selecionado, setSelecionado] = useState('Brazil')
+  const [selecionado, setSelecionado] = useState(escopo === 'brasil' ? 'Brazil' : null)
   const [busca, setBusca] = useState('')
-  const [dias, setDias] = useState(365)
+  const [diasProprios, setDias] = useState(365)
+  const dias = diasDaPagina ?? diasProprios
 
-  const { dados: cobertura, carregando } = useCoberturaPorPais(dias)
+  const { dados: cobertura, carregando } = useCoberturaPorPais(dias, escopo)
+
   const aoVivo = !!cobertura
+  // O mapa desenha todo território do world-atlas, mas a página do país só
+  // existe para os do catálogo: clicar na Groenlândia levava a um "país fora
+  // do catálogo". Fora dele, o clique só seleciona, como no mapa de sempre.
+  const noCatalogo = useMemo(
+    () => new Set((cobertura?.catalogo || []).map((p) => p.nome)),
+    [cobertura],
+  )
+  const selecionar = (nome) => {
+    setSelecionado(nome)
+    if (onSelecionarPais && noCatalogo.has(nome)) onSelecionarPais(nome)
+  }
 
   // Nome em inglês do world-atlas → nome em português, vindo do servidor.
   const nomesPt = useMemo(() => {
@@ -175,22 +209,28 @@ export default function GlobalHeatmap({ height = 380, withNews = true }) {
     <div>
       {/* ── CONTROLES ── */}
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex gap-1 rounded-lg border border-gray-300 p-0.5 dark:border-white/15">
-          {JANELAS.map((j) => (
-            <button
-              key={j.id}
-              onClick={() => setDias(j.id)}
-              aria-pressed={dias === j.id}
-              className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
-                dias === j.id ? 'bg-gold-500 text-military-darker' : 'muted hover:bg-gray-100 dark:hover:bg-white/10'
-              }`}
-            >
-              {j.rotulo}
-            </button>
-          ))}
-        </div>
+        {diasDaPagina != null ? (
+          <span className="text-xs font-semibold muted">Janela: {diasDaPagina} dias</span>
+        ) : (
+          <div className="flex gap-1 rounded-lg border border-gray-300 p-0.5 dark:border-white/15">
+            {JANELAS.map((j) => (
+              <button
+                key={j.id}
+                onClick={() => setDias(j.id)}
+                aria-pressed={dias === j.id}
+                className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
+                  dias === j.id ? 'bg-gold-500 text-military-darker' : 'muted hover:bg-gray-100 dark:hover:bg-white/10'
+                }`}
+              >
+                {j.rotulo}
+              </button>
+            ))}
+          </div>
+        )}
         <span className="text-xs muted">
-          Clique no mapa ou escolha na lista. Passar o cursor apenas destaca.
+          {onSelecionarPais
+            ? 'Clique num país, no mapa ou na lista, para abrir a página dele.'
+            : 'Clique no mapa ou escolha na lista. Passar o cursor apenas destaca.'}
         </span>
       </div>
 
@@ -231,7 +271,7 @@ export default function GlobalHeatmap({ height = 380, withNews = true }) {
                       geography={geo}
                       onMouseEnter={() => setHover(nome)}
                       onMouseLeave={() => setHover(null)}
-                      onClick={() => setSelecionado(nome)}
+                      onClick={() => selecionar(nome)}
                       style={{
                         default: {
                           fill: preenchimento,
@@ -288,7 +328,7 @@ export default function GlobalHeatmap({ height = 380, withNews = true }) {
             {listaPaises.map((p) => (
               <button
                 key={p.nome}
-                onClick={() => { setSelecionado(p.nome); setHover(null) }}
+                onClick={() => { selecionar(p.nome); setHover(null) }}
                 aria-pressed={selecionado === p.nome}
                 className={`flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
                   selecionado === p.nome

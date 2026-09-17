@@ -104,6 +104,10 @@ function capacidadeDeColeta({ id, nome, coletor, descricao, evidencia, contagem,
 export function capacidades() {
   const artigos = contar('SELECT COUNT(*) AS n FROM articles')
   const relevantes = contar('SELECT COUNT(*) AS n FROM articles WHERE relevant = 1')
+  // Denominador do filtro do Brasil: sem o que só a lente mundial gravou
+  // (`relevant = 0 AND mundo = 1`). Ver `filtro` em /news/stats — contar essas
+  // matérias faria a taxa de aprovação cair sem o filtro ter mudado.
+  const avaliadosPeloFiltro = contar('SELECT COUNT(*) AS n FROM articles WHERE NOT (relevant = 0 AND mundo = 1)')
 
   return [
     // ── COLETA ──
@@ -193,6 +197,19 @@ export function capacidades() {
       contagem: () => contar('SELECT COUNT(*) AS n FROM correlations'),
       evidencia: (t) => `${t} correlação(ões) calculadas`,
     }),
+    // A lição do bloco acima vale para o coletor novo: a derivação geográfica
+    // alimenta o mapa e toda a área Mundo & Conflitos, e parada ela deixaria as
+    // telas congeladas com o painel verde.
+    capacidadeDeColeta({
+      id: 'geografia',
+      nome: 'Países e teatros de conflito',
+      coletor: 'geografia',
+      descricao: 'Deriva os países e os teatros de conflito citados em cada artigo e aplica a lente mundial ao acervo que entrou antes dela.',
+      fonte: 'server/src/collectors/geografia.js',
+      grupo: 'Processamento',
+      contagem: () => contar('SELECT COUNT(*) AS n FROM articles WHERE geo_at IS NOT NULL'),
+      evidencia: (t) => `${t} artigo(s) com países e teatros derivados`,
+    }),
     (() => {
       // Agregadores com chave são opcionais: sem chave não rodam, e isso não é
       // falha. Com chave, medem-se como qualquer coletor.
@@ -234,15 +251,15 @@ export function capacidades() {
       id: 'filtro-relevancia',
       nome: 'Filtro de relevância',
       grupo: 'Processamento',
-      estado: artigos > 0 ? 'operacional' : 'degradado',
-      detalhe: artigos > 0
-        ? `${relevantes} de ${artigos} artigos aprovados (${Math.round((relevantes / artigos) * 100)}%)`
+      estado: avaliadosPeloFiltro > 0 ? 'operacional' : 'degradado',
+      detalhe: avaliadosPeloFiltro > 0
+        ? `${relevantes} de ${avaliadosPeloFiltro} artigos aprovados (${Math.round((relevantes / avaliadosPeloFiltro) * 100)}%)`
         : 'Sem artigos para filtrar.',
       descricao: `Regra declarada e auditável: ${METODO_RELEVANCIA.regra}. `
         + `${METODO_RELEVANCIA.termosFortes} termos inequívocos, `
         + `${METODO_RELEVANCIA.termosFracos} ambíguos, ${METODO_RELEVANCIA.exclusoes} exclusões.`,
       fonte: 'server/src/lib/relevance.js',
-      metricas: { registros: relevantes, taxaAprovacao: artigos ? Math.round((relevantes / artigos) * 100) : null },
+      metricas: { registros: relevantes, taxaAprovacao: avaliadosPeloFiltro ? Math.round((relevantes / avaliadosPeloFiltro) * 100) : null },
     },
     {
       id: 'classificacao',

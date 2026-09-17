@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import config from '../config.js'
 import { chaveDeBusca } from '../lib/relevance.js'
+import { LENTE_VERSAO } from '../lib/mundo.js'
 
 // -----------------------------------------------------------------------------
 // BANCO — SQLite pelo módulo nativo do Node.
@@ -108,6 +109,26 @@ const COLUNAS_ADICIONADAS = [
   // Designacao de Relator" continuava assim no Radar depois de aprovada. Com a
   // data, a coleta reconsulta as mais antigas e a tela diz de quando e o dado.
   ['bills', 'status_at', 'TEXT'],
+
+  // A LENTE MUNDIAL (lib/mundo.js), ao lado da de defesa do Brasil.
+  //
+  // `relevant` continua sendo a régua do Brasil e nada nela muda. `mundo` é a
+  // segunda régua: 1 quando a matéria é de segurança internacional. Uma
+  // matéria pode ter as duas, uma só ou nenhuma, e o que só tem `mundo` fica
+  // fora de clipping, alerta, estatísticas e notificações.
+  //
+  // `mundo_score` NULO quer dizer "ainda não avaliado" — é o que a derivação
+  // procura para avaliar o acervo que entrou antes da lente existir, e o que a
+  // subida zera quando o vocabulário muda de versão.
+  ['articles', 'mundo', 'INTEGER NOT NULL DEFAULT 0'],
+  ['articles', 'mundo_score', 'INTEGER'],
+  ['articles', 'mundo_termos', 'TEXT'],
+  // Idioma da fonte. Há fontes em inglês, e a tela as marca: quem lê precisa
+  // saber, antes de clicar, que a matéria não está em português.
+  ['articles', 'idioma', "TEXT NOT NULL DEFAULT 'pt'"],
+  // Quando países e teatros deste artigo foram derivados. NULO = pendente.
+  ['articles', 'geo_at', 'TEXT'],
+  ['sources', 'idioma', "TEXT NOT NULL DEFAULT 'pt'"],
 ]
 
 /**
@@ -126,6 +147,11 @@ const INDICES_ADICIONADOS = [
   // colidem entre si por serem todas NULL.
   'CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL',
   'CREATE INDEX IF NOT EXISTS idx_articles_br ON articles(br_score DESC)',
+  // O escopo mundial filtra por `mundo` e janela de data em toda consulta.
+  'CREATE INDEX IF NOT EXISTS idx_articles_mundo ON articles(mundo, published_at)',
+  // Parcial: só os pendentes de derivação, que depois do primeiro ciclo são
+  // poucos. Sem ele, cada ciclo varreria o acervo inteiro para achar nenhum.
+  'CREATE INDEX IF NOT EXISTS idx_articles_geo_pendente ON articles(published_at) WHERE geo_at IS NULL',
 ]
 
 /** Aplica o esquema e as colunas incrementais. Idempotente — roda em toda subida. */
@@ -190,6 +216,40 @@ export function migrate() {
     }
   }
   db.exec("DELETE FROM app_config WHERE chave LIKE 'ia\\_%' ESCAPE '\\'")
+
+  // 8. o vocabulário da lente mundial mudou desde a última subida?
+  //
+  // `mundo` e os países/teatros derivados são RESULTADO de regra, e a regra
+  // muda: um termo novo, um teatro novo, uma exclusão. Sem isto, o acervo
+  // antigo ficaria julgado pela versão velha e o novo pela nova, e as contagens
+  // da tela misturariam os dois critérios sem nada que o denunciasse.
+  //
+  // Zerar `geo_at` e `mundo_score` não apaga nada: marca o acervo como
+  // pendente, e a derivação (collectors/geografia.js) reavalia em lotes no
+  // ciclo seguinte. `mundo` fica com o valor antigo até lá, em vez de sumir.
+  const versao = db.prepare("SELECT valor FROM app_config WHERE chave = 'lente_mundo_versao'").get()?.valor
+  if (versao !== String(LENTE_VERSAO)) {
+    db.exec('BEGIN')
+    try {
+      // Quando a lente passou a gravar nesta instalação — só na primeira vez.
+      // Antes disso as editorias de mundo descartavam a cobertura
+      // internacional, e comparar um período com outro anterior a esta data
+      // mede a coleta que começou, não o mundo. /mundo/panorama diz isso.
+      if (versao === undefined) {
+        db.prepare("INSERT OR IGNORE INTO app_config (chave, valor) VALUES ('lente_mundo_desde', ?)")
+          .run(new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'))
+      }
+      db.exec('UPDATE articles SET geo_at = NULL, mundo_score = NULL')
+      db.prepare(
+        `INSERT INTO app_config (chave, valor) VALUES ('lente_mundo_versao', ?)
+         ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor`,
+      ).run(String(LENTE_VERSAO))
+      db.exec('COMMIT')
+    } catch (err) {
+      db.exec('ROLLBACK')
+      throw err
+    }
+  }
 }
 
 // `DatabaseSync` devolve objetos com protótipo nulo. Isso quebra

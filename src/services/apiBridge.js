@@ -345,7 +345,9 @@ export const PONTES = new Map([
   // outro só criaria um ponto a mais onde o significado pode se perder.
   ['GET /news/countries', {
     caminho: '/news/countries',
-    parametros: ({ days = 365 } = {}) => ({ days }),
+    // `escopo` só viaja quando alguém pede (`mundo`); vazio, o `buscar` o
+    // descarta e a consulta fica idêntica à de sempre.
+    parametros: ({ days = 365, escopo } = {}) => ({ days, escopo }),
     transformar: (d) => d,
   }],
   ['GET /news/geo', {

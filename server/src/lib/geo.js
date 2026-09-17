@@ -176,57 +176,180 @@ export const PAISES = [
     termos: ['brasil', 'brasileiro', 'brasileira', 'brasileiros', 'brasileiras', 'brasilia'],
   },
 
+  // ── OS TERMOS EM INGLÊS ──
+  //
+  // A lista foi escrita para a imprensa brasileira, e as fontes internacionais
+  // (Defense News, BBC World, The Guardian, Al Jazeera) escrevem em inglês: sem
+  // estes termos, uma matéria da Reuters sobre "Ukrainian drones over Moscow"
+  // não citava país nenhum, e o mapa mundial ficava cego justamente para quem
+  // mais cobre o mundo.
+  //
+  // Os EUA em inglês NUNCA entram por "us" sozinho: normalizado, é o pronome
+  // ("help us") e, em português, o fim de "US Open". Entram por "united states",
+  // "u.s." (com os pontos escapados — ver `escapar`) e por expressões em que
+  // "us" só pode ser o país ("us military", "us troops").
+
   // Vizinhanca sul-americana — prioridade do produto
-  { nome: 'Argentina', iso: 'AR', pt: 'Argentina', termos: ['argentina', 'argentino', 'argentinos', 'buenos aires'] },
+  { nome: 'Argentina', iso: 'AR', pt: 'Argentina', termos: ['argentina', 'argentino', 'argentinos', 'buenos aires', 'argentine', 'argentinian'] },
   { nome: 'Bolivia', iso: 'BO', pt: 'Bolívia', termos: ['bolivia', 'boliviano', 'bolivianos', 'la paz'] },
   { nome: 'Chile', iso: 'CL', pt: 'Chile', termos: ['chile', 'chileno', 'chilenos'] },
-  { nome: 'Colombia', iso: 'CO', pt: 'Colômbia', termos: ['colombia', 'colombiano', 'colombianos', 'bogota'] },
+  { nome: 'Colombia', iso: 'CO', pt: 'Colômbia', termos: ['colombia', 'colombiano', 'colombianos', 'bogota', 'colombian'] },
   { nome: 'Ecuador', iso: 'EC', pt: 'Equador', termos: ['equador', 'equatoriano', 'equatorianos', 'quito'] },
   { nome: 'Guyana', iso: 'GY', pt: 'Guiana', termos: ['guiana', 'essequibo', 'georgetown'] },
   { nome: 'Paraguay', iso: 'PY', pt: 'Paraguai', termos: ['paraguai', 'paraguaio', 'paraguaios', 'assuncao'] },
   { nome: 'Peru', iso: 'PE', pt: 'Peru', termos: ['peru', 'peruano', 'peruanos'] },
   { nome: 'Suriname', iso: 'SR', pt: 'Suriname', termos: ['suriname', 'paramaribo'] },
   { nome: 'Uruguay', iso: 'UY', pt: 'Uruguai', termos: ['uruguai', 'uruguaio', 'uruguaios', 'montevideu'] },
-  { nome: 'Venezuela', iso: 'VE', pt: 'Venezuela', termos: ['venezuela', 'venezuelano', 'venezuelanos', 'caracas'] },
+  { nome: 'Venezuela', iso: 'VE', pt: 'Venezuela', termos: ['venezuela', 'venezuelano', 'venezuelanos', 'venezuelana', 'venezuelanas', 'caracas', 'venezuelan', 'venezuelans'] },
 
   // Resto das Americas
-  { nome: 'United States of America', iso: 'US', pt: 'Estados Unidos', termos: ['estados unidos', 'eua', 'norte-americano', 'norte-americanos', 'washington', 'pentagono', 'casa branca'] },
-  { nome: 'Canada', iso: 'CA', pt: 'Canadá', termos: ['canada', 'canadense', 'canadenses', 'ottawa'] },
-  { nome: 'Mexico', iso: 'MX', pt: 'México', termos: ['mexico', 'mexicano', 'mexicanos'] },
-  { nome: 'Cuba', iso: 'CU', pt: 'Cuba', termos: ['cuba', 'cubano', 'cubanos', 'havana'] },
-  { nome: 'Haiti', iso: 'HT', pt: 'Haiti', termos: ['haiti', 'haitiano', 'haitianos'] },
+  {
+    nome: 'United States of America', iso: 'US', pt: 'Estados Unidos',
+    termos: [
+      'estados unidos', 'eua', 'norte-americano', 'norte-americanos', 'norte-americana', 'norte-americanas',
+      'estadunidense', 'estadunidenses', 'washington', 'pentagono', 'casa branca',
+      'governo americano', 'tropas americanas', 'militares americanos', 'forcas americanas',
+      'united states', 'u.s.', 'us military', 'us army', 'us navy', 'us air force', 'us troops',
+      'us forces', 'us officials', 'us president', 'american troops', 'american forces',
+      'american soldiers', 'pentagon', 'white house', 'space force', 'marine corps', 'us marines',
+      'centcom', 'southcom', 'indopacom', 'spacecom',
+    ],
+  },
+  { nome: 'Canada', iso: 'CA', pt: 'Canadá', termos: ['canada', 'canadense', 'canadenses', 'ottawa', 'canadian', 'canadians'] },
+  { nome: 'Mexico', iso: 'MX', pt: 'México', termos: ['mexico', 'mexicano', 'mexicanos', 'mexican', 'mexicans'] },
+  { nome: 'Cuba', iso: 'CU', pt: 'Cuba', termos: ['cuba', 'cubano', 'cubanos', 'havana', 'cuban'] },
+  { nome: 'Haiti', iso: 'HT', pt: 'Haiti', termos: ['haiti', 'haitiano', 'haitianos', 'haitian'] },
 
   // Potencias e parceiros com peso em defesa
-  { nome: 'China', iso: 'CN', pt: 'China', termos: ['china', 'chines', 'chinesa', 'chineses', 'pequim'] },
-  { nome: 'Russia', iso: 'RU', pt: 'Rússia', termos: ['russia', 'russo', 'russa', 'russos', 'moscou', 'kremlin'] },
-  { nome: 'Ukraine', iso: 'UA', pt: 'Ucrânia', termos: ['ucrania', 'ucraniano', 'ucranianos', 'kiev'] },
-  { nome: 'France', iso: 'FR', pt: 'França', termos: ['franca', 'frances', 'francesa', 'franceses', 'paris'] },
-  { nome: 'United Kingdom', iso: 'GB', pt: 'Reino Unido', termos: ['reino unido', 'inglaterra', 'britanico', 'britanica', 'britanicos', 'londres'] },
-  { nome: 'Germany', iso: 'DE', pt: 'Alemanha', termos: ['alemanha', 'alemao', 'alema', 'alemaes', 'berlim'] },
-  { nome: 'Italy', iso: 'IT', pt: 'Itália', termos: ['italia', 'italiano', 'italianos'] },
-  { nome: 'Spain', iso: 'ES', pt: 'Espanha', termos: ['espanha', 'espanhol', 'espanhola', 'espanhois', 'madri'] },
+  { nome: 'China', iso: 'CN', pt: 'China', termos: ['china', 'chines', 'chinesa', 'chineses', 'pequim', 'chinese', 'beijing'] },
+  { nome: 'Russia', iso: 'RU', pt: 'Rússia', termos: ['russia', 'russo', 'russa', 'russos', 'russas', 'moscou', 'moscovo', 'kremlin', 'russian', 'russians', 'moscow'] },
+  { nome: 'Ukraine', iso: 'UA', pt: 'Ucrânia', termos: ['ucrania', 'ucraniano', 'ucranianos', 'ucraniana', 'ucranianas', 'kiev', 'ukraine', 'ukrainian', 'ukrainians', 'kyiv'] },
+  // "France" em inglês, mas não a agência: "segundo a France-Presse" é crédito
+  // de despacho, não menção ao país. Ver EXPRESSOES_NEUTRAS.
+  { nome: 'France', iso: 'FR', pt: 'França', termos: ['franca', 'frances', 'francesa', 'franceses', 'paris', 'france', 'french'] },
+  { nome: 'United Kingdom', iso: 'GB', pt: 'Reino Unido', termos: ['reino unido', 'inglaterra', 'britanico', 'britanica', 'britanicos', 'londres', 'united kingdom', 'uk', 'britain', 'british', 'london'] },
+  { nome: 'Germany', iso: 'DE', pt: 'Alemanha', termos: ['alemanha', 'alemao', 'alema', 'alemaes', 'berlim', 'germany', 'german', 'berlin'] },
+  { nome: 'Italy', iso: 'IT', pt: 'Itália', termos: ['italia', 'italiano', 'italianos', 'italy', 'italian'] },
+  { nome: 'Spain', iso: 'ES', pt: 'Espanha', termos: ['espanha', 'espanhol', 'espanhola', 'espanhois', 'madri', 'spain', 'spanish'] },
   { nome: 'Portugal', iso: 'PT', pt: 'Portugal', termos: ['portugal', 'portugues', 'portuguesa', 'portugueses', 'lisboa'] },
-  { nome: 'Israel', iso: 'IL', pt: 'Israel', termos: ['israel', 'israelense', 'israelenses'] },
-  { nome: 'Iran', iso: 'IR', pt: 'Irã', termos: ['iraniano', 'iranianos', 'teera'] },
-  { nome: 'India', iso: 'IN', pt: 'Índia', termos: ['india', 'indiano', 'indianos', 'nova delhi'] },
-  { nome: 'Japan', iso: 'JP', pt: 'Japão', termos: ['japao', 'japones', 'japonesa', 'japoneses', 'toquio'] },
-  { nome: 'South Korea', iso: 'KR', pt: 'Coreia do Sul', termos: ['coreia do sul', 'sul-coreano', 'sul-coreanos', 'seul'] },
-  { nome: 'North Korea', iso: 'KP', pt: 'Coreia do Norte', termos: ['coreia do norte', 'norte-coreano', 'norte-coreanos', 'pyongyang'] },
-  { nome: 'Turkey', iso: 'TR', pt: 'Turquia', termos: ['turquia', 'turco', 'turcos', 'ancara'] },
-  { nome: 'South Africa', iso: 'ZA', pt: 'África do Sul', termos: ['africa do sul', 'sul-africano', 'sul-africanos'] },
+  { nome: 'Poland', iso: 'PL', pt: 'Polônia', termos: ['polonia', 'polones', 'polonesa', 'poloneses', 'varsovia', 'poland', 'polish', 'warsaw'] },
+  { nome: 'Finland', iso: 'FI', pt: 'Finlândia', termos: ['finlandia', 'finlandes', 'finlandesa', 'finlandeses', 'helsinque', 'finland', 'finnish', 'helsinki'] },
+  { nome: 'Sweden', iso: 'SE', pt: 'Suécia', termos: ['suecia', 'sueco', 'sueca', 'suecos', 'estocolmo', 'saab', 'sweden', 'swedish', 'stockholm'] },
+  { nome: 'Belarus', iso: 'BY', pt: 'Belarus', termos: ['belarus', 'bielorrussia', 'bielorrusso', 'bielorrussos', 'minsk', 'belarusian'] },
+  { nome: 'Turkey', iso: 'TR', pt: 'Turquia', termos: ['turquia', 'turco', 'turcos', 'ancara', 'turkey', 'turkish', 'turkiye', 'ankara'] },
+  // Flanco leste e Báltico: onde a Otan abate drone e a imprensa diz o país.
+  { nome: 'Denmark', iso: 'DK', pt: 'Dinamarca', termos: ['dinamarca', 'dinamarques', 'dinamarquesa', 'dinamarqueses', 'copenhague', 'denmark', 'danish', 'copenhagen'] },
+  { nome: 'Norway', iso: 'NO', pt: 'Noruega', termos: ['noruega', 'noruegues', 'norueguesa', 'noruegueses', 'oslo', 'norway', 'norwegian'] },
+  { nome: 'Netherlands', iso: 'NL', pt: 'Países Baixos', termos: ['holanda', 'paises baixos', 'holandes', 'holandesa', 'holandeses', 'amsterda', 'netherlands', 'dutch', 'amsterdam'] },
+  { nome: 'Belgium', iso: 'BE', pt: 'Bélgica', termos: ['belgica', 'belga', 'belgas', 'belgium', 'belgian'] },
+  { nome: 'Greece', iso: 'GR', pt: 'Grécia', termos: ['grecia', 'grego', 'grega', 'gregos', 'atenas', 'greece', 'greek', 'athens'] },
+  { nome: 'Lithuania', iso: 'LT', pt: 'Lituânia', termos: ['lituania', 'lituano', 'lituana', 'lituanos', 'vilnius', 'lithuania', 'lithuanian'] },
+  { nome: 'Latvia', iso: 'LV', pt: 'Letônia', termos: ['letonia', 'riga', 'latvia', 'latvian'] },
+  { nome: 'Estonia', iso: 'EE', pt: 'Estônia', termos: ['estonia', 'estoniano', 'estonianos', 'tallinn', 'estonian'] },
+  { nome: 'Romania', iso: 'RO', pt: 'Romênia', termos: ['romenia', 'romeno', 'romena', 'romenos', 'bucareste', 'romania', 'romanian', 'bucharest'] },
+  { nome: 'Serbia', iso: 'RS', pt: 'Sérvia', termos: ['servia', 'servio', 'servios', 'belgrado', 'serbia', 'serbian', 'belgrade'] },
+  { nome: 'Kosovo', iso: 'XK', pt: 'Kosovo', termos: ['kosovo', 'kosovar', 'pristina'] },
+
+  // Oriente Medio
+  { nome: 'Israel', iso: 'IL', pt: 'Israel', termos: ['israel', 'israelense', 'israelenses', 'israelita', 'israelitas', 'israeli', 'israelis', 'tel aviv', 'telavive'] },
+  // Faixa de Gaza e Cisjordania: o world-atlas as desenha como "Palestine".
+  { nome: 'Palestine', iso: 'PS', pt: 'Palestina', termos: ['palestina', 'palestino', 'palestinos', 'palestinas', 'gaza', 'cisjordania', 'palestine', 'palestinian', 'palestinians', 'west bank'] },
+  // "Ira" sem til nao entra: normalizado, e o verbo "ira". O pais e reconhecido
+  // pelo gentilico, pela capital e — no texto CRU — por "Irã" com til e por
+  // "Irão" com maiúscula. Ver PAIS_COM_ACENTO.
+  { nome: 'Iran', iso: 'IR', pt: 'Irã', termos: ['iraniano', 'iranianos', 'iraniana', 'iranianas', 'teera', 'teerao', 'iran', 'iranian', 'iranians', 'tehran'] },
+  { nome: 'Iraq', iso: 'IQ', pt: 'Iraque', termos: ['iraque', 'iraquiano', 'iraquianos', 'bagda', 'iraq', 'iraqi', 'baghdad'] },
+  // "Sirio" tambem e o hospital Sirio-Libanes, apagado antes. Ver EXPRESSOES_NEUTRAS.
+  { nome: 'Syria', iso: 'SY', pt: 'Síria', termos: ['siria', 'sirio', 'sirios', 'syria', 'syrian', 'damascus'] },
+  { nome: 'Lebanon', iso: 'LB', pt: 'Líbano', termos: ['libano', 'libanes', 'libanesa', 'libaneses', 'beirute', 'lebanon', 'lebanese', 'beirut'] },
+  { nome: 'Yemen', iso: 'YE', pt: 'Iêmen', termos: ['iemen', 'iemenita', 'iemenitas', 'sanaa', 'yemen', 'yemeni'] },
+  { nome: 'Saudi Arabia', iso: 'SA', pt: 'Arábia Saudita', termos: ['arabia saudita', 'saudita', 'sauditas', 'riad', 'saudi arabia', 'saudi', 'riyadh'] },
+  { nome: 'Qatar', iso: 'QA', pt: 'Catar', termos: ['catar', 'catari', 'qatar', 'qatari', 'doha'] },
+  { nome: 'Egypt', iso: 'EG', pt: 'Egito', termos: ['egito', 'egipcio', 'egipcios', 'cairo', 'egypt', 'egyptian'] },
+
+  // Asia
+  { nome: 'India', iso: 'IN', pt: 'Índia', termos: ['india', 'indiano', 'indianos', 'nova delhi', 'nova deli', 'indian', 'new delhi'] },
+  { nome: 'Pakistan', iso: 'PK', pt: 'Paquistão', termos: ['paquistao', 'paquistanes', 'paquistaneses', 'islamabad', 'pakistan', 'pakistani'] },
+  { nome: 'Afghanistan', iso: 'AF', pt: 'Afeganistão', termos: ['afeganistao', 'afegao', 'afegaos', 'cabul', 'afghanistan', 'afghan', 'kabul'] },
+  { nome: 'Japan', iso: 'JP', pt: 'Japão', termos: ['japao', 'japones', 'japonesa', 'japoneses', 'toquio', 'japan', 'japanese', 'tokyo'] },
+  { nome: 'South Korea', iso: 'KR', pt: 'Coreia do Sul', termos: ['coreia do sul', 'sul-coreano', 'sul-coreanos', 'sul-coreana', 'seul', 'south korea', 'south korean', 'seoul'] },
+  { nome: 'North Korea', iso: 'KP', pt: 'Coreia do Norte', termos: ['coreia do norte', 'norte-coreano', 'norte-coreanos', 'norte-coreana', 'pyongyang', 'north korea', 'north korean', 'north koreans'] },
+  { nome: 'Taiwan', iso: 'TW', pt: 'Taiwan', termos: ['taiwan', 'taiwanes', 'taiwanesa', 'taiwaneses', 'taipei', 'taipe', 'taiwanese'] },
+  { nome: 'Myanmar', iso: 'MM', pt: 'Mianmar', termos: ['mianmar', 'myanmar', 'birmania', 'burma'] },
+  { nome: 'Philippines', iso: 'PH', pt: 'Filipinas', termos: ['filipinas', 'filipino', 'filipinos', 'manila', 'philippines', 'philippine'] },
+  { nome: 'Vietnam', iso: 'VN', pt: 'Vietnã', termos: ['vietna', 'vietnamita', 'vietnamitas', 'hanoi', 'vietnam', 'vietnamese'] },
+  { nome: 'Australia', iso: 'AU', pt: 'Austrália', termos: ['australia', 'australiano', 'australiana', 'australianos', 'canberra', 'australian'] },
+
+  // Africa
+  { nome: 'South Africa', iso: 'ZA', pt: 'África do Sul', termos: ['africa do sul', 'sul-africano', 'sul-africanos', 'south africa', 'south african'] },
   { nome: 'Angola', iso: 'AO', pt: 'Angola', termos: ['angola', 'angolano', 'angolanos', 'luanda'] },
-  { nome: 'Nigeria', iso: 'NG', pt: 'Nigéria', termos: ['nigeria', 'nigeriano', 'nigerianos'] },
-  { nome: 'Sweden', iso: 'SE', pt: 'Suécia', termos: ['suecia', 'sueco', 'sueca', 'suecos', 'estocolmo', 'saab'] },
+  { nome: 'Nigeria', iso: 'NG', pt: 'Nigéria', termos: ['nigeria', 'nigeriano', 'nigerianos', 'nigerian'] },
+  { nome: 'Sudan', iso: 'SD', pt: 'Sudão', termos: ['sudao', 'sudanes', 'sudanesa', 'sudaneses', 'cartum', 'sudan', 'sudanese', 'khartoum'] },
+  { nome: 'Dem. Rep. Congo', iso: 'CD', pt: 'RD Congo', termos: ['republica democratica do congo', 'rd congo', 'kinshasa', 'democratic republic of congo', 'democratic republic of the congo', 'drc'] },
+  { nome: 'Rwanda', iso: 'RW', pt: 'Ruanda', termos: ['ruanda', 'ruandes', 'kigali', 'rwanda', 'rwandan'] },
+  { nome: 'Mali', iso: 'ML', pt: 'Mali', termos: ['mali', 'bamako', 'malian'] },
+  { nome: 'Burkina Faso', iso: 'BF', pt: 'Burkina Faso', termos: ['burkina faso', 'uagadugu', 'ouagadougou'] },
+  // "Rio Niger" e "delta do Niger" (que fica na Nigeria) sao apagados antes.
+  { nome: 'Niger', iso: 'NE', pt: 'Níger', termos: ['niger', 'niamey', 'nigerien'] },
+  { nome: 'Libya', iso: 'LY', pt: 'Líbia', termos: ['libia', 'libio', 'libios', 'tripoli', 'libya', 'libyan'] },
+  { nome: 'Somalia', iso: 'SO', pt: 'Somália', termos: ['somalia', 'somali', 'somalis', 'mogadiscio', 'mogadishu'] },
+  { nome: 'Ethiopia', iso: 'ET', pt: 'Etiópia', termos: ['etiopia', 'etiope', 'etiopes', 'adis abeba', 'ethiopia', 'ethiopian', 'addis ababa'] },
+  { nome: 'Kenya', iso: 'KE', pt: 'Quênia', termos: ['quenia', 'queniano', 'quenianos', 'nairobi', 'kenya', 'kenyan'] },
 ]
+
+/**
+ * Expressões que CONTÊM nome de país sem ser menção a ele. São apagadas do
+ * texto normalizado antes da detecção — e da lente mundial, que usa a mesma
+ * função.
+ *
+ *   "Hospital Sírio-Libanês"  hospital de São Paulo, e não Síria nem Líbano. O
+ *                             hífen é fronteira de palavra, então "sirio" e
+ *                             "libanes" casariam separados e o boletim médico
+ *                             de um político entraria como teatro de guerra.
+ *   "France-Presse"           crédito de agência no fim do despacho.
+ *   "rio Níger"               rio que atravessa cinco países.
+ *   "Márcio França"           ministro brasileiro.
+ */
+const EXPRESSOES_NEUTRAS = [
+  'sirio-libanes', 'sirio libanes', 'france-presse', 'france presse', 'agence france',
+  'rio niger', 'delta do niger', 'niger river', 'niger delta',
+  // Sobrenome, não país: Márcio França é ministro, e "França" assina foto no G1.
+  'marcio franca',
+]
+
+const escapar = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const RX_NEUTRAS = new RegExp(
+  `(?<![\\p{L}\\p{N}])(?:${EXPRESSOES_NEUTRAS.map((t) => escapar(normalizar(t))).join('|')})(?![\\p{L}\\p{N}])`,
+  'giu',
+)
+
+/** Apaga as expressões neutras de um texto JÁ normalizado. */
+export const neutralizar = (palheiro) => String(palheiro || '').replace(RX_NEUTRAS, ' ')
 
 // A mesma armadilha do filtro de relevancia, agora com nome de pais: sem
 // fronteira de palavra, "cuba" casa dentro de "incubadora" e "ira" (Ira) casa
 // com a forma verbal "ira" depois que a normalizacao tira o acento. Tudo passa
 // por lookaround, e o Ira entra so por gentilico e capital.
+//
+// O termo e ESCAPADO antes de virar regex. Nao era, e nao fazia diferenca
+// enquanto nenhum termo tinha metacaractere; "u.s." tem dois pontos, e sem o
+// escape cada ponto casaria com qualquer caractere — "uas" e "u s" inclusive.
 const RX_PAIS = PAISES.map((p) => ({
   ...p,
-  rxs: p.termos.map((t) => new RegExp(`(?<![\\p{L}\\p{N}])${normalizar(t)}(?![\\p{L}\\p{N}])`, 'iu')),
+  rxs: p.termos.map((t) => new RegExp(`(?<![\\p{L}\\p{N}])${escapar(normalizar(t))}(?![\\p{L}\\p{N}])`, 'iu')),
 }))
+
+// ── O IRÃ, NO TEXTO CRU ──
+//
+// "Irã" com til não tem homógrafo: o verbo é "irá", com agudo. Já "Irão", a
+// grafia de Portugal (RTP, Euronews), É o verbo "irão" — "os termômetros irão
+// variar" —, e a primeira versão que o aceitou normalizado pôs uma previsão do
+// tempo de Minas Gerais e uma feira agropecuária de Rondônia no teatro do Golfo
+// Pérsico. O que desambigua é a maiúscula, como no "Acre" de UF_AMBIGUA: o país
+// é nome próprio, o verbo no meio da frase não.
+const PAIS_COM_ACENTO = {
+  Iran: [/(?<![\p{L}\p{N}])ir[ãÃ](?![\p{L}\p{N}])/iu, /(?<![\p{L}\p{N}])(?:Irão|IRÃO)(?![\p{L}\p{N}])/u],
+}
 
 /**
  * Paises mencionados num texto.
@@ -237,9 +360,12 @@ const RX_PAIS = PAISES.map((p) => ({
  * @returns {string[]}
  */
 export function detectarPaises(texto) {
-  const palheiro = normalizar(texto || '')
+  const cru = String(texto || '').normalize('NFC')
+  const palheiro = neutralizar(normalizar(cru))
   if (!palheiro.trim()) return []
-  return RX_PAIS.filter(({ rxs }) => rxs.some((rx) => rx.test(palheiro))).map((p) => p.nome)
+  return RX_PAIS.filter(({ nome, rxs }) => (
+    rxs.some((rx) => rx.test(palheiro)) || !!PAIS_COM_ACENTO[nome]?.some((rx) => rx.test(cru))
+  )).map((p) => p.nome)
 }
 
 /** Nome em portugues de um pais, a partir da chave em ingles. */

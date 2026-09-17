@@ -1,8 +1,10 @@
 import { all, get, run, agora, transacao } from '../db/index.js'
+import config from '../config.js'
 import { buscarTexto } from '../lib/fetcher.js'
 import { parseFeed } from '../lib/feedParser.js'
 import { urlSegura } from '../lib/saneamento.js'
 import { avaliarRelevancia, classificar, limparRodape, chaveDeTitulo, chaveDeBusca } from '../lib/relevance.js'
+import { avaliarMundo, urgenciaMundo } from '../lib/mundo.js'
 
 // -----------------------------------------------------------------------------
 // COLETA DE NOTÍCIAS (RSS)
@@ -315,6 +317,60 @@ export const FONTES_PADRAO = [
     site_url: 'https://news.google.com',
     category: 'Agregador',
   },
+
+  // ══════════════════════════════════════════════════════════════════════
+  // COBERTURA INTERNACIONAL — para a lente mundial (lib/mundo.js)
+  //
+  // O dono do produto pediu notícia de outros países, principalmente dos
+  // Estados Unidos, e das guerras em curso. As editorias de mundo já
+  // cadastradas não entregavam isso por uma razão de coleta: estavam com
+  // `somenteRelevantes`, e o filtro que decide é o de defesa do BRASIL. A BBC
+  // Brasil tinha zero artigos gravados.
+  //
+  // Todas estas também guardam só o que passa — agora em QUALQUER das duas
+  // lentes. Verificadas respondendo em setembro de 2026: cada feed devolveu
+  // XML com itens do dia (RFI 22, ONU News 30, Euronews 50, RTP 50, Defense
+  // News 25, Breaking Defense 15, DoD 10, Al Jazeera 25, BBC World 28, The
+  // Guardian 45; os dois agregadores, 100 cada).
+  //
+  // FICARAM DE FORA, e o motivo fica registrado para ninguém recadastrar:
+  //   DW Brasil ................. HTTP 500
+  //   CNN Brasil Internacional .. HTTP 404
+  //
+  // As fontes em inglês levam `idioma: 'en'`, e a tela marca cada matéria
+  // delas: quem lê precisa saber, antes de clicar, que o texto não está em
+  // português.
+  // ══════════════════════════════════════════════════════════════════════
+  { slug: 'rfi-brasil', name: 'RFI Brasil', url: 'https://www.rfi.fr/br/rss', site_url: 'https://www.rfi.fr/br', category: 'Internacional', somenteRelevantes: true },
+  { slug: 'onu-news', name: 'ONU News', url: 'https://news.un.org/feed/subscribe/pt/news/all/rss.xml', site_url: 'https://news.un.org/pt', category: 'Internacional', somenteRelevantes: true },
+  { slug: 'euronews-pt', name: 'Euronews', url: 'https://pt.euronews.com/rss?level=theme&name=news', site_url: 'https://pt.euronews.com', category: 'Internacional', somenteRelevantes: true },
+  { slug: 'rtp-mundo', name: 'RTP — Mundo', url: 'https://www.rtp.pt/noticias/rss/mundo', site_url: 'https://www.rtp.pt/noticias/mundo', category: 'Internacional', somenteRelevantes: true },
+  { slug: 'defense-news', name: 'Defense News', url: 'https://www.defensenews.com/arc/outboundfeeds/rss/?outputType=xml', site_url: 'https://www.defensenews.com', category: 'Internacional', somenteRelevantes: true, idioma: 'en' },
+  { slug: 'breaking-defense', name: 'Breaking Defense', url: 'https://breakingdefense.com/feed/', site_url: 'https://breakingdefense.com', category: 'Internacional', somenteRelevantes: true, idioma: 'en' },
+  { slug: 'us-dod', name: 'U.S. Department of Defense', url: 'https://www.defense.gov/DesktopModules/ArticleCS/RSS.ashx?ContentType=1&Site=945&max=10', site_url: 'https://www.defense.gov', category: 'Internacional', somenteRelevantes: true, idioma: 'en' },
+  { slug: 'al-jazeera', name: 'Al Jazeera', url: 'https://www.aljazeera.com/xml/rss/all.xml', site_url: 'https://www.aljazeera.com', category: 'Internacional', somenteRelevantes: true, idioma: 'en' },
+  { slug: 'bbc-world', name: 'BBC World', url: 'https://feeds.bbci.co.uk/news/world/rss.xml', site_url: 'https://www.bbc.com/news/world', category: 'Internacional', somenteRelevantes: true, idioma: 'en' },
+  { slug: 'guardian-world', name: 'The Guardian — World', url: 'https://www.theguardian.com/world/rss', site_url: 'https://www.theguardian.com/world', category: 'Internacional', somenteRelevantes: true, idioma: 'en' },
+
+  // Agregadores de conflito, no formato dos dois acima — mas com
+  // `somenteRelevantes`: "guerra" e "militar" no Google Notícias trazem também
+  // guerra fiscal e Polícia Militar, e isso não deve ocupar o acervo.
+  {
+    slug: 'google-news-conflitos',
+    name: 'Google Notícias — Guerras e conflitos',
+    url: 'https://news.google.com/rss/search?q=guerra+OR+%22conflito+armado%22+OR+bombardeio&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+    site_url: 'https://news.google.com',
+    category: 'Agregador',
+    somenteRelevantes: true,
+  },
+  {
+    slug: 'google-news-eua',
+    name: 'Google Notícias — Estados Unidos e Pentágono',
+    url: 'https://news.google.com/rss/search?q=%22Estados+Unidos%22+Pent%C3%A1gono+OR+militar+OR+tropas&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+    site_url: 'https://news.google.com',
+    category: 'Agregador',
+    somenteRelevantes: true,
+  },
 ]
 
 /**
@@ -423,9 +479,9 @@ export function semearFontes() {
   for (const f of FONTES_PADRAO) {
     if (get('SELECT id FROM sources WHERE slug = ?', [f.slug])) continue
     run(
-      `INSERT INTO sources (slug, name, url, site_url, kind, category, somente_relevantes)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [f.slug, f.name, f.url, f.site_url, 'rss', f.category, f.somenteRelevantes ? 1 : 0]
+      `INSERT INTO sources (slug, name, url, site_url, kind, category, somente_relevantes, idioma)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [f.slug, f.name, f.url, f.site_url, 'rss', f.category, f.somenteRelevantes ? 1 : 0, f.idioma || 'pt']
     )
     criadas += 1
   }
@@ -441,6 +497,9 @@ export async function coletarFonte(fonte) {
 
     let novos = 0
     let relevantes = 0
+    // Entraram SÓ pela lente mundial. Contadas à parte para o resumo da coleta
+    // não somá-las às relevantes do Brasil.
+    let internacionais = 0
     let duplicadas = 0
 
     // Fontes de agregador precisam de limpeza antes de qualquer avaliação —
@@ -482,7 +541,14 @@ export async function coletarFonte(fonte) {
         const palheiro = `${item.titulo} ${resumo || ''}`
 
         const r = avaliarRelevancia(palheiro)
-        const { categoria, urgencia } = classificar(palheiro, item.titulo)
+        const m = avaliarMundo(palheiro)
+        // Só a lente mundial aprovou: a categoria de defesa do Brasil não se
+        // aplica — "Forças Armadas" é o padrão de `classificar()` para quem não
+        // casa nada, e rotular assim um bombardeio em Gaza seria afirmar o que
+        // a matéria não diz. A urgência também vem da escala internacional.
+        const { categoria, urgencia } = !r.relevante && m.mundo
+          ? { categoria: 'Internacional', urgencia: urgenciaMundo(item.titulo) }
+          : classificar(palheiro, item.titulo)
 
         // O ENDEREÇO É CONTEÚDO DE TERCEIRO, e vira `href` na interface.
         //
@@ -504,7 +570,23 @@ export async function coletarFonte(fonte) {
         // em FONTES_PADRAO: são ~1.500 itens por ciclo com 1% de aproveitamento,
         // e gravar os 99% restantes encheria de futebol e celebridade um acervo
         // que existe para ser sobre defesa.
-        if (fonte.somente_relevantes && !r.relevante) continue
+        //
+        // A lente mundial é a segunda porta: matéria de segurança
+        // internacional também entra, com `relevant = 0` e `mundo = 1`, e fica
+        // fora de clipping, alerta e estatísticas — que seguem sendo do Brasil.
+        if (fonte.somente_relevantes && !r.relevante && !m.mundo) continue
+
+        // SÓ-MUNDIAL MAIS VELHA QUE A RETENÇÃO NÃO ENTRA.
+        //
+        // A coleta aceita até IDADE_MAXIMA_DIAS (365) e a derivação apaga o
+        // só-mundial com mais de `MUNDO_RETENCAO_DIAS` (180). Medido em três
+        // ciclos seguidos com o Google Notícias: a mesma matéria de 200 dias
+        // era gravada, apagada e gravada de novo a cada 15 minutos, para
+        // sempre. O corte acontece na porta, com a mesma régua da retenção.
+        if (!r.relevante && m.mundo && item.publicadoEm) {
+          const idade = (Date.now() - new Date(item.publicadoEm).getTime()) / 86400000
+          if (Number.isFinite(idade) && idade > config.mundo.retencaoDias) continue
+        }
 
         // guid único: a coleta roda a cada ciclo e não pode reinserir.
         if (get('SELECT id FROM articles WHERE guid = ?', [item.guid])) continue
@@ -512,7 +594,24 @@ export async function coletarFonte(fonte) {
         // Mesma matéria vinda de OUTRA fonte — ou da mesma com guid novo, que
         // é o que o Google Notícias faz. Ver `chaveDeTitulo`.
         const chave = chaveDeTitulo(item.titulo)
-        if (chave && get('SELECT id FROM articles WHERE title_key = ?', [chave])) {
+        const existente = chave ? get('SELECT id, relevant FROM articles WHERE title_key = ?', [chave]) : null
+        if (existente) {
+          // A MESMA MANCHETE, AGORA RELEVANTE PARA O BRASIL.
+          //
+          // Se a primeira cópia a chegar foi só-mundial (outra fonte, resumo
+          // sem o gancho brasileiro), a deduplicação descartava a segunda — a
+          // que o filtro do Brasil aprovou — e a matéria nunca chegava ao
+          // clipping. Reproduzido com dois feeds locais e a mesma manchete.
+          // A cópia gravada é promovida em vez de a nova ser perdida.
+          if (r.relevante && !existente.relevant) {
+            const c = classificar(palheiro, item.titulo)
+            run(
+              `UPDATE articles SET relevant = 1, relevance_score = ?, matched_terms = ?,
+                      category = ?, urgency = ?
+                WHERE id = ?`,
+              [r.pontos, r.termos.slice(0, 8).join(', ') || null, c.categoria, c.urgencia, existente.id]
+            )
+          }
           duplicadas += 1
           continue
         }
@@ -520,8 +619,9 @@ export async function coletarFonte(fonte) {
         run(
           `INSERT INTO articles
              (source_id, guid, title, title_key, search_key, url, summary, author, published_at,
-              category, urgency, relevant, relevance_score, matched_terms)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              category, urgency, relevant, relevance_score, matched_terms,
+              mundo, mundo_score, mundo_termos, idioma)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             // Num agregador, quem assina a matéria é o veículo que a publicou,
             // não o agregador. Guardar "Google Notícias" como autor apagaria a
@@ -548,10 +648,15 @@ export async function coletarFonte(fonte) {
             // um item que a fonte publicou sem carimbo nenhum.
             item.publicadoEm || agora(), categoria, urgencia,
             r.relevante ? 1 : 0, r.pontos, r.termos.slice(0, 8).join(', ') || null,
+            // `mundo_score` sai preenchido (inclusive com 0): a derivação só
+            // reavalia a lente onde ele é NULO. Países e teatros ficam para
+            // ela, porque `geo_at` nasce nulo.
+            m.mundo ? 1 : 0, m.pontos, m.termos.slice(0, 8).join(', ') || null, fonte.idioma || 'pt',
           ]
         )
         novos += 1
         if (r.relevante) relevantes += 1
+        else if (m.mundo) internacionais += 1
       }
 
       run(
@@ -566,7 +671,7 @@ export async function coletarFonte(fonte) {
 
     return {
       fonte: fonte.name, slug: fonte.slug, ok: true,
-      encontrados: itens.length, novos, relevantes,
+      encontrados: itens.length, novos, relevantes, internacionais,
       // Contadas e descartadas ate agora. Sem elas, o operador le "100
       // encontrados, 0 novos" e nao distingue fonte que parou de fonte que so
       // repetiu o que ja estava no acervo por outro veiculo.
@@ -609,6 +714,7 @@ export async function coletarTodas() {
     novos: resultados.reduce((a, r) => a + (r.novos || 0), 0),
     duplicadas: resultados.reduce((a, r) => a + (r.duplicadas || 0), 0),
     relevantes: resultados.reduce((a, r) => a + (r.relevantes || 0), 0),
+    internacionais: resultados.reduce((a, r) => a + (r.internacionais || 0), 0),
     falhas: resultados.filter((r) => !r.ok).length,
     detalhes: resultados,
   }

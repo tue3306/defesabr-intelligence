@@ -1,5 +1,6 @@
+import { Link } from 'react-router-dom'
 import {
-  MapPin, Newspaper, ShieldAlert, TrendingUp, TrendingDown, Minus, ExternalLink,
+  MapPin, Newspaper, ShieldAlert, TrendingUp, TrendingDown, Minus, ExternalLink, ArrowRight,
 } from 'lucide-react'
 import DataState from '../ui/DataState'
 import { useResource } from '../../hooks/useResource'
@@ -211,6 +212,25 @@ export default function CountryDossier({ pais, dias = 180 }) {
             )}
 
             <p className="mt-4 text-[11px] muted">{d.nota}</p>
+
+            {/* O dossiê é um resumo do recorte Brasil. A página do país na área
+              * Mundo & Conflitos conta também o que só a lente internacional
+              * aprovou, com a lista inteira paginada — o caminho de quem quer
+              * mais do que seis manchetes.
+              *
+              * Só para país do catálogo. O mapa deixa clicar em qualquer
+              * território do world-atlas (Groenlândia, Tailândia…), e
+              * `/news/pais` responde 200 para todos; `/mundo/pais` responde 404
+              * para quem está fora. `iso` só vem preenchido para quem está no
+              * catálogo — os 76 países têm código —, e é ele que decide. */}
+            {d.iso && (
+              <Link
+                to={`/mundo/pais/${encodeURIComponent(pais)}?days=90`}
+                className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-gold-600 hover:underline dark:text-gold-400"
+              >
+                Abrir a página completa do país <ArrowRight size={14} aria-hidden="true" />
+              </Link>
+            )}
           </>
         )}
       </DataState>

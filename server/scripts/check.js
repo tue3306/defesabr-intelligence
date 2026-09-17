@@ -233,6 +233,169 @@ console.log('\nREGRA DAS PROPOSIÇÕES')
   }
 }
 
+// Lente mundial e detecção de país: lógica pura, sem rede. Os negativos são as
+// armadilhas que a medição encontrou — "guerra" de preços, o "ataque" do time,
+// o "US" do torneio e o pronome, o verbo "irá" e "irão", o hospital
+// Sírio-Libanês —, e cada uma voltaria na próxima mudança de vocabulário sem
+// um caso que a denuncie.
+console.log('\nLENTE MUNDIAL')
+{
+  const { avaliarMundo, detectarTeatros, urgenciaMundo } = await import('../src/lib/mundo.js')
+  const { detectarPaises } = await import('../src/lib/geo.js')
+  const conferir = (nome, ok, nota) => {
+    if (ok) {
+      passou += 1
+      console.log(`  \x1b[32m✓\x1b[0m ${nome.padEnd(36)} \x1b[2m${nota}\x1b[0m`)
+    } else {
+      falhou += 1
+      problemas.push(`lente mundial: ${nome}`)
+      console.log(`  \x1b[31m✗\x1b[0m ${nome.padEnd(36)} ${nota}`)
+    }
+  }
+
+  const casos = [
+    ['Rússia lança mísseis contra Kiev durante a madrugada', true],
+    ['Israel bombardeia Rafah, no sul da Faixa de Gaza', true],
+    ['Pentágono envia porta-aviões ao Caribe', true],
+    ['Irã ameaça fechar o Estreito de Ormuz', true],
+    ['Houthis atacam navio mercante no Mar Vermelho', true],
+    ['US airstrike kills militants in Somalia', true],
+    ['NATO allies boost troops on the eastern flank', true],
+    ['Ukraine says Russian drones hit Kharkiv overnight', true],
+    ['Supermercados dos EUA travam guerra de preços com a China', false],
+    ['Ataque do Flamengo decide clássico contra o Vasco', false],
+    ['Call of Duty ganha novo trailer com guerra na Ucrânia', false],
+    ['Alcaraz vence a final do US Open em Nova York', false],
+    ['Tell us what you think about the new phone', false],
+    ['Irá assumir o cargo na próxima semana, diz ministro', false],
+    ['Os termômetros irão variar ao longo da semana', false],
+    ['Paciente segue internado no Hospital Sírio-Libanês', false],
+    ['Hackers invadem site de prefeitura alemã', false],
+  ]
+  for (const [texto, esperado] of casos) {
+    const r = avaliarMundo(texto)
+    conferir(`${esperado ? 'aprova' : 'recusa'}: ${texto.slice(0, 26)}…`, r.mundo === esperado,
+      r.mundo === esperado ? (r.termos.join(', ') || 'sem termo') : `esperado ${esperado}, termos: ${r.termos.join(', ')}`)
+  }
+
+  const paises = [
+    ['U.S. troops arrive in Poland', 'United States of America', true],
+    ['Alcaraz vence a final do US Open', 'United States of America', false],
+    ['Help us build a better city', 'United States of America', false],
+    ['Irá assumir o cargo, diz ministro', 'Iran', false],
+    ['Irã retoma enriquecimento de urânio', 'Iran', true],
+    ['Boletim do Hospital Sírio-Libanês', 'Syria', false],
+  ]
+  for (const [texto, pais, esperado] of paises) {
+    const achou = detectarPaises(texto).includes(pais)
+    conferir(`${esperado ? 'país' : 'sem país'}: ${texto.slice(0, 24)}…`, achou === esperado, `${pais}: ${achou}`)
+  }
+
+  conferir('teatro: Zelensky em Kiev', detectarTeatros('Zelensky recebe aliados em Kiev').includes('russia-ucrania'), 'russia-ucrania')
+  conferir('teatro: "irá" não é o Irã', detectarTeatros('Irá assumir o cargo').length === 0, 'nenhum teatro')
+  conferir('teatro: Índia e Paquistão juntos', detectarTeatros('Índia acusa Paquistão de ataque').includes('india-paquistao')
+    && !detectarTeatros('Índia lança satélite').includes('india-paquistao'), 'só com os dois')
+  conferir('urgência: invasão militar', urgenciaMundo('Rússia inicia invasão terrestre no norte') === 'CRITICO', 'CRITICO')
+  conferir('urgência: invasão de site', urgenciaMundo('Hackers anunciam invasão de site do governo') !== 'CRITICO', 'não é CRITICO')
+  conferir('urgência: 45 mortos', urgenciaMundo('Bombardeio deixa 45 mortos em Gaza') === 'CRITICO', 'CRITICO')
+}
+
+// MUNDO & CONFLITOS — as cinco rotas novas.
+//
+// A forma, e três invariantes que a interface assume e nenhum código de status
+// denunciaria: o total de matérias nunca é menor que o de um teatro, a
+// distribuição por urgência soma o total, e a página nunca passa de 20 itens.
+// E a separação que justifica a área existir à parte: notícia que só a lente
+// mundial aprovou NÃO pode vazar para /news nem para o clipping.
+console.log('\nMUNDO & CONFLITOS')
+{
+  const somaUrgencia = (u) => Object.values(u || {}).reduce((a, n) => a + n, 0)
+  const noticiaValida = (n) => n && typeof n.titulo === 'string' && ['brasil', 'mundo'].includes(n.escopo)
+    && ['pt', 'en'].includes(n.idioma) && Array.isArray(n.teatros) && Array.isArray(n.paises)
+    && ['CRITICO', 'ALTO', 'MEDIO', 'BAIXO'].includes(n.urgencia)
+    && (n.url === null || /^https?:\/\//.test(n.url))
+  const paginaValida = (p) => p && Array.isArray(p.itens) && p.itens.length <= 20 && p.porPagina === 20
+    && p.pagina >= 1 && p.pagina <= p.paginas && p.itens.every(noticiaValida)
+
+  for (const rota of ['/api/mundo/panorama', '/api/mundo/pais/Russia', '/api/mundo/teatro/russia-ucrania',
+    '/api/mundo/feed', '/api/mundo/metodo', '/api/news/countries?escopo=mundo']) {
+    await checar(`${rota.replace('/api', '').slice(0, 24)} sem sessão`, rota, () => 'recusa correta', { status: 401, semSessao: true })
+  }
+
+  await checar('GET /mundo/panorama', '/api/mundo/panorama?days=30', (b) => {
+    if (!b?.totais || !Array.isArray(b.teatros) || !Array.isArray(b.paises) || !Array.isArray(b.destaques)) return false
+    if (b.teatros.length !== 16) return false
+    const maior = Math.max(0, ...b.teatros.map((t) => t.total))
+    if (b.totais.materias < maior) return false
+    if (!b.teatros.every((t) => somaUrgencia(t.porUrgencia) === t.total && t.manchetes.length <= 3
+      && t.manchetes.every(noticiaValida) && (t.total > 0 || t.ultimaMencao === null))) return false
+    if (b.paises.some((p) => p.nome === 'Brazil') || b.paises.length > 25) return false
+    if (b.destaques[0]?.nome !== 'United States of America') return false
+    return `${b.totais.materias} matérias, ${b.totais.teatrosComCobertura} de ${b.teatros.length} teatros com cobertura`
+  })
+  await checar('GET /mundo/pais/:nome', '/api/mundo/pais/United%20States%20of%20America?days=90', (b) =>
+    b?.iso === 'US' && somaUrgencia(b.cobertura?.porUrgencia) === b.cobertura.total
+      && Array.isArray(b.cobertura.porDia) && b.cobertura.porFonte.length <= 8
+      && b.coMencionados.length <= 10 && !b.coMencionados.some((p) => p.nome === b.pais)
+      && paginaValida(b.noticias) && typeof b.ransomware?.disponivel === 'boolean'
+      && `${b.cobertura.total} matérias, ${b.noticias.paginas} página(s)`)
+  await checar('GET /mundo/pais (fora do catálogo)', '/api/mundo/pais/Atlantida', (b) => b?.error && 'recusa correta', { status: 404 })
+  await checar('GET /mundo/pais (teatro inválido)', '/api/mundo/pais/Russia?teatro=nao-existe', (b) => b?.campo === 'teatro' && 'recusa correta', { status: 400 })
+  await checar('GET /mundo/pais (idioma inválido)', '/api/mundo/pais/Russia?idioma=xx', (b) => b?.campo === 'idioma' && 'recusa correta', { status: 400 })
+  await checar('GET /mundo/pais (page=-5)', '/api/mundo/pais/Russia?page=-5', (b) => b?.noticias?.pagina === 1 && 'presa em 1')
+
+  await checar('GET /mundo/teatro/:id', '/api/mundo/teatro/russia-ucrania?days=90', (b) =>
+    b?.teatro?.id === 'russia-ucrania' && Array.isArray(b.teatro.regras) && Array.isArray(b.teatro.regras[0])
+      && somaUrgencia(b.cobertura?.porUrgencia) === b.cobertura.total && b.paises.length <= 15
+      && paginaValida(b.noticias) && b.noticias.itens.every((n) => n.teatros.includes('russia-ucrania'))
+      && b.teatro.paisesDescritos?.length === b.teatro.paises.length && b.teatro.paisesDescritos.every((p) => p.pt && p.iso)
+      && `${b.cobertura.total} matérias, ${b.paises.length} países citados`)
+  await checar('GET /mundo/teatro (desconhecido)', '/api/mundo/teatro/nao-existe', (b) => b?.error && 'recusa correta', { status: 404 })
+  await checar('GET /mundo/teatro (país inválido)', '/api/mundo/teatro/israel-gaza?pais=Atlantida', (b) => b?.campo === 'pais' && 'recusa correta', { status: 400 })
+
+  const feedMundo = await checar('GET /mundo/feed', '/api/mundo/feed?days=90', (b) =>
+    paginaValida(b) && b.periodoDias === 90 && `${b.total} notícias em ${b.paginas} página(s)`)
+  await checar('GET /mundo/feed (urgência inválida)', '/api/mundo/feed?urgencia=URGENTE', (b) => b?.campo === 'urgencia' && 'recusa correta', { status: 400 })
+  await checar('GET /mundo/feed (page=999999)', '/api/mundo/feed?page=999999', (b) => paginaValida(b) && b.pagina === b.paginas && `presa em ${b.pagina}`)
+  await checar('GET /mundo/feed (q com %)', '/api/mundo/feed?q=100%25', (b) => paginaValida(b) && `${b.total} resultado(s), curinga escapado`)
+  await checar('GET /mundo/feed (filtro en)', '/api/mundo/feed?idioma=en&days=90', (b) =>
+    paginaValida(b) && b.itens.every((n) => n.idioma === 'en') && `${b.total} em inglês`)
+  await checar('GET /mundo/metodo', '/api/mundo/metodo', (b) =>
+    Number.isInteger(b?.versao) && typeof b.regra === 'string' && b.teatros?.length === 16 && Array.isArray(b.fontes)
+      && `versão ${b.versao}, ${b.fontes.length} fonte(s) internacionais`)
+  await checar('GET /news/countries?escopo=mundo', '/api/news/countries?escopo=mundo&days=90', (b) =>
+    Array.isArray(b?.items) && Array.isArray(b.catalogo) && Number.isInteger(b.maximo)
+      && `${b.items.length} países, ${b.totalAnalisado} matérias`)
+  await checar('GET /news/countries (escopo inválido)', '/api/news/countries?escopo=marte', (b) => b?.campo === 'escopo' && 'recusa correta', { status: 400 })
+
+  // A SEPARAÇÃO. Junta as notícias só-mundo de três páginas do feed e confere
+  // que nenhuma está no feed de defesa nem no clipping, com a janela máxima.
+  const soMundo = new Set()
+  if (feedMundo) {
+    for (let p = 1; p <= 3; p += 1) {
+      const r = await fetch(`${BASE}/api/mundo/feed?days=3650&page=${p}`, { headers: TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {} })
+      const b = await r.json().catch(() => null)
+      for (const n of b?.itens || []) if (n.escopo === 'mundo') soMundo.add(n.id)
+    }
+  }
+  await checar('/news sem matéria só-mundo', '/api/news?days=3650&limit=200', (b) =>
+    Array.isArray(b?.items) && !b.items.some((i) => soMundo.has(i.id)) && `${soMundo.size} só-mundo conferidas`)
+  // O DENOMINADOR DO FILTRO DO BRASIL. A taxa "X de Y aprovados" não pode
+  // contar o que só a lente mundial gravou, e as duas respostas que expõem o
+  // total precisam usar a mesma régua. Se só `/news/stats` voltar a contar as
+  // só-mundo, `coletados` da janela máxima passa de `totalCollected` (1.211
+  // contra 888 na cópia do acervo medida). É uma guarda parcial: se as duas
+  // regredirem juntas, esta checagem não percebe.
+  const noticias = await checar('/news totalCollected', '/api/news?limit=1', (b) =>
+    Number.isInteger(b?.totalCollected) && `${b.totalCollected} coletados sem só-mundo`)
+  await checar('/news/stats filtro sem só-mundo', '/api/news/stats?days=3650', (b) =>
+    Number.isInteger(b?.filtro?.coletados) && b.filtro.aprovados <= b.filtro.coletados
+      && (!noticias || b.filtro.coletados <= noticias.totalCollected)
+      && `${b.filtro.aprovados} de ${b.filtro.coletados}`)
+  await checar('/news/clipping sem matéria só-mundo', '/api/news/clipping?days=3650&limit=60', (b) =>
+    Array.isArray(b?.news) && !b.news.some((i) => soMundo.has(i.id)) && `${soMundo.size} só-mundo conferidas`)
+}
+
 console.log('\nERROS')
 await checar('GET rota inexistente', '/api/nao-existe', (b) => b?.error && 'devolve JSON de erro', { status: 404 })
 

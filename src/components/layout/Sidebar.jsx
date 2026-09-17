@@ -6,6 +6,7 @@ import {
   UserCircle, ShieldCheck, ShieldAlert, FileText, ClipboardList, Search, FlaskConical, Crosshair,
   Link2,
   Globe2,
+  Swords,
 } from 'lucide-react'
 import Logo from '../ui/Logo'
 import { useAuthStore } from '../../store/authStore'
@@ -70,6 +71,10 @@ const NAV_SECTIONS = [
       // mundo esta dizendo, e o que isso tem a ver com o Brasil"), e a unica
       // que cruza duas fontes independentes pelo codigo ISO.
       { to: '/mapa', label: 'Mapa estratégico', icon: Globe2, requiresAuth: true },
+      // O MAPA CONTA O RECORTE BRASIL; ESTA ÁREA CONTA O MUNDO. Estados Unidos,
+      // guerras e teatros em curso — o que a lente de defesa do Brasil
+      // descartava na entrada e a lente internacional passou a gravar.
+      { to: '/mundo', label: 'Mundo & Conflitos', icon: Swords, requiresAuth: true },
       { to: '/economia', label: 'Economia & Defesa', icon: DollarSign, requiresAuth: true },
       { to: '/industria', label: 'Base Industrial (BID)', icon: Factory, requiresAuth: true },
       { to: '/legislativo', label: 'Radar Legislativo', icon: Landmark, requiresAuth: true },

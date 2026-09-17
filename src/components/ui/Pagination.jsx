@@ -51,7 +51,7 @@ export default function Pagination({ page, pages, onChange, total, label = 'iten
 
       {typeof total === 'number' && (
         <span className="ml-2 w-full text-center text-xs muted sm:w-auto">
-          {total} {label} · página {page} de {pages}
+          {total.toLocaleString('pt-BR')} {label} · página {page.toLocaleString('pt-BR')} de {pages.toLocaleString('pt-BR')}
         </span>
       )}
     </nav>
