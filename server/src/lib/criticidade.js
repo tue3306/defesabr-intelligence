@@ -95,4 +95,37 @@ export function criticidadeDoIncidente({ website, sector } = {}) {
   return { nivel: 'BAIXO', motivo: 'Sem setor nem domínio identificáveis', natureza: 'indefinido' }
 }
 
-export default { criticidadeDoIncidente, NIVEIS }
+/**
+ * A régua publicada em `/api/metodo`.
+ *
+ * Os degraus saem das MESMAS listas que a função usa — escrever a explicação à
+ * mão criaria uma segunda verdade, que envelhece na primeira vez que alguém
+ * acrescentar um setor e esquecer do texto.
+ */
+export const METODO_CRITICIDADE = {
+  pergunta: 'Quanto o ataque a ESTA organização importa para quem acompanha segurança e defesa do Brasil.',
+  niveis: NIVEIS,
+  degraus: [
+    {
+      nivel: 'CRITICO',
+      criterio: 'Endereço do Estado brasileiro, ou setor de infraestrutura crítica.',
+      exemplos: [...DOMINIO_ESTADO.map((d) => d.rotulo), ...[...SETOR_CRITICO].map((s) => `Setor ${s}`)],
+    },
+    {
+      nivel: 'ALTO',
+      criterio: 'Serviço essencial, ensino superior ou terceiro setor.',
+      exemplos: [...[...SETOR_ESSENCIAL].map((s) => `Setor ${s}`), 'Ensino superior (.edu.br)', 'Organização sem fins lucrativos (.org.br)'],
+    },
+    { nivel: 'MEDIO', criterio: 'Empresa brasileira identificada pelo domínio, ou setor produtivo nomeado pela fonte.', exemplos: ['Empresa brasileira (.com.br)'] },
+    { nivel: 'BAIXO', criterio: 'Sem setor nem domínio que permitam classificar.', exemplos: [] },
+  ],
+  foraDaConta: [
+    'TAMANHO DO VAZAMENTO. A fonte traz o número, mas quem o declara é o atacante, que tem interesse '
+      + 'em inflá-lo: usá-lo seria deixar o criminoso calibrar a escala.',
+    'RECÊNCIA. Um ataque a um ministério em 2023 não é menos grave que o de ontem — é menos ATUAL, e '
+      + 'isso a data já informa.',
+  ],
+  ressalva: 'Não é gravidade técnica do incidente (ninguém publica isso) nem dano financeiro.',
+}
+
+export default { criticidadeDoIncidente, NIVEIS, METODO_CRITICIDADE }

@@ -260,11 +260,14 @@ export function useExportacoes() {
  * um a dois anos de defasagem, o que serve para série histórica e não serve
  * para dizer a que taxa o dólar fechou hoje. O SGS entrega o dado do dia.
  */
-export function useIndicadoresBcb() {
+export function useIndicadoresBcb(gatilho = 0) {
+  // `gatilho` existe para a tela de Economia poder se atualizar sozinha sem F5:
+  // basta incrementar um contador no intervalo que ela escolher. Com o valor
+  // padrão o comportamento é o de sempre — busca uma vez, na montagem.
   const { dados, aoVivo, carregando } = useDaApi(async () => {
     const d = await viaPonte('GET /economy/bcb', {})
     return Object.keys(d?.series || {}).length ? d : null
-  })
+  }, [gatilho])
 
   return { series: dados?.series || null, provider: dados?.provider, aoVivo, carregando }
 }

@@ -21,6 +21,19 @@ export const urgencyMeta = {
   BAIXO: { label: 'BAIXO', classes: 'bg-military-green/20 text-emerald-800 dark:text-emerald-300 border-military-green/40' },
 }
 
+// -----------------------------------------------------------------------------
+// A COR DE CADA NÍVEL, EM UM LUGAR SÓ
+//
+// Gráfico de barras, barra de distribuição e medidor pintavam a escala com hex
+// escrito na própria tela — três cópias da mesma decisão, e nenhuma delas
+// mudava quando o modo para daltonismo era ligado.
+//
+// As variáveis vivem em `src/index.css` e trocam inteiras sob
+// `[data-daltonico="1"]`. Quem desenha pede a cor por nome e não precisa saber
+// qual paleta está ativa.
+// -----------------------------------------------------------------------------
+export const corDoNivel = (nivel) => `var(--nivel-${String(nivel || 'baixo').toLowerCase()}, #64748b)`
+
 // Cores por nível de alerta do dia (a chave é o enum; o label é o texto exibido).
 export const alertMeta = {
   NORMAL: { label: 'NORMAL', classes: 'bg-military-green/20 text-emerald-800 dark:text-emerald-300 border-military-green/50', value: 18 },
@@ -47,8 +60,37 @@ export const categoryColors = {
   'Proteção Civil': '#b5651d',    // laranja-terra, defesa civil
 }
 
+/**
+ * Categorias na paleta segura para daltonismo.
+ *
+ * A paleta normal usa verde, teal, roxo, âmbar, ouro e vermelho — e na
+ * deuteranopia o verde das Forças Armadas, o ouro da Diplomacia e o vermelho do
+ * Orçamento colapsam em tons vizinhos de mostarda. Aqui as dez categorias saem
+ * de Okabe-Ito mais dois tons de apoio, alternando matiz e luminosidade para
+ * vizinhas nunca ficarem parecidas.
+ */
+const categoryColorsDaltonico = {
+  'Forças Armadas': '#0072b2',
+  'Programas & Meios': '#56b4e9',
+  Cibersegurança: '#cc79a7',
+  Fronteiras: '#e69f00',
+  Indústria: '#7f7f7f',
+  Diplomacia: '#f0e442',
+  Orçamento: '#d55e00',
+  Inteligência: '#004c6d',
+  'Segurança Pública': '#009e73',
+  'Proteção Civil': '#a6761d',
+}
+
+/** O modo está ligado? Lido do DOM para não criar dependência de store aqui. */
+const daltonico = () => {
+  if (typeof document === 'undefined') return false
+  return document.documentElement.dataset.daltonico === '1'
+}
+
 export function categoryColor(cat) {
-  return categoryColors[cat] || '#64748b'
+  const paleta = daltonico() ? categoryColorsDaltonico : categoryColors
+  return paleta[cat] || categoryColors[cat] || '#64748b'
 }
 
 /**

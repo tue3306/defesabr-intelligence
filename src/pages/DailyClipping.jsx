@@ -38,7 +38,7 @@ import EventosConsolidados from '../components/clipping/EventosConsolidados'
 import { useNewsStore } from '../store/newsStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { URGENCY_LEVELS } from '../data/mockData'
-import { alertMeta, categoryColor, clipboard, urgencyMeta } from '../utils/textUtils'
+import { alertMeta, categoryColor, clipboard, urgencyMeta , corDoNivel } from '../utils/textUtils'
 import { formatDateBR, formatDateTimeBR, formatFullDate } from '../utils/dateUtils'
 import { exportClippingToPDF } from '../utils/exportUtils'
 
@@ -643,12 +643,9 @@ function RelevantesParaOBrasil() {
  */
 function NivelDeAlerta({ level, score, basis, distribuicao }) {
   const ORDEM = ['CRITICO', 'ALTO', 'MEDIO', 'BAIXO']
-  const COR = {
-    CRITICO: '#c0392b',
-    ALTO: '#d4841a',
-    MEDIO: '#bea01e',
-    BAIXO: '#2e7d46',
-  }
+  // A escala vem de `corDoNivel`: uma fonte só, que troca junto com o modo
+  // para daltonismo.
+  const COR = Object.fromEntries(ORDEM.map((k) => [k, corDoNivel(k)]))
   const total = ORDEM.reduce((soma, k) => soma + (distribuicao?.[k] || 0), 0)
 
   if (!level || !total) {

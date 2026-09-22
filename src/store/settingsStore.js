@@ -15,6 +15,10 @@ export const useSettingsStore = create(
       // vinham desligadas. Ha um backend desde entao, ele coleta de 50 fontes
       // periodicamente, e o texto so servia para desorientar quem chegasse.
       notificationsEnabled: true,
+      // Paleta segura para daltonismo. Ver o bloco em src/index.css: a escala
+      // de urgência é vermelho → verde, e na deuteranopia os dois extremos são
+      // a mesma cor. Ligado aqui, o produto inteiro troca de paleta.
+      daltonismo: false,
       // Áreas temáticas de maior interesse do usuário (filtra/destaca conteúdo)
       interestAreas: [],
       // Onboarding (tour de boas-vindas) — exibido apenas na 1ª visita
@@ -37,6 +41,11 @@ export const useSettingsStore = create(
             : [...get().interestAreas, area],
         }),
       toggleNotifications: () => set({ notificationsEnabled: !get().notificationsEnabled }),
+      toggleDaltonismo: () => {
+        const next = !get().daltonismo
+        set({ daltonismo: next })
+        applyDaltonismo(next)
+      },
       completeOnboarding: () => set({ onboardingDone: true }),
     }),
     // Chave v3: descarta o estado antigo, que trazia as fontes RSS habilitadas
@@ -44,6 +53,19 @@ export const useSettingsStore = create(
     { name: 'defesabr-settings-v3' }
   )
 )
+
+/**
+ * Liga a paleta segura no <html>, de onde o CSS e `categoryColor` a leem.
+ *
+ * Marca no elemento raiz, e não num contexto de React, porque quem precisa da
+ * informação não é só componente: as variáveis de `index.css` reagem ao
+ * atributo, e gráfico desenhado em canvas lê pelo DOM.
+ */
+export function applyDaltonismo(ligado) {
+  if (typeof document === 'undefined') return
+  if (ligado) document.documentElement.dataset.daltonico = '1'
+  else delete document.documentElement.dataset.daltonico
+}
 
 // Aplica a classe `dark` no <html>
 export function applyTheme(theme) {

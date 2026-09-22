@@ -39,7 +39,9 @@ export default function Footer() {
       <div className="mx-auto mt-4 flex max-w-7xl flex-wrap items-center justify-center gap-x-4 gap-y-1 border-t border-white/[0.06] pt-4 text-xs muted">
         <Link to="/sobre" className="hover:text-brand-400 dark:hover:text-brand-300">Sobre</Link>
         <span className="text-gray-600">·</span>
-        <Link to="/sobre" className="hover:text-brand-400 dark:hover:text-brand-300">Dados e privacidade</Link>
+        <Link to="/metodologia" className="hover:text-brand-400 dark:hover:text-brand-300">Como decidimos</Link>
+        <span className="text-gray-600">·</span>
+        <Link to="/privacidade" className="hover:text-brand-400 dark:hover:text-brand-300">Privacidade e LGPD</Link>
         {podeVerTour && (
           <>
             <span className="text-gray-600">·</span>

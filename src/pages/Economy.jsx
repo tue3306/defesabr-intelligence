@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   DollarSign, TrendingUp, Percent, Shield, Landmark, Activity, Globe2,
@@ -6,6 +7,7 @@ import {
 import MetricCard from '../components/ui/MetricCard'
 import ExchangeWidget from '../components/ui/ExchangeWidget'
 import Sparkline from '../components/charts/Sparkline'
+import SeriesBcb from '../components/charts/SeriesBcb'
 import ComparisonBarChart from '../components/charts/ComparisonBarChart'
 import Badge from '../components/ui/Badge'
 import InfoTooltip from '../components/ui/InfoTooltip'
@@ -25,7 +27,17 @@ export default function Economy() {
   // para treze países, e é de lá que elas passam a sair.
   const vizinhanca = useComparacaoPIB('vizinhanca')
   const gastoGlobal = useGastoGlobal()
-  const bcb = useIndicadoresBcb()
+  // ATUALIZA SOZINHA. O Banco Central publica dólar e euro em dias úteis e os
+  // índices uma vez por mês; o servidor relê a cada hora. A tela relê a cada
+  // minuto para que o valor mostrado nunca seja o de quando a aba foi aberta —
+  // e cada cartão diz a data de referência, para "ao vivo" não virar promessa
+  // de tempo real que a fonte não faz.
+  const [recarga, setRecarga] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => setRecarga((n) => n + 1), 60_000)
+    return () => clearInterval(id)
+  }, [])
+  const bcb = useIndicadoresBcb(recarga)
   const pib = usePib()
   const potencias = useComparacaoPIB('potencias')
   const potenciasPct = potencias.data
@@ -77,6 +89,23 @@ export default function Economy() {
             </p>
           )}
       </div>
+
+      {/* SÉRIES DO BANCO CENTRAL — a história por trás de cada cartão acima */}
+      {bcb.series && (
+        <div className="card p-5">
+          <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-base font-bold tracking-tight">Séries do Banco Central</h2>
+            <span className="text-[11px] muted">relê sozinha a cada minuto</span>
+          </div>
+          <p className="mb-3 text-sm muted">
+            O mesmo dado dos cartões acima, mas ao longo do tempo: escolha a série e veja onde o valor
+            de hoje cai dentro do período.
+          </p>
+          <ErrorBoundary variant="inline" scope="Séries do Banco Central">
+            <SeriesBcb series={bcb.series} />
+          </ErrorBoundary>
+        </div>
+      )}
 
       {/* CÂMBIO + INFLAÇÃO */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

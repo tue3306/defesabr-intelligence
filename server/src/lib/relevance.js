@@ -527,6 +527,27 @@ const RX_CATEGORIA = REGRAS_CATEGORIA.map((r) => ({ cat: r.cat, rxs: r.termos.ma
 const RX_URGENCIA = REGRAS_URGENCIA.map((r) => ({ nivel: r.nivel, rxs: r.termos.map((t) => fronteira(normalizar(t))) }))
 
 /**
+ * A escala de urgência, publicada em `/api/metodo`.
+ *
+ * Sai das mesmas listas que classificam — com uma amostra dos termos, para
+ * quem lê a tela poder conferir por que uma manchete virou ALTO e não MÉDIO.
+ */
+export const METODO_URGENCIA = {
+  regra: 'O nível é o do primeiro degrau cujo vocabulário aparece no título ou no resumo. Nenhum '
+    + 'termo de nenhum degrau: BAIXO.',
+  niveis: [
+    ...REGRAS_URGENCIA.map((r) => ({
+      nivel: r.nivel,
+      termos: r.termos.length,
+      exemplos: r.termos.slice(0, 8),
+    })),
+    { nivel: 'BAIXO', termos: 0, exemplos: [] },
+  ],
+  ressalva: 'Urgência é o quanto o fato pede atenção agora, pelo vocabulário que a imprensa usou. '
+    + 'Não mede gravidade real nem prevê consequência.',
+}
+
+/**
  * A URGÊNCIA é medida só na ABERTURA. Duas razões, ambas observadas:
  *
  *  1. Mesmo sem o rodapé, num texto de 2 mil caracteres quase sempre existe

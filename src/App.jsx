@@ -4,17 +4,28 @@ import { Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Layout from './components/layout/Layout'
 import PublicLayout from './components/layout/PublicLayout'
+import AvisoPrivacidade from './components/system/AvisoPrivacidade'
+import AlertaCritico from './components/system/AlertaCritico'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import ErrorBoundary from './components/system/ErrorBoundary'
 import { useAuthStore } from './store/authStore'
-import { useSettingsStore, applyTheme } from './store/settingsStore'
+import { useSettingsStore, applyTheme, applyDaltonismo } from './store/settingsStore'
 import './services'
 
 // Escolhe o layout: deslogado (Visitante) usa o PÚBLICO, sem menu lateral;
 // autenticado usa o layout do app (com sidebar adaptada ao perfil).
 function RootLayout() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  return isAuthenticated ? <Layout /> : <PublicLayout />
+  return (
+    <>
+      {isAuthenticated ? <Layout /> : <PublicLayout />}
+      {/* Fora do layout de dentro e do de fora: o aviso vale para visitante e
+          para quem já entrou, e não pode sumir ao trocar de um para o outro. */}
+      <AvisoPrivacidade />
+      {/* Só o nível crítico interrompe; o resto segue no toast do canto. */}
+      <AlertaCritico />
+    </>
+  )
 }
 
 // Lazy loading das páginas para reduzir o bundle inicial
@@ -31,6 +42,10 @@ const DataCharts = lazy(() => import('./pages/DataCharts'))
 const Economy = lazy(() => import('./pages/Economy'))
 const Archive = lazy(() => import('./pages/Archive'))
 const About = lazy(() => import('./pages/About'))
+// As duas páginas que explicam a plataforma a quem chega sem contexto: como
+// cada número é calculado, e o que o site guarda sobre quem o usa.
+const Methodology = lazy(() => import('./pages/Methodology'))
+const Privacy = lazy(() => import('./pages/Privacy'))
 const Settings = lazy(() => import('./pages/Settings'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 const Presentation = lazy(() => import('./pages/Presentation'))
@@ -80,12 +95,20 @@ function Guarded({ capability, scope, children }) {
 
 export default function App() {
   const theme = useSettingsStore((s) => s.theme)
+  const daltonismo = useSettingsStore((s) => s.daltonismo)
   const { pathname } = useLocation()
 
   // Garante a classe de tema no primeiro render.
   useEffect(() => {
     applyTheme(theme)
   }, [theme])
+
+  // A paleta segura vive num atributo do <html>: precisa ser reaplicada na
+  // carga, senão a preferência guardada só valeria depois de alguém mexer no
+  // interruptor de novo.
+  useEffect(() => {
+    applyDaltonismo(daltonismo)
+  }, [daltonismo])
 
   // Navegação por rota deve começar no topo (HashRouter não faz isso sozinho).
   useEffect(() => {
@@ -137,6 +160,8 @@ export default function App() {
             * existem. */}
           <Route path="/aprender" element={<Page scope="Centro Educacional"><Learn /></Page>} />
           <Route path="/sobre" element={<Page scope="Sobre"><About /></Page>} />
+          <Route path="/metodologia" element={<Page scope="Metodologia"><Methodology /></Page>} />
+          <Route path="/privacidade" element={<Page scope="Privacidade"><Privacy /></Page>} />
 
           {/* ── USUÁRIO — leitura e acompanhamento ── */}
           <Route path="/painel" element={<Guarded scope="Painel"><Home /></Guarded>} />

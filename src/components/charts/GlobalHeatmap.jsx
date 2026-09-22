@@ -264,7 +264,20 @@ export default function GlobalHeatmap({
                   // marca em vez de uma cor de intensidade — presente e
                   // distinto, nunca apagado num produto sobre o Brasil.
                   const ehBrasil = nome === 'Brazil'
-                  const preenchimento = ehBrasil ? '#147a43' : corPara(p?.valor ?? (p ? 0 : null))
+                  // O PAÍS SELECIONADO PRECISA DE COR PRÓPRIA, E NÃO SÓ DE CONTORNO.
+                  //
+                  // O Brasil é a âncora e vive pintado de verde-marca. A seleção,
+                  // enquanto isso, era um traço dourado de 2px — invisível no
+                  // tamanho em que o mapa é desenhado. O resultado: clicar na
+                  // Rússia não mudava nada de óbvio, e o Brasil continuava sendo
+                  // a mancha viva da tela, como se seguisse selecionado.
+                  //
+                  // Agora quem está selecionado fica DOURADO, inclusive o Brasil.
+                  // Uma cor só significa uma coisa: verde é âncora, dourado é o
+                  // que você escolheu, a escala é cobertura.
+                  const preenchimento = selecionadoAqui
+                    ? '#caa733'
+                    : (ehBrasil ? '#147a43' : corPara(p?.valor ?? (p ? 0 : null)))
                   return (
                     <Geography
                       key={geo.rsmKey}
@@ -275,8 +288,8 @@ export default function GlobalHeatmap({
                       style={{
                         default: {
                           fill: preenchimento,
-                          stroke: selecionadoAqui ? '#caa733' : '#141c28',
-                          strokeWidth: selecionadoAqui ? 2 : 0.4,
+                          stroke: selecionadoAqui ? '#8a6d1f' : '#141c28',
+                          strokeWidth: selecionadoAqui ? 1.6 : 0.4,
                           outline: 'none',
                         },
                         hover: { fill: '#1f8a4c', outline: 'none', cursor: 'pointer' },
@@ -363,6 +376,7 @@ export default function GlobalHeatmap({
         {FAIXAS.slice(1).map((f) => <Legenda key={f.rotulo} cor={f.cor} rotulo={f.rotulo} />)}
         <Legenda cor={FAIXAS[0].cor} rotulo={FAIXAS[0].rotulo} />
         <Legenda cor="#147a43" rotulo="Brasil (âncora)" />
+        <Legenda cor="#caa733" rotulo="selecionado" />
       </div>
       <p className="mt-1.5 text-center text-[11px] muted">
         A cor mede <strong>volume de cobertura</strong>, não risco. Um país aparece mais porque a

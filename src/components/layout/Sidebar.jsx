@@ -113,6 +113,10 @@ const NAV_SECTIONS = [
     title: 'Recursos',
     items: [
       { to: '/aprender', label: 'Centro Educacional', icon: GraduationCap },
+      // A régua de cada número fica a um clique de onde o número aparece: sem
+      // isso, "Como a plataforma decide" só existiria para quem chegasse pelo
+      // rodapé.
+      { to: '/metodologia', label: 'Como decidimos', icon: Scale },
       { to: '/apresentacao', label: 'Apresentação', icon: Tv, requiresAuth: true },
     ],
   },

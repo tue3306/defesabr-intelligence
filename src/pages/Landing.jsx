@@ -178,6 +178,67 @@ export default function Landing() {
       </Section>
 
       {/* ═══════════════════════════════════════════════════════════════════
+          EXPLICADO PARA QUEM NUNCA VIU O ASSUNTO
+          ═══════════════════════════════════════════════════════════════════
+
+          A dobra acima é escrita no vocabulário de quem já trabalha com o
+          tema: "clipping", "correlação", "vazamento divulgado", "filtro
+          auditável". Para quem chegou sem esse repertório — um estudante, um
+          servidor de outra área, alguém que caiu aqui por um link — ela
+          informa pouco e intimida um bocado.
+
+          Esta seção responde as três perguntas que essa pessoa faz, nesta
+          ordem: o que é isto, serve para mim, e o que eu faço agora. Sem
+          jargão, e cada resposta aponta para uma tela que existe.
+          ═══════════════════════════════════════════════════════════════════ */}
+      {!isAuthenticated && (
+        <Section className="card p-6 sm:p-8">
+          <h2 className="text-xl font-extrabold tracking-tight sm:text-2xl">
+            Primeira vez aqui? Em uma frase:
+          </h2>
+          <p className="mt-2 max-w-3xl text-base leading-relaxed text-gray-700 dark:text-gray-300">
+            Um programa lê sozinho, o dia inteiro, o que jornais e órgãos do governo publicam sobre
+            defesa e segurança do Brasil — e também o que grupos criminosos divulgam quando atacam
+            empresas e órgãos públicos brasileiros. Ele separa o que interessa, organiza por assunto
+            e mostra tudo em uma tela só, sempre dizendo de onde tirou cada informação.
+          </p>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            <Simples
+              titulo="Você não precisa entender de defesa"
+              texto="Cada tela explica o que está mostrando, e todo termo técnico tem uma definição ao lado.
+                O Centro Educacional tem glossário e um quiz para aprender o vocabulário do zero."
+              paraOnde="/aprender"
+              rotulo="Começar pelo básico"
+            />
+            <Simples
+              titulo="Serve para estudo, trabalho ou curiosidade"
+              texto="Estudante que precisa de fonte confiável para um trabalho; profissional que acompanha
+                o setor; cidadão que quer saber se um órgão público teve dados vazados esta semana."
+              paraOnde="/clipping"
+              rotulo="Ver as notícias de hoje"
+            />
+            <Simples
+              titulo="Nenhum número aqui é chute"
+              texto="Toda classificação sai de uma regra escrita que você pode ler e discordar. Quando a
+                plataforma não sabe, ela mostra um traço — nunca um número aproximado."
+              paraOnde="/metodologia"
+              rotulo="Ver como decidimos"
+            />
+          </div>
+
+          <div className="mt-6 rounded-xl bg-gray-500/5 p-4 dark:bg-white/5">
+            <p className="text-sm font-bold">Como usar, em três passos</p>
+            <ol className="mt-2 space-y-1.5 text-sm text-gray-700 dark:text-gray-300">
+              <li><strong>1.</strong> Abra o <Link to="/clipping" className="font-semibold text-brand-600 hover:underline dark:text-brand-300">Clipping</Link> e veja o que foi publicado hoje, já separado por assunto.</li>
+              <li><strong>2.</strong> Crie uma conta (só usuário e senha) para salvar matérias e escolher os assuntos que te interessam.</li>
+              <li><strong>3.</strong> Se algo grave aparecer, a plataforma te avisa na tela — e explica por que aquilo é grave.</li>
+            </ol>
+          </div>
+        </Section>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════
           POR QUE PAGAR, EM VEZ DE ACOMPANHAR NOTÍCIA DE GRAÇA
           ═══════════════════════════════════════════════════════════════════
 
@@ -593,6 +654,27 @@ function ConceptOfDay() {
       <button onClick={() => setRevealed((r) => !r)} className="btn-ghost mt-3 self-start text-xs">
         {revealed ? (<><RotateCcw size={14} /> Ocultar</>) : 'Revelar definição'}
       </button>
+    </div>
+  )
+}
+
+/**
+ * Cartão da seção de primeira visita.
+ *
+ * Título afirmativo, texto sem jargão e UM caminho — três links num cartão de
+ * boas-vindas é a forma de não levar ninguém a lugar nenhum.
+ */
+function Simples({ titulo, texto, paraOnde, rotulo }) {
+  return (
+    <div className="rounded-xl border border-gray-200 p-4 dark:border-white/10">
+      <h3 className="text-sm font-bold tracking-tight">{titulo}</h3>
+      <p className="mt-1.5 text-sm leading-relaxed text-gray-700 dark:text-gray-300">{texto}</p>
+      <Link
+        to={paraOnde}
+        className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:underline dark:text-brand-300"
+      >
+        {rotulo} <ArrowRight size={14} />
+      </Link>
     </div>
   )
 }

@@ -36,7 +36,8 @@ import { useAuthStore } from '../store/authStore'
 import { useNewsVolume } from '../hooks/useNewsVolume'
 import { useGastoMilitar, useIndicadoresBcb, useIndiceDeAlerta } from '../hooks/useDadosReais'
 import { useSettingsStore } from '../store/settingsStore'
-import { alertMeta, categoryColor } from '../utils/textUtils'
+import { alertMeta, categoryColor , corDoNivel } from '../utils/textUtils'
+import { CATEGORIES } from '../data/mockData'
 import { formatTime, timeAgo } from '../utils/dateUtils'
 
 // Número em pt-BR. `toFixed(3)` escrevia o dólar como "R$ 5.170" — lido aqui como cinco mil.
@@ -73,6 +74,7 @@ export default function UserDashboard() {
   const unread = useNotificationStore((s) => s.unread)
   const favorites = useNewsStore((s) => s.favorites)
   const interestAreas = useSettingsStore((s) => s.interestAreas)
+  const toggleInterestArea = useSettingsStore((s) => s.toggleInterestArea)
   const volume = useNewsVolume(14)
   const gasto = useGastoMilitar()
 
@@ -238,25 +240,51 @@ export default function UserDashboard() {
             <Link to="/dados" className="btn-ghost text-sm"><Radar size={15} /> Séries e indicadores</Link>
             <Link to="/busca" className="btn-ghost text-sm"><Newspaper size={15} /> Buscar no acervo</Link>
           </div>
+          {/* ESCOLHER O INTERESSE ONDE ELE TEM EFEITO.
+            *
+            * Isto aqui era um VISOR: mostrava as áreas escolhidas e, quando não
+            * havia nenhuma, um link para Configurações. Quem quisesse trocar
+            * precisava sair do painel, achar a seção certa da outra tela e
+            * voltar — e o efeito da escolha (as matérias dessas áreas sobem na
+            * lista logo abaixo) acontece AQUI.
+            *
+            * Agora os botões são os próprios chips: um clique liga, outro
+            * desliga, e a lista de notícias abaixo se reordena na hora. */}
           <div className="min-w-0">
-            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider muted">Suas áreas de interesse</p>
-            {interestAreas.length > 0 ? (
-              <div className="flex flex-wrap gap-1.5">
-                {interestAreas.map((a) => (
-                  <span
-                    key={a}
-                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
-                    style={{ background: `${categoryColor(a)}22`, color: categoryColor(a) }}
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider muted">
+              Suas áreas de interesse{' '}
+              <span className="font-normal normal-case tracking-normal">— clique para ligar ou desligar</span>
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {CATEGORIES.map((cat) => {
+                const ligada = interestAreas.includes(cat)
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => toggleInterestArea(cat)}
+                    aria-pressed={ligada}
+                    title={ligada ? `Deixar de destacar ${cat}` : `Destacar ${cat} nas notícias`}
+                    className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium transition-colors ${
+                      ligada
+                        ? 'border-transparent'
+                        : 'border-gray-300 text-gray-600 hover:text-gray-900 dark:border-gray-600/50 dark:text-gray-400 dark:hover:text-gray-200'
+                    }`}
+                    style={ligada ? { background: `${categoryColor(cat)}22`, color: categoryColor(cat) } : undefined}
                   >
-                    <span className="h-1.5 w-1.5 rounded-full" style={{ background: categoryColor(a) }} /> {a}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <Link to="/configuracoes" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:underline dark:text-brand-300">
-                <Star size={13} /> Escolher áreas de interesse
+                    <span className="h-1.5 w-1.5 rounded-full" style={{ background: categoryColor(cat) }} />
+                    {cat}
+                  </button>
+                )
+              })}
+            </div>
+            <p className="mt-1.5 text-[11px] muted">
+              {interestAreas.length
+                ? `${interestAreas.length} área(s) — as matérias delas sobem para o topo da lista abaixo.`
+                : 'Nenhuma escolhida: as notícias aparecem por data.'}{' '}
+              <Link to="/configuracoes" className="font-semibold text-brand-600 hover:underline dark:text-brand-300">
+                Mais opções
               </Link>
-            )}
+            </p>
           </div>
         </div>
       </Section>
@@ -442,9 +470,9 @@ function greetingByHour() {
 // Cor sólida do nível de alerta (para a barra no cabeçalho escuro).
 function alertColor(level) {
   return {
-    NORMAL: '#2e7d46',
-    ATENCAO: '#caa733',
-    ALERTA: '#d4841a',
-    CRITICO: '#c0392b',
-  }[level] || '#caa733'
+    NORMAL: corDoNivel('normal'),
+    ATENCAO: corDoNivel('atencao'),
+    ALERTA: corDoNivel('alerta'),
+    CRITICO: corDoNivel('critico'),
+  }[level] || corDoNivel('atencao')
 }

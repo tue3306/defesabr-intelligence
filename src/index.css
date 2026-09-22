@@ -16,6 +16,44 @@
   --color-gold: #caa733;
   --color-surface: #232a33;   /* Card grafite */
   --color-bg: #15191e;        /* Fundo grafite */
+
+  /* ───────────────────────────────────────────────────────────────────────
+     AS CORES QUE SIGNIFICAM ALGUMA COISA
+
+     Urgência e nível de alerta são a escala vermelho → âmbar → amarelo →
+     verde. Para cerca de 8% dos homens (deuteranopia e protanopia, as formas
+     comuns de daltonismo), o vermelho do CRÍTICO e o verde do BAIXO são a
+     MESMA cor — ou seja, o degrau mais grave e o mais leve ficam
+     indistinguíveis justamente numa tela de alerta.
+
+     O rótulo escrito ("CRÍTICO") sempre esteve junto do selo, e é o que
+     garante a leitura. Mas gráfico de barras e mapa não têm rótulo em cada
+     pedaço, e é ali que a cor precisa carregar a informação sozinha.
+
+     Por isso a escala mora aqui, em variáveis: `[data-daltonico="1"]` troca
+     todas de uma vez pela paleta de Okabe-Ito, desenhada para permanecer
+     distinguível nos três tipos de daltonismo. Vermelho→verde vira
+     laranja→azul, que separa por MATIZ e por LUMINOSIDADE.
+     ─────────────────────────────────────────────────────────────────────── */
+  --nivel-critico: #c0392b;
+  --nivel-alto: #d4841a;
+  --nivel-medio: #bea01e;
+  --nivel-baixo: #2e7d46;
+  --nivel-normal: #2e7d46;
+  --nivel-atencao: #caa733;
+  --nivel-alerta: #d4841a;
+}
+
+[data-daltonico="1"] {
+  /* Okabe-Ito: vermelhão, laranja, amarelo e azul. Seguros para protanopia,
+     deuteranopia e tritanopia, e distintos também em escala de cinza. */
+  --nivel-critico: #d55e00;
+  --nivel-alto: #e69f00;
+  --nivel-medio: #f0e442;
+  --nivel-baixo: #0072b2;
+  --nivel-normal: #0072b2;
+  --nivel-atencao: #56b4e9;
+  --nivel-alerta: #e69f00;
 }
 html:not(.dark) {
   color-scheme: light;

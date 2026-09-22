@@ -9,6 +9,7 @@ import sistema from './routes/system.js'
 import autenticacao from './routes/auth.js'
 import inteligencia from './routes/intel.js'
 import guia from './routes/guia.js'
+import metodo from './routes/metodo.js'
 import notificacoes from './routes/notificacoes.js'
 import mundo from './routes/mundo.js'
 import { lerConta } from './lib/auth.js'
@@ -108,6 +109,7 @@ export function criarApp() {
   app.use('/api', dados)
   app.use('/api', inteligencia)
   app.use('/api', guia)
+  app.use('/api', metodo)
   app.use('/api', notificacoes)
   app.use('/api', mundo)
   app.use('/api', sistema)

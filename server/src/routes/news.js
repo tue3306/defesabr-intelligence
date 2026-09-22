@@ -6,6 +6,10 @@ import { avaliarRelevancia, classificar } from '../lib/relevance.js'
 import { UFS, REGIOES_ESTRATEGICAS, PAISES, detectarLugares, detectarPaises, nomePtDoPais, foraDaEscala, isoDoPais } from '../lib/geo.js'
 import { consolidar, LIMIAR_SIMILARIDADE, JANELA_HORAS } from '../lib/eventos.js'
 import { dias, limite } from '../lib/parametros.js'
+// O cálculo e a régua do nível de alerta moram em lib/alerta.js: o número
+// aparece na tela e é publicado em /api/metodo, então não pode viver escondido
+// dentro de um handler de rota.
+import { nivelDeAlerta } from '../lib/alerta.js'
 import { exigirPapel } from '../lib/auth.js'
 import { resumoCurto, urlSegura } from '../lib/saneamento.js'
 
@@ -32,59 +36,6 @@ const mapear = (a) => ({
 const SELECT_BASE = `
   SELECT a.*, s.name AS source_name, s.site_url AS source_site
   FROM articles a LEFT JOIN sources s ON s.id = a.source_id`
-
-/**
- * Nível de alerta do período.
- *
- * ─────────────────────────────────────────────────────────────────────────
- * ELE MARCAVA "CRÍTICO 100/100" SEMPRE, E A CULPA ERA DA AMOSTRA
- *
- * A função recebia `artigos` — a lista que o clipping já tinha montado. Só
- * que essa lista é ordenada por urgência (`CASE urgency WHEN 'CRITICO' THEN 1
- * …`) e cortada em `LIMIT 20`. Ou seja: os vinte itens que chegavam aqui eram,
- * por construção, os vinte MAIS URGENTES do período. Havendo vinte críticos no
- * acervo — e há —, a média de vinte pesos 100 dá exatamente 100.
- *
- * O painel exibia então "nível de alerta CRÍTICO · 100/100" todos os dias,
- * independentemente do que estivesse acontecendo no país. Um indicador que
- * nunca varia não informa nada; pior, gasta o degrau mais alto da escala em
- * rotina, e quem o vê todo dia para de olhar — que é o oposto do que um
- * alerta existe para fazer.
- *
- * Não era erro de fórmula: a média ponderada está certa. Era erro de
- * POPULAÇÃO. A correção é medir sobre TODAS as ocorrências relevantes da
- * janela, que é o universo sobre o qual a afirmação é feita.
- * ─────────────────────────────────────────────────────────────────────────
- *
- * A regra é exposta junto do número porque um índice sem método declarado é um
- * número que ninguém pode contestar — e portanto não vale nada.
- *
- * Sem ocorrências devolve `null`, não "NORMAL": ausência de dado não é calma.
- *
- * @param {Array} artigos  TODAS as ocorrências do período, não uma seleção
- *   ordenada por urgência. Passar a lista já cortada reintroduz o viés.
- */
-export function nivelDeAlerta(artigos) {
-  if (!artigos.length) {
-    return { level: null, score: null, basis: 'sem ocorrências no período', distribuicao: null }
-  }
-  const peso = { CRITICO: 100, ALTO: 70, MEDIO: 40, BAIXO: 15 }
-  const score = Math.round(artigos.reduce((s, a) => s + (peso[a.urgency] ?? 15), 0) / artigos.length)
-  const level = score >= 80 ? 'CRITICO' : score >= 60 ? 'ALERTA' : score >= 35 ? 'ATENCAO' : 'NORMAL'
-
-  // A distribuição viaja com o índice. Um número só não deixa ninguém
-  // discordar dele; "100 porque 20 de 20 eram críticos" deixa — e teria
-  // denunciado o viés no primeiro olhar, sem precisar ler o SQL.
-  const distribuicao = {}
-  for (const a of artigos) distribuicao[a.urgency || 'BAIXO'] = (distribuicao[a.urgency || 'BAIXO'] || 0) + 1
-
-  return {
-    level,
-    score,
-    basis: `média ponderada de ${artigos.length} ocorrência(s) relevante(s) do período`,
-    distribuicao,
-  }
-}
 
 // GET /api/news — feed com filtros
 router.get('/news', (req, res) => {

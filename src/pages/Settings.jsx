@@ -64,12 +64,41 @@ export default function Settings() {
 
 function AppearanceSection() {
   const { isDark, toggleTheme } = useTheme()
+  const daltonismo = useSettingsStore((st) => st.daltonismo)
+  const toggleDaltonismo = useSettingsStore((st) => st.toggleDaltonismo)
   return (
-    <Section icon={Palette} title="Aparência">
-      <div className="flex items-center justify-between">
+    <Section icon={Palette} title="Aparência e acessibilidade">
+      <div className="flex items-center justify-between gap-3">
         <span className="text-sm">Tema {isDark ? 'escuro' : 'claro'}</span>
-        <button onClick={toggleTheme} className="btn-ghost text-sm">
+        <button onClick={toggleTheme} className="btn-ghost shrink-0 text-sm">
           {isDark ? <><Sun size={15} /> Usar o claro</> : <><Moon size={15} /> Usar o escuro</>}
+        </button>
+      </div>
+
+      {/* A ESCALA DE URGÊNCIA É VERMELHO → VERDE, e é justamente o par que a
+        * forma mais comum de daltonismo não separa: CRÍTICO e BAIXO viram a
+        * mesma cor numa tela de alerta. Ligado aqui, gráficos, selos, mapa e
+        * categorias passam à paleta de Okabe-Ito — laranja → azul, que se
+        * distingue por matiz E por luminosidade. */}
+      <div className="mt-4 flex items-start justify-between gap-3 border-t border-gray-200 pt-4 dark:border-white/10">
+        <div className="min-w-0">
+          <p className="text-sm font-medium">Cores para daltonismo</p>
+          <p className="mt-0.5 text-xs leading-relaxed muted">
+            Troca a escala vermelho → verde por laranja → azul, que continua legível para quem não
+            distingue vermelho de verde. Vale para selos de urgência, gráficos, mapa e categorias.
+          </p>
+        </div>
+        <button
+          onClick={toggleDaltonismo}
+          role="switch"
+          aria-checked={daltonismo}
+          className={`shrink-0 rounded-lg border px-3 py-1.5 text-sm font-semibold transition-colors ${
+            daltonismo
+              ? 'border-transparent bg-brand-500 text-white'
+              : 'border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-white/15 dark:text-gray-200 dark:hover:bg-white/10'
+          }`}
+        >
+          {daltonismo ? 'Ligado' : 'Desligado'}
         </button>
       </div>
     </Section>

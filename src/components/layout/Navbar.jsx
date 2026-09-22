@@ -117,7 +117,11 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
                 <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-military-red opacity-60" />
                   <span className="relative flex h-4 min-w-4 items-center justify-center rounded-full bg-military-red px-1 text-[10px] font-bold text-white">
-                    {unread > 9 ? '9+' : unread}
+                    {/* O selo parava em "9+" e o cartão "Alertas não lidos" do
+                        painel mostrava o número inteiro: os dois discordavam na
+                        mesma tela, e quem via 9 no sino concluía que a contagem
+                        tinha travado. Agora o corte é 99, longe do uso normal. */}
+                    {unread > 99 ? '99+' : unread}
                   </span>
                 </span>
               )}
