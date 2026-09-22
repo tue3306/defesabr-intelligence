@@ -7,6 +7,48 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Não publicado]
 
+### Clareza, acessibilidade e privacidade
+
+**Adicionado**
+
+- **Página "Como a plataforma decide"** (`/metodologia`), pública: urgência,
+  criticidade, nível de alerta, força de correlação, filtro de relevância,
+  consolidação de eventos e lente mundial explicados em linguagem simples, com
+  os valores REAIS vindos de `GET /api/metodo` — rota nova, também pública.
+  Cada escala declara o que NÃO significa.
+- **Página "Privacidade e LGPD"** (`/privacidade`): inventário conferido no
+  código do que é e do que não é coletado, base legal, prazos, os dois
+  terceiros que recebem o IP (Google Fonts e jsDelivr) e os direitos do
+  titular. Aviso discreto no rodapé da tela, sem pedir consentimento de
+  teatro — não há rastreador para consentir.
+- **Alerta crítico com modal**, no máximo um por hora e com incidente na
+  frente da fila. Medido na instalação: 25 dos 40 avisos estavam como CRÍTICO
+  (o vocabulário conta "mortos" como nível máximo), então sem teto o modal
+  apareceria 25 vezes seguidas.
+- **Modo para daltonismo** em Configurações: a escala vermelho → verde vira
+  laranja → azul (Okabe-Ito) em selos, gráficos, mapa e categorias.
+- **Séries do Banco Central em gráfico** na tela de Economia, com média,
+  mínimo e máximo do período; a tela relê sozinha a cada minuto.
+- **Quiz do Centro Educacional de 14 para 44 questões**, em 10 categorias —
+  incluindo "Lendo a plataforma", que ensina a interpretar os próprios selos.
+- **Abertura para quem chega sem contexto** na página inicial: o que é a
+  plataforma, para quem serve e como usar, sem jargão.
+
+**Corrigido**
+
+- O selo do sino parava em "9+" enquanto o painel mostrava o total de não
+  lidas: os dois números discordavam na mesma tela, e 9 parecia contagem
+  travada. Conferido depois: sino 32, painel 32, API 32.
+- No mapa estratégico, o país selecionado só ganhava um contorno fino de 2px,
+  enquanto o Brasil vive pintado de verde-âncora — dava a impressão de que o
+  Brasil seguia selecionado ao escolher outro país. Agora o selecionado fica
+  dourado, e a legenda diz isso.
+- As áreas de interesse eram um visor no painel: para trocar era preciso ir a
+  Configurações e voltar. Agora são botões no próprio painel, onde a escolha
+  tem efeito.
+- A escala de cores dos níveis existia copiada em três telas; passou a sair de
+  variáveis CSS, em uma fonte só.
+
 ### Mundo & Conflitos
 
 **Adicionado**

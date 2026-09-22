@@ -524,6 +524,16 @@ SERVIDOR — 401 sem sessão, 403 com papel insuficiente.
 | `GET` | `/news/geo` | — | Menções a unidades da federação |
 | `GET` | `/news/:id` | — | Uma notícia, **com a explicação do filtro** |
 
+### Método e transparência
+
+| Método | Rota | Papel | O que faz |
+|---|---|---|---|
+| `GET` | `/metodo` | — | Todas as réguas: relevância, urgência, criticidade, nível de alerta, correlação, eventos, lente mundial e cadência da coleta |
+
+A página **Como a plataforma decide** (`/metodologia`) consome esta rota e explica cada
+escala em linguagem acessível, com o que ela **não** significa. **Privacidade e LGPD**
+(`/privacidade`) traz o inventário dos dados tratados.
+
 ### Mundo & Conflitos
 
 | Método | Rota | Papel | O que faz |
