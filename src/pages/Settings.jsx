@@ -65,6 +65,8 @@ export default function Settings() {
 function AppearanceSection() {
   const { isDark, toggleTheme } = useTheme()
   const daltonismo = useSettingsStore((st) => st.daltonismo)
+  const tamanhoTexto = useSettingsStore((st) => st.tamanhoTexto)
+  const setTamanhoTexto = useSettingsStore((st) => st.setTamanhoTexto)
   const toggleDaltonismo = useSettingsStore((st) => st.toggleDaltonismo)
   return (
     <Section icon={Palette} title="Aparência e acessibilidade">
@@ -80,6 +82,40 @@ function AppearanceSection() {
         * mesma cor numa tela de alerta. Ligado aqui, gráficos, selos, mapa e
         * categorias passam à paleta de Okabe-Ito — laranja → azul, que se
         * distingue por matiz E por luminosidade. */}
+      {/* TAMANHO DO TEXTO — o outro lado da acessibilidade visual.
+        * Daltonismo é sobre distinguir cor; baixa visão é sobre enxergar o que
+        * está escrito. As duas opções ficam juntas porque a pessoa que procura
+        * uma costuma precisar da outra. */}
+      <div className="mt-4 flex flex-wrap items-start justify-between gap-3 border-t border-gray-200 pt-4 dark:border-white/10">
+        <div className="min-w-0">
+          <p className="text-sm font-medium">Tamanho do texto</p>
+          <p className="mt-0.5 text-xs leading-relaxed muted">
+            Aumenta a interface inteira, de forma proporcional — texto, espaçamento e botões. Some
+            com o zoom do navegador, se você já usa um.
+          </p>
+        </div>
+        <div className="flex shrink-0 gap-1.5" role="group" aria-label="Tamanho do texto">
+          {[
+            { id: 'normal', rotulo: 'Padrão' },
+            { id: 'grande', rotulo: 'Grande' },
+            { id: 'maior', rotulo: 'Maior' },
+          ].map((op) => (
+            <button
+              key={op.id}
+              onClick={() => setTamanhoTexto(op.id)}
+              aria-pressed={tamanhoTexto === op.id}
+              className={`rounded-lg border px-3 py-1.5 text-sm font-semibold transition-colors ${
+                tamanhoTexto === op.id
+                  ? 'border-transparent bg-brand-500 text-white'
+                  : 'border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-white/15 dark:text-gray-200 dark:hover:bg-white/10'
+              }`}
+            >
+              {op.rotulo}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="mt-4 flex items-start justify-between gap-3 border-t border-gray-200 pt-4 dark:border-white/10">
         <div className="min-w-0">
           <p className="text-sm font-medium">Cores para daltonismo</p>

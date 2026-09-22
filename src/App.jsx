@@ -9,7 +9,7 @@ import AlertaCritico from './components/system/AlertaCritico'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import ErrorBoundary from './components/system/ErrorBoundary'
 import { useAuthStore } from './store/authStore'
-import { useSettingsStore, applyTheme, applyDaltonismo } from './store/settingsStore'
+import { useSettingsStore, applyTheme, applyDaltonismo, applyTamanhoTexto } from './store/settingsStore'
 import './services'
 
 // Escolhe o layout: deslogado (Visitante) usa o PÚBLICO, sem menu lateral;
@@ -96,6 +96,7 @@ function Guarded({ capability, scope, children }) {
 export default function App() {
   const theme = useSettingsStore((s) => s.theme)
   const daltonismo = useSettingsStore((s) => s.daltonismo)
+  const tamanhoTexto = useSettingsStore((s) => s.tamanhoTexto)
   const { pathname } = useLocation()
 
   // Garante a classe de tema no primeiro render.
@@ -109,6 +110,10 @@ export default function App() {
   useEffect(() => {
     applyDaltonismo(daltonismo)
   }, [daltonismo])
+
+  useEffect(() => {
+    applyTamanhoTexto(tamanhoTexto)
+  }, [tamanhoTexto])
 
   // Navegação por rota deve começar no topo (HashRouter não faz isso sozinho).
   useEffect(() => {

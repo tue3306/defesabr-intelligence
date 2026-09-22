@@ -154,6 +154,162 @@ export const glossary = [
     definition:
       'Estratégia de convencer o adversário de que não conseguirá atingir seus objetivos, tornando o ataque inútil — diferente da dissuasão por punição (ameaça de retaliação).',
   },
+  {
+    term: 'Ciclo de inteligência',
+    category: 'Inteligência',
+    definition:
+      'As etapas que transformam dado em conhecimento útil: direcionamento (qual é a pergunta), coleta, processamento, análise e disseminação. Sem a pergunta inicial, coletar vira acúmulo.',
+  },
+  {
+    term: 'Criticidade',
+    category: 'Cibersegurança',
+    definition:
+      'Nesta plataforma, o quanto um ataque a determinada organização importa para a segurança do Brasil. Sai do domínio da vítima (.gov.br, .mil.br) e do setor dela — fatos verificáveis —, nunca do tamanho do vazamento declarado pelo criminoso.',
+  },
+  {
+    term: 'Urgência',
+    category: 'Inteligência',
+    definition:
+      'O quanto uma matéria pede atenção agora, medido pelo vocabulário do título. Mede a linguagem que a imprensa usou, não a gravidade real do fato — por isso a régua é publicada e pode ser contestada.',
+  },
+  {
+    term: 'Correlação',
+    category: 'Inteligência',
+    definition:
+      'Ligação entre dois registros que tratam da mesma organização — uma notícia e um vazamento, por exemplo. Cada ligação nasce de correspondência literal (mesmo domínio, mesmo nome) e nunca afirma que um fato causou o outro.',
+  },
+  {
+    term: 'Teatro de conflito',
+    category: 'Geopolítica',
+    definition:
+      'Recorte geográfico e temático usado para agrupar a cobertura de um conflito — Rússia × Ucrânia, Israel × Hamas, Sahel. Na plataforma é vocabulário de detecção: o teatro existe no catálogo, e a contagem vem das matérias coletadas.',
+  },
+  {
+    term: 'Ransomware',
+    category: 'Cibersegurança',
+    definition:
+      'Ataque que criptografa os dados da vítima e cobra resgate para liberá-los. Hoje é comum a dupla extorsão: além de bloquear, o criminoso ameaça publicar o que copiou — e é essa publicação que a plataforma lê.',
+  },
+  {
+    term: 'Dupla extorsão',
+    category: 'Cibersegurança',
+    definition:
+      'Tática em que o criminoso, além de criptografar os dados, ameaça divulgá-los publicamente. Faz o backup deixar de ser garantia: a empresa recupera os arquivos, mas o vazamento continua sendo uma ameaça.',
+  },
+  {
+    term: 'Phishing',
+    category: 'Cibersegurança',
+    definition:
+      'Mensagem que se passa por remetente confiável para obter senha, dado bancário ou acesso. Explora a confiança da pessoa, não uma falha do sistema — por isso continua sendo a porta de entrada mais comum.',
+  },
+  {
+    term: 'Infraestrutura crítica',
+    category: 'Cibersegurança',
+    definition:
+      'Instalações e serviços cuja interrupção compromete a sociedade: energia, água, saúde, transporte, comunicações e sistemas financeiros. Ataques a elas pesam mais em qualquer escala de criticidade.',
+  },
+  {
+    term: 'Superfície de ataque',
+    category: 'Cibersegurança',
+    definition:
+      'O conjunto de pontos por onde uma organização pode ser atacada — servidores expostos, contas de acesso remoto, fornecedores conectados. Quanto mais serviços digitais, maior a superfície.',
+  },
+  {
+    term: 'MITRE ATT&CK',
+    category: 'Cibersegurança',
+    definition:
+      'Catálogo público que organiza as táticas e técnicas usadas por atacantes reais, com um código para cada uma. Permite descrever o comportamento de um grupo criminoso sem depender de adjetivos.',
+  },
+  {
+    term: 'Guerra híbrida',
+    category: 'Estratégia',
+    definition:
+      'Combinação de meios militares e não militares — desinformação, pressão econômica, ciberataques, sabotagem — mantida abaixo do limiar da guerra declarada. A dificuldade está em atribuir a autoria.',
+  },
+  {
+    term: 'Zona cinzenta',
+    category: 'Estratégia',
+    definition:
+      'Faixa de ações hostis que ficam acima da competição normal entre Estados e abaixo do conflito armado aberto. É onde a guerra híbrida opera.',
+  },
+  {
+    term: 'Guerra eletrônica',
+    category: 'Estratégia',
+    definition:
+      'Uso do espectro eletromagnético para interferir em comunicações, radares e navegação do adversário — e proteger os próprios. Inclui bloqueio de sinal (jamming) e engano por sinal falso (spoofing).',
+  },
+  {
+    term: 'Projeção de poder',
+    category: 'Estratégia',
+    definition:
+      'Capacidade de um país empregar força militar longe do próprio território. Depende de logística: transporte aéreo e naval, reabastecimento e bases de apoio.',
+  },
+  {
+    term: 'Prontidão',
+    category: 'Forças Armadas',
+    definition:
+      'O quanto uma força está pronta para ser empregada agora: pessoal treinado, equipamento em condições de uso e suprimento disponível. Orçamento de investimento não produz prontidão sozinho.',
+  },
+  {
+    term: 'ZEE',
+    category: 'Geopolítica',
+    definition:
+      'Zona Econômica Exclusiva: faixa de até 200 milhas náuticas da costa onde o país tem direito exclusivo de explorar os recursos do mar, com o dever de fiscalizá-la.',
+  },
+  {
+    term: 'Faixa de fronteira',
+    category: 'Geopolítica',
+    definition:
+      'Faixa de 150 km ao longo das fronteiras terrestres do Brasil, tratada como área de interesse para a defesa nacional. Concentra operações contra ilícitos transfronteiriços.',
+  },
+  {
+    term: 'Dissuasão nuclear',
+    category: 'Estratégia',
+    definition:
+      'Uso da posse de armas nucleares para evitar ataque de outro Estado, pela certeza da retaliação. O Brasil não possui armas nucleares e é signatário de tratados de não proliferação.',
+  },
+  {
+    term: 'Não proliferação',
+    category: 'Geopolítica',
+    definition:
+      'Conjunto de tratados e controles que buscam impedir a disseminação de armas nucleares, químicas e biológicas. O uso pacífico da energia nuclear é permitido e fiscalizado.',
+  },
+  {
+    term: 'BID',
+    category: 'Indústria',
+    definition:
+      'Base Industrial de Defesa: o conjunto de empresas que produzem bens e serviços de defesa no país — estaleiros, fabricantes de aeronaves, munições, eletrônica e software. Reduz dependência externa.',
+  },
+  {
+    term: 'Offset',
+    category: 'Indústria',
+    definition:
+      'Contrapartida exigida do fornecedor estrangeiro numa compra de defesa: transferência de tecnologia, produção local ou treinamento. Transforma uma aquisição em capacidade nacional.',
+  },
+  {
+    term: 'PND e END',
+    category: 'Estratégia',
+    definition:
+      'Política Nacional de Defesa (o que se quer) e Estratégia Nacional de Defesa (como alcançar). São os documentos de mais alto nível que orientam o setor, acompanhados do Livro Branco de Defesa Nacional.',
+  },
+  {
+    term: 'LGPD',
+    category: 'Legislação',
+    definition:
+      'Lei Geral de Proteção de Dados (Lei 13.709/2018): regula o tratamento de dados pessoais no Brasil e garante ao titular os direitos de acesso, correção, eliminação e portabilidade.',
+  },
+  {
+    term: 'PEC',
+    category: 'Legislação',
+    definition:
+      'Proposta de Emenda à Constituição: altera o texto constitucional e exige três quintos dos votos, em dois turnos, nas duas Casas do Congresso.',
+  },
+  {
+    term: 'Contingenciamento',
+    category: 'Legislação',
+    definition:
+      'Bloqueio temporário de parte do orçamento já autorizado por lei. O dinheiro continua previsto, mas não pode ser empenhado enquanto durar — é o que costuma atrasar programas plurianuais.',
+  },
 ]
 
 export const glossaryCategories = [...new Set(glossary.map((g) => g.category))]

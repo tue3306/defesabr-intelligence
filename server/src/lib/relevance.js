@@ -518,13 +518,93 @@ const REGRAS_CATEGORIA = [
 // de perfil.
 const REGRAS_URGENCIA = [
   { nivel: 'CRITICO', termos: ['ataque', 'ataques', 'atacou', 'atacado', 'atacada', 'atacaram', 'invasao', 'invadiu', 'invadido', 'bombardeado', 'destruido', 'abatido', 'confronto', 'crise', 'emergencia', 'incursao', 'sabotagem', 'bombardeio', 'bombardeou', 'morte', 'mortos', 'mortes', 'ofensiva', 'guerra', 'abateu', 'derrubou', 'explosao', 'sequestro', 'vitimas'] },
-  { nivel: 'ALTO', termos: ['operacao', 'apreensao', 'apreendeu', 'alerta', 'tensao', 'incidente', 'suspeita', 'interceptacao', 'interceptou', 'prisao', 'prendeu', 'mandados', 'ameaca', 'risco', 'denuncia', 'investigacao', 'investiga', 'sancao', 'sancoes', 'embargo', 'mobilizacao', 'patrulha', 'vazamento'] },
+  { nivel: 'ALTO', termos: ['colisao', 'colide', 'colidiu', 'abalroamento', 'encalhou', 'operacao', 'apreensao', 'apreendeu', 'alerta', 'tensao', 'incidente', 'suspeita', 'interceptacao', 'interceptou', 'prisao', 'prendeu', 'mandados', 'ameaca', 'risco', 'denuncia', 'investigacao', 'investiga', 'sancao', 'sancoes', 'embargo', 'mobilizacao', 'patrulha', 'vazamento'] },
   { nivel: 'MEDIO', termos: ['acordo', 'acordos', 'contrato', 'contratos', 'anuncio', 'anuncia', 'anunciou', 'aquisicao', 'reuniao', 'assinatura', 'assina', 'assinou', 'entrega', 'entregou', 'incorpora', 'incorporou', 'recebe', 'recebeu', 'receber', 'aprova', 'aprovou', 'aprovada', 'lanca', 'lancou', 'nomeia', 'nomeou', 'assume', 'assumiu', 'visita', 'exercicio', 'treinamento', 'cerimonia', 'encomenda', 'pedido', 'licitacao', 'amplia', 'ampliou', 'reforca', 'reforcou', 'desenvolvimento', 'desenvolve', 'projeto', 'programa', 'plano', 'investe', 'investiu', 'moderniza', 'modernizacao', 'parceria', 'cooperacao', 'estuda', 'avalia', 'propoe', 'defende', 'discute', 'apresenta', 'inaugura', 'conclui'] },
 ]
 
 
 const RX_CATEGORIA = REGRAS_CATEGORIA.map((r) => ({ cat: r.cat, rxs: r.termos.map((t) => fronteira(normalizar(t))) }))
 const RX_URGENCIA = REGRAS_URGENCIA.map((r) => ({ nivel: r.nivel, rxs: r.termos.map((t) => fronteira(normalizar(t))) }))
+
+// ─────────────────────────────────────────────────────────────────────────────
+// "GUERRA" DENTRO DE UM SUBSTANTIVO COMPOSTO NÃO É UM ACONTECIMENTO
+//
+// A urgência casa termo por termo com fronteira de palavra, e isso basta para
+// "Rússia lança ataque massivo contra Kiev". Não basta para os casos em que a
+// mesma palavra descreve uma COISA, e não um fato:
+//
+//   "DNA liga mortos em navio DE GUERRA sueco à Finlândia medieval"   → CRÍTICO
+//   "Cães DE GUERRA: Exército fecha parceria para estudar linhagens"  → CRÍTICO
+//   "USAF aposenta o C-130 de GUERRA ELETRÔNICA"                      → CRÍTICO
+//
+// Medido no acervo de sete dias: das 33 matérias marcadas como críticas, nove
+// eram deste tipo — 27% do degrau mais alto da escala ocupado por naufrágio
+// arqueológico, projeto de canil e aposentadoria de aeronave. Um alerta que
+// erra um em cada quatro treina quem o lê a ignorá-lo.
+//
+// A correção não mexe no vocabulário: MASCARA a expressão antes de procurar o
+// termo. Em "navio de guerra", some a expressão inteira; se o título disser
+// também "ataque", o CRÍTICO permanece, porque a palavra aparece por conta
+// própria. É o mesmo raciocínio das guardas da correlação — a evidência precisa
+// valer sozinha.
+// ─────────────────────────────────────────────────────────────────────────────
+const EXPRESSOES_DESCRITIVAS = [
+  // A palavra qualifica um objeto, um animal, uma disciplina ou um período.
+  'navio de guerra', 'navios de guerra', 'barco de guerra', 'barcos de guerra',
+  'buque de guerra', 'cao de guerra', 'caes de guerra', 'cavalo de guerra',
+  'guerra eletronica', 'guerra fria', 'guerra hibrida', 'guerra de precos',
+  'guerra fiscal', 'guerra cultural', 'guerra comercial', 'guerra de narrativas',
+  'guerra de informacao', 'jogos de guerra', 'jogo de guerra', 'filme de guerra',
+  'museu da guerra', 'museu de guerra', 'veterano de guerra', 'veteranos de guerra',
+  'prisioneiro de guerra', 'prisioneiros de guerra', 'monumento aos mortos',
+  'dia dos mortos', 'restos mortais', 'guerra do paraguai', 'segunda guerra mundial',
+  'primeira guerra mundial', 'guerra civil americana', 'pos-guerra',
+  // "crise" e "emergência" como categoria administrativa, não como fato novo.
+  'crise climatica', 'crise migratoria', 'crise hidrica', 'emergencia climatica',
+]
+
+const RX_DESCRITIVAS = EXPRESSOES_DESCRITIVAS.map((e) => new RegExp(normalizar(e).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'))
+
+// ─────────────────────────────────────────────────────────────────────────────
+// O QUE É HISTÓRICO, ARQUEOLÓGICO OU CULTURAL NÃO É URGENTE
+//
+// Mesmo com a máscara acima, "mortos" sozinho ainda marca como crítica uma
+// reportagem sobre ossadas de um naufrágio do século XVI. O fato existe, é
+// verdadeiro e tem palavra de urgência — só não é um acontecimento de hoje.
+//
+// Vale o mesmo teto que já se aplica a ato administrativo (`RX_ATO_ADMINISTRATIVO`,
+// logo abaixo): o assunto continua no acervo, com a sua categoria, mas não ocupa
+// o degrau reservado ao que exige atenção agora.
+// ─────────────────────────────────────────────────────────────────────────────
+const CONTEXTO_NAO_ATUAL = [
+  'medieval', 'arqueolog', 'arqueolo', 'naufragio', 'sitio historico', 'seculo xv',
+  'seculo xvi', 'seculo xvii', 'seculo xviii', 'seculo xix', 'ha seculos',
+  'documentario', 'biografia', 'exposicao', 'aniversario', 'efemeride', 'memorial',
+  'homenagem', 'centenario', 'bicentenario',
+]
+
+const RX_NAO_ATUAL = CONTEXTO_NAO_ATUAL.map((t) => new RegExp(normalizar(t), 'i'))
+
+/** Tira do texto as expressões em que a palavra de urgência é descritiva. */
+function semExpressoesDescritivas(texto) {
+  return RX_DESCRITIVAS.reduce((t, rx) => t.replace(rx, ' '), texto)
+}
+
+// MASCARAR NÃO PODE ZERAR O ASSUNTO.
+//
+// Sem esta segunda lista, "Rússia está travando uma guerra híbrida contra a
+// Europa" caía de CRÍTICO direto para BAIXO: a máscara tirava a única palavra
+// que o título tinha. Mas o texto É sobre defesa — ele só não narra um
+// acontecimento. Estas expressões devolvem o piso MÉDIO: assunto militar
+// reconhecido, sem o degrau reservado ao que acabou de acontecer.
+const EXPRESSOES_DE_ASSUNTO = [
+  'guerra hibrida', 'guerra eletronica', 'guerra fria', 'guerra cibernetica',
+  'navio de guerra', 'navios de guerra', 'barco de guerra', 'barcos de guerra',
+  'prisioneiro de guerra', 'prisioneiros de guerra', 'guerra de informacao',
+  'guerra de narrativas', 'segunda guerra mundial', 'primeira guerra mundial',
+]
+
+const RX_ASSUNTO = EXPRESSOES_DE_ASSUNTO.map((e) => new RegExp(normalizar(e), 'i'))
 
 /**
  * A escala de urgência, publicada em `/api/metodo`.
@@ -533,8 +613,17 @@ const RX_URGENCIA = REGRAS_URGENCIA.map((r) => ({ nivel: r.nivel, rxs: r.termos.
  * quem lê a tela poder conferir por que uma manchete virou ALTO e não MÉDIO.
  */
 export const METODO_URGENCIA = {
-  regra: 'O nível é o do primeiro degrau cujo vocabulário aparece no título ou no resumo. Nenhum '
-    + 'termo de nenhum degrau: BAIXO.',
+  regra: 'O nível é o do primeiro degrau cujo vocabulário aparece no título. Nenhum termo de nenhum '
+    + 'degrau: BAIXO.',
+  guardas: [
+    `Expressão em que a palavra é DESCRITIVA não conta (${EXPRESSOES_DESCRITIVAS.length} delas): em `
+      + '"navio de guerra" e "guerra eletrônica" a palavra nomeia uma coisa, não um acontecimento.',
+    'Ato administrativo (portaria, nomeação, edital) tem teto MÉDIO, seja qual for a palavra que carrega.',
+    `Assunto histórico, arqueológico ou cultural (${CONTEXTO_NAO_ATUAL.length} marcas: medieval, século XVI, `
+      + 'documentário, homenagem) também tem teto MÉDIO — o fato é verdadeiro, mas não é de hoje.',
+    `Expressão que nomeia ASSUNTO militar (${EXPRESSOES_DE_ASSUNTO.length}: guerra híbrida, guerra `
+      + 'eletrônica, navio de guerra) garante o piso MÉDIO: o texto é de defesa, ainda que não narre um fato novo.',
+  ],
   niveis: [
     ...REGRAS_URGENCIA.map((r) => ({
       nivel: r.nivel,
@@ -592,13 +681,21 @@ export function classificar(texto, titulo) {
   // URGÊNCIA olha só o título: é onde o jornalismo diz o que aconteceu.
   const inicio = normalizar(titulo || abertura(limpo))
 
-  const urgenciaBruta = RX_URGENCIA.find(({ rxs }) => rxs.some((rx) => rx.test(inicio)))?.nivel || 'BAIXO'
+  // A máscara vale só para a urgência: a CATEGORIA continua lendo o texto
+  // inteiro, porque "guerra eletrônica" é exatamente o que define a categoria
+  // de uma matéria sobre guerra eletrônica.
+  const inicioParaUrgencia = semExpressoesDescritivas(inicio)
+  const porTermo = RX_URGENCIA.find(({ rxs }) => rxs.some((rx) => rx.test(inicioParaUrgencia)))?.nivel || 'BAIXO'
+  // Assunto militar reconhecido pela expressão mascarada: piso MÉDIO.
+  const urgenciaBruta = porTermo === 'BAIXO' && RX_ASSUNTO.some((rx) => rx.test(inicio)) ? 'MEDIO' : porTermo
   const ehAto = RX_ATO_ADMINISTRATIVO.some((rx) => rx.test(inicio))
+  const naoEhAtual = RX_NAO_ATUAL.some((rx) => rx.test(inicio))
 
   return {
     categoria: RX_CATEGORIA.find(({ rxs }) => rxs.some((rx) => rx.test(palheiro)))?.cat || 'Forças Armadas',
-    // Ato administrativo tem teto MÉDIO, seja qual for a palavra que carrega.
-    urgencia: ehAto && urgenciaBruta === 'CRITICO' ? 'MEDIO' : urgenciaBruta,
+    // Ato administrativo e assunto histórico têm teto MÉDIO, seja qual for a
+    // palavra que carregam.
+    urgencia: (ehAto || naoEhAtual) && urgenciaBruta === 'CRITICO' ? 'MEDIO' : urgenciaBruta,
   }
 }
 

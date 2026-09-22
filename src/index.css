@@ -44,6 +44,33 @@
   --nivel-alerta: #d4841a;
 }
 
+/* ───────────────────────────────────────────────────────────────────────────
+   TEXTO MAIOR, PARA BAIXA VISÃO
+
+   O Tailwind dimensiona tudo em `rem` — fonte, espaçamento, raio de borda —,
+   então mexer no tamanho base do `html` aumenta a interface INTEIRA de forma
+   proporcional, sem quebrar alinhamento. É o oposto de aumentar só a fonte,
+   que faz o texto estourar os cartões.
+
+   Quem usa o zoom do navegador continua podendo: as duas coisas se somam.
+   ─────────────────────────────────────────────────────────────────────────── */
+html[data-texto="grande"] { font-size: 112.5%; }
+html[data-texto="maior"] { font-size: 125%; }
+
+/* NENHUM FILHO EMPURRA A PÁGINA PARA O LADO.
+ *
+ * Medido a 375 px com o texto em "maior": o conteúdo do painel esticava a
+ * página em 97 px, e aí tudo o que é `fixed` — o aviso de privacidade, o
+ * alerta crítico — passava a ser dimensionado contra essa largura inflada e
+ * vazava para fora da tela.
+ *
+ * `clip` em vez de `hidden` de propósito: `hidden` cria um contexto de
+ * rolagem e quebra o `position: sticky` do cabeçalho; `clip` corta o
+ * transbordo sem criar rolagem. Quem precisa rolar na horizontal — tabela,
+ * gráfico largo — tem o próprio contêiner com `overflow-x: auto`, e continua
+ * funcionando. */
+main { overflow-x: clip; }
+
 [data-daltonico="1"] {
   /* Okabe-Ito: vermelhão, laranja, amarelo e azul. Seguros para protanopia,
      deuteranopia e tritanopia, e distintos também em escala de cinza. */

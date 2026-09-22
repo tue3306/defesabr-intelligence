@@ -25,6 +25,11 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
   frente da fila. Medido na instalação: 25 dos 40 avisos estavam como CRÍTICO
   (o vocabulário conta "mortos" como nível máximo), então sem teto o modal
   apareceria 25 vezes seguidas.
+- **Texto maior** em Configurações (padrão, grande, maior): escala a interface
+  inteira, de forma proporcional, para quem tem baixa visão.
+- **Glossário do Centro Educacional de 25 para 51 verbetes**, incluindo o
+  vocabulário das próprias telas (criticidade, teatro de conflito, correlação,
+  OSINT) e o jurídico (LGPD, PEC, contingenciamento).
 - **Modo para daltonismo** em Configurações: a escala vermelho → verde vira
   laranja → azul (Okabe-Ito) em selos, gráficos, mapa e categorias.
 - **Séries do Banco Central em gráfico** na tela de Economia, com média,
@@ -36,6 +41,17 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 **Corrigido**
 
+- **Urgência marcava CRÍTICO em substantivo composto.** "navio de guerra"
+  medieval, "cães de guerra", "guerra eletrônica" e "guerra híbrida" ocupavam
+  o degrau mais alto da escala: 9 das 33 críticas de sete dias (27%). Agora a
+  expressão descritiva é mascarada antes de procurar o termo, assunto
+  histórico tem teto MÉDIO, e expressão que nomeia assunto militar garante
+  piso MÉDIO em vez de cair para BAIXO. Nenhuma crítica verdadeira foi
+  perdida: 24 seguiram críticas, entre elas os ataques na Ucrânia e no Caribe.
+- **Texto maior esticava a página a 375 px.** Com a opção de acessibilidade em
+  "maior", o painel empurrava a página 97 px para o lado, e tudo o que é fixo
+  passava a ser dimensionado contra essa largura inflada. O conteúdo passa a
+  ser cortado com `overflow-x: clip`, que não quebra o cabeçalho fixo.
 - O selo do sino parava em "9+" enquanto o painel mostrava o total de não
   lidas: os dois números discordavam na mesma tela, e 9 parecia contagem
   travada. Conferido depois: sino 32, painel 32, API 32.

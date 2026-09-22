@@ -19,6 +19,9 @@ export const useSettingsStore = create(
       // de urgência é vermelho → verde, e na deuteranopia os dois extremos são
       // a mesma cor. Ligado aqui, o produto inteiro troca de paleta.
       daltonismo: false,
+      // 'normal' | 'grande' | 'maior'. Escala a interface inteira — ver o bloco
+      // em src/index.css.
+      tamanhoTexto: 'normal',
       // Áreas temáticas de maior interesse do usuário (filtra/destaca conteúdo)
       interestAreas: [],
       // Onboarding (tour de boas-vindas) — exibido apenas na 1ª visita
@@ -41,6 +44,10 @@ export const useSettingsStore = create(
             : [...get().interestAreas, area],
         }),
       toggleNotifications: () => set({ notificationsEnabled: !get().notificationsEnabled }),
+      setTamanhoTexto: (tamanho) => {
+        set({ tamanhoTexto: tamanho })
+        applyTamanhoTexto(tamanho)
+      },
       toggleDaltonismo: () => {
         const next = !get().daltonismo
         set({ daltonismo: next })
@@ -61,6 +68,13 @@ export const useSettingsStore = create(
  * informação não é só componente: as variáveis de `index.css` reagem ao
  * atributo, e gráfico desenhado em canvas lê pelo DOM.
  */
+/** Aplica o tamanho de texto no <html>, de onde o CSS o lê. */
+export function applyTamanhoTexto(tamanho) {
+  if (typeof document === 'undefined') return
+  if (tamanho && tamanho !== 'normal') document.documentElement.dataset.texto = tamanho
+  else delete document.documentElement.dataset.texto
+}
+
 export function applyDaltonismo(ligado) {
   if (typeof document === 'undefined') return
   if (ligado) document.documentElement.dataset.daltonico = '1'
