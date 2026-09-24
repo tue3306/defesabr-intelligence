@@ -123,8 +123,8 @@ export default function Correlations() {
           />
           <Painel
             titulo="Estados citados com órgão atacado"
-            dica="A UF é identificada pelo domínio: arcos.mg.gov.br contém .mg.gov.br. É fato, não inferência."
-            vazio="Nenhuma UF citada tem órgão com vazamento divulgado no período."
+            dica="O estado (UF, unidade da federação) é identificado pelo endereço do site: arcos.mg.gov.br contém .mg.gov.br. É fato, não inferência."
+            vazio="Nenhum estado citado tem órgão com vazamento divulgado no período."
             itens={p.estados?.slice(0, 6).map((e) => ({ chave: e.uf, rotulo: e.nome, valor: e.materias }))}
           />
           <Painel
@@ -173,7 +173,7 @@ export default function Correlations() {
         <span className="text-gray-700 dark:text-gray-300">
           <strong>Cada ligação é uma possível relação, não um fato confirmado.</strong> Ela nasce de
           uma coincidência literal — um domínio igual a outro, um nome de grupo que consta no
-          acervo, uma sigla de UF dentro de um domínio — e não afirma que a notícia fala do ataque
+          acervo, a sigla de um estado (UF) dentro de um endereço de site — e não afirma que a notícia fala do ataque
           nem que um fato causou o outro. A <strong>força</strong> (1 a 5) mede o quanto a ligação é
           direta, não o quanto ela é perigosa.{' '}
           <Link to="/metodologia#correlacao" className="font-semibold text-brand-600 hover:underline dark:text-brand-300">

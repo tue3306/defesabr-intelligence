@@ -29,7 +29,7 @@ export const SERIES_BCB = [
   // O SGS recusa mais de 20 valores por chamada nas séries diárias — pedir 30
   // devolve HTTP 400 com a explicação no corpo, não uma lista truncada.
   { codigo: 1, id: 'usd', label: 'Dólar (venda)', unidade: 'R$', ultimos: 20, frequencia: 'diaria',
-    descricao: 'Cotação de venda do dólar comercial (PTAX), fechada pelo Banco Central a cada dia útil.' },
+    descricao: 'Cotação de venda do dólar comercial pela PTAX — a taxa oficial de referência, calculada pelo Banco Central a cada dia útil.' },
   { codigo: 433, id: 'ipca', label: 'IPCA — variação mensal', unidade: '%', ultimos: 13, frequencia: 'mensal',
     descricao: 'Inflação oficial do Brasil no mês, medida pelo IBGE. Negativo quer dizer que os preços caíram.' },
   { codigo: 4390, id: 'selic', label: 'Selic — acumulada no mês', unidade: '%', ultimos: 13, frequencia: 'mensal',
@@ -42,7 +42,7 @@ export const SERIES_BCB = [
   // dólar já vinha daqui; o euro faltava, e sem ele a linha do EUR ficaria
   // vazia para sempre. Série 21619 do SGS, conferida ao vivo.
   { codigo: 21619, id: 'eur', label: 'Euro (venda)', unidade: 'R$', ultimos: 20, frequencia: 'diaria',
-    descricao: 'Cotação de venda do euro (PTAX), fechada pelo Banco Central a cada dia útil.' },
+    descricao: 'Cotação de venda do euro pela PTAX — a taxa oficial de referência, calculada pelo Banco Central a cada dia útil.' },
   // ── Acrescentadas em setembro de 2026, conferidas contra a API do SGS ──
   //
   // A "Selic (mês)" era o único juro da tela, e é justamente o que ninguém

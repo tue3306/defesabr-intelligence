@@ -63,6 +63,12 @@ export default function DefenseIndustry() {
             O que o Brasil exportou nos capítulos de aeronaves e de armamento, segundo o
             Comex Stat do Ministério do Desenvolvimento, Indústria e Comércio.
           </p>
+          {/* As três siglas da tela, antes de aparecerem nos números. */}
+          <dl className="mt-4 grid max-w-3xl grid-cols-1 gap-2 text-xs text-gray-300 sm:grid-cols-3">
+            <div><dt className="font-bold text-gray-100">BID</dt><dd>Base Industrial de Defesa: as empresas que fabricam para as Forças Armadas.</dd></div>
+            <div><dt className="font-bold text-gray-100">NCM</dt><dd>Nomenclatura Comum do Mercosul: o código que classifica cada produto exportado.</dd></div>
+            <div><dt className="font-bold text-gray-100">FOB</dt><dd>Valor do produto no porto de saída, sem frete nem seguro.</dd></div>
+          </dl>
         </div>
       </div>
 

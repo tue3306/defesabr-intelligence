@@ -1,6 +1,7 @@
 // -----------------------------------------------------------------------------
-// BASE INDUSTRIAL DE DEFESA (BID) e EXPORTAÇÕES — DEMONSTRATIVO
-// Valores ilustrativos com base em informações públicas do setor. Não oficiais.
+// BASE INDUSTRIAL DE DEFESA (BID) — CATÁLOGO DE REFERÊNCIA
+// Empresas e produtos de destaque, a partir de informação pública do setor.
+// Não há número aqui: os dados medidos (exportações) vêm do Comex Stat.
 // -----------------------------------------------------------------------------
 
 // `bidSummary` vivia aqui: "+200 empresas", "R$ 230 bi de faturamento",

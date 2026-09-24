@@ -88,6 +88,45 @@ const GUIA = [
   },
 ]
 
+// -----------------------------------------------------------------------------
+// O MESMO GUIA PARA A CRITICIDADE DE UM INCIDENTE CIBERNÉTICO
+//
+// A urgência mede NOTÍCIA; a criticidade mede o ALVO de um ataque divulgado
+// por um grupo de extorsão — quem foi atingido, e o quanto isso importa para
+// o Brasil. Os critérios são os de `lib/criticidade.js` (domínio e setor da
+// vítima), escritos aqui em palavras de todo dia.
+// -----------------------------------------------------------------------------
+const GUIA_CRITICIDADE = [
+  {
+    nivel: 'CRITICO',
+    significa: 'A organização atingida é do Estado brasileiro (ministério, órgão público, Forças Armadas, Judiciário, Legislativo) ou de infraestrutura essencial: energia, saúde, governo e defesa.',
+    atencao: 'Máxima — pode afetar serviços públicos e dados de cidadãos.',
+    exemplo: 'Um órgão com endereço .gov.br ou .mil.br aparece na lista de vítimas de um grupo.',
+    fazer: 'Abre um aviso na tela. Acompanhe a comunicação oficial do órgão; a plataforma não confirma o que foi levado — só registra que o grupo divulgou.',
+  },
+  {
+    nivel: 'ALTO',
+    significa: 'Serviço essencial para a vida diária (transporte, bancos), universidade ou organização sem fins lucrativos.',
+    atencao: 'Alta — o efeito pode chegar a muita gente.',
+    exemplo: 'Uma universidade (.edu.br) ou uma empresa de transporte aparece na lista.',
+    fazer: 'Vale acompanhar: se você é cliente ou aluno, fique atento a mensagens suspeitas usando seus dados.',
+  },
+  {
+    nivel: 'MEDIO',
+    significa: 'Empresa brasileira identificada pelo endereço .com.br, ou de um setor produtivo informado pela fonte.',
+    atencao: 'Moderada.',
+    exemplo: 'Uma indústria ou loja com site .com.br aparece na lista.',
+    fazer: 'Informação de contexto sobre o volume de ataques ao país.',
+  },
+  {
+    nivel: 'BAIXO',
+    significa: 'Não há setor nem endereço que permitam dizer quem é ou quão importante é a organização.',
+    atencao: 'Baixa — não dá para avaliar.',
+    exemplo: 'A vítima aparece só com um nome genérico, sem site.',
+    fazer: 'Nada a fazer: entra na contagem, mas não pede ação.',
+  },
+]
+
 // Palavras com acento, para a tela: as listas do servidor são guardadas sem
 // acento ("colisao", "invasao") porque é assim que a comparação é feita — e
 // escritas assim na tela pareciam erro de digitação.
@@ -140,6 +179,7 @@ export default function Methodology() {
       {/* ── ÍNDICE RÁPIDO ── */}
       <nav aria-label="Nesta página" className="flex flex-wrap gap-2 text-xs">
         <a href="#niveis" onClick={(e) => { e.preventDefault(); document.getElementById('niveis')?.scrollIntoView({ behavior: 'smooth' }) }} className="btn-ghost px-3 py-1.5 text-xs"><ArrowDown size={13} aria-hidden="true" /> Os níveis, em palavras simples</a>
+        <a href="#criticidade" onClick={(e) => { e.preventDefault(); document.getElementById('criticidade')?.scrollIntoView({ behavior: 'smooth' }) }} className="btn-ghost px-3 py-1.5 text-xs"><ArrowDown size={13} aria-hidden="true" /> Criticidade de ataques</a>
         <a href="#reguas" onClick={(e) => { e.preventDefault(); document.getElementById('reguas')?.scrollIntoView({ behavior: 'smooth' }) }} className="btn-ghost px-3 py-1.5 text-xs"><ArrowDown size={13} aria-hidden="true" /> As quatro réguas</a>
         <a href="#correlacao" onClick={(e) => { e.preventDefault(); document.getElementById('correlacao')?.scrollIntoView({ behavior: 'smooth' }) }} className="btn-ghost px-3 py-1.5 text-xs"><ArrowDown size={13} aria-hidden="true" /> Como a correlação funciona</a>
       </nav>
@@ -187,6 +227,42 @@ export default function Methodology() {
           o quanto a notícia pede atenção — não mede o tamanho real do fato nem prevê o que vai acontecer.
           A regra exata, com as listas de palavras, está mais abaixo.
         </p>
+      </section>
+
+      {/* ── CRITICIDADE, EM PALAVRAS SIMPLES ── */}
+      <section id="criticidade" className="card scroll-mt-24 p-5 sm:p-6" aria-labelledby="titulo-criticidade">
+        <h2 id="titulo-criticidade" className="flex items-center gap-2.5 text-lg font-bold tracking-tight">
+          <ShieldAlert size={19} className="shrink-0 text-brand-400 dark:text-brand-300" aria-hidden="true" />
+          Os níveis de criticidade de um ataque cibernético
+        </h2>
+        <p className="mt-1 text-sm muted">
+          Quando um grupo criminoso divulga que atacou uma organização brasileira, a plataforma pergunta:
+          o quanto isso importa para o Brasil? A resposta sai de quem foi atingido — não do tamanho do
+          vazamento, que é o próprio criminoso quem anuncia.
+        </p>
+        <ol className="mt-4 space-y-3">
+          {GUIA_CRITICIDADE.map((g) => (
+            <li key={g.nivel} className="rounded-xl border-l-4 bg-gray-500/5 p-4 dark:bg-white/5" style={{ borderLeftColor: `var(--nivel-${g.nivel.toLowerCase()})` }}>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold ${urgencyMeta[g.nivel]?.classes || ''}`}>
+                  {urgencyMeta[g.nivel]?.label || g.nivel}
+                </span>
+                <span className="text-sm font-semibold">Atenção: {g.atencao}</span>
+              </div>
+              <dl className="mt-2 grid grid-cols-1 gap-2 text-sm sm:grid-cols-[9.5rem_1fr]">
+                <dt className="flex items-center gap-1.5 font-semibold text-gray-800 dark:text-gray-200"><Info size={14} aria-hidden="true" /> O que significa</dt>
+                <dd className="text-gray-700 dark:text-gray-300">{g.significa}</dd>
+                <dt className="flex items-center gap-1.5 font-semibold text-gray-800 dark:text-gray-200"><Newspaper size={14} aria-hidden="true" /> Exemplo</dt>
+                <dd className="text-gray-700 dark:text-gray-300">{g.exemplo} <span className="text-[11px] muted">(exemplo ilustrativo)</span></dd>
+                <dt className="flex items-center gap-1.5 font-semibold text-gray-800 dark:text-gray-200"><Eye size={14} aria-hidden="true" /> Ao receber</dt>
+                <dd className="text-gray-700 dark:text-gray-300">{g.fazer}</dd>
+              </dl>
+            </li>
+          ))}
+        </ol>
+        <Link to="/ciberameacas" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:underline dark:text-brand-300">
+          <Search size={14} aria-hidden="true" /> Ver os incidentes registrados no Brasil
+        </Link>
       </section>
 
       {/* ── AS QUATRO RÉGUAS ── */}

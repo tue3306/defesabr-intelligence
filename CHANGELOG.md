@@ -42,6 +42,12 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
   embaralhadas a cada rodada, retorno por texto e ícone e lista "Para revisar"
   no fim. Três conceitos-chave e uma trilha "Entendendo a plataforma" novos.
 - **Página de país aceita o nome em português** (`/mundo/pais/Estados Unidos`).
+- **"Primeira vez aqui?"** no topo do Painel: o que é a plataforma, que problema
+  resolve, o que é um alerta e como a análise funciona, em quatro parágrafos.
+- **Guia da criticidade de ataques** (`/metodologia#criticidade`), no mesmo
+  formato do guia de urgência, e explicação de ransomware em "Incidentes no
+  Brasil". Siglas explicadas onde aparecem: BID, NCM e FOB na Base Industrial,
+  PTAX na Economia, UF nas correlações.
 
 **Mudado**
 

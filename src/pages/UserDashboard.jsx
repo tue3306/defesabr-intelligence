@@ -21,6 +21,7 @@ import {
   Flame,
   SlidersHorizontal,
   ExternalLink,
+  HelpCircle,
 } from 'lucide-react'
 import MetricCard from '../components/ui/MetricCard'
 import NewsCard from '../components/ui/NewsCard'
@@ -223,6 +224,62 @@ export default function UserDashboard() {
           </div>
         </div>
       </Section>
+
+      {/* ───────────── PRIMEIRA VEZ AQUI? ─────────────
+        * A página inicial explica a plataforma a quem ainda não entrou; quem
+        * entra cai direto aqui, num painel de números sem legenda. Um bloco
+        * que abre com um clique responde às quatro perguntas de quem chega:
+        * o que é, para que serve, o que é um alerta e como a análise funciona.
+        * Fechado não ocupa espaço; nada é guardado sobre ele. */}
+      <details className="card group p-0">
+        <summary className="flex cursor-pointer list-none items-center gap-2 px-5 py-3 text-sm font-semibold">
+          <HelpCircle size={16} className="text-brand-500 dark:text-brand-300" aria-hidden="true" />
+          Primeira vez aqui? Entenda o painel em 1 minuto
+          <ChevronRight size={15} className="ml-auto transition-transform group-open:rotate-90" aria-hidden="true" />
+        </summary>
+        <div className="grid grid-cols-1 gap-4 border-t border-gray-200 px-5 py-4 text-sm leading-relaxed text-gray-700 dark:border-white/10 dark:text-gray-300 md:grid-cols-2">
+          <div>
+            <p className="font-semibold text-gray-900 dark:text-gray-100">O que é</p>
+            <p>
+              Um painel que reúne, num lugar só, o que sai sobre segurança e defesa do Brasil: mais de 60
+              jornais e órgãos públicos, a Câmara dos Deputados, o Banco Central e os sites onde
+              criminosos divulgam organizações atacadas. Tudo coletado sozinho, a cada 15 minutos.
+            </p>
+          </div>
+          <div>
+            <p className="font-semibold text-gray-900 dark:text-gray-100">Que problema resolve</p>
+            <p>
+              Essa informação está espalhada e misturada com futebol, celebridade e política. A plataforma
+              separa o que é de defesa, organiza por assunto, marca o que é urgente e mostra de onde veio —
+              para quem estuda, trabalha ou só quer acompanhar o tema sem ler cem sites.
+            </p>
+          </div>
+          <div>
+            <p className="font-semibold text-gray-900 dark:text-gray-100">O que é um alerta</p>
+            <p>
+              Toda notícia recebe um nível: <strong>crítico</strong> (ataque, invasão, mortos — leia agora),{' '}
+              <strong>alto</strong> (guerra, crise, operação — acompanhe), <strong>médio</strong> (contratos,
+              acordos) ou <strong>baixo</strong> (contexto). Críticos e altos chegam ao sino; só o crítico
+              abre um aviso na tela, uma vez por evento.
+            </p>
+          </div>
+          <div>
+            <p className="font-semibold text-gray-900 dark:text-gray-100">Como a análise funciona</p>
+            <p>
+              Por listas de palavras escritas à mão, que qualquer pessoa pode conferir — sem inteligência
+              artificial. Quando uma notícia cita algo que já está no acervo (uma empresa atacada, um grupo),
+              a plataforma mostra a <strong>possível relação</strong>: uma pista, não uma conclusão.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 md:col-span-2">
+            <Link to="/metodologia#niveis" className="btn-ghost px-3 py-1.5 text-xs">O que significa cada nível</Link>
+            <Link to="/metodologia#correlacao" className="btn-ghost px-3 py-1.5 text-xs">Como a correlação funciona</Link>
+            <button type="button" onClick={() => useUiStore.getState().abrirInteresses()} className="btn-ghost px-3 py-1.5 text-xs">Escolher meus assuntos</button>
+            <Link to="/aprender" className="btn-ghost px-3 py-1.5 text-xs">Centro Educacional</Link>
+            <Link to="/privacidade" className="btn-ghost px-3 py-1.5 text-xs">Seus dados e a LGPD</Link>
+          </div>
+        </div>
+      </details>
 
       {/* ───────────── KPIs ───────────── */}
       <Section>

@@ -116,8 +116,8 @@ export default function StrategicMap() {
             <Painel
               icone={ShieldAlert}
               titulo="Estados com órgão atacado"
-              dica="A UF sai do domínio da vítima: arcos.mg.gov.br contém .mg.gov.br. É fato verificável, não inferência."
-              vazio="Nenhuma UF citada tem órgão com vazamento divulgado no período."
+              dica="O estado (UF, unidade da federação) sai do endereço do site da vítima: arcos.mg.gov.br contém .mg.gov.br. É fato verificável, não inferência."
+              vazio="Nenhum estado citado tem órgão com vazamento divulgado no período."
               itens={p.estados?.slice(0, 6).map((e) => ({ k: e.uf, r: e.nome, v: e.materias }))}
             />
             <Painel

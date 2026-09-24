@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   ShieldAlert, Building2, Landmark, Globe2, ExternalLink, Info, Users, Activity,
 } from 'lucide-react'
@@ -58,7 +59,7 @@ export default function CyberThreats() {
         description="Organizações brasileiras divulgadas por grupos de ransomware, com o Estado em primeiro plano e o quadro global como referência. Nível operacional: cada linha tem nome e data."
         help="Os registros vêm dos sites de extorsão dos próprios grupos, indexados pelo ransomware.live. Aparecer aqui é reivindicação de ataque, não confirmação da vítima."
         breadcrumb={[{ label: 'Operacional' }, { label: 'Incidentes no Brasil' }]}
-        badges={<Badge type={d?.acervo ? 'live' : 'sem-dado'} />}
+        badges={<Badge type={d?.acervo ? 'live' : 'sem-dado'} cadencia={d?.acervo ? 'a cada 30 min' : undefined} />}
         actions={
           <div className="flex gap-1 rounded-lg border border-gray-300 p-0.5 dark:border-white/15">
             {JANELAS.map((j) => (
@@ -75,6 +76,20 @@ export default function CyberThreats() {
           </div>
         }
       />
+
+      {/* PARA QUEM CHEGA SEM SABER O QUE É RANSOMWARE — antes de qualquer tabela. */}
+      <p className="flex items-start gap-2 rounded-lg bg-brand-500/10 p-3 text-sm leading-relaxed text-gray-800 dark:text-gray-200">
+        <Info size={16} className="mt-0.5 shrink-0 text-brand-500 dark:text-brand-300" aria-hidden="true" />
+        <span>
+          <strong>Ransomware</strong> é o ataque em que criminosos sequestram os dados de uma organização e
+          cobram resgate — e, se não recebem, divulgam o nome da vítima. Esta tela lista as organizações
+          brasileiras divulgadas assim. O nível diz <strong>quem</strong> foi atingido: crítico é órgão do
+          Estado ou infraestrutura essencial; baixo é quando não dá para saber.{' '}
+          <Link to="/metodologia#criticidade" className="font-semibold text-brand-600 hover:underline dark:text-brand-300">
+            O que significa cada nível
+          </Link>
+        </span>
+      </p>
 
       <DataState
         loading={r.loading && !r.data}
