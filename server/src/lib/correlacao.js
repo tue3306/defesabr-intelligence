@@ -164,18 +164,46 @@ function regraOrganizacaoVitima(artigo, entidades) {
       vitimas = candidatas.filter((v) => mesmoNome(v.victim, e.nome)).slice(0, 5)
     }
 
+    // ─────────────────────────────────────────────────────────────────────
+    // UMA ORGANIZAÇÃO, UMA LIGAÇÃO — por mais grupos que a tenham divulgado
+    //
+    // A Nuclep consta três vezes na base: "Nuclep" (meow, 2024), "nuclep.gov.br.
+    // Nuclep Brazil" (babuk2, 2025) e "Nuclebrás Equipamentos Pesados"
+    // (worldleaks, 2025), com e sem "www." no domínio. Cada registro virava uma
+    // correlação, e a tela de Correlações mostrava a MESMA matéria duas ou três
+    // vezes seguidas, com rótulos diferentes para a mesma empresa — parecia
+    // que eram fatos distintos.
+    //
+    // Agora os registros se agrupam pelo alvo (a raiz do domínio, ou o nome
+    // normalizado) e a ligação única diz quantos grupos divulgaram. Que mais
+    // de um grupo tenha exposto a mesma organização é informação — e cabe
+    // numa frase, não em três cartões.
+    // ─────────────────────────────────────────────────────────────────────
+    const porAlvo = new Map()
     for (const v of vitimas) {
       const porDominio = !!raiz && raizDominio(v.website) === raiz
+      const chave = porDominio ? `d:${raiz}` : `n:${normalizar(v.victim)}`
+      const grupo = v.group || 'não identificado'
+      const atual = porAlvo.get(chave)
+      if (atual) atual.grupos.add(grupo)
+      else porAlvo.set(chave, { v, porDominio, grupos: new Set([grupo]) })
+    }
+
+    for (const { v, porDominio, grupos } of porAlvo.values()) {
+      const lista = [...grupos]
+      const varios = `${lista.length} grupos (${lista.slice(0, -1).join(', ')} e ${lista.at(-1)})`
+      const quem = lista.length === 1 ? `pelo grupo ${lista[0]}` : `por ${varios}`
+      const atribuido = lista.length === 1 ? `atribuído ao grupo ${lista[0]}` : `atribuído a ${varios}`
       out.push({
         regra: porDominio ? 'organizacao-vitima-dominio' : 'organizacao-vitima-nome',
         alvoTipo: 'vitima',
-        alvoId: v.website || v.victim,
+        alvoId: porDominio ? raiz : (v.website || v.victim),
         alvoRotulo: nomeDaVitima(v.victim, v.website).nome,
         motivo: porDominio
           ? `A matéria cita ${e.nome}, cujo domínio (${raiz}) consta na lista de organizações `
-            + `brasileiras com vazamento divulgado pelo grupo ${v.group || 'não identificado'}.`
+            + `brasileiras com vazamento divulgado ${quem}.`
           : `A matéria cita ${e.nome}, e existe registro de vazamento divulgado contra uma `
-            + `organização com exatamente esse nome, atribuído ao grupo ${v.group || 'não identificado'}.`,
+            + `organização com exatamente esse nome, ${atribuido}.`,
         evidencia: porDominio ? `domínio ${raiz} = ${v.website}` : `nome "${e.nome}" = "${v.victim}"`,
         contextoBr: `${v.nature === 'estado' ? 'Organização do Estado brasileiro' : 'Organização brasileira'}`
           + `${v.sector ? `, setor ${v.sector}` : ''}. Divulgação em ${(v.discovered_at || '').slice(0, 10) || 'data não informada'}.`,
@@ -187,7 +215,15 @@ function regraOrganizacaoVitima(artigo, entidades) {
       })
     }
   }
-  return out
+  // Duas entidades do texto ("Nuclep" e "Nuclebrás") podem apontar para o
+  // mesmo domínio. A primeira ligação encontrada fica; a segunda diria o mesmo.
+  const vistos = new Set()
+  return out.filter((c) => {
+    const chave = `${c.regra}|${c.alvoId}`
+    if (vistos.has(chave)) return false
+    vistos.add(chave)
+    return true
+  })
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

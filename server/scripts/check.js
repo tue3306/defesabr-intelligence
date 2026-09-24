@@ -300,6 +300,55 @@ console.log('\nLENTE MUNDIAL')
   conferir('urgência: 45 mortos', urgenciaMundo('Bombardeio deixa 45 mortos em Gaza') === 'CRITICO', 'CRITICO')
 }
 
+// URGÊNCIA DO RECORTE BRASIL — o degrau CRÍTICO é o que abre o aviso que
+// interrompe a tela. Os casos são manchetes reais do acervo de setembro de
+// 2026: as que ocupavam o topo sem narrar ataque nenhum, e as que precisam
+// continuar lá.
+console.log('\nURGÊNCIA')
+{
+  const { classificar } = await import('../src/lib/relevance.js')
+  const conferir = (nome, ok, nota) => {
+    if (ok) {
+      passou += 1
+      console.log(`  \x1b[32m✓\x1b[0m ${nome.padEnd(36)} \x1b[2m${nota}\x1b[0m`)
+    } else {
+      falhou += 1
+      problemas.push(`urgência: ${nome}`)
+      console.log(`  \x1b[31m✗\x1b[0m ${nome.padEnd(36)} ${nota}`)
+    }
+  }
+  const casos = [
+    ['Rússia diz que lançou ataque massivo contra Kiev, Zaporizhia e Odessa', 'CRITICO'],
+    ['Caças da Otan abatem drone que invadiu o espaço aéreo da Lituânia', 'CRITICO'],
+    ['Prédio desaba em Gaza e mata ao menos 21', 'CRITICO'],
+    ['Guerra no Irã já custou R$ 224 bilhões aos EUA, diz Pentágono', 'ALTO'],
+    ['Brasil e Argentina: crise entre governos começa a pressionar a relação', 'ALTO'],
+    ['A relação entre o filme Guerra nas Estrelas e a Marinha dos EUA', 'BAIXO'],
+    ['Indra apresenta míssil de cruzeiro para ataques a mais de 300 quilômetros', 'MEDIO'],
+    ['11 de Setembro: como os ataques de 2001 transformaram as Forças Armadas', 'MEDIO'],
+    ['UFRJ homenageia vítimas da ditadura com diplomas póstumos', 'MEDIO'],
+    ['Análise: fazer Otan arcar com despesas da guerra só enfraquece os EUA', 'MEDIO'],
+    ['Exército capacita pelotões especializados no confronto anticarro', 'MEDIO'],
+  ]
+  for (const [titulo, esperado] of casos) {
+    const { urgencia } = classificar(titulo, titulo)
+    conferir(`${esperado}: ${titulo.slice(0, 26)}…`, urgencia === esperado, urgencia === esperado ? urgencia : `veio ${urgencia}`)
+  }
+
+  // Termo militar em uso civil não aprova a matéria.
+  const { avaliarRelevancia } = await import('../src/lib/relevance.js')
+  const relevancia = [
+    ['Riachuelo finca os pés na Oscar Freire com loja em homenagem a São Paulo', false],
+    ['Médico em carro blindado cai em golpe do retrovisor e acaba baleado no Rio', false],
+    ['Marinha lança ao mar o submarino Riachuelo após manutenção', true],
+    ['Exército recebe novos blindados Guarani em Santa Maria', true],
+  ]
+  for (const [titulo, esperado] of relevancia) {
+    const r = avaliarRelevancia(titulo)
+    conferir(`${esperado ? 'aprova' : 'recusa'}: ${titulo.slice(0, 26)}…`, r.relevante === esperado, r.termos.join(', ') || 'sem termo')
+  }
+}
+
 // MUNDO & CONFLITOS — as cinco rotas novas.
 //
 // A forma, e três invariantes que a interface assume e nenhum código de status

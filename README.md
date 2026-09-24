@@ -558,7 +558,7 @@ escala em linguagem acessível, com o que ela **não** significa. **Privacidade 
 | `GET` | `/legislative` | — | Proposições com termo de defesa na ementa, com os termos encontrados (`?todas=true` inclui as de fora) |
 | `POST` | `/legislative/:id/refresh` | `admin` | Consulta a tramitação na Câmara, ao vivo |
 | `GET` | `/economy/indicators` | — | Séries do World Bank + câmbio do Banco Central |
-| `GET` | `/economy/bcb` | — | Dólar, euro, IPCA, Selic e IGP-M |
+| `GET` | `/economy/bcb` | — | Dólar, euro, meta e efetiva da Selic, IPCA (mês e 12 meses), IGP-M e reservas — com frequência e data de referência |
 | `GET` | `/economy/exports` | — | Exportações de aeronaves e armamento (Comex Stat) |
 | `GET` | `/economy/comparison?code=` | — | Brasil × vizinhos no mesmo indicador |
 | `GET` | `/sources/summary` | — | Quantas fontes existem e quantas responderam |
@@ -576,6 +576,7 @@ escala em linguagem acessível, com o que ela **não** significa. **Privacidade 
 | `POST` | `/auth/adotar` | — | Cria o primeiro administrador, com o código de adoção. 409 se já houver um |
 | `PATCH` | `/auth/me` | `user` | Troca o nome de exibição |
 | `PUT` | `/auth/senha` | `user` | Troca a senha com a atual; as outras sessões caem |
+| `DELETE` | `/auth/me` | `user` | Exclui a própria conta (com a senha); administrador sai pela governança |
 | `GET` | `/users` | `admin` | As contas que existem no banco desta instalação |
 | `PATCH` | `/users/:id` | `admin` | Papel (`user`/`admin`) e situação (`ativo`/`suspenso`), com efeito imediato |
 | `DELETE` | `/users/:id` | `admin` | Remove a conta, a pasta e o estado das notificações |

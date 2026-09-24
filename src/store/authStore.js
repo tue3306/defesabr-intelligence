@@ -160,6 +160,21 @@ export const useAuthStore = create(
         }
       },
 
+      /**
+       * Exclui a própria conta (LGPD, art. 18, VI). A senha confirma o pedido;
+       * o servidor apaga a conta, a pasta e o estado dos avisos, e a sessão
+       * deste navegador sai junto.
+       */
+      excluirConta: async (senha) => {
+        try {
+          await chamar('DELETE', '/auth/me', { senha }, get().token)
+          get().logout()
+          return { ok: true }
+        } catch (err) {
+          return { ok: false, error: err.message, campo: err.campo, code: err.code }
+        }
+      },
+
       /** Troca a senha. As outras sessões caem; esta recebe token novo. */
       trocarSenha: async (atual, nova) => {
         try {

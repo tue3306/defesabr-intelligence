@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   Link2, MapPin, Building2, ShieldAlert, Factory, Landmark, ExternalLink,
   ChevronDown, Info, Target,
@@ -50,10 +51,13 @@ const JANELAS = [
   { id: 180, rotulo: '6 meses' },
 ]
 
+// "FATO CONCRETO" SAIU. O filtro de força 4 e 5 se chamava assim, e quem lia
+// entendia que a LIGAÇÃO era um fato confirmado — quando o fato concreto é só
+// a coincidência de nome ou de domínio. O rótulo agora diz o que a força mede.
 const FORCAS = [
-  { id: 4, rotulo: 'Fato concreto' },
-  { id: 3, rotulo: 'Diretas ou mais' },
-  { id: 1, rotulo: 'Todas' },
+  { id: 4, rotulo: 'Mais diretas (4–5)' },
+  { id: 3, rotulo: 'Diretas (3–5)' },
+  { id: 1, rotulo: 'Todas (1–5)' },
 ]
 
 /** Cor da faixa de força. Escala de procedência, não de risco — ver o cabeçalho. */
@@ -104,7 +108,7 @@ export default function Correlations() {
       <PageHeader
         icon={Link2}
         title="Correlações"
-        description="O que cada notícia tem a ver com o resto do que a plataforma sabe sobre o Brasil — com a evidência de cada ligação à vista."
+        description="Possíveis relações entre as notícias e o que a plataforma já sabe sobre o Brasil — ataques registrados, grupos, estados e infraestrutura —, com a evidência de cada ligação à vista."
         breadcrumb={[{ label: 'Tático' }, { label: 'Correlações' }]}
       />
 
@@ -167,11 +171,14 @@ export default function Correlations() {
       <p className="flex items-start gap-2 rounded-lg bg-brand-500/10 p-3 text-xs leading-relaxed">
         <Info size={15} className="mt-0.5 shrink-0 text-brand-500 dark:text-brand-300" />
         <span className="text-gray-700 dark:text-gray-300">
-          <strong>Correlação não é causalidade.</strong> Cada ligação abaixo nasce de uma
-          correspondência literal — um domínio igual a outro, um nome de grupo que consta no
-          acervo, uma sigla de UF dentro de um domínio. Nenhuma vem de semelhança semântica ou de
-          estimativa, e a <strong>força</strong> mede o quanto a ligação é direta, não o quanto ela
-          é perigosa.
+          <strong>Cada ligação é uma possível relação, não um fato confirmado.</strong> Ela nasce de
+          uma coincidência literal — um domínio igual a outro, um nome de grupo que consta no
+          acervo, uma sigla de UF dentro de um domínio — e não afirma que a notícia fala do ataque
+          nem que um fato causou o outro. A <strong>força</strong> (1 a 5) mede o quanto a ligação é
+          direta, não o quanto ela é perigosa.{' '}
+          <Link to="/metodologia#correlacao" className="font-semibold text-brand-600 hover:underline dark:text-brand-300">
+            Entenda em 1 minuto
+          </Link>
         </span>
       </p>
 
@@ -240,7 +247,10 @@ function Correlacao({ c, aberto, onToggle }) {
           <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider dark:bg-white/5">
             <Icon size={11} /> {c.alvo?.rotulo || c.alvo?.id}
           </span>
-          <span className="chip font-mono text-[10px]">força {c.forca}</span>
+          <span className="chip font-mono text-[10px]" title="Quão direta é a ligação: 5 = mesmo site ou nome; 2 = só o mesmo setor. Não mede perigo.">força {c.forca}</span>
+          <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">
+            possível relação
+          </span>
           {c.artigo?.categoria && (
             <span
               className="rounded-full px-2 py-0.5 text-[10px] font-bold text-white"

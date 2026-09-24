@@ -2,13 +2,14 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import {
   Menu, Bell, Moon, Sun, LogIn, LogOut, User, PanelLeftClose, PanelLeft,
-  UserCog, Settings as SettingsIcon, ShieldCheck, ClipboardList, Search,
+  UserCog, Settings as SettingsIcon, ShieldCheck, ClipboardList, Search, Star,
 } from 'lucide-react'
 import SearchBar from '../ui/SearchBar'
 import Badge from '../ui/Badge'
 import AuthModal from '../auth/AuthModal'
 import { useAuthStore } from '../../store/authStore'
 import { useNotificationStore } from '../../store/notificationStore'
+import { useUiStore } from '../../store/uiStore'
 import { useCan, useProfileMeta } from '../../auth/useCan'
 import { useTheme } from '../../hooks/useTheme'
 import { timeAgo } from '../../utils/dateUtils'
@@ -240,6 +241,15 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
                 {/* Atalhos de conta */}
                 <div className="mt-1 border-t border-gray-200 pt-1 dark:border-gray-700/40">
                   <MenuLink to="/conta" icon={UserCog} label="Minha conta" onClick={() => setUserOpen(false)} />
+                  {/* O atalho que faltava: escolher os assuntos que interessam
+                      era uma seção escondida dentro de Configurações. */}
+                  <button
+                    type="button"
+                    onClick={() => { setUserOpen(false); useUiStore.getState().abrirInteresses() }}
+                    className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-white/10"
+                  >
+                    <Star size={15} /> Personalizar interesses
+                  </button>
                   {can('collection.monitor') && (
                     <MenuLink to="/coleta" icon={ClipboardList} label="Método & Coleta" onClick={() => setUserOpen(false)} />
                   )}

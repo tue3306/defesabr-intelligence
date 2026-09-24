@@ -72,7 +72,10 @@ const FORTES = [
   'dissuasao', 'adido militar', 'comando militar', 'estado-maior',
   // Programas e sistemas nomeados
   'prosub', 'sisfron', 'sisgaaz', 'gripen', 'tamandare', 'astros',
-  'riachuelo', 'sgdc', 'kc-390', 'super tucano',
+  // "riachuelo" SOZINHO SAIU: é também a rede de lojas, e "Riachuelo finca os
+  // pés na Oscar Freire" entrava como programa naval. Matéria do submarino
+  // diz "submarino", que é termo forte por conta própria.
+  'submarino riachuelo', 'sgdc', 'kc-390', 'super tucano',
   // Geografia estratégica brasileira
   'amazonia azul', 'zona economica exclusiva', 'plataforma continental',
   'faixa de fronteira', 'triplice fronteira', 'atlantico sul',
@@ -172,6 +175,16 @@ const EXCLUSOES = [
   'soberania popular', 'linha de defesa', 'defesa do titulo',
   'sistema de defesa do torcedor', 'defesa sanitaria', 'defesa agropecuaria',
 ]
+
+// USO CIVIL DE TERMO MILITAR — mascarado antes de procurar os termos fortes.
+//
+// "Médico em CARRO BLINDADO cai em golpe do retrovisor" entrava no acervo pela
+// palavra "blindado". Carro blindado de particular é mercado de segurança
+// privada, não meio militar; o blindado do Exército aparece como "blindado",
+// "blindados" ou "veículo blindado", que continuam valendo.
+const USO_CIVIL = ['carro blindado', 'carros blindados', 'carro com blindagem', 'blindagem automotiva', 'blindagem de carros']
+const RX_USO_CIVIL = USO_CIVIL.map((e) => new RegExp(e, 'gi'))
+const semUsoCivil = (t) => RX_USO_CIVIL.reduce((acc, rx) => acc.replace(rx, ' '), t)
 
 /** Regex com fronteira de palavra. `\b` falha em termos de várias palavras. */
 function fronteira(termo) {
@@ -318,8 +331,16 @@ function removerChamadas(texto) {
  */
 const RX_INVISIVEIS = /[\u200B-\u200D\uFEFF\u00AD]/g
 
+// RESTO DE MARCAÇÃO NO COMEÇO DO RESUMO.
+//
+// O que o analisador de feed antigo deixou passar (ver RX_TAG em
+// feedParser.js) ficou gravado: a legenda da foto, seguida de
+// `" data-large-file="https://…" />`, e só então o texto da matéria. Tudo até
+// o fecho da tag é legenda e atributo — nada ali é notícia.
+const RX_RESTO_DE_TAG = /^[\s\S]{0,600}?"\s*(?:[a-z][\w-]*=(?:"[^"]*"|'[^']*')\s*)+\/?>/i
+
 export function limparRodape(texto) {
-  const semInvisiveis = String(texto || '').replace(RX_INVISIVEIS, '')
+  const semInvisiveis = String(texto || '').replace(RX_INVISIVEIS, '').replace(RX_RESTO_DE_TAG, ' ')
   const plano = removerChamadas(semInvisiveis).replace(/\s+/g, ' ').trim()
   const corte = plano.search(RX_RODAPE)
   return corte > 0 ? plano.slice(0, corte).trim() : plano
@@ -415,11 +436,11 @@ export function avaliarRelevancia(texto) {
   // O corte acontece ANTES de normalizar: menção enterrada no fim de um texto
   // longo não qualifica. Ver `CARACTERES_CONSIDERADOS`.
   const limpo = limparRodape(texto).slice(0, CARACTERES_CONSIDERADOS)
-  const palheiro = normalizar(limpo)
+  const palheiro = semUsoCivil(normalizar(limpo))
   if (!palheiro.trim()) {
     return { relevante: false, pontos: 0, fortes: [], fracos: [], excluidos: [], naAbertura: false, termos: [] }
   }
-  const inicio = normalizar(limpo.slice(0, CARACTERES_ABERTURA))
+  const inicio = semUsoCivil(normalizar(limpo.slice(0, CARACTERES_ABERTURA)))
 
   const excluidos = RX_EXCLUSOES.filter(({ rx }) => rx.test(palheiro)).map((e) => e.termo)
   const fortes = RX_FORTES.filter(({ rx }) => rx.test(palheiro)).map((e) => e.termo)
@@ -517,11 +538,44 @@ const REGRAS_CATEGORIA = [
 // BAIXO é efetivamente baixo — efeméride, foto de navio enferrujado, matéria
 // de perfil.
 const REGRAS_URGENCIA = [
-  { nivel: 'CRITICO', termos: ['ataque', 'ataques', 'atacou', 'atacado', 'atacada', 'atacaram', 'invasao', 'invadiu', 'invadido', 'bombardeado', 'destruido', 'abatido', 'confronto', 'crise', 'emergencia', 'incursao', 'sabotagem', 'bombardeio', 'bombardeou', 'morte', 'mortos', 'mortes', 'ofensiva', 'guerra', 'abateu', 'derrubou', 'explosao', 'sequestro', 'vitimas'] },
-  { nivel: 'ALTO', termos: ['colisao', 'colide', 'colidiu', 'abalroamento', 'encalhou', 'operacao', 'apreensao', 'apreendeu', 'alerta', 'tensao', 'incidente', 'suspeita', 'interceptacao', 'interceptou', 'prisao', 'prendeu', 'mandados', 'ameaca', 'risco', 'denuncia', 'investigacao', 'investiga', 'sancao', 'sancoes', 'embargo', 'mobilizacao', 'patrulha', 'vazamento'] },
+  // CRÍTICO é ACONTECIMENTO VIOLENTO: alguém atacou, invadiu, bombardeou,
+  // derrubou, explodiu, matou. Ver "O DEGRAU MAIS ALTO É FATO, NÃO ASSUNTO",
+  // logo abaixo, para o que saiu daqui e por quê.
+  { nivel: 'CRITICO', termos: ['ataque', 'ataques', 'atacou', 'atacado', 'atacada', 'atacaram', 'invasao', 'invadiu', 'invadido', 'bombardeado', 'destruido', 'abatido', 'incursao', 'sabotagem', 'bombardeio', 'bombardeou', 'mortos', 'mortes', 'ofensiva', 'abateu', 'abatem', 'derrubou', 'explosao', 'sequestro'] },
+  { nivel: 'ALTO', termos: ['guerra', 'crise', 'confronto', 'emergencia', 'morte', 'vitimas', 'colisao', 'colide', 'colidiu', 'abalroamento', 'encalhou', 'operacao', 'apreensao', 'apreendeu', 'alerta', 'tensao', 'incidente', 'suspeita', 'interceptacao', 'interceptou', 'prisao', 'prendeu', 'mandados', 'ameaca', 'risco', 'denuncia', 'investigacao', 'investiga', 'sancao', 'sancoes', 'embargo', 'mobilizacao', 'patrulha', 'vazamento'] },
   { nivel: 'MEDIO', termos: ['acordo', 'acordos', 'contrato', 'contratos', 'anuncio', 'anuncia', 'anunciou', 'aquisicao', 'reuniao', 'assinatura', 'assina', 'assinou', 'entrega', 'entregou', 'incorpora', 'incorporou', 'recebe', 'recebeu', 'receber', 'aprova', 'aprovou', 'aprovada', 'lanca', 'lancou', 'nomeia', 'nomeou', 'assume', 'assumiu', 'visita', 'exercicio', 'treinamento', 'cerimonia', 'encomenda', 'pedido', 'licitacao', 'amplia', 'ampliou', 'reforca', 'reforcou', 'desenvolvimento', 'desenvolve', 'projeto', 'programa', 'plano', 'investe', 'investiu', 'moderniza', 'modernizacao', 'parceria', 'cooperacao', 'estuda', 'avalia', 'propoe', 'defende', 'discute', 'apresenta', 'inaugura', 'conclui'] },
 ]
 
+
+// ─────────────────────────────────────────────────────────────────────────────
+// O DEGRAU MAIS ALTO É FATO, NÃO ASSUNTO
+//
+// "guerra", "crise", "confronto", "emergência", "morte" e "vítimas" eram
+// termos de CRÍTICO. Medido no acervo de setembro de 2026: 61 das 527
+// matérias aprovadas (12%) estavam no topo da escala, e entre elas
+//
+//   "A relação entre o filme Guerra nas Estrelas e a Marinha dos EUA"
+//   "Guerra no Irã já custou R$ 224 bilhões aos EUA, diz Pentágono"
+//   "A guerra pode se espalhar pela Europa. Você está psicologicamente preparado?"
+//   "Brasil e Argentina: crise entre governos começa a pressionar uma relação"
+//
+// Todas falam de assunto grave; nenhuma narra um ataque que acabou de
+// acontecer. E o nível CRÍTICO é o que abre o aviso que interrompe a tela —
+// um aviso que dispara para custo de guerra e análise de conjuntura ensina a
+// pessoa a fechá-lo sem ler.
+//
+// Os seis termos desceram para ALTO: o assunto continua marcado como sério, e
+// o topo fica para o verbo do acontecimento — atacou, invadiu, bombardeou,
+// derrubou, explodiu, deixou mortos. É a mesma régua que a lente do Mundo já
+// usava (`urgenciaMundo`, em lib/mundo.js), onde "guerra" sozinha nunca foi
+// crítica. Dois recortes da mesma plataforma com réguas diferentes para a
+// mesma palavra eram, eles mesmos, uma inconsistência.
+//
+// Número de vítimas explícito ("deixa 45 mortos", "mata 12") continua
+// crítico por conta própria — é o dado mais objetivo que um título carrega.
+// ─────────────────────────────────────────────────────────────────────────────
+const RX_VITIMAS_NUMERO = /(?<![\p{L}\p{N}])([2-9]|\d{2,})\s+(?:mortos|mortes|pessoas mortas)(?![\p{L}\p{N}])/u
+const RX_VITIMAS_VERBO = /(?<![\p{L}\p{N}])(?:mata|matam|matou|mataram)\s+(?:ao menos\s+|pelo menos\s+)?([2-9]|\d{2,})(?![\p{L}\p{N}])/u
 
 const RX_CATEGORIA = REGRAS_CATEGORIA.map((r) => ({ cat: r.cat, rxs: r.termos.map((t) => fronteira(normalizar(t))) }))
 const RX_URGENCIA = REGRAS_URGENCIA.map((r) => ({ nivel: r.nivel, rxs: r.termos.map((t) => fronteira(normalizar(t))) }))
@@ -561,6 +615,13 @@ const EXPRESSOES_DESCRITIVAS = [
   'primeira guerra mundial', 'guerra civil americana', 'pos-guerra',
   // "crise" e "emergência" como categoria administrativa, não como fato novo.
   'crise climatica', 'crise migratoria', 'crise hidrica', 'emergencia climatica',
+  'situacao de emergencia', 'situacoes de emergencia',
+  // Nome de obra, de sistema ou de período.
+  'guerra nas estrelas', 'guerra antidrone', 'guerra antidrones', 'confronto anticarro',
+  'segunda guerra', 'primeira guerra',
+  // FINALIDADE, não fato: "míssil de cruzeiro PARA ATAQUES a 300 km" descreve o
+  // que o equipamento faz; "sistema de defesa contra ataques" também.
+  'para ataque', 'para ataques', 'defesa contra ataques', 'protecao contra ataques',
 ]
 
 const RX_DESCRITIVAS = EXPRESSOES_DESCRITIVAS.map((e) => new RegExp(normalizar(e).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'))
@@ -580,7 +641,11 @@ const CONTEXTO_NAO_ATUAL = [
   'medieval', 'arqueolog', 'arqueolo', 'naufragio', 'sitio historico', 'seculo xv',
   'seculo xvi', 'seculo xvii', 'seculo xviii', 'seculo xix', 'ha seculos',
   'documentario', 'biografia', 'exposicao', 'aniversario', 'efemeride', 'memorial',
-  'homenagem', 'centenario', 'bicentenario',
+  // Radical, e não a palavra: "homenagem" não casava com "UFRJ HOMENAGEIA
+  // vítimas da ditadura", que entrava como crítica.
+  'homenage', 'centenario', 'bicentenario', 'ditadura militar', 'diplomas postumos',
+  // Gênero de texto: análise e opinião comentam o fato, não o noticiam.
+  'analise:', 'opiniao:', 'artigo:', 'editorial', 'coluna:', 'podcast',
 ]
 
 const RX_NAO_ATUAL = CONTEXTO_NAO_ATUAL.map((t) => new RegExp(normalizar(t), 'i'))
@@ -602,6 +667,7 @@ const EXPRESSOES_DE_ASSUNTO = [
   'navio de guerra', 'navios de guerra', 'barco de guerra', 'barcos de guerra',
   'prisioneiro de guerra', 'prisioneiros de guerra', 'guerra de informacao',
   'guerra de narrativas', 'segunda guerra mundial', 'primeira guerra mundial',
+  'guerra antidrone', 'guerra antidrones', 'confronto anticarro',
 ]
 
 const RX_ASSUNTO = EXPRESSOES_DE_ASSUNTO.map((e) => new RegExp(normalizar(e), 'i'))
@@ -620,7 +686,9 @@ export const METODO_URGENCIA = {
       + '"navio de guerra" e "guerra eletrônica" a palavra nomeia uma coisa, não um acontecimento.',
     'Ato administrativo (portaria, nomeação, edital) tem teto MÉDIO, seja qual for a palavra que carrega.',
     `Assunto histórico, arqueológico ou cultural (${CONTEXTO_NAO_ATUAL.length} marcas: medieval, século XVI, `
-      + 'documentário, homenagem) também tem teto MÉDIO — o fato é verdadeiro, mas não é de hoje.',
+      + 'documentário, homenagem, análise, opinião) e título que cita ano de dois ou mais anos atrás têm teto '
+      + 'MÉDIO — o fato é verdadeiro, mas não é de hoje.',
+    'Número de mortos explícito no título ("deixa 20 mortos", "mata 12") é CRÍTICO por conta própria.',
     `Expressão que nomeia ASSUNTO militar (${EXPRESSOES_DE_ASSUNTO.length}: guerra híbrida, guerra `
       + 'eletrônica, navio de guerra) garante o piso MÉDIO: o texto é de defesa, ainda que não narre um fato novo.',
   ],
@@ -666,6 +734,21 @@ const RX_ATO_ADMINISTRATIVO = [
   'reconhec', 'portaria', 'decreto', 'publicad', 'diario oficial', 'homologa',
 ].map((t) => new RegExp(`(?<![\\p{L}\\p{N}])${t}`, 'iu'))
 
+// ANO PASSADO NO TÍTULO É RETROSPECTIVA.
+//
+// "11 de Setembro: como os ataques de 2001 transformaram as Forças Armadas"
+// tem "ataques" no título e nenhum ataque novo. Um ano de pelo menos dois
+// anos atrás, escrito no título, marca a matéria como retrospectiva. O ano
+// corrente e o anterior ficam de fora: "ataque de 2025" pode ser o fato que
+// ainda está sendo apurado.
+function citaAnoPassado(texto) {
+  const corte = new Date().getFullYear() - 2
+  for (const m of String(texto).matchAll(/(?<!\d)(1[89]\d{2}|20\d{2})(?!\d)/g)) {
+    if (Number(m[1]) <= corte) return true
+  }
+  return false
+}
+
 /**
  * Classifica um texto em categoria e urgência.
  *
@@ -685,17 +768,24 @@ export function classificar(texto, titulo) {
   // inteiro, porque "guerra eletrônica" é exatamente o que define a categoria
   // de uma matéria sobre guerra eletrônica.
   const inicioParaUrgencia = semExpressoesDescritivas(inicio)
-  const porTermo = RX_URGENCIA.find(({ rxs }) => rxs.some((rx) => rx.test(inicioParaUrgencia)))?.nivel || 'BAIXO'
+  const porNumero = RX_VITIMAS_NUMERO.test(inicioParaUrgencia) || RX_VITIMAS_VERBO.test(inicioParaUrgencia)
+  const porTermo = porNumero
+    ? 'CRITICO'
+    : RX_URGENCIA.find(({ rxs }) => rxs.some((rx) => rx.test(inicioParaUrgencia)))?.nivel || 'BAIXO'
   // Assunto militar reconhecido pela expressão mascarada: piso MÉDIO.
   const urgenciaBruta = porTermo === 'BAIXO' && RX_ASSUNTO.some((rx) => rx.test(inicio)) ? 'MEDIO' : porTermo
   const ehAto = RX_ATO_ADMINISTRATIVO.some((rx) => rx.test(inicio))
-  const naoEhAtual = RX_NAO_ATUAL.some((rx) => rx.test(inicio))
+  const naoEhAtual = RX_NAO_ATUAL.some((rx) => rx.test(inicio)) || citaAnoPassado(inicio)
+  // O teto vale para os dois degraus de cima. Com "guerra" e "vítimas" em
+  // ALTO, "UFRJ homenageia vítimas da ditadura" passaria de crítica a alta —
+  // e continuaria ocupando um lugar que não é dela.
+  const acimaDoTeto = urgenciaBruta === 'CRITICO' || urgenciaBruta === 'ALTO'
 
   return {
     categoria: RX_CATEGORIA.find(({ rxs }) => rxs.some((rx) => rx.test(palheiro)))?.cat || 'Forças Armadas',
     // Ato administrativo e assunto histórico têm teto MÉDIO, seja qual for a
     // palavra que carregam.
-    urgencia: (ehAto || naoEhAtual) && urgenciaBruta === 'CRITICO' ? 'MEDIO' : urgenciaBruta,
+    urgencia: (ehAto || naoEhAtual) && acimaDoTeto ? 'MEDIO' : urgenciaBruta,
   }
 }
 

@@ -27,13 +27,41 @@ import { formatDateBR } from '../../utils/dateUtils'
 // -----------------------------------------------------------------------------
 
 /** Formata pelo que a série mede — real com três casas, porcento com duas. */
-function formatar(valor, unidade) {
+export function formatar(valor, unidade) {
   if (valor == null || Number.isNaN(Number(valor))) return '—'
   const n = Number(valor)
   if (unidade === 'R$') return `R$ ${n.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 4 })}`
   if (unidade === '%') return `${n.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`
+  if (unidade === '% a.a.') return `${n.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}% a.a.`
+  // Reservas vêm em milhões de dólares; "366.890" não diz nada a ninguém,
+  // "US$ 366,9 bi" diz.
+  if (unidade === 'US$ mi') return `US$ ${(n / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} bi`
   return n.toLocaleString('pt-BR', { maximumFractionDigits: 2 })
 }
+
+/** Unidades que são TAXA: a diferença entre duas se mede em pontos percentuais. */
+export const ehTaxa = (unidade) => unidade === '%' || unidade === '% a.a.'
+
+/**
+ * Diferença entre dois valores, na linguagem da unidade.
+ *
+ * "Variação no período: −223,1%" era o IPCA indo de 0,26% para −0,32%: a
+ * variação PERCENTUAL de uma taxa, conta que não tem sentido e assusta. Para
+ * taxa, a diferença é em pontos percentuais (−0,58 p.p.); para preço e
+ * estoque, em porcentagem do valor inicial.
+ */
+export function diferenca(de, para, unidade) {
+  if (de == null || para == null) return null
+  const d = para - de
+  const sinal = d > 0 ? '+' : d < 0 ? '−' : ''
+  const abs = Math.abs(d)
+  if (ehTaxa(unidade)) return `${sinal}${abs.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} p.p.`
+  if (!de) return null
+  const rel = Math.abs((d / Math.abs(de)) * 100)
+  return `${sinal}${rel.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`
+}
+
+const FREQUENCIA = { diaria: 'publicada todo dia útil', mensal: 'publicada uma vez por mês' }
 
 /** "2026-09-16" → "16/09". O eixo não tem largura para o ano. */
 const curta = (periodo) => {
@@ -43,8 +71,13 @@ const curta = (periodo) => {
   return p
 }
 
-export default function SeriesBcb({ series, height = 260 }) {
-  const lista = Object.values(series || {})
+export default function SeriesBcb({ series, height = 260, ordem }) {
+  // `ordem` escolhe e ordena as séries do seletor. Sem ela, vale a ordem em
+  // que o servidor as devolveu — que é a do banco, e não a de quem lê.
+  const todas = Object.values(series || {})
+  const lista = ordem
+    ? ordem.map((id) => series?.[id]).filter(Boolean)
+    : todas
   const [ativo, setAtivo] = useState(lista[0]?.id || null)
 
   if (!lista.length) return null
@@ -66,7 +99,8 @@ export default function SeriesBcb({ series, height = 260 }) {
   const maximo = Math.max(...valores)
   const primeiro = valores[0]
   const ultimo = valores[valores.length - 1]
-  const variacao = primeiro ? ((ultimo - primeiro) / Math.abs(primeiro)) * 100 : null
+  const variacao = diferenca(primeiro, ultimo, serie.unit)
+  const subiu = ultimo > primeiro
 
   const dados = pontos.map((p) => ({ x: curta(p.period), periodo: p.period, valor: Number(p.value) }))
 
@@ -88,6 +122,18 @@ export default function SeriesBcb({ series, height = 260 }) {
           </button>
         ))}
       </div>
+
+      {serie.descricao && (
+        <p className="mb-3 text-sm leading-relaxed text-gray-700 dark:text-gray-300">
+          {serie.descricao}{' '}
+          {FREQUENCIA[serie.frequencia] && <span className="muted">Série {FREQUENCIA[serie.frequencia]}.</span>}
+          {serie.parcial && (
+            <span className="ml-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800 dark:text-amber-300">
+              o último mês ainda está em curso
+            </span>
+          )}
+        </p>
+      )}
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Estatistica rotulo="Último" valor={formatar(ultimo, serie.unit)} destaque />
@@ -134,13 +180,14 @@ export default function SeriesBcb({ series, height = 260 }) {
         {pontos.length} ponto(s) · de {curta(pontos[0].period)} a {curta(pontos[pontos.length - 1].period)} ·{' '}
         {variacao != null && (
           <>
-            variação no período{' '}
-            <strong className={variacao >= 0 ? 'text-amber-700 dark:text-amber-300' : 'text-emerald-700 dark:text-emerald-300'}>
-              {variacao >= 0 ? '+' : ''}{variacao.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%
-            </strong>{' · '}
+            {/* Sem cor de "bom" ou "ruim": se o dólar subir é bom ou ruim
+                depende de quem lê. A palavra diz a direção. */}
+            {subiu ? 'subiu' : ultimo < primeiro ? 'caiu' : 'ficou estável'} no período{' '}
+            <strong className="text-gray-900 dark:text-gray-100">{variacao}</strong>{' · '}
           </>
         )}
-        Banco Central (SGS). A série é publicada pelo próprio BCB; a plataforma só reproduz.
+        Banco Central (SGS{serie.codigoSgs ? `, série ${serie.codigoSgs}` : ''}). A série é publicada pelo próprio
+        BCB; a plataforma só reproduz.
       </p>
     </div>
   )

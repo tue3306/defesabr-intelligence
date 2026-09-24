@@ -18,6 +18,9 @@ export default function InfoTooltip({ text, label = 'O que é isto?', size = 14 
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
         onClick={() => setOpen((o) => !o)}
+        // Esc fecha a dica sem tirar o foco do botão (WCAG 1.4.13: conteúdo
+        // que aparece no foco precisa poder ser dispensado).
+        onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false) }}
         className="inline-flex items-center justify-center rounded-full text-gray-400 transition-colors hover:text-brand-300"
       >
         <HelpCircle size={size} />
@@ -26,7 +29,7 @@ export default function InfoTooltip({ text, label = 'O que é isto?', size = 14 
         <span
           id={id}
           role="tooltip"
-          className="on-dark absolute left-1/2 top-full z-50 mt-2 w-56 -translate-x-1/2 animate-scale-in rounded-xl border border-white/10 bg-military-darker px-3 py-2 text-xs font-normal leading-relaxed text-gray-200 shadow-dropdown"
+          className="on-dark absolute left-1/2 top-full z-50 mt-2 w-56 max-w-[calc(100vw-2rem)] -translate-x-1/2 animate-scale-in rounded-xl border border-white/10 bg-military-darker px-3 py-2 text-xs font-normal leading-relaxed text-gray-200 shadow-dropdown"
         >
           {text}
         </span>

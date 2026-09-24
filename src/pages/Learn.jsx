@@ -3,7 +3,8 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   GraduationCap, BookOpen, Brain, Search, Shield, Globe2, LineChart, Cpu, ArrowRight,
-  PlayCircle, Compass, Anchor, ShieldAlert, FileText, ExternalLink, Library, CheckCircle2, Circle, RotateCcw } from 'lucide-react'
+  PlayCircle, Compass, Anchor, ShieldAlert, FileText, ExternalLink, Library, CheckCircle2, Circle, RotateCcw,
+  BellRing, Link2, Lock, Scale } from 'lucide-react'
 import Quiz from '../components/learn/Quiz'
 import {
   glossary, glossaryCategories, learnConcepts,
@@ -11,13 +12,14 @@ import {
 } from '../data/learnData'
 import { normalize } from '../utils/semanticSearch'
 
-const ICONS = { Shield, Globe2, LineChart, Cpu }
-const PATH_ICONS = { Compass, Anchor, ShieldAlert }
+const ICONS = { Shield, Globe2, LineChart, Cpu, BellRing, Link2, Lock }
+const PATH_ICONS = { Compass, Anchor, ShieldAlert, Scale }
+// Com contraste nos dois temas: o `-300` sozinho sumia no fundo claro.
 const LEVEL_CLR = {
-  'Básico': 'bg-emerald-500/15 text-emerald-300',
-  'Iniciante': 'bg-emerald-500/15 text-emerald-300',
-  'Intermediário': 'bg-amber-500/15 text-amber-300',
-  'Avançado': 'bg-red-500/15 text-red-300',
+  'Básico': 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300',
+  'Iniciante': 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300',
+  'Intermediário': 'bg-amber-500/15 text-amber-800 dark:text-amber-300',
+  'Avançado': 'bg-red-500/15 text-red-800 dark:text-red-300',
 }
 
 
@@ -117,7 +119,7 @@ export default function Learn() {
         <p className="mb-4 text-sm muted">
           Caminhos guiados por nível — marque os passos concluídos. O progresso fica salvo neste navegador.
         </p>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           {learningPaths.map((p, i) => {
             const Icon = PATH_ICONS[p.icon] || Compass
             return (
@@ -216,6 +218,11 @@ export default function Learn() {
                 </span>
                 <h3 className="font-bold tracking-tight">{c.title}</h3>
                 <p className="mt-1.5 text-sm leading-relaxed text-gray-300">{c.text}</p>
+                {c.link && (
+                  <Link to={c.link} className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:underline dark:text-brand-300">
+                    Saiba mais <ArrowRight size={12} aria-hidden="true" />
+                  </Link>
+                )}
               </motion.div>
             )
           })}

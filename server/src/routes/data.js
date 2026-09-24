@@ -5,6 +5,7 @@ import {
   INDICADORES_WB, PAISES_COMPARACAO, serie, ultimoValor, ultimoCambio, rotuloIndicador,
 } from '../collectors/indicators.js'
 import { normalizar } from '../lib/relevance.js'
+import { SERIES_BCB } from '../collectors/bcb.js'
 import { panoramaRansomware, alertasRansomware } from '../collectors/ransomware.js'
 import { atoresContraBrasil, ator } from '../collectors/atores.js'
 import { exigirPapel } from '../lib/auth.js'
@@ -189,7 +190,7 @@ router.get('/economy/comparison', (req, res) => {
 // dizer a que taxa o dolar fechou. O SGS entrega o dado do dia.
 router.get('/economy/bcb', (req, res) => {
   const linhas = all(
-    `SELECT code, period, value, unit
+    `SELECT code, period, value, unit, fetched_at
      FROM indicators WHERE provider = 'bcb'
      ORDER BY period ASC`
   )
@@ -198,25 +199,52 @@ router.get('/economy/bcb', (req, res) => {
     return res.json({ series: {}, provider: 'Banco Central do Brasil — SGS', nota: 'Sem coleta ainda.' })
   }
 
-  const ROTULOS = {
-    usd: 'Dólar (venda)', eur: 'Euro (venda)', ipca: 'IPCA — variação mensal',
-    selic: 'Selic — taxa mensal', igpm: 'IGP-M — variação mensal',
-  }
+  // Rótulo, frequência e descrição vêm da MESMA lista que coleta — antes a
+  // rota tinha a sua cópia dos rótulos, e as duas já discordavam.
+  const META = Object.fromEntries(SERIES_BCB.map((s) => [s.id, s]))
+  const mesCorrente = new Date().toISOString().slice(0, 7)
 
   const series = {}
   for (const l of linhas) {
     if (!series[l.code]) {
-      series[l.code] = { id: l.code, label: ROTULOS[l.code] || l.code, unit: l.unit, pontos: [] }
+      const m = META[l.code] || {}
+      series[l.code] = {
+        id: l.code,
+        label: m.label || l.code,
+        unit: l.unit,
+        frequencia: m.frequencia || null,
+        descricao: m.descricao || null,
+        codigoSgs: m.codigo || null,
+        atualizadoEm: null,
+        pontos: [],
+      }
     }
-    series[l.code].pontos.push({ period: l.period, value: l.value })
+    const s = series[l.code]
+    s.pontos.push({ period: l.period, value: l.value })
+    if (!s.atualizadoEm || l.fetched_at > s.atualizadoEm) s.atualizadoEm = l.fetched_at
   }
   for (const s of Object.values(series)) {
     s.ultimo = s.pontos[s.pontos.length - 1] || null
-    // Variação contra o ponto anterior — o que a tela mostra como seta.
+    // Mês corrente de série acumulada no mês: o valor ainda está crescendo.
+    s.parcial = !!(META[s.id]?.acumuladoNoMes && s.ultimo?.period?.startsWith(mesCorrente))
+    // Variação contra o ponto anterior — o que a tela mostra como seta. Com o
+    // último ponto parcial, a comparação é contra um mês cheio e não diz nada:
+    // a seta some em vez de apontar uma queda que é só o mês pela metade.
     const penult = s.pontos[s.pontos.length - 2]
-    s.variacao = penult && s.ultimo
+    s.variacao = penult && s.ultimo && !s.parcial
       ? Math.round((s.ultimo.value - penult.value) * 1000) / 1000
       : null
+    // Série em DEGRAU (a meta da Selic só muda em reunião do Copom): a
+    // variação de um dia para o outro é zero quase sempre e não diz nada. O
+    // que interessa é a última vez que o valor mudou, e de quanto.
+    if (META[s.id]?.degrau && s.ultimo) {
+      let i = s.pontos.length - 1
+      while (i > 0 && s.pontos[i - 1].value === s.ultimo.value) i -= 1
+      s.ultimaMudanca = i > 0
+        ? { desde: s.pontos[i].period, de: s.pontos[i - 1].value, para: s.ultimo.value }
+        : null
+      s.variacao = s.ultimaMudanca ? Math.round((s.ultimaMudanca.para - s.ultimaMudanca.de) * 1000) / 1000 : null
+    }
   }
 
   res.json({

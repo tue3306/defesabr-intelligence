@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
-import { Bell, Palette, Star, Sun, Moon, ShieldCheck, ArrowRight } from 'lucide-react'
+import { Bell, Palette, Star, Sun, Moon, ShieldCheck, ArrowRight, Check, SlidersHorizontal } from 'lucide-react'
 import { useSettingsStore } from '../store/settingsStore'
+import { useUiStore } from '../store/uiStore'
 import { useCan } from '../auth/useCan'
 import { useTheme } from '../hooks/useTheme'
 import { CATEGORIES } from '../data/mockData'
@@ -158,22 +159,30 @@ function InterestAreasSection() {
               key={cat}
               onClick={() => toggleInterestArea(cat)}
               aria-pressed={on}
+              // Selecionada: fundo tingido, borda na cor da área e um visto — a
+              // marca não depende de distinguir a cor. O texto branco sobre a
+              // cor cheia sumia nas áreas de tom claro (âmbar, ouro).
               className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
                 on
-                  ? 'border-transparent text-white'
+                  ? 'text-gray-900 dark:text-gray-100'
                   : 'border-gray-300 text-gray-600 hover:text-gray-900 dark:border-gray-600/50 dark:text-gray-400 dark:hover:text-gray-200'
               }`}
-              style={on ? { background: categoryColor(cat) } : undefined}
+              style={on ? { background: `${categoryColor(cat)}26`, borderColor: categoryColor(cat) } : undefined}
             >
-              <span className="h-2 w-2 rounded-full" style={{ background: on ? '#fff' : categoryColor(cat) }} />
+              {on
+                ? <Check size={14} aria-hidden="true" />
+                : <span className="h-2 w-2 rounded-full" style={{ background: categoryColor(cat) }} aria-hidden="true" />}
               {cat}
             </button>
           )
         })}
       </div>
       <p className="mt-3 text-xs muted">
-        {interestAreas.length ? `${interestAreas.length} área(s) selecionada(s).` : 'Nenhuma área selecionada: o painel mostra as matérias por data.'}
+        {interestAreas.length ? `${interestAreas.length} área(s) selecionada(s) — salvas automaticamente neste navegador.` : 'Nenhuma área selecionada: o painel mostra as matérias por data.'}
       </p>
+      <button type="button" onClick={() => useUiStore.getState().abrirInteresses()} className="btn-ghost mt-3 px-3 py-1.5 text-sm">
+        <SlidersHorizontal size={15} aria-hidden="true" /> Personalizar interesses, com a descrição de cada área
+      </button>
     </Section>
   )
 }

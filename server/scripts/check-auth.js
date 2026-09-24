@@ -173,6 +173,19 @@ const ROTAS = [
     autorizado: [409, 429],
     muta: true,
   },
+
+  // Autoexclusão (LGPD, art. 18, VI). Com a senha ERRADA de propósito: o
+  // usuário recebe 400 (a guarda da senha), o administrador 409 (conta de
+  // administrador sai pela governança) — e nenhuma conta é apagada aqui. O
+  // caminho que apaga de verdade é testado à parte, no fim.
+  {
+    metodo: 'DELETE',
+    caminho: '/api/auth/me',
+    minimo: 'user',
+    corpo: { senha: 'senha-errada-de-proposito' },
+    autorizado: [400, 409],
+    muta: true,
+  },
 ]
 
 const NIVEL = { user: 1, admin: 2 }
@@ -269,6 +282,42 @@ async function main() {
         `  ${marca}${escrita} ${rota.metodo.padEnd(5)} ${rota.caminho.padEnd(34)} ${alvo.padEnd(11)}`
         + ` esperado ${aceitos.join(' ou ')}, obtido ${obtido}`,
       )
+    }
+    console.log('')
+  }
+
+  // ── EXCLUSÃO PELO TITULAR, DE PONTA A PONTA ──
+  //
+  // Uma conta nova, só para isto: cadastra, confere que a senha errada não
+  // apaga, apaga com a certa, e confere que o login deixa de funcionar. Um
+  // botão de "excluir conta" que responde 200 e deixa a conta viva seria pior
+  // que botão nenhum.
+  {
+    console.log(cor('  EXCLUSÃO PELO TITULAR', 1))
+    const usuario = `suite-x-${Date.now().toString(36)}`
+    const senha = `teste-${Math.random().toString(36).slice(2, 12)}`
+    const passo = (nome, ok, nota) => {
+      if (ok) passaram += 1
+      else falharam += 1
+      console.log(`  ${ok ? cor('  ok  ', 32) : cor(' FALHA', 31)}   ${nome.padEnd(48)} ${nota}`)
+    }
+    const json = { 'Content-Type': 'application/json' }
+    const cad = await fetch(`${BASE}/api/auth/register`, {
+      method: 'POST', headers: json, body: JSON.stringify({ username: usuario, password: senha }),
+    })
+    if (cad.status === 429) {
+      console.log(cor('  aviso: limite de cadastros por IP atingido — rode de novo em 10 minutos', 33))
+    } else {
+      const { token } = await cad.json()
+      const auth = { ...json, Authorization: `Bearer ${token}` }
+      const errada = await fetch(`${BASE}/api/auth/me`, { method: 'DELETE', headers: auth, body: JSON.stringify({ senha: 'nao-e-esta' }) })
+      passo('senha errada não apaga', errada.status === 400, `HTTP ${errada.status}`)
+      const certa = await fetch(`${BASE}/api/auth/me`, { method: 'DELETE', headers: auth, body: JSON.stringify({ senha }) })
+      passo('senha certa apaga', certa.status === 200, `HTTP ${certa.status}`)
+      const login = await fetch(`${BASE}/api/auth/login`, { method: 'POST', headers: json, body: JSON.stringify({ username: usuario, password: senha }) })
+      passo('depois de apagada, o login é recusado', login.status === 401, `HTTP ${login.status}`)
+      const sessao = await fetch(`${BASE}/api/auth/me`, { headers: auth })
+      passo('e o token antigo deixa de valer', sessao.status === 401, `HTTP ${sessao.status}`)
     }
     console.log('')
   }

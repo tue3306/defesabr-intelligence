@@ -7,6 +7,101 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Não publicado]
 
+### Revisão geral: dados honestos, alertas calibrados e o usuário leigo
+
+**Adicionado**
+
+- **"Em destaque agora"** no Painel: as matérias críticas e altas das últimas
+  48 horas, da mais urgente para a menos. Sem nenhuma, o bloco diz isso — em
+  vez de promover matéria baixa a destaque.
+- **Painel "Personalizar interesses"**, aberto do menu do usuário, do menu
+  lateral, do Painel, do Clipping e das Configurações: marcar, desmarcar,
+  "todas", "nenhuma", desfazer e **Salvar**, com confirmação. Cada área vem com
+  uma frase dizendo o que ela cobre.
+- **Guia dos níveis em linguagem simples** na metodologia (`/metodologia#niveis`):
+  para CRÍTICO, ALTO, MÉDIO e BAIXO, o que significa, quanta atenção pede,
+  exemplos (marcados como manchete real do acervo ou ilustrativos) e o que
+  fazer ao receber. Mais a tabela "quatro réguas diferentes" (urgência,
+  criticidade, nível de alerta, força da correlação) e a correlação explicada
+  em três passos, como **possível relação**, não fato confirmado.
+- **Exclusão da própria conta** (LGPD, art. 18, VI): `DELETE /api/auth/me`,
+  com senha e confirmação digitada, em Minha conta → Segurança. Apaga conta,
+  pasta e estado dos avisos; a auditoria registra o ato sem o nome de quem
+  pediu para ser esquecido. Administrador sai pela governança.
+- **Gerenciar os dados deste navegador** (`/privacidade#navegador`): as nove
+  chaves que a plataforma grava, com "guardado"/"vazio" lido do navegador de
+  verdade e botões para apagar preferências ou tudo.
+- **Quatro séries novas do Banco Central**: meta da Selic (Copom, % a.a.),
+  Selic efetiva anualizada, IPCA acumulado em 12 meses e reservas
+  internacionais. A meta mostra a última decisão do Copom e desde quando vale.
+- **Economia diz a frequência de cada número** (diário, mensal, anual) e a data
+  de referência; explica "por que isso importa" convertendo um contrato-exemplo
+  de US$ 100 milhões pelas cotações reais do período.
+- **Quiz de 44 para 83 questões**, em 12 temas (novos: Economia & Defesa e
+  Privacidade & LGPD), com **rodada rápida de 10 sorteadas**, alternativas
+  embaralhadas a cada rodada, retorno por texto e ícone e lista "Para revisar"
+  no fim. Três conceitos-chave e uma trilha "Entendendo a plataforma" novos.
+- **Página de país aceita o nome em português** (`/mundo/pais/Estados Unidos`).
+
+**Mudado**
+
+- **O degrau CRÍTICO ficou para acontecimento violento.** "guerra", "crise",
+  "confronto", "emergência", "morte" e "vítimas" desceram para ALTO — a mesma
+  régua que a lente do Mundo já usava. Medido no acervo: CRÍTICO caiu de 61
+  para 26 matérias, todas ataques, invasões, bombardeios ou mortes. Número de
+  mortos no título ("mata 21") é crítico por conta própria; análise, opinião,
+  homenagem e retrospectiva ("os ataques de 2001") têm teto MÉDIO.
+- **O aviso crítico deixou de ser modal.** Virou painel fixo no canto, sem véu:
+  a página continua usável. Aparece uma vez por evento, no máximo um por hora,
+  e espera o aviso de privacidade ser respondido.
+- **"Ao vivo" virou "Dado real"**, com a frequência quando conhecida ("Dado
+  real · diário", "· anual"). O Painel mostra quando foi a última coleta e
+  avisa quando ela passou de 6 horas.
+- **Correlação: "Fato concreto" saiu** do filtro de força; cada cartão diz
+  "possível relação".
+
+**Corrigido**
+
+- **Avisos guardavam o nível do dia em que nasceram.** Depois de reclassificada
+  a matéria, a central seguia dizendo CRÍTICO. Agora o aviso lê a urgência
+  atual, e o que deixou de ser alto ou crítico sai da lista e do contador
+  juntos.
+- **O aviso crítico sumia sozinho** segundos depois de aparecer: a trava de
+  "um por hora" era reavaliada a cada atualização da lista. O aviso exibido
+  agora fica até a pessoa agir.
+- **Correlação duplicada**: a Nuclep, registrada por três grupos, virava três
+  cartões para a mesma matéria. Agora é uma ligação que cita os três grupos.
+- **Totais "no período" das Correlações** ignoravam o período escolhido.
+- **HTML no resumo das matérias** do InfoMoney (`" data-large-file="…" />`):
+  o filtro de tags cortava no `>` de dentro das aspas.
+- **"Selic (mês)" de um mês pela metade** comparada ao mês cheio anterior, no
+  Painel e na faixa do topo; trocada pela meta do Copom.
+- **"Variação no período −223%"** do IPCA: taxa agora varia em pontos
+  percentuais.
+- **Seta para baixo em vermelho quando o dólar sobe**, no cartão de métrica e
+  no Painel: a seta segue o sinal, e a cor só aparece onde "bom" e "ruim" são
+  inequívocos.
+- **"PIB e esforço de defesa — 2025"** misturava PIB de 2025 com gasto militar
+  de 2024; o subtítulo diz os dois anos.
+- **Alertas do Painel pareciam links e não eram**: agora abrem a matéria e
+  marcam como lida — sino, cartão e servidor baixam juntos.
+- **Falsos positivos do filtro**: "Riachuelo" (a rede de lojas) e "carro
+  blindado" (segurança privada) deixaram de aprovar matéria sozinhos.
+- A política de privacidade listava 3 das 9 chaves do navegador.
+
+**Acessibilidade**
+
+- Modal com foco preso no diálogo, Tab circular e foco devolvido a quem abriu.
+- Dica (tooltip) fecha com Esc; selo de urgência explica o nível ao passar o
+  cursor; aviso não lido tem texto, não só um ponto dourado; interesses
+  selecionados têm um visto, não só cor; gráfico de barras escreve o valor de
+  cada barra e tem descrição para leitor de tela.
+
+**Removido**
+
+- `ExchangeWidget` (repetia o câmbio que os indicadores já mostram) e
+  `countryProfiles` (números "ilustrativos" escritos à mão, sem uso).
+
 ### Clareza, acessibilidade e privacidade
 
 **Adicionado**

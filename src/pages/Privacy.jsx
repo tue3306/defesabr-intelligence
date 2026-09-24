@@ -1,7 +1,10 @@
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import {
-  ShieldCheck, Database, Cookie, UserCheck, Globe, Trash2, Mail, Info, Server,
+  ShieldCheck, Database, Cookie, UserCheck, Globe, Trash2, Mail, Info, Server, HardDrive, Scale,
 } from 'lucide-react'
+import { useAuthStore } from '../store/authStore'
 
 // -----------------------------------------------------------------------------
 // PRIVACIDADE E LGPD
@@ -60,7 +63,7 @@ const COLETADOS = [
   },
   {
     o_que: 'Suas preferências',
-    porque: 'Tema claro/escuro, áreas de interesse e se os avisos aparecem na tela.',
+    porque: 'Tema claro/escuro, tamanho do texto, paleta para daltonismo, áreas de interesse e se os avisos aparecem na tela.',
     detalhe: 'Ficam no seu navegador (localStorage), não no servidor.',
   },
   {
@@ -80,16 +83,50 @@ const NAO_COLETADOS = [
   'Nada de menores de idade — a plataforma não se destina a crianças',
 ]
 
+// -----------------------------------------------------------------------------
+// TUDO O QUE A PLATAFORMA GUARDA NO NAVEGADOR — a lista completa
+//
+// A página dizia "três finalidades" e listava sessão, preferências e pasta.
+// O código grava nove chaves: faltavam o menu recolhido, o aviso de
+// privacidade visto, os alertas críticos já exibidos (dois registros), o
+// progresso das trilhas e os recordes do quiz. Nenhuma é rastreamento — mas
+// uma política que descreve um terço do que existe não descreve.
+//
+// A lista abaixo é a verdade verificável: o painel "Gerenciar" lê o
+// armazenamento de verdade e marca quais destas chaves existem neste
+// navegador agora.
+// -----------------------------------------------------------------------------
+const ARMAZENADO = [
+  { chave: 'defesabr-auth-v5', nome: 'Sessão', texto: 'Mantém você conectado até sair ou a sessão expirar.', essencial: true },
+  { chave: 'defesabr-settings-v3', nome: 'Preferências', texto: 'Tema, tamanho do texto, paleta para daltonismo, áreas de interesse, avisos na tela e se você já viu o tour.' },
+  { chave: 'defesabr-news-v2', nome: 'Pasta local', texto: 'Matérias salvas e clippings arquivados neste navegador.' },
+  { chave: 'defesabr-sidebar-collapsed', nome: 'Menu lateral', texto: 'Se o menu da esquerda fica recolhido ou aberto.' },
+  { chave: 'defesabr-aviso-privacidade-v1', nome: 'Aviso de privacidade', texto: 'Que você já viu o aviso do rodapé, para ele não voltar.' },
+  { chave: 'defesabr-criticos-vistos-v1', nome: 'Alertas críticos exibidos', texto: 'Quais alertas críticos já apareceram na tela, para o mesmo não aparecer de novo.' },
+  { chave: 'defesabr-critico-ultimo-v1', nome: 'Último alerta crítico', texto: 'A hora do último alerta exibido, para aparecer no máximo um por hora.' },
+  { chave: 'defesabr-learn-progress', nome: 'Progresso das trilhas', texto: 'Quais trilhas do Centro Educacional você já concluiu.' },
+  { chave: 'defesabr-quiz-recordes', nome: 'Recordes do quiz', texto: 'Sua melhor pontuação em cada trilha do quiz.' },
+]
+
 const DIREITOS = [
   { titulo: 'Confirmação e acesso', texto: 'Saber se tratamos dados seus e receber uma cópia deles.' },
   { titulo: 'Correção', texto: 'Corrigir dado incompleto ou errado — o nome de exibição você troca sozinho, em Minha conta.' },
-  { titulo: 'Eliminação', texto: 'Pedir a exclusão da conta. Ela apaga junto a pasta e o estado das notificações.' },
+  { titulo: 'Eliminação', texto: 'Excluir a conta você mesmo, em Minha conta → Segurança → Excluir conta. Vão junto a pasta e o estado das notificações.' },
   { titulo: 'Portabilidade', texto: 'Receber seus dados em formato aberto. A plataforma já exporta clipping em PDF e séries em CSV.' },
   { titulo: 'Informação sobre compartilhamento', texto: 'Saber com quem os dados são compartilhados — a resposta está na seção de terceiros, abaixo.' },
   { titulo: 'Revogação do consentimento', texto: 'Deixar de usar a plataforma e pedir a exclusão a qualquer momento, sem justificar.' },
 ]
 
 export default function Privacy() {
+  const { hash } = useLocation()
+  // "/privacidade#navegador" (o link do aviso do rodapé e de Minha conta) abre
+  // direto no gerenciador.
+  useEffect(() => {
+    if (!hash) return undefined
+    const t = setTimeout(() => document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150)
+    return () => clearTimeout(t)
+  }, [hash])
+
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <header className="card p-6 sm:p-8">
@@ -108,6 +145,14 @@ export default function Privacy() {
           de uma ideia simples: <em>o dado é seu</em>. Quem usa esse dado precisa dizer com clareza o que
           coleta, para que serve, por quanto tempo guarda e com quem compartilha — e precisa obedecer
           quando você pede para ver, corrigir ou apagar.
+        </p>
+        <p className="mt-3 flex items-start gap-2 text-sm leading-relaxed text-gray-700 dark:text-gray-300">
+          <Scale size={16} className="mt-0.5 shrink-0 text-brand-500 dark:text-brand-300" aria-hidden="true" />
+          <span>
+            Alguns princípios da lei, em palavras simples: <strong>finalidade</strong> (usar o dado só
+            para o que foi dito), <strong>necessidade</strong> (coletar o mínimo), <strong>transparência</strong>{' '}
+            (explicar tudo com clareza) e <strong>segurança</strong> (proteger o que foi guardado).
+          </span>
         </p>
         <p className="mt-3 rounded-lg bg-brand-500/10 p-3 text-sm leading-relaxed text-gray-800 dark:text-gray-200">
           <strong>Resumo em três linhas:</strong> esta plataforma coleta o mínimo para você ter uma conta
@@ -149,20 +194,18 @@ export default function Privacy() {
 
       <Bloco icon={Cookie} titulo="Cookies e armazenamento no seu navegador">
         <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
-          Esta plataforma <strong>não usa cookies de rastreamento, de publicidade ou de terceiros</strong>.
-          O que existe é armazenamento local (<em>localStorage</em>) no seu próprio navegador, com três
-          finalidades, todas necessárias para o site funcionar como você pediu:
+          Esta plataforma <strong>não usa cookies</strong> — nem de rastreamento, nem de publicidade, nem de
+          terceiros. O que existe é armazenamento local (<em>localStorage</em>) no seu próprio navegador,
+          com {ARMAZENADO.length} registros, todos para o site funcionar como você pediu. Por isso não há
+          banner pedindo consentimento: não há nada opcional a aceitar ou recusar.
         </p>
-        <div className="mt-3 space-y-2">
-          <Item nome="Sessão" chave="defesabr-auth-v5" texto="Mantém você conectado até sair ou a sessão expirar." />
-          <Item nome="Preferências" chave="defesabr-settings-v3" texto="Tema claro/escuro, áreas de interesse, avisos na tela e se você já viu o tour." />
-          <Item nome="Pasta local" chave="defesabr-news-v2" texto="Matérias salvas e clippings arquivados neste navegador." />
-        </div>
         <p className="mt-3 text-sm muted">
-          Nada disso sai do seu aparelho por conta própria, e você apaga tudo limpando os dados do site
-          no navegador. Sair da conta já apaga a pasta e os avisos deste navegador.
+          Nada disso sai do seu aparelho por conta própria. Sair da conta já apaga a pasta e os avisos
+          deste navegador. A lista completa, e o botão para apagar, estão logo abaixo.
         </p>
       </Bloco>
+
+      <GerenciarNavegador />
 
       <Bloco icon={Globe} titulo="Terceiros que recebem alguma informação">
         <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
@@ -202,10 +245,11 @@ export default function Privacy() {
         <p className="mt-3 flex items-start gap-2 rounded-lg bg-brand-500/10 p-3 text-sm leading-relaxed text-gray-800 dark:text-gray-200">
           <Mail size={16} className="mt-0.5 shrink-0" />
           <span>
-            Para exercer qualquer um deles, fale com quem opera esta instalação — a página{' '}
+            Excluir a conta você faz sozinho, em{' '}
+            <Link to="/conta" className="font-semibold text-brand-500 hover:underline dark:text-brand-400">Minha conta</Link>{' '}
+            (aba Segurança). Para os outros direitos, fale com quem opera esta instalação — a página{' '}
             <Link to="/sobre" className="font-semibold text-brand-500 hover:underline dark:text-brand-400">Sobre</Link>{' '}
-            traz o contato e o repositório. Em instalação de estudo, o próprio administrador remove a
-            conta pelo Console de Governança, e a remoção leva junto a pasta e os avisos.
+            traz o contato e o repositório.
           </span>
         </p>
       </Bloco>
@@ -214,10 +258,13 @@ export default function Privacy() {
         <p className="flex items-start gap-2 text-sm leading-relaxed text-gray-800 dark:text-gray-200">
           <Info size={18} className="mt-0.5 shrink-0 text-gold-600 dark:text-gold-400" />
           <span>
-            <strong>Uma ressalva honesta.</strong> Este é um projeto acadêmico e de código aberto, sem
-            empresa por trás e sem encarregado de dados formalmente nomeado. As práticas descritas acima
-            são reais e verificáveis no código, mas quem for usar a plataforma em ambiente institucional
-            deve nomear um encarregado (DPO) e revisar este texto para o contexto de uso.
+            <strong>Uma ressalva honesta.</strong> Esta página descreve, com transparência, o que o
+            sistema faz com dados — e cada afirmação pode ser conferida no código. Ela <strong>não é um
+            atestado de conformidade integral com a LGPD</strong>: conformidade jurídica depende de
+            análise específica do contexto de uso, feita por profissional habilitado. Este é um projeto
+            acadêmico e de código aberto, sem empresa por trás e sem encarregado de dados (DPO)
+            formalmente nomeado; quem for usá-lo em ambiente institucional deve nomear um e revisar
+            este texto.
           </span>
         </p>
       </div>
@@ -244,13 +291,82 @@ function Bloco({ icon: Icon, titulo, children }) {
   )
 }
 
-function Item({ nome, chave, texto }) {
+// -----------------------------------------------------------------------------
+// GERENCIAR OS DADOS DESTE NAVEGADOR
+//
+// "Você apaga tudo limpando os dados do site no navegador" é verdade, e exige
+// saber onde fica essa opção em cada navegador. Aqui a pessoa vê o que existe
+// agora e apaga com um clique: só as preferências e registros (continua
+// conectada), ou tudo (sai da conta).
+// -----------------------------------------------------------------------------
+function GerenciarNavegador() {
+  const logout = useAuthStore((s) => s.logout)
+  const [presentes, setPresentes] = useState(() => lerPresentes())
+
+  const apagar = (tudo) => {
+    try {
+      for (const { chave } of ARMAZENADO) {
+        if (!tudo && chave === 'defesabr-auth-v5') continue
+        localStorage.removeItem(chave)
+      }
+    } catch { /* armazenamento bloqueado: não havia nada gravado */ }
+    if (tudo) logout()
+    toast.success(tudo
+      ? 'Tudo o que a plataforma guardava neste navegador foi apagado. Você saiu da conta.'
+      : 'Preferências e registros apagados. A página vai recarregar com os valores padrão.')
+    // Os estados em memória (tema, interesses) ainda têm os valores antigos
+    // e os gravariam de volta; recarregar parte do zero.
+    setTimeout(() => window.location.reload(), 1200)
+    setPresentes(lerPresentes())
+  }
+
   return (
-    <div className="rounded-lg bg-gray-500/5 p-3 dark:bg-white/5">
-      <p className="text-sm font-semibold">
-        {nome} <code className="ml-1 rounded bg-gray-500/10 px-1.5 py-0.5 font-mono text-[11px] muted">{chave}</code>
+    <section id="navegador" className="card scroll-mt-24 p-5 sm:p-6" aria-labelledby="titulo-navegador">
+      <h2 id="titulo-navegador" className="mb-3 flex items-center gap-2.5 text-lg font-bold tracking-tight">
+        <HardDrive size={19} className="shrink-0 text-brand-400 dark:text-brand-300" aria-hidden="true" />
+        Gerenciar os dados deste navegador
+      </h2>
+      <ul className="space-y-2">
+        {ARMAZENADO.map((a) => (
+          <li key={a.chave} className="flex items-start gap-3 rounded-lg bg-gray-500/5 p-3 dark:bg-white/5">
+            <span
+              className={`mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                presentes.has(a.chave) ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300' : 'bg-gray-500/10 text-gray-600 dark:text-gray-400'
+              }`}
+            >
+              {presentes.has(a.chave) ? 'guardado' : 'vazio'}
+            </span>
+            <span className="min-w-0">
+              <span className="text-sm font-semibold">
+                {a.nome}
+                {a.essencial && <span className="ml-1.5 text-[11px] font-normal muted">(essencial para estar conectado)</span>}
+              </span>
+              <span className="block text-sm text-gray-700 dark:text-gray-300">{a.texto}</span>
+              <code className="mt-0.5 block font-mono text-[11px] muted">{a.chave}</code>
+            </span>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button type="button" onClick={() => apagar(false)} className="btn-ghost text-sm">
+          <Trash2 size={15} aria-hidden="true" /> Apagar preferências e registros
+        </button>
+        <button type="button" onClick={() => apagar(true)} className="btn-ghost border-red-500/40 text-sm text-red-700 hover:bg-red-500/10 dark:text-red-300">
+          <Trash2 size={15} aria-hidden="true" /> Apagar tudo e sair da conta
+        </button>
+      </div>
+      <p className="mt-2 text-xs muted">
+        Isto apaga só o que está neste navegador. Para apagar a conta no servidor, use{' '}
+        <Link to="/conta" className="font-semibold text-brand-600 hover:underline dark:text-brand-300">Minha conta</Link>.
       </p>
-      <p className="mt-0.5 text-sm text-gray-700 dark:text-gray-300">{texto}</p>
-    </div>
+    </section>
   )
+}
+
+function lerPresentes() {
+  try {
+    return new Set(ARMAZENADO.map((a) => a.chave).filter((k) => localStorage.getItem(k) != null))
+  } catch {
+    return new Set()
+  }
 }

@@ -43,6 +43,8 @@ export const useSettingsStore = create(
             ? get().interestAreas.filter((a) => a !== area)
             : [...get().interestAreas, area],
         }),
+      /** Troca a lista inteira — o "Salvar" do painel de interesses. */
+      setInterestAreas: (areas) => set({ interestAreas: [...new Set(Array.isArray(areas) ? areas : [])] }),
       toggleNotifications: () => set({ notificationsEnabled: !get().notificationsEnabled }),
       setTamanhoTexto: (tamanho) => {
         set({ tamanhoTexto: tamanho })

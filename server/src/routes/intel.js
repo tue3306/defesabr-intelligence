@@ -84,7 +84,8 @@ router.get('/intel/correlacoes', exigirPapel('user'), (req, res) => {
     periodoDias: janela,
     items: itens,
     total: itens.length,
-    resumo: panoramaCorrelacao(),
+    // O resumo segue a MESMA janela da lista — ver `panoramaCorrelacao`.
+    resumo: panoramaCorrelacao(janela),
     metodo: METODO_CORRELACAO,
   })
 })

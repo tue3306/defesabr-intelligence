@@ -43,6 +43,8 @@ export default function AvisoPrivacidade() {
   const fechar = () => {
     setVisivel(false)
     try { localStorage.setItem(CHAVE, new Date().toISOString()) } catch { /* idem */ }
+    // O alerta crítico espera este aviso sair: os dois ocupam o pé da tela.
+    window.dispatchEvent(new Event('defesabr:privacidade-vista'))
   }
 
   return (
@@ -71,7 +73,14 @@ export default function AvisoPrivacidade() {
               onClick={fechar}
               className="btn-ghost px-3 py-1.5 text-sm"
             >
-              Ler a política de privacidade
+              Privacidade e LGPD
+            </Link>
+            <Link
+              to="/privacidade#navegador"
+              onClick={fechar}
+              className="px-2 py-1.5 text-sm font-semibold text-brand-600 hover:underline dark:text-brand-300"
+            >
+              Ver e apagar o que fica guardado
             </Link>
           </div>
         </div>

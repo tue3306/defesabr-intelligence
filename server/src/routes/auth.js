@@ -464,6 +464,45 @@ router.put('/auth/senha', exigirPapel('user'), limitar({ max: 5, janelaMs: 10 * 
   } catch (err) { next(err) }
 })
 
+// DELETE /api/auth/me — a pessoa exclui a própria conta
+//
+// A política de privacidade listava a eliminação entre os direitos da LGPD
+// (art. 18, VI) e mandava "falar com quem opera a instalação": o direito
+// existia no texto e dependia de um terceiro para ser exercido. Agora a
+// própria pessoa exclui a conta, com a senha como confirmação — a mesma
+// trava da troca de senha: um token copiado de um navegador destravado não
+// pode bastar para apagar a conta de alguém.
+//
+// Vai junto tudo o que é só dela: a pasta e o estado das notificações
+// (`removerConta`). A trilha de auditoria registra que uma conta foi excluída
+// pelo titular, SEM o nome: guardar o nome de quem pediu para ser esquecido
+// desfaria o pedido.
+//
+// Administrador não se exclui por aqui. A conta dele sai pela governança,
+// que confere se a plataforma ficaria sem administrador ativo.
+router.delete('/auth/me', exigirPapel('user'), limitar({ max: 5, janelaMs: 10 * 60_000, porConta: true }), async (req, res, next) => {
+  try {
+    const conta = contaDaSessao(req, res)
+    if (!conta) return
+    if (conta.role === 'admin') {
+      return res.status(409).json({
+        error: 'Conta de administrador é removida pelo Console de Governança, por outro administrador.',
+        code: 'ADMIN_PELA_GOVERNANCA',
+      })
+    }
+    if ((conta.auth_provider || 'local') === 'local') {
+      const senha = String(req.body?.senha || '')
+      if (!(await senhaConfere(senha, conta.password_salt, conta.password_hash))) {
+        return res.status(400).json({ error: 'A senha não confere.', campo: 'senha' })
+      }
+    }
+
+    removerConta(conta.id)
+    registrarAuditoria({ conta: null }, { acao: 'Conta excluída pelo próprio titular', alvo: 'Conta de usuário', nivel: 'info' })
+    res.json({ ok: true })
+  } catch (err) { next(err) }
+})
+
 // ─────────────────────────────────────────────────────────────────────────────
 // GOVERNANÇA DE CONTAS (administrador)
 //

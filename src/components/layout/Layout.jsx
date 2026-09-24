@@ -8,6 +8,7 @@ import StatusFAB from './StatusFAB'
 import GuiaDaPlataforma from '../guia/GuiaDaPlataforma'
 import OnboardingModal from '../ui/OnboardingModal'
 import CommandPalette from '../ui/CommandPalette'
+import PersonalizarInteresses from '../interesses/PersonalizarInteresses'
 import ErrorBoundary from '../system/ErrorBoundary'
 import { useLiveNotifications } from '../../hooks/useLiveNotifications'
 
@@ -78,6 +79,7 @@ export default function Layout() {
       <GuiaDaPlataforma />
       <OnboardingModal />
       <CommandPalette />
+      <PersonalizarInteresses />
     </div>
   )
 }

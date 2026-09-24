@@ -263,7 +263,13 @@ export default function Notifications() {
                         </p>
                       </div>
                       <div className="flex shrink-0 items-center gap-1">
-                        {!n.read && <span className="mr-1 h-2 w-2 rounded-full bg-gold-500" title="Não lida" />}
+                        {/* Um ponto dourado sozinho não diz nada a quem não o
+                            distingue do fundo, nem a leitor de tela. */}
+                        {!n.read && (
+                          <span className="mr-1 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-gold-600 dark:text-gold-400">
+                            <span className="h-2 w-2 rounded-full bg-gold-500" aria-hidden="true" /> não lida
+                          </span>
+                        )}
                         <button
                           onClick={() => toggleRead(n)}
                           className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-white/10 dark:hover:text-gray-200"

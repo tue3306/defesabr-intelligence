@@ -98,25 +98,63 @@ export default function AlertaCritico() {
   const [vistos, setVistos] = useState(lerVistos)
   const [fechado, setFechado] = useState(null)
 
-  // A lista chega ordenada do servidor (mais novo primeiro). O alvo é o
+  // UM AVISO DE CADA VEZ NO PÉ DA TELA. Na primeira visita, o aviso de
+  // privacidade ocupa o mesmo lugar; o alerta espera ele ser respondido em
+  // vez de aparecer por cima dele.
+  const [privacidadeVista, setPrivacidadeVista] = useState(() => {
+    try { return !!localStorage.getItem('defesabr-aviso-privacidade-v1') } catch { return true }
+  })
+  useEffect(() => {
+    const ouvir = () => setPrivacidadeVista(true)
+    window.addEventListener('defesabr:privacidade-vista', ouvir)
+    return () => window.removeEventListener('defesabr:privacidade-vista', ouvir)
+  }, [])
+
+  // A lista chega ordenada do servidor (mais novo primeiro). O candidato é o
   // primeiro crítico não lido que este navegador ainda não mostrou.
-  const alerta = useMemo(() => {
-    if (!autenticado || !avisosLigados || !podeInterromper()) return null
+  const candidato = useMemo(() => {
+    if (!autenticado || !avisosLigados || !privacidadeVista || !podeInterromper()) return null
     const candidatos = (items || []).filter(
       (n) => n.level === 'CRITICO' && !n.read && !vistos.includes(n.id) && n.id !== fechado,
     )
     // Incidente primeiro: ele é classificado pelo domínio da vítima, não pelo
     // vocabulário do título, e por isso é o que quase nunca erra.
     return candidatos.find((n) => n.kind === 'incidente') || candidatos[0] || null
-  }, [items, vistos, fechado, autenticado, avisosLigados])
+  }, [items, vistos, fechado, autenticado, avisosLigados, privacidadeVista])
 
-  // A hora começa a contar quando o alerta É EXIBIDO, e não quando é fechado:
-  // quem deixa o modal aberto não zera o relógio ao sair da tela.
+  // ─────────────────────────────────────────────────────────────────────────
+  // O AVISO EXIBIDO FICA ATÉ A PESSOA AGIR
+  //
+  // O alerta era recalculado a cada atualização da lista de notificações. Só
+  // que exibi-lo grava a hora da interrupção — e na atualização seguinte,
+  // segundos depois, a trava de "um por hora" já respondia "não pode": o aviso
+  // sumia sozinho antes de ser lido.
+  //
+  // Agora o candidato escolhido é FIXADO em estado. A trava decide se um aviso
+  // NOVO pode aparecer; o que já está na tela só sai quando a pessoa dispensa,
+  // abre — ou quando ele deixa de ser crítico e não lido (marcado como lido em
+  // outra tela, ou rebaixado pela régua).
+  // ─────────────────────────────────────────────────────────────────────────
+  const [fixadoId, setFixadoId] = useState(null)
+  const fixado = fixadoId != null ? (items || []).find((n) => n.id === fixadoId) : null
+  const alerta = fixado && fixado.level === 'CRITICO' && !fixado.read && avisosLigados && autenticado ? fixado : null
+
   useEffect(() => {
-    if (alerta) marcarInterrupcao()
-  }, [alerta])
+    if (fixadoId == null && candidato) {
+      setFixadoId(candidato.id)
+      // A hora começa a contar quando o alerta É EXIBIDO, e não quando é
+      // fechado: quem deixa o painel aberto não zera o relógio.
+      marcarInterrupcao()
+    }
+  }, [candidato, fixadoId])
 
-  // Esc fecha, como em qualquer modal.
+  // Sumiu por fora (lido em outra tela, rebaixado, sessão encerrada): libera a
+  // vaga para o próximo, dentro da mesma trava de um por hora.
+  useEffect(() => {
+    if (fixadoId != null && !alerta) setFixadoId(null)
+  }, [fixadoId, alerta])
+
+  // Esc dispensa, como em qualquer aviso sobreposto.
   useEffect(() => {
     if (!alerta) return undefined
     const aoTeclar = (e) => { if (e.key === 'Escape') dispensar() }
@@ -131,6 +169,7 @@ export default function AlertaCritico() {
     gravarVisto(alerta.id)
     setVistos((v) => [...v, alerta.id])
     setFechado(alerta.id)
+    setFixadoId(null)
   }
 
   function abrir() {
@@ -141,24 +180,37 @@ export default function AlertaCritico() {
 
   const quando = alerta.eventAt || alerta.createdAt
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // UM PAINEL NO CANTO, NÃO UM VÉU SOBRE A TELA
+  //
+  // O aviso era um modal: escurecia a página inteira e prendia o clique até
+  // ser fechado. Chamava atenção, e cobrava por isso — quem estava no meio de
+  // uma leitura perdia a tela até responder. Para o aviso que interrompe, a
+  // regra é o inverso: ser impossível de não ver e fácil de ignorar por um
+  // minuto.
+  //
+  // Agora é um painel fixo no canto inferior (no celular, a faixa de baixo),
+  // com a borda e o selo do nível crítico, o título, o resumo e os três
+  // caminhos: ver os detalhes, abrir a matéria, dispensar. A página por trás
+  // continua clicável e rolável. `role="alert"` faz o leitor de tela anunciar
+  // o conteúdo assim que ele aparece — sem roubar o foco de quem digita.
+  // ───────────────────────────────────────────────────────────────────────────
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 p-3 backdrop-blur-[2px] sm:items-center"
-      role="alertdialog"
-      aria-modal="true"
+    <aside
+      role="alert"
       aria-labelledby="alerta-critico-titulo"
-      onClick={(e) => { if (e.target === e.currentTarget) dispensar() }}
+      className="fixed inset-x-3 bottom-3 z-[60] mx-auto max-w-md animate-scale-in sm:inset-x-auto sm:right-5 sm:bottom-5 sm:mx-0"
     >
-      <div className="w-full max-w-lg animate-scale-in overflow-hidden rounded-xl border border-military-red/40 bg-white shadow-dropdown dark:bg-military-dark">
-        <div className="flex items-center justify-between gap-3 bg-military-red/15 px-4 py-2.5">
-          <span className="flex items-center gap-2 text-sm font-bold text-red-800 dark:text-red-300">
-            <AlertTriangle size={16} className="shrink-0" />
-            Alerta crítico
+      <div className="overflow-hidden rounded-xl border-2 border-[var(--nivel-critico)] bg-white shadow-modal dark:bg-military-dark">
+        <div className="flex items-center justify-between gap-3 bg-[var(--nivel-critico)] px-4 py-2 text-white">
+          <span className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide">
+            <AlertTriangle size={16} className="shrink-0" aria-hidden="true" />
+            Alerta · nível crítico
           </span>
           <button
             onClick={dispensar}
-            aria-label="Fechar alerta"
-            className="rounded-lg p-1 text-gray-500 hover:bg-black/5 dark:text-gray-400 dark:hover:bg-white/10"
+            aria-label="Dispensar este alerta"
+            className="rounded-lg p-1 text-white/90 hover:bg-white/15 hover:text-white"
           >
             <X size={16} />
           </button>
@@ -171,49 +223,55 @@ export default function AlertaCritico() {
           {alerta.detail && (
             <p className="mt-1.5 text-sm leading-relaxed text-gray-700 dark:text-gray-300">{alerta.detail}</p>
           )}
-          <p className="mt-2 text-xs muted">
+          <p className="mt-1.5 text-xs muted">
             {quando ? timeAgo(quando) : 'agora'}
             {alerta.kind === 'incidente' && ' · incidente cibernético'}
-            {alerta.kind === 'noticia' && ' · matéria do acervo'}
+            {alerta.kind === 'noticia' && ' · notícia do acervo'}
           </p>
 
-          <p className="mt-3 rounded-lg bg-gray-500/5 p-2.5 text-xs leading-relaxed muted dark:bg-white/5">
-            Este aviso aparece porque o nível é <strong>crítico</strong> — o degrau mais alto da escala.{' '}
-            <Link to="/metodologia" className="font-semibold text-brand-500 hover:underline dark:text-brand-400">
-              Entenda como o nível é calculado
-            </Link>.
+          <p className="mt-3 rounded-lg bg-gray-500/5 p-2.5 text-xs leading-relaxed text-gray-700 dark:bg-white/5 dark:text-gray-300">
+            {alerta.kind === 'incidente'
+              ? 'Crítico porque a organização divulgada é do Estado brasileiro ou de infraestrutura essencial.'
+              : 'Crítico porque o título narra um acontecimento violento (ataque, invasão, bombardeio, mortos).'}{' '}
+            Este aviso aparece uma vez para cada evento.{' '}
+            <Link to="/metodologia#niveis" onClick={dispensar} className="font-semibold text-brand-600 hover:underline dark:text-brand-300">
+              O que significa cada nível?
+            </Link>
           </p>
 
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            {alerta.route && (
-              <Link to={alerta.route} onClick={abrir} className="btn-primary px-3 py-1.5 text-sm">
-                Ver na plataforma
-              </Link>
-            )}
-            {alerta.url && (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {alerta.url ? (
               <a
                 href={alerta.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={abrir}
-                className="btn-ghost px-3 py-1.5 text-sm"
+                className="btn-primary px-3 py-1.5 text-sm"
               >
-                <ExternalLink size={14} /> Abrir a matéria
+                <ExternalLink size={14} aria-hidden="true" /> Ler os detalhes
+                <span className="sr-only"> (abre o site do veículo em nova aba)</span>
               </a>
-            )}
-            <button onClick={dispensar} className="btn-ghost px-3 py-1.5 text-sm">
-              Agora não
-            </button>
-            <Link
-              to="/configuracoes"
-              onClick={dispensar}
-              className="ml-auto inline-flex items-center gap-1 text-xs muted hover:text-brand-500 dark:hover:text-brand-400"
-            >
-              <BellOff size={12} /> Desligar avisos
+            ) : alerta.route ? (
+              <Link to={alerta.route} onClick={abrir} className="btn-primary px-3 py-1.5 text-sm">
+                Ver os detalhes
+              </Link>
+            ) : null}
+            <Link to="/notificacoes" onClick={dispensar} className="btn-ghost px-3 py-1.5 text-sm">
+              Todos os alertas
             </Link>
+            <button onClick={dispensar} className="btn-ghost px-3 py-1.5 text-sm">
+              Dispensar
+            </button>
           </div>
+          <Link
+            to="/configuracoes"
+            onClick={dispensar}
+            className="mt-2 inline-flex items-center gap-1 text-[11px] muted hover:text-brand-500 dark:hover:text-brand-400"
+          >
+            <BellOff size={12} aria-hidden="true" /> Desligar avisos na tela
+          </Link>
         </div>
       </div>
-    </div>
+    </aside>
   )
 }

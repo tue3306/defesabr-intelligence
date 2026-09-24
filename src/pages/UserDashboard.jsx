@@ -18,6 +18,9 @@ import {
   Radar,
   Tv,
   Link2,
+  Flame,
+  SlidersHorizontal,
+  ExternalLink,
 } from 'lucide-react'
 import MetricCard from '../components/ui/MetricCard'
 import NewsCard from '../components/ui/NewsCard'
@@ -25,7 +28,7 @@ import { SkeletonCard } from '../components/ui/Skeleton'
 import Badge from '../components/ui/Badge'
 import EmptyState from '../components/ui/EmptyState'
 import InfoTooltip from '../components/ui/InfoTooltip'
-import ExchangeWidget from '../components/ui/ExchangeWidget'
+import Atualizacao from '../components/ui/Atualizacao'
 import NewsVolumeChart from '../components/charts/NewsVolumeChart'
 import MilitarySpendingChart from '../components/charts/MilitarySpendingChart'
 import GlobalHeatmap from '../components/charts/GlobalHeatmap'
@@ -36,6 +39,9 @@ import { useAuthStore } from '../store/authStore'
 import { useNewsVolume } from '../hooks/useNewsVolume'
 import { useGastoMilitar, useIndicadoresBcb, useIndiceDeAlerta } from '../hooks/useDadosReais'
 import { useSettingsStore } from '../store/settingsStore'
+import { useUiStore } from '../store/uiStore'
+import { useResource } from '../hooks/useResource'
+import { request } from '../services/client'
 import { alertMeta, categoryColor , corDoNivel } from '../utils/textUtils'
 import { CATEGORIES } from '../data/mockData'
 import { formatTime, timeAgo } from '../utils/dateUtils'
@@ -77,6 +83,19 @@ export default function UserDashboard() {
   const toggleInterestArea = useSettingsStore((s) => s.toggleInterestArea)
   const volume = useNewsVolume(14)
   const gasto = useGastoMilitar()
+  const marcarLida = useNotificationStore((s) => s.marcarLida)
+
+  // EM DESTAQUE AGORA — o que as últimas 48 horas trouxeram de mais urgente.
+  // O clipping já devolve ordenado por urgência (crítico, alto, médio, baixo)
+  // e depois por data; aqui ficam só os dois degraus de cima. Sem nenhum,
+  // o bloco diz isso em vez de promover matéria baixa a destaque.
+  const destaque = useResource(
+    () => request('GET /news/clipping', { params: { days: 2, limit: 12 } }),
+    [],
+  )
+  const emDestaque = (destaque.data?.news || [])
+    .filter((n) => n.urgency === 'CRITICO' || n.urgency === 'ALTO')
+    .slice(0, 4)
 
   // AS ÁREAS DE INTERESSE SOBEM PARA O TOPO. A preferência existia, com texto
   // prometendo "destacar o conteúdo mais relevante", e só aparecia como
@@ -106,25 +125,31 @@ export default function UserDashboard() {
     if (!s) return []
     // `delta` tem formatação própria: a variação da Selic saía "+0,01% p.p.",
     // com a unidade duas vezes.
-    const cartao = (serie, label, formata, formataDelta) => {
+    // A SETA SEGUE O SINAL. Antes a seta vinha de "é bom ou ruim" — e o
+    // dólar subindo aparecia com seta para BAIXO, em vermelho. A direção vem
+    // do número; a cor só existe onde o julgamento é inequívoco (inflação
+    // caindo é boa notícia), e no resto fica neutra.
+    const cartao = (serie, label, formata, formataDelta, { cairEhBom = false, dica } = {}) => {
       if (!serie?.ultimo) return null
       const v = serie.ultimo.value
       const d = serie.variacao
       return {
         id: serie.id,
         label,
+        dica,
         value: formata(v),
-        delta: d == null ? '—' : `${d >= 0 ? '+' : ''}${formataDelta(d)}`,
-        // Para câmbio e inflação, subir é notícia ruim. A seta indica direção,
-        // e o rótulo diz o quê.
-        positive: d != null && d < 0,
+        delta: d == null ? '—' : `${d > 0 ? '+' : d < 0 ? '−' : ''}${formataDelta(Math.abs(d))}`,
+        direcao: d == null || d === 0 ? 'estavel' : d > 0 ? 'sobe' : 'desce',
+        tom: !cairEhBom || d == null || d === 0 ? 'neutro' : d < 0 ? 'bom' : 'ruim',
       }
     }
     return [
-      cartao(s.usd, 'Câmbio USD/BRL', (v) => `R$ ${br(v, 3)}`, (d) => br(d, 3)),
-      cartao(s.eur, 'Câmbio EUR/BRL', (v) => `R$ ${br(v, 3)}`, (d) => br(d, 3)),
-      cartao(s.selic, 'Selic (mês)', (v) => `${br(v, 2)}%`, (d) => `${br(d, 2)} p.p.`),
-      cartao(s.ipca, 'IPCA (mês)', (v) => `${br(v, 2)}%`, (d) => `${br(d, 2)} p.p.`),
+      cartao(s.usd, 'Dólar', (v) => `R$ ${br(v, 3)}`, (d) => br(d, 3), { dica: 'cotação do dia útil anterior' }),
+      cartao(s.eur, 'Euro', (v) => `R$ ${br(v, 3)}`, (d) => br(d, 3), { dica: 'cotação do dia útil anterior' }),
+      // A META da Selic, em % ao ano — o número do noticiário. A "Selic do
+      // mês" que ficava aqui era de um mês pela metade.
+      cartao(s.selicMeta, 'Selic (meta, a.a.)', (v) => `${br(v, 2)}%`, (d) => `${br(d, 2)} p.p.`, { dica: 'última decisão do Copom' }),
+      cartao(s.ipca12, 'IPCA 12 meses', (v) => `${br(v, 2)}%`, (d) => `${br(d, 2)} p.p.`, { cairEhBom: true, dica: 'contra o mês anterior' }),
     ].filter(Boolean)
   }, [bcb.series])
 
@@ -139,7 +164,9 @@ export default function UserDashboard() {
                 <span className="inline-flex items-center gap-2 rounded-full bg-brand-500/15 px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-300">
                   <ShieldCheck size={14} /> Painel de Situação
                 </span>
-                <Badge type={source === 'live' ? 'live' : 'sem-dado'} />
+                {source === 'live'
+                  ? <Atualizacao ultimaColeta={meta?.lastFetchAt} escuro />
+                  : <Badge type="sem-dado" />}
                 <span className="inline-flex items-center gap-1 text-xs text-gray-400">
                   <Clock size={12} /> Aberto às {formatTime()}
                 </span>
@@ -231,6 +258,57 @@ export default function UserDashboard() {
         </div>
       </Section>
 
+      {/* ───────────── EM DESTAQUE AGORA ───────────── */}
+      <Section className="card p-5">
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+          <h2 id="em-destaque" className="flex items-center gap-2 text-lg font-bold tracking-tight">
+            <Flame size={18} className="text-red-600 dark:text-red-400" aria-hidden="true" /> Em destaque agora
+            <InfoTooltip text="As matérias de urgência crítica e alta publicadas nas últimas 48 horas, das mais urgentes para as menos. Urgência vem das palavras do título: crítico é acontecimento violento (ataque, invasão, mortos); alto é assunto sério que pede acompanhamento." />
+          </h2>
+          <Link to="/metodologia#niveis" className="text-xs font-semibold text-brand-600 hover:underline dark:text-brand-300">
+            O que significa cada nível?
+          </Link>
+        </div>
+        <p className="mb-3 text-sm muted">O mais urgente das últimas 48 horas, pelo nível de cada matéria.</p>
+        {destaque.loading && !destaque.data ? (
+          <p className="text-sm muted" role="status">Procurando o que é urgente…</p>
+        ) : destaque.error ? (
+          <p className="text-sm muted">Não foi possível consultar o acervo agora.</p>
+        ) : emDestaque.length === 0 ? (
+          <p className="rounded-lg bg-gray-500/5 p-3 text-sm text-gray-700 dark:bg-white/5 dark:text-gray-300">
+            Nenhuma matéria crítica ou alta nas últimas 48 horas. Isso quer dizer que a imprensa coletada
+            não noticiou acontecimento urgente — não que nada tenha acontecido.
+          </p>
+        ) : (
+          <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            {emDestaque.map((n) => {
+              const externo = /^https?:\/\//i.test(n.url || '')
+              return (
+                <li key={n.id} className={`rounded-xl border-l-4 bg-gray-500/5 p-3 dark:bg-white/5 ${n.urgency === 'CRITICO' ? 'border-l-[var(--nivel-critico)]' : 'border-l-[var(--nivel-alto)]'}`}>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge type="urgency" value={n.urgency} />
+                    {n.category && <span className="text-[11px] font-semibold muted">{n.category}</span>}
+                    <span className="ml-auto text-[11px] muted">{timeAgo(n.date)}</span>
+                  </div>
+                  {externo ? (
+                    <a href={n.url} target="_blank" rel="noopener noreferrer" className="mt-1.5 block font-semibold leading-snug hover:text-brand-600 hover:underline dark:hover:text-brand-300">
+                      {n.title} <ExternalLink size={12} className="inline align-baseline" aria-hidden="true" />
+                      <span className="sr-only"> (abre o site do veículo em nova aba)</span>
+                    </a>
+                  ) : (
+                    <p className="mt-1.5 font-semibold leading-snug">{n.title}</p>
+                  )}
+                  {n.source && <p className="mt-0.5 text-[11px] muted">{n.source}</p>}
+                </li>
+              )
+            })}
+          </ul>
+        )}
+        <Link to="/clipping" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:underline dark:text-brand-300">
+          Ver tudo no Clipping <ChevronRight size={14} />
+        </Link>
+      </Section>
+
       {/* ───────────── AÇÕES RÁPIDAS + ÁREAS DE INTERESSE ───────────── */}
       <Section className="card p-5">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
@@ -281,10 +359,14 @@ export default function UserDashboard() {
               {interestAreas.length
                 ? `${interestAreas.length} área(s) — as matérias delas sobem para o topo da lista abaixo.`
                 : 'Nenhuma escolhida: as notícias aparecem por data.'}{' '}
-              <Link to="/configuracoes" className="font-semibold text-brand-600 hover:underline dark:text-brand-300">
-                Mais opções
-              </Link>
             </p>
+            <button
+              type="button"
+              onClick={() => useUiStore.getState().abrirInteresses()}
+              className="btn-ghost mt-2 px-3 py-1.5 text-xs"
+            >
+              <SlidersHorizontal size={14} aria-hidden="true" /> Personalizar interesses
+            </button>
           </div>
         </div>
       </Section>
@@ -309,7 +391,6 @@ export default function UserDashboard() {
 
         {/* ───────────── TRILHO LATERAL ───────────── */}
         <div className="space-y-6">
-          <ExchangeWidget />
 
           <Section className="card p-5">
             <h2 className="mb-3 flex items-center gap-2 text-base font-bold tracking-tight">
@@ -327,8 +408,17 @@ export default function UserDashboard() {
                   <span className="text-sm muted">{i.label}</span>
                   <span className="flex items-center gap-2">
                     <span className="font-mono text-sm font-bold">{i.value}</span>
-                    <span className={`inline-flex items-center gap-0.5 text-xs font-semibold ${i.positive ? 'text-emerald-800 dark:text-emerald-400' : 'text-red-800 dark:text-red-400'}`}>
-                      {i.positive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}{i.delta}
+                    <span
+                      title={i.dica}
+                      className={`inline-flex items-center gap-0.5 text-xs font-semibold ${
+                        i.tom === 'bom' ? 'text-emerald-800 dark:text-emerald-400'
+                          : i.tom === 'ruim' ? 'text-red-800 dark:text-red-400'
+                            : 'text-gray-700 dark:text-gray-300'
+                      }`}
+                    >
+                      {i.direcao === 'sobe' ? <TrendingUp size={12} aria-hidden="true" /> : i.direcao === 'desce' ? <TrendingDown size={12} aria-hidden="true" /> : null}
+                      <span className="sr-only">{i.direcao === 'sobe' ? 'subiu' : i.direcao === 'desce' ? 'caiu' : 'estável'}</span>
+                      {i.delta}
                     </span>
                   </span>
                 </li>
@@ -357,15 +447,41 @@ export default function UserDashboard() {
               </p>
             ) : (
               <ul className="space-y-2.5">
-                {notifications.slice(0, 5).map((n) => (
-                  <li key={n.id} className={`flex items-start gap-2.5 ${n.read ? 'opacity-60' : ''}`}>
-                    <span className="mt-0.5 shrink-0"><Badge type="urgency" value={n.level} /></span>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{n.title}</p>
-                      <p className="text-xs muted">{timeAgo(n.eventAt || n.createdAt)}</p>
-                    </div>
-                  </li>
-                ))}
+                {/* CLICÁVEIS DE VERDADE. A lista parecia de links e não era:
+                    o título não levava a lugar nenhum, e o único jeito de
+                    marcar como lido era ir até a central. Agora abrir o
+                    alerta leva à matéria (ou à tela do incidente) e o marca
+                    como lido — o contador do sino e o do cartão acima
+                    baixam juntos, porque leem o mesmo estado. */}
+                {notifications.slice(0, 5).map((n) => {
+                  const externo = /^https?:\/\//i.test(n.url || '')
+                  const conteudo = (
+                    <>
+                      <span className="mt-0.5 shrink-0"><Badge type="urgency" value={n.level} /></span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-medium group-hover:underline">{n.title}</span>
+                        <span className="block text-xs muted">
+                          {timeAgo(n.eventAt || n.createdAt)}
+                          {!n.read && <span className="ml-1 font-semibold text-gold-600 dark:text-gold-400">· não lido</span>}
+                        </span>
+                      </span>
+                    </>
+                  )
+                  const classe = `group flex items-start gap-2.5 rounded-md p-1 -m-1 hover:bg-gray-500/5 dark:hover:bg-white/5 ${n.read ? 'opacity-60' : ''}`
+                  return (
+                    <li key={n.id}>
+                      {externo ? (
+                        <a href={n.url} target="_blank" rel="noopener noreferrer" onClick={() => marcarLida(n.id)} className={classe}>
+                          {conteudo}
+                        </a>
+                      ) : (
+                        <Link to={n.route || '/notificacoes'} onClick={() => marcarLida(n.id)} className={classe}>
+                          {conteudo}
+                        </Link>
+                      )}
+                    </li>
+                  )
+                })}
               </ul>
             )}
             <Link to="/notificacoes" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:underline dark:text-brand-300">
@@ -409,7 +525,7 @@ export default function UserDashboard() {
             <Newspaper size={18} className="text-brand-400 dark:text-brand-300" /> Notícias recentes
             {interestAreas.length > 0 && <span className="chip text-[10px]">suas áreas primeiro</span>}
           </h2>
-          <Badge type={source === 'live' ? 'live' : 'sem-dado'} />
+          <Badge type={source === 'live' ? 'live' : 'sem-dado'} cadencia={source === 'live' ? 'a cada 15 min' : undefined} />
         </div>
         {!loading && feed.length === 0 ? (
           <EmptyState compact icon={Newspaper} title="Nenhuma notícia no acervo" hint="A coleta ainda não aprovou matérias, ou o servidor não respondeu." />

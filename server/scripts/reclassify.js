@@ -12,6 +12,7 @@ import { avaliarRelevancia, classificar, limparRodape } from '../src/lib/relevan
 import { ehNaoNoticia } from '../src/collectors/rss.js'
 import { urlSegura, dominioSeguro } from '../src/lib/saneamento.js'
 import { derivarGeografia } from '../src/collectors/geografia.js'
+import { calcularCorrelacoes } from '../src/collectors/correlacoes.js'
 
 migrate()
 
@@ -127,6 +128,13 @@ if (!simular) {
   }
 }
 
+// As correlações dependem da urgência, da categoria e das próprias regras. O
+// ciclo agendado só recalcula 45 dias; aqui, que é o momento em que alguma
+// régua mudou, o acervo inteiro é refeito — senão a tela de Correlações
+// misturaria ligações da régua nova com as da antiga conforme a data.
+let correlacoes = null
+if (!simular) correlacoes = await calcularCorrelacoes({ janelaDias: 3650, teto: 100_000 })
+
 const relevantes = all('SELECT COUNT(*) AS n FROM articles WHERE relevant = 1')[0].n
 
 console.log(simular ? 'Simulação (nada foi gravado)' : 'Reclassificação concluída')
@@ -144,6 +152,8 @@ if (geografia) {
   console.log(`  países / teatros      : ${geografia.paises} / ${geografia.teatros} vínculo(s) derivados`)
   console.log(`  retenção internacional: ${geografia.removidos} removido(s)`)
 }
+
+if (correlacoes) console.log(`  correlações refeitas  : ${correlacoes.correlacoes} em ${correlacoes.artigosComCorrelacao} matéria(s)`)
 
 for (const t of entraram.slice(0, 10)) console.log(`    + ${t.slice(0, 92)}`)
 for (const t of descartados.slice(0, 10)) console.log(`    − ${String(t).slice(0, 92)}`)

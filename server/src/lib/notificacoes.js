@@ -130,19 +130,37 @@ function visiveis(conta) {
   return {
     where: `n.audience IN (${papeis.map(() => '?').join(', ')})
         AND n.created_at >= strftime('%Y-%m-%dT%H:%M:%SZ', COALESCE(u.created_at, 'now'), ?)
-        AND s.dismissed_at IS NULL`,
+        AND s.dismissed_at IS NULL
+        AND (art.id IS NULL OR (art.relevant = 1 AND art.urgency IN ('ALTO', 'CRITICO')))`,
     params: [...papeis, `-${RETROATIVO_CONTA_NOVA_DIAS} days`],
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// O NÍVEL DO AVISO É O DA MATÉRIA HOJE, NÃO O DO DIA EM QUE O AVISO NASCEU
+//
+// O aviso guardava uma CÓPIA da urgência. Quando a régua mudou e a matéria foi
+// reclassificada, a cópia ficou para trás: a central seguia dizendo CRÍTICO
+// para "DNA liga mortos em navio de guerra sueco à Finlândia medieval", que o
+// acervo já marcava como MÉDIO — o sino e o pop-up discordavam do Clipping
+// sobre a mesma notícia.
+//
+// Agora o aviso de matéria lê a urgência ATUAL do artigo. E o aviso cuja
+// matéria deixou de ser alta ou crítica (ou deixou de ser aprovada) sai da
+// lista e do contador ao mesmo tempo, pela mesma cláusula — é o que mantém
+// "não lidas" igual ao que a lista mostra. Matéria que já saiu do acervo
+// (retenção) mantém o aviso com o nível gravado.
+// ─────────────────────────────────────────────────────────────────────────────
 const BASE = `FROM notifications n
   JOIN users u ON u.id = ?
-  LEFT JOIN notification_state s ON s.notification_id = n.id AND s.user_id = u.id`
+  LEFT JOIN notification_state s ON s.notification_id = n.id AND s.user_id = u.id
+  LEFT JOIN articles art ON n.kind = 'noticia' AND n.ref_key LIKE 'artigo:%'
+                        AND art.id = CAST(substr(n.ref_key, 8) AS INTEGER)`
 
 const paraCliente = (n) => ({
   id: n.id,
   kind: n.kind,
-  level: n.level,
+  level: n.nivel_atual || n.level,
   title: n.title,
   detail: n.detail,
   url: n.url,
@@ -156,7 +174,7 @@ const paraCliente = (n) => ({
 export function listarNotificacoes(conta, { limite = 50 } = {}) {
   const f = visiveis(conta)
   const items = all(
-    `SELECT n.*, s.read_at ${BASE} WHERE ${f.where} ORDER BY COALESCE(n.event_at, n.created_at) DESC, n.id DESC LIMIT ?`,
+    `SELECT n.*, s.read_at, art.urgency AS nivel_atual ${BASE} WHERE ${f.where} ORDER BY COALESCE(n.event_at, n.created_at) DESC, n.id DESC LIMIT ?`,
     [conta.sub, ...f.params, limite],
   ).map(paraCliente)
   const naoLidas = get(

@@ -38,7 +38,19 @@ function decodificar(s) {
     .trim()
 }
 
-const semTags = (s) => decodificar(s.replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim()
+// TAG COM ATRIBUTO ENTRE ASPAS PODE CONTER ">".
+//
+// O InfoMoney publica a foto assim: <img data-image-caption="<p>Legenda</p>"
+// data-large-file="https://..." />. O `<[^>]+>` antigo parava no ">" de
+// dentro das aspas, e o resumo guardado saía com a legenda seguida de
+// `" data-large-file="https://…jpg" />` — lixo de marcação na tela, no meio
+// do texto que a pessoa lê.
+//
+// Esta expressão pula o que está entre aspas antes de procurar o fim da tag.
+// E roda duas vezes: a segunda pega a marcação que só vira marcação depois de
+// `decodificar` transformar &lt; em <.
+const RX_TAG = /<(?:[^>"']|"[^"]*"|'[^']*')*>/g
+const semTags = (s) => decodificar(s.replace(RX_TAG, ' ')).replace(RX_TAG, ' ').replace(/\s+/g, ' ').trim()
 
 function normalizarData(valor) {
   if (!valor) return null

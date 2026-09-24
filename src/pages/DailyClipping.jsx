@@ -37,6 +37,7 @@ import { useFontesReais } from '../hooks/useFontesReais'
 import EventosConsolidados from '../components/clipping/EventosConsolidados'
 import { useNewsStore } from '../store/newsStore'
 import { useSettingsStore } from '../store/settingsStore'
+import { useUiStore } from '../store/uiStore'
 import { URGENCY_LEVELS } from '../data/mockData'
 import { alertMeta, categoryColor, clipboard, urgencyMeta , corDoNivel } from '../utils/textUtils'
 import { formatDateBR, formatDateTimeBR, formatFullDate } from '../utils/dateUtils'
@@ -175,7 +176,7 @@ export default function DailyClipping() {
             {/* O selo segue a ORIGEM da edição em tela. Uma edição montada
                 pelo servidor a partir de coleta real é dado ao vivo, mesmo sem
                 resumo executivo — que é análise, não coleta. */}
-            <Badge type={result?.source === 'live' ? 'live' : 'sem-dado'} />
+            <Badge type={result?.source === 'live' ? 'live' : 'sem-dado'} cadencia={result?.source === 'live' ? 'a cada 15 min' : undefined} />
           </>
         }
         meta={[
@@ -330,14 +331,23 @@ export default function DailyClipping() {
                   getColor={categoryColor}
                   onToggle={(c) => setCats((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]))}
                 />
-                {interestAreas.some((a) => availableCats.includes(a)) && (
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  {interestAreas.some((a) => availableCats.includes(a)) && (
+                    <button
+                      onClick={() => setCats(interestAreas.filter((a) => availableCats.includes(a)))}
+                      className="text-xs font-semibold text-brand-600 hover:underline dark:text-brand-300"
+                    >
+                      Só as minhas áreas de interesse
+                    </button>
+                  )}
                   <button
-                    onClick={() => setCats(interestAreas.filter((a) => availableCats.includes(a)))}
-                    className="mt-2 text-xs font-semibold text-brand-600 hover:underline dark:text-brand-300"
+                    type="button"
+                    onClick={() => useUiStore.getState().abrirInteresses()}
+                    className="text-xs font-semibold text-gray-600 hover:underline dark:text-gray-300"
                   >
-                    Só as minhas áreas de interesse
+                    {interestAreas.length ? 'Personalizar interesses' : 'Escolher minhas áreas de interesse'}
                   </button>
-                )}
+                </div>
               </div>
             )}
             <div className="flex flex-wrap items-center gap-3 border-t border-gray-200 pt-3 text-sm dark:border-white/[0.07]">

@@ -53,7 +53,7 @@ const TETO_POR_CICLO = 900
  * Nunca lança: um erro aqui não pode derrubar o ciclo de coleta, que já
  * gravou tudo o que buscou.
  */
-export async function calcularCorrelacoes() {
+export async function calcularCorrelacoes({ janelaDias = JANELA_RECALCULO_DIAS, teto = TETO_POR_CICLO } = {}) {
   const inicio = Date.now()
 
   const artigos = all(
@@ -61,9 +61,9 @@ export async function calcularCorrelacoes() {
        FROM articles
       WHERE relevant = 1
         AND (published_at IS NULL
-             OR published_at >= strftime('%Y-%m-%dT%H:%M:%SZ','now', '-${JANELA_RECALCULO_DIAS} days'))
+             OR published_at >= strftime('%Y-%m-%dT%H:%M:%SZ','now', '-${Math.trunc(janelaDias)} days'))
       ORDER BY published_at DESC
-      LIMIT ${TETO_POR_CICLO}`
+      LIMIT ${Math.trunc(teto)}`
   )
 
   if (!artigos.length) {
@@ -128,16 +128,29 @@ export async function calcularCorrelacoes() {
   }
 }
 
-/** Quanto do acervo já foi correlacionado — alimenta o painel de capacidades. */
-export function panoramaCorrelacao() {
+/**
+ * Quanto do acervo já foi correlacionado — alimenta o painel de capacidades.
+ *
+ * Com `dias`, conta só as matérias publicadas na janela. A tela de Correlações
+ * escreve "N em tela de M no período" e oferece 30 dias, 60 dias e 6 meses —
+ * mas o M vinha do acervo inteiro, e trocar a janela não mudava o número. Um
+ * total que não acompanha o filtro que está logo acima dele parece conta
+ * errada, e era.
+ */
+export function panoramaCorrelacao(dias) {
+  const naJanela = Number.isInteger(dias) && dias > 0
+    ? `(a.published_at IS NULL OR a.published_at >= strftime('%Y-%m-%dT%H:%M:%SZ','now', '-${dias} days'))`
+    : '1 = 1'
+  const comArtigo = `FROM correlations c JOIN articles a ON a.id = c.article_id WHERE ${naJanela}`
   return {
-    artigosAvaliados: get('SELECT COUNT(*) AS n FROM articles WHERE br_score IS NOT NULL')?.n ?? 0,
-    artigosComCorrelacao: get('SELECT COUNT(DISTINCT article_id) AS n FROM correlations')?.n ?? 0,
-    correlacoes: get('SELECT COUNT(*) AS n FROM correlations')?.n ?? 0,
+    periodoDias: Number.isInteger(dias) && dias > 0 ? dias : null,
+    artigosAvaliados: get(`SELECT COUNT(*) AS n FROM articles a WHERE a.br_score IS NOT NULL AND ${naJanela}`)?.n ?? 0,
+    artigosComCorrelacao: get(`SELECT COUNT(DISTINCT c.article_id) AS n ${comArtigo}`)?.n ?? 0,
+    correlacoes: get(`SELECT COUNT(*) AS n ${comArtigo}`)?.n ?? 0,
     entidades: get('SELECT COUNT(*) AS n FROM article_entities')?.n ?? 0,
     porRegra: all(
-      `SELECT regra, COUNT(*) AS total, MAX(forca) AS forca
-         FROM correlations GROUP BY regra ORDER BY forca DESC, total DESC`
+      `SELECT c.regra, COUNT(*) AS total, MAX(c.forca) AS forca
+         ${comArtigo} GROUP BY c.regra ORDER BY forca DESC, total DESC`
     ),
   }
 }

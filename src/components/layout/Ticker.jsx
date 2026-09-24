@@ -36,25 +36,29 @@ export default function Ticker() {
 
   const items = useMemo(() => {
     const usd = bcb.series?.usd?.ultimo?.value
-    const ipca = bcb.series?.ipca?.ultimo?.value
-    const selic = bcb.series?.selic?.ultimo?.value
+    // IPCA em 12 meses e META da Selic: os números que o noticiário usa. A
+    // faixa mostrava a "Selic (mês)" de um mês ainda em curso — 0,83% no dia
+    // 23, que parece queda e é só o mês pela metade.
+    const ipca = bcb.series?.ipca12?.ultimo?.value
+    const selic = bcb.series?.selicMeta?.ultimo?.value
+    const br = (v, casas) => Number(v).toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas })
     const nivel = alerta.level ? alertMeta[alerta.level] : null
 
     return [
       {
         icon: TrendingUp,
         label: 'Dólar (BCB)',
-        value: usd != null ? `R$ ${String(usd).replace('.', ',')}` : '—',
+        value: usd != null ? `R$ ${br(usd, 4)}` : '—',
       },
       {
         icon: TrendingUp,
-        label: 'IPCA (mês)',
-        value: ipca != null ? `${String(ipca).replace('.', ',')}%` : '—',
+        label: 'IPCA (12 meses)',
+        value: ipca != null ? `${br(ipca, 2)}%` : '—',
       },
       {
         icon: TrendingUp,
-        label: 'Selic (mês)',
-        value: selic != null ? `${String(selic).replace('.', ',')}%` : '—',
+        label: 'Selic (meta)',
+        value: selic != null ? `${br(selic, 2)}% a.a.` : '—',
       },
       {
         icon: Activity,

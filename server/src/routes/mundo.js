@@ -48,6 +48,12 @@ const ESCOPO = 'a.mundo = 1'
 
 const TEATRO_POR_ID = new Map(TEATROS.map((t) => [t.id, t]))
 const PAIS_POR_NOME = new Map(PAISES.map((p) => [p.nome, p]))
+// O endereço também aceita o nome em português, sem acento e sem caixa:
+// /mundo/pais/Estados%20Unidos respondia "fora do catálogo" porque a chave é
+// o nome do world-atlas ("United States of America"). Quem digita ou
+// compartilha um link escreve o nome que lê na tela.
+const PAIS_POR_PT = new Map(PAISES.filter((p) => p.pt).map((p) => [normalizar(p.pt), p]))
+const resolverPais = (pedido) => PAIS_POR_NOME.get(pedido) || PAIS_POR_PT.get(normalizar(pedido)) || null
 
 // Os EUA primeiro, que é o pedido do dono do produto; depois as potências e os
 // lados dos teatros mais cobertos; por fim os dois vizinhos que mais pesam.
@@ -468,9 +474,10 @@ router.get('/mundo/panorama', exigirPapel('user'), (req, res) => {
 // saber de quanto a seleção é parte.
 // ═════════════════════════════════════════════════════════════════════════════
 router.get('/mundo/pais/:nome', exigirPapel('user'), (req, res) => {
-  const nome = String(req.params.nome).slice(0, 60)
-  const pais = PAIS_POR_NOME.get(nome)
-  if (!pais) return res.status(404).json({ error: 'País fora do catálogo acompanhado pela plataforma.', pais: nome })
+  const pedido = String(req.params.nome).slice(0, 60)
+  const pais = resolverPais(pedido)
+  if (!pais) return res.status(404).json({ error: 'País fora do catálogo acompanhado pela plataforma.', pais: pedido })
+  const nome = pais.nome
 
   const { filtros, erro } = lerFiltros(req.query, ['teatro', 'idioma'])
   if (erro) return res.status(erro.status).json(erro.corpo)

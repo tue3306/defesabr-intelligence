@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
-import { User, Shield, Check, LogOut, KeyRound, Loader2 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { User, Shield, Check, LogOut, KeyRound, Loader2, Trash2 } from 'lucide-react'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { ROLE_LABELS } from '../auth/permissions'
 
@@ -161,7 +161,110 @@ function SecurityTab() {
           </button>
         </div>
       </Card>
+
+      <ExcluirConta />
     </div>
+  )
+}
+
+// -----------------------------------------------------------------------------
+// EXCLUIR A PRÓPRIA CONTA
+//
+// A política de privacidade listava a eliminação dos dados entre os direitos
+// da LGPD e mandava "falar com quem opera a instalação". O direito dependia de
+// outra pessoa para ser exercido. Agora ele está aqui, com duas travas contra
+// o clique acidental: a senha e a confirmação digitada.
+// -----------------------------------------------------------------------------
+function ExcluirConta() {
+  const user = useAuthStore((s) => s.user)
+  const excluirConta = useAuthStore((s) => s.excluirConta)
+  const navigate = useNavigate()
+  const [aberto, setAberto] = useState(false)
+  const [senha, setSenha] = useState('')
+  const [confirmacao, setConfirmacao] = useState('')
+  const [erro, setErro] = useState(null)
+  const [enviando, setEnviando] = useState(false)
+  const FRASE = 'EXCLUIR'
+
+  if (user?.role === 'admin') {
+    return (
+      <Card title="Excluir conta" desc="Conta de administrador é removida pelo Console de Governança, por outro administrador — assim a plataforma nunca fica sem quem a opere." />
+    )
+  }
+
+  const enviar = async (e) => {
+    e.preventDefault()
+    setErro(null)
+    if (confirmacao.trim().toUpperCase() !== FRASE) return setErro(`Digite ${FRASE} para confirmar.`)
+    setEnviando(true)
+    const r = await excluirConta(senha)
+    setEnviando(false)
+    if (r.ok) {
+      toast.success('Conta excluída. Sua pasta e seus avisos foram apagados do servidor.')
+      navigate('/')
+    } else {
+      setErro(r.error)
+    }
+  }
+
+  return (
+    <Card
+      title="Excluir conta"
+      desc="Apaga para sempre a sua conta, a sua pasta de matérias salvas e o estado das suas notificações. Não dá para desfazer."
+    >
+      {!aberto ? (
+        <button type="button" onClick={() => setAberto(true)} className="btn-ghost border-red-500/40 text-sm text-red-700 hover:bg-red-500/10 dark:text-red-300">
+          <Trash2 size={15} aria-hidden="true" /> Quero excluir minha conta
+        </button>
+      ) : (
+        <form onSubmit={enviar} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="excluir-senha" className="mb-1 block text-xs font-medium muted">Sua senha</label>
+            <input
+              id="excluir-senha"
+              type="password"
+              autoComplete="current-password"
+              maxLength={128}
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              className="input"
+            />
+          </div>
+          <div>
+            <label htmlFor="excluir-confirma" className="mb-1 block text-xs font-medium muted">
+              Digite <strong>{FRASE}</strong> para confirmar
+            </label>
+            <input
+              id="excluir-confirma"
+              type="text"
+              autoComplete="off"
+              maxLength={20}
+              value={confirmacao}
+              onChange={(e) => setConfirmacao(e.target.value)}
+              className="input"
+            />
+          </div>
+          <p className="text-xs muted sm:col-span-2">
+            As preferências deste navegador (tema, tamanho do texto, interesses) não são dados da conta e
+            ficam aqui; você pode apagá-las em{' '}
+            <Link to="/privacidade#navegador" className="font-semibold text-brand-600 hover:underline dark:text-brand-300">Privacidade</Link>.
+          </p>
+          {erro && <p role="alert" className="text-sm font-medium text-red-600 dark:text-red-400 sm:col-span-2">{erro}</p>}
+          <div className="flex flex-wrap gap-2 sm:col-span-2">
+            <button
+              type="submit"
+              disabled={enviando || !senha || !confirmacao}
+              className="btn-primary bg-red-600 hover:bg-red-700 disabled:opacity-50"
+            >
+              {enviando ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />} Excluir definitivamente
+            </button>
+            <button type="button" onClick={() => { setAberto(false); setSenha(''); setConfirmacao(''); setErro(null) }} className="btn-ghost">
+              Cancelar
+            </button>
+          </div>
+        </form>
+      )}
+    </Card>
   )
 }
 

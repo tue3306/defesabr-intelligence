@@ -7,10 +7,12 @@ import {
   Link2,
   Globe2,
   Swords,
+  Star,
 } from 'lucide-react'
 import Logo from '../ui/Logo'
 import { useAuthStore } from '../../store/authStore'
 import { useCan } from '../../auth/useCan'
+import { useUiStore } from '../../store/uiStore'
 
 // -----------------------------------------------------------------------------
 // NAVEGAÇÃO DECLARATIVA — cada item pede uma CAPACIDADE (src/auth/permissions.js).
@@ -218,6 +220,18 @@ export default function Sidebar({ open, onClose, collapsed }) {
         )}
 
         <div className="space-y-1 border-t border-gray-200 p-3 dark:border-white/[0.06]">
+          {isAuthenticated && (
+            <button
+              type="button"
+              onClick={() => { onClose?.(); useUiStore.getState().abrirInteresses() }}
+              title={collapsed ? 'Personalizar interesses' : undefined}
+              aria-label={collapsed ? 'Personalizar interesses' : undefined}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/[0.04] dark:hover:text-gray-100"
+            >
+              <Star size={18} className="shrink-0" />
+              {!collapsed && <span className="flex-1 truncate">Personalizar interesses</span>}
+            </button>
+          )}
           {BOTTOM_NAV.map((item) => (
             <Item
               key={item.to}
