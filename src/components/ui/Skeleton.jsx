@@ -27,14 +27,4 @@ export function SkeletonChart({ className = 'h-72' }) {
   )
 }
 
-export function SkeletonMetric() {
-  return (
-    <div className="card space-y-2 p-4">
-      <Skeleton className="h-4 w-24" />
-      <Skeleton className="h-8 w-16" />
-      <Skeleton className="h-3 w-20" />
-    </div>
-  )
-}
-
 export default Skeleton

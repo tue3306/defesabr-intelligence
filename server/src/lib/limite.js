@@ -29,11 +29,18 @@
 
 const janelas = new Map()
 
-/** IP de quem chama, atrás do proxy do Railway. */
+/**
+ * IP de quem chama, atrás do proxy do Railway.
+ *
+ * `req.ip`, e não o PRIMEIRO item de `x-forwarded-for`. O primeiro item é o
+ * que o próprio cliente escreveu: o proxy ACRESCENTA o endereço real ao fim da
+ * cadeia, sem apagar o que veio antes. Lendo o primeiro, bastava mandar um
+ * `X-Forwarded-For` diferente a cada tentativa para nunca atingir o teto — o
+ * limite de login não limitava ninguém. Com `trust proxy` = 1 (ver `app.js`),
+ * o Express confia só no último salto e `req.ip` é o endereço que o proxy viu.
+ */
 function ipDe(req) {
-  // `x-forwarded-for` pode trazer uma cadeia; o cliente é o primeiro.
-  const encaminhado = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim()
-  return encaminhado || req.socket?.remoteAddress || 'desconhecido'
+  return req.ip || req.socket?.remoteAddress || 'desconhecido'
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

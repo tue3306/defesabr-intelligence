@@ -640,6 +640,3 @@ export async function viaPonte(endpoint, params) {
   const bruto = await buscar(ponte.caminho, ponte.parametros?.(params) ?? params)
   return ponte.transformar ? ponte.transformar(bruto, params) : bruto
 }
-
-/** Endpoints com backend real — exibido no diagnóstico do Admin. */
-export const endpointsAoVivo = () => [...PONTES.keys()].sort()

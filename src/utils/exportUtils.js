@@ -22,10 +22,6 @@ function download(blob, filename) {
   URL.revokeObjectURL(url)
 }
 
-export function exportJSON(data, filename = 'export.json') {
-  download(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }), filename)
-}
-
 export function exportCSV(rows = [], filename = 'export.csv') {
   if (!rows.length) return
   const headers = Object.keys(rows[0])

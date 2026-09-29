@@ -34,7 +34,7 @@ import Badge from '../components/ui/Badge'
 import GlobalHeatmap from '../components/charts/GlobalHeatmap'
 import MilitarySpendingChart from '../components/charts/MilitarySpendingChart'
 import NewsVolumeChart from '../components/charts/NewsVolumeChart'
-import GaugeChart from '../components/charts/GaugeChart'
+import GaugeChart, { LegendaAlerta } from '../components/charts/GaugeChart'
 import { useNews } from '../hooks/useNews'
 import { useNewsVolume } from '../hooks/useNewsVolume'
 import { useGastoMilitar, useIndiceDeAlerta } from '../hooks/useDadosReais'
@@ -340,9 +340,9 @@ export default function Landing() {
       {/* PARA QUEM É / CASOS DE USO */}
       <Section>
         <p className="text-center text-xs font-bold uppercase tracking-widest text-brand-400 dark:text-brand-300">Casos de uso</p>
-        <h2 className="mt-1 text-center text-2xl font-bold tracking-tight">Feito para quem decide sob pressão</h2>
+        <h2 className="mt-1 text-center text-2xl font-bold tracking-tight">Para quem acompanha o tema</h2>
         <p className="mx-auto mt-2 max-w-2xl text-center text-sm muted">
-          Uma camada de inteligência que organiza o caos informacional em contexto, risco e prioridade.
+          O que cada público encontra aqui — e de onde vem cada informação.
         </p>
         {/* Lista compacta: mesma informação, sem repetir a grade de cards acima
             (evita duas grades visualmente idênticas em sequência — §5). */}
@@ -472,13 +472,8 @@ export default function Landing() {
                 </p>
               )}
             </div>
-            {/* Legenda das faixas — ajuda a interpretar o número */}
-            <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-[11px] muted">
-              <span className="inline-flex items-center gap-1"><i className="h-2 w-2 rounded-full" style={{ background: '#4a7c59' }} /> Normal</span>
-              <span className="inline-flex items-center gap-1"><i className="h-2 w-2 rounded-full" style={{ background: '#d4b41a' }} /> Atenção</span>
-              <span className="inline-flex items-center gap-1"><i className="h-2 w-2 rounded-full" style={{ background: '#d4841a' }} /> Alerta</span>
-              <span className="inline-flex items-center gap-1"><i className="h-2 w-2 rounded-full" style={{ background: '#c0392b' }} /> Crítico</span>
-            </div>
+            {/* Legenda das faixas, com os limites — os mesmos do servidor */}
+            <LegendaAlerta />
           </div>
           <div className="card p-5 lg:col-span-3">
             <h3 className="mb-1 text-base font-bold tracking-tight">Volume de notícias — 14 dias</h3>

@@ -71,14 +71,35 @@ sobrevive a suspensão ou troca de senha, acesso às notificações ou à pasta 
 conteúdo coletado de feeds, e dependências vulneráveis.
 
 
-## Dependências: o que `npm audit` acusa, e por quê continua aqui
+## Cabeçalhos de segurança
 
-Rodar `npm audit --omit=dev` na raiz devolve **2 vulnerabilidades moderadas**, as
-duas no `react-router`. Elas continuam no projeto por decisão, e a decisão está
-escrita aqui para poder ser contestada — um aviso de segurança sem análise de
-alcance é só um número vermelho que ninguém sabe interpretar.
+Toda resposta sai com `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
+`Referrer-Policy` e `Permissions-Policy`. Em produção, também com:
 
-O servidor (`server/`) devolve **zero**.
+- **Content-Security-Policy** — só scripts desta origem; estilos e fontes do
+  Google Fonts; `fetch` só para esta origem e para o jsDelivr (o atlas do mapa);
+  `object-src 'none'`, `frame-ancestors 'none'`. Nenhum script de terceiro roda
+  onde mora o token de sessão. Conferida servindo o `dist/` com
+  `NODE_ENV=production`: mapa, fontes, gráficos e exportação CSV sem nenhuma
+  violação.
+- **Strict-Transport-Security** de 180 dias.
+
+A CSP fica fora do desenvolvimento porque o Vite injeta script inline para o
+recarregamento a quente.
+
+## Limite de tentativas e o IP de quem chama
+
+O teto por IP (login, cadastro, favoritos) lê `req.ip`, que o Express calcula
+confiando em **um** salto de proxy (`trust proxy = 1`, o balanceador do Railway).
+Ele lia o primeiro item de `X-Forwarded-For` — o valor que o próprio cliente
+escreve, porque o proxy acrescenta o endereço real ao fim da cadeia sem apagar o
+começo. Trocar o cabeçalho a cada tentativa bastava para nunca atingir o teto. A
+suíte `server/scripts/check.js` tem o caso que prova o contrário.
+
+## Dependências: o que `npm audit` acusa
+
+`npm audit --omit=dev` devolve **zero** na raiz e no servidor — o que vai para
+produção não tem aviso conhecido.
 
 ### O que foi corrigido
 
@@ -93,26 +114,27 @@ Resolvido com `overrides` no `package.json` — a mesma técnica já usada para 
 assumido: o mapa renderiza as cinco cores da rampa com o Brasil em verde-marca,
 e os gráficos desenham 3 superfícies com 14 formas. Nada quebrou.
 
+**`react-router` — dois avisos moderados** (open redirect por barra invertida
+em `<Link>`/`useNavigate`; injeção em `deserializeErrors()` na hidratação SSR).
+Nenhum dos dois era alcançável aqui — todo `to=` vem de catálogo interno ou do
+servidor, e não há SSR —, mas a linha 6 inteira estava na faixa vulnerável.
+O projeto migrou para o **react-router 7**: a aplicação usa `HashRouter`,
+`Routes`, `Link`, `NavLink` e os hooks básicos, sem rota curinga com link
+relativo, que é onde a versão 7 muda comportamento. Conferido rota a rota no
+navegador — 27 telas, inclusive as de administração, sem erro no console.
+
 ### O que permanece, e por quê
 
-As duas moderadas restantes exigem **react-router 7.18.3**. O projeto usa
-`react-router-dom@6.30.6`, e não existe correção na linha 6 — o único caminho é
-uma troca de MAJOR, que muda API e é exatamente o tipo de mudança que quebra uma
-aplicação funcionando. Antes de pagar esse preço, o que importa é se as falhas
-são **alcançáveis aqui**:
-
-| Aviso | Alcançável neste projeto? |
-|---|---|
-| Open redirect via barra invertida em `<Link>` / `useNavigate` | **Não.** Exige caminho controlado por quem ataca chegando ao roteador. Todo `to=` vem de catálogo interno (`Sidebar`, `PublicLayout`, `App`); nenhum valor de usuário, de query string ou de feed vira rota. A aplicação ainda usa `HashRouter`. |
-| Injeção de construtor em `deserializeErrors()` na hidratação SSR | **Não.** Não há SSR. `renderToString`, `hydrateRoot` e `StaticRouter` não aparecem em lugar nenhum do código — a aplicação é 100% cliente. |
-
-A migração para o react-router 7 está no roadmap como manutenção, não como
-correção urgente. Se você encontrar um caminho que torne qualquer uma das duas
-alcançável, é exatamente o tipo de coisa que vale reportar.
+`npm audit` **sem** `--omit=dev` ainda acusa o `esbuild` embutido no **Vite 5**:
+um site aberto no navegador de quem desenvolve pode fazer requisições ao servidor
+de desenvolvimento. Afeta só `npm run dev`, nunca o que é publicado — o build de
+produção é arquivo estático servido pelo Express. A correção é o Vite 6 ou
+superior, uma troca de MAJOR do empacotador que fica para uma manutenção
+própria, com o build conferido de ponta a ponta.
 
 ### Como conferir
 
 ```bash
-npm audit --omit=dev              # raiz: 2 moderadas, ambas react-router
+npm audit --omit=dev              # raiz: 0
 npm --prefix server audit --omit=dev   # servidor: 0
 ```

@@ -41,4 +41,14 @@ export const dias = (valor, padrao = 30) =>
 export const limite = (valor, padrao = 20, max = 60) =>
   inteiro(valor, { padrao, min: 1, max })
 
-export default { inteiro, dias, limite }
+/**
+ * Termo de busca pronto para `LIKE ? ESCAPE '\'`.
+ *
+ * Sem o escape, `%` e `_` digitados viravam curingas: buscar "100%" casava
+ * qualquer texto com "100", e "_" casava qualquer letra. O teto de tamanho
+ * evita um LIKE de milhares de caracteres varrendo o acervo inteiro.
+ */
+export const termoLike = (q, max = 120) =>
+  `%${String(q ?? '').trim().slice(0, max).replace(/[\\%_]/g, (c) => `\\${c}`)}%`
+
+export default { inteiro, dias, limite, termoLike }

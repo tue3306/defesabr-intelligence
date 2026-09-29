@@ -84,7 +84,7 @@ const NAV_SECTIONS = [
     ],
   },
   {
-    title: 'Tático · setores e correlação',
+    title: 'Tático · notícias do dia e ligações',
     nivel: 'tatico',
     items: [
       { to: '/clipping', label: 'Clipping Diário', icon: Newspaper, requiresAuth: true },
@@ -93,7 +93,7 @@ const NAV_SECTIONS = [
     ],
   },
   {
-    title: 'Operacional · incidentes',
+    title: 'Operacional · ataques cibernéticos',
     nivel: 'operacional',
     items: [
       {

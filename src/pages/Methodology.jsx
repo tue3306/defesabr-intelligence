@@ -49,21 +49,21 @@ import { urgencyMeta } from '../utils/textUtils'
 const GUIA = [
   {
     nivel: 'CRITICO',
-    significa: 'A notícia narra um acontecimento violento que acabou de acontecer: ataque, invasão, bombardeio, explosão, aeronave abatida, mortos.',
+    significa: 'A notícia narra um acontecimento violento que acabou de acontecer — ataque, invasão, bombardeio, explosão, aeronave abatida, mortos — no Brasil ou envolvendo o Brasil. O que acontece só lá fora (um bombardeio em Kiev, um ataque em Gaza) fica em médio aqui e aparece como crítico em Mundo & Conflitos.',
     atencao: 'Máxima — leia agora.',
     exemplos: [
-      { texto: 'Rússia diz que lançou ataque massivo contra Kiev, Zaporizhia e Odessa', real: true },
-      { texto: 'Caças da Otan abatem drone que invadiu o espaço aéreo da Lituânia', real: true },
+      { texto: 'Lula chama Múcio e comandantes das Forças Armadas para tratar da defesa nacional após ataque à Venezuela', real: true },
+      { texto: 'Ataque hacker derruba sistemas de um órgão federal e expõe dados de cidadãos', real: false },
     ],
     fazer: 'É o único nível que abre um aviso na tela. Abra a matéria e confira a fonte: a primeira notícia de um ataque costuma ser incompleta, e os números mudam nas horas seguintes.',
   },
   {
     nivel: 'ALTO',
-    significa: 'Um assunto sério em andamento, que pede acompanhamento: guerra, crise, confronto, operação, ameaça, investigação, sanções.',
+    significa: 'Um assunto sério em andamento, que pede acompanhamento: guerra, crise, confronto, operação, ameaça, investigação, sanções — no Brasil ou envolvendo o Brasil.',
     atencao: 'Alta — acompanhe nas próximas horas ou dias.',
     exemplos: [
-      { texto: 'Guerra no Irã já custou R$ 224 bilhões aos EUA, diz Pentágono', real: true },
-      { texto: 'Equador decreta emergência em 8 províncias por violência do narcotráfico', real: true },
+      { texto: 'Abin eleva alerta sobre risco de interferência dos EUA nas eleições', real: true },
+      { texto: 'Operação da Polícia Federal combate tráfico transnacional de cocaína e apreende uma tonelada da droga', real: true },
     ],
     fazer: 'O cenário merece atenção, mas o título não narra um fato violento novo. Leia quando puder e volte ao tema se ele subir para crítico.',
   },
@@ -379,6 +379,20 @@ export default function Methodology() {
                 ))}
               </div>
               <Regra texto={m.urgencia?.regra} />
+              {/* As exceções vinham na API e não apareciam: quem via "ataque" marcado
+                  como MÉDIO não tinha como saber por quê. */}
+              {m.urgencia?.guardas?.length > 0 && (
+                <Recolhivel titulo="Quando a palavra não basta: as exceções que baixam o nível">
+                  <ul className="space-y-2">
+                    {m.urgencia.guardas.map((t) => (
+                      <li key={t} className="flex gap-2 text-sm text-gray-700 dark:text-gray-300">
+                        <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                        <span>{t}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </Recolhivel>
+              )}
               <NaoQuerDizer texto={m.urgencia?.ressalva} />
             </Secao>
 

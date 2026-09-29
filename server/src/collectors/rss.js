@@ -5,6 +5,7 @@ import { parseFeed } from '../lib/feedParser.js'
 import { urlSegura } from '../lib/saneamento.js'
 import { avaliarRelevancia, classificar, limparRodape, chaveDeTitulo, chaveDeBusca } from '../lib/relevance.js'
 import { avaliarMundo, urgenciaMundo } from '../lib/mundo.js'
+import { urgenciaParaOBrasil } from '../lib/ancora.js'
 
 // -----------------------------------------------------------------------------
 // COLETA DE NOTÍCIAS (RSS)
@@ -546,9 +547,14 @@ export async function coletarFonte(fonte) {
         // aplica — "Forças Armadas" é o padrão de `classificar()` para quem não
         // casa nada, e rotular assim um bombardeio em Gaza seria afirmar o que
         // a matéria não diz. A urgência também vem da escala internacional.
-        const { categoria, urgencia } = !r.relevante && m.mundo
+        const classificada = !r.relevante && m.mundo
           ? { categoria: 'Internacional', urgencia: urgenciaMundo(item.titulo) }
           : classificar(palheiro, item.titulo)
+        const { categoria } = classificada
+        // No escopo Brasil, a urgência é para o Brasil: fato só no exterior,
+        // sem âncora brasileira, para em MÉDIO. Ver `lib/ancora.js`.
+        const urgencia = r.relevante ? urgenciaParaOBrasil(classificada.urgencia, palheiro) : classificada.urgencia
+        const urgenciaNoMundo = m.mundo ? urgenciaMundo(item.titulo) : null
 
         // O ENDEREÇO É CONTEÚDO DE TERCEIRO, e vira `href` na interface.
         //
@@ -609,7 +615,8 @@ export async function coletarFonte(fonte) {
               `UPDATE articles SET relevant = 1, relevance_score = ?, matched_terms = ?,
                       category = ?, urgency = ?
                 WHERE id = ?`,
-              [r.pontos, r.termos.slice(0, 8).join(', ') || null, c.categoria, c.urgencia, existente.id]
+              [r.pontos, r.termos.slice(0, 8).join(', ') || null, c.categoria,
+                urgenciaParaOBrasil(c.urgencia, palheiro), existente.id]
             )
           }
           duplicadas += 1
@@ -620,8 +627,8 @@ export async function coletarFonte(fonte) {
           `INSERT INTO articles
              (source_id, guid, title, title_key, search_key, url, summary, author, published_at,
               category, urgency, relevant, relevance_score, matched_terms,
-              mundo, mundo_score, mundo_termos, idioma)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              mundo, mundo_score, mundo_termos, idioma, urgency_mundo)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             // Num agregador, quem assina a matéria é o veículo que a publicou,
             // não o agregador. Guardar "Google Notícias" como autor apagaria a
@@ -652,6 +659,7 @@ export async function coletarFonte(fonte) {
             // reavalia a lente onde ele é NULO. Países e teatros ficam para
             // ela, porque `geo_at` nasce nulo.
             m.mundo ? 1 : 0, m.pontos, m.termos.slice(0, 8).join(', ') || null, fonte.idioma || 'pt',
+            urgenciaNoMundo,
           ]
         )
         novos += 1

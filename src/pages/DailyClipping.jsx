@@ -43,10 +43,11 @@ import { alertMeta, categoryColor, clipboard, urgencyMeta , corDoNivel } from '.
 import { formatDateBR, formatDateTimeBR, formatFullDate } from '../utils/dateUtils'
 import { exportClippingToPDF } from '../utils/exportUtils'
 
-// Quem assina a edição publicada. Creditamos a mesa editorial, e não uma pessoa
-// nomeada, porque não há redação por trás: a seleção é do filtro de relevância,
-// e atribuí-la a alguém seria inventar autoria.
-const EDITORIAL_DESK = 'Mesa de Análise · DefesaBR Intelligence'
+// Quem assina a edição. Não há redação por trás: a seleção é do filtro de
+// relevância. Constava "Mesa de Análise", que já não nomeava uma pessoa mas
+// ainda sugeria uma equipe de analistas lendo e escolhendo — autoria inventada
+// do mesmo jeito, só que coletiva.
+const EDITORIAL_DESK = 'coleta automática · filtro de relevância publicado'
 
 export default function DailyClipping() {
   const addClipping = useNewsStore((s) => s.addClipping)
@@ -410,7 +411,7 @@ function PublishedNote({ at }) {
   return (
     <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-2 text-xs muted">
       <ShieldCheck size={14} className="text-emerald-500 dark:text-emerald-400" />
-      Publicado por {EDITORIAL_DESK}
+      Gerado pela {EDITORIAL_DESK}
       {at && <span className="font-mono">· {formatDateTimeBR(at)}</span>}
     </span>
   )

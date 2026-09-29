@@ -9,9 +9,14 @@
 // -----------------------------------------------------------------------------
 
 // Para quem é / casos de uso (ícones por nome — mapeados na página).
+//
+// Cada linha diz o que a plataforma ENTREGA a esse público, não o que ele
+// conseguiria fazer com ela. "Antecipe riscos" prometia previsão, e o que
+// existe é notícia classificada e incidente divulgado — acompanhamento, não
+// antecipação.
 export const USE_CASES = [
-  { icon: 'Radar', title: 'Centros de operação', text: 'Monitoramento contínuo de eventos, alertas e indicadores em um painel único de situação.' },
-  { icon: 'Building2', title: 'Inteligência corporativa', text: 'Antecipe riscos geopolíticos e de segurança que afetam operações, cadeias e investimentos.' },
+  { icon: 'Radar', title: 'Acompanhamento diário', text: 'O que saiu hoje sobre defesa e segurança do Brasil, num painel só, com o nível de cada notícia e o aviso na tela quando algo é crítico.' },
+  { icon: 'Building2', title: 'Empresas e cadeias de fornecimento', text: 'Quais organizações brasileiras apareceram em sites de extorsão, por setor e estado — útil para quem avalia fornecedor ou parceiro.' },
   { icon: 'ShieldAlert', title: 'Acompanhamento de conjuntura', text: 'Volume de cobertura por país e região, com as manchetes que sustentam cada contagem.' },
   { icon: 'Landmark', title: 'Setor público & planejamento', text: 'Acompanhamento da agenda legislativa de defesa e dos indicadores de orçamento.' },
   { icon: 'Factory', title: 'Indústria de defesa (BID)', text: 'Exportações brasileiras por capítulo da NCM e país de destino, do Comex Stat.' },

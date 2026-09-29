@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  Shield, Newspaper, Link2, ShieldAlert, Bell, LifeBuoy, Command, ArrowRight, ArrowLeft, Check,
+  Shield, Newspaper, Link2, ShieldAlert, Bell, LifeBuoy, Command, ArrowRight, ArrowLeft, Check, Star,
 } from 'lucide-react'
 import Modal from './Modal'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useCan } from '../../auth/useCan'
+import { useUiStore } from '../../store/uiStore'
 
 // -----------------------------------------------------------------------------
 // BOAS-VINDAS — o primeiro contato de uma conta de usuário.
@@ -48,6 +49,15 @@ const STEPS = [
     title: 'Notificações',
     text: 'A cada coleta, matéria urgente e ataque a organização brasileira viram aviso. O sino no topo mostra quantos estão por ler, e o que você lê fica marcado na sua conta.',
     link: { to: '/notificacoes', label: 'Abrir as notificações' },
+  },
+  // O tour apresentava cada tela e não dizia que dá para escolher o que se
+  // vê. É a única decisão que muda o conteúdo — e quem não sabe que existe
+  // recebe a mesma lista de todo mundo para sempre.
+  {
+    icon: Star,
+    title: 'Escolha seus assuntos',
+    text: 'Marque as áreas que você acompanha — Forças Armadas, Cibersegurança, Fronteiras e outras. No painel, as matérias delas sobem para o topo; no clipping, um botão mostra só elas. Dá para mudar quando quiser, pelo menu com o seu nome.',
+    interesses: true,
   },
   {
     icon: LifeBuoy,
@@ -106,6 +116,15 @@ export default function OnboardingModal() {
           <Link to={s.link.to} onClick={finish} className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:underline dark:text-brand-300">
             {s.link.label} <ArrowRight size={14} />
           </Link>
+        )}
+        {s.interesses && (
+          <button
+            type="button"
+            onClick={() => { finish(); useUiStore.getState().abrirInteresses() }}
+            className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:underline dark:text-brand-300"
+          >
+            Escolher agora <ArrowRight size={14} aria-hidden="true" />
+          </button>
         )}
         {s.atalho && (
           <div className="mx-auto mt-3 inline-flex items-center gap-1.5 rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-semibold dark:bg-white/5">

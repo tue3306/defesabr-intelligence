@@ -1,6 +1,7 @@
 import { get, run, transacao } from '../db/index.js'
 import { buscarJson } from '../lib/fetcher.js'
 import { avaliarRelevancia, classificar, limparRodape, chaveDeTitulo } from '../lib/relevance.js'
+import { urgenciaParaOBrasil } from '../lib/ancora.js'
 import config from '../config.js'
 
 // -----------------------------------------------------------------------------
@@ -115,7 +116,9 @@ export async function coletarAgregadores() {
           const chave = chaveDeTitulo(item.titulo)
           if (chave && get('SELECT id FROM articles WHERE title_key = ?', [chave])) continue
 
-          const { categoria, urgencia } = classificar(palheiro, item.titulo)
+          const c = classificar(palheiro, item.titulo)
+          const categoria = c.categoria
+          const urgencia = urgenciaParaOBrasil(c.urgencia, palheiro)
           const fonte = get('SELECT id FROM sources WHERE slug = ?', [`agregador-${p.id}`])
           if (!fonte) continue
 

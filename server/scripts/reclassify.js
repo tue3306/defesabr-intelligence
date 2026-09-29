@@ -9,6 +9,8 @@
 // inteiro é irreversível, e conferir a lista antes custa um segundo.
 import { all, run, migrate, transacao } from '../src/db/index.js'
 import { avaliarRelevancia, classificar, limparRodape } from '../src/lib/relevance.js'
+import { urgenciaMundo } from '../src/lib/mundo.js'
+import { urgenciaParaOBrasil } from '../src/lib/ancora.js'
 import { ehNaoNoticia } from '../src/collectors/rss.js'
 import { urlSegura, dominioSeguro } from '../src/lib/saneamento.js'
 import { derivarGeografia } from '../src/collectors/geografia.js'
@@ -18,7 +20,7 @@ migrate()
 
 const simular = process.argv.includes('--simular')
 
-const artigos = all('SELECT id, title, url, summary, relevant, category, urgency FROM articles')
+const artigos = all('SELECT id, title, url, summary, relevant, mundo, category, urgency, urgency_mundo FROM articles')
 
 let resumosLimpos = 0
 let reclassificados = 0
@@ -49,14 +51,25 @@ transacao(() => {
 
     const palheiro = `${a.title} ${resumo || ''}`
     const r = avaliarRelevancia(palheiro)
-    const { categoria, urgencia } = classificar(palheiro, a.title)
+    // Uma urgência por lente. Relevante para o Brasil: a de `classificar`, com
+    // o teto de âncora (`lib/ancora.js`). Só do mundo: a escala internacional —
+    // este script gravava nelas a urgência do Brasil, e a área Mundo passava a
+    // ler o vocabulário errado depois de cada reclassificação.
+    const soMundo = !r.relevante && !!a.mundo
+    const c = classificar(palheiro, a.title)
+    const categoria = soMundo ? 'Internacional' : c.categoria
+    const urgencia = r.relevante
+      ? urgenciaParaOBrasil(c.urgencia, palheiro)
+      : soMundo ? urgenciaMundo(a.title) : c.urgencia
+    const noMundo = a.mundo ? urgenciaMundo(a.title) : null
 
-    if (!!a.relevant !== r.relevante || a.category !== categoria || a.urgency !== urgencia) {
+    if (!!a.relevant !== r.relevante || a.category !== categoria || a.urgency !== urgencia
+      || (a.urgency_mundo ?? null) !== noMundo) {
       if (!simular) {
         run(
-          `UPDATE articles SET relevant = ?, category = ?, urgency = ?,
+          `UPDATE articles SET relevant = ?, category = ?, urgency = ?, urgency_mundo = ?,
              relevance_score = ?, matched_terms = ? WHERE id = ?`,
-          [r.relevante ? 1 : 0, categoria, urgencia, r.pontos, r.termos.slice(0, 8).join(', ') || null, a.id]
+          [r.relevante ? 1 : 0, categoria, urgencia, noMundo, r.pontos, r.termos.slice(0, 8).join(', ') || null, a.id]
         )
       }
       reclassificados += 1

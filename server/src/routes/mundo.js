@@ -142,8 +142,15 @@ const descreverPais = (nome) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // NOTÍCIA — a mesma forma em todas as rotas
 // ─────────────────────────────────────────────────────────────────────────────
+// A área Mundo lê a urgência na ESCALA INTERNACIONAL (`urgency_mundo`). A
+// coluna `urgency` é a urgência para o Brasil e tem teto quando a matéria não
+// tem âncora brasileira (ver `lib/ancora.js`); lida aqui, rebaixaria o ataque a
+// Kiev justamente na tela que existe para acompanhá-lo. Nula (matéria ainda
+// não derivada), cai na do Brasil.
+const URGENCIA = 'COALESCE(a.urgency_mundo, a.urgency)'
+
 const SELECT_NOTICIA = `
-  SELECT a.id, a.title, a.summary, a.url, a.published_at, a.urgency, a.idioma, a.relevant,
+  SELECT a.id, a.title, a.summary, a.url, a.published_at, ${URGENCIA} AS urgency, a.idioma, a.relevant,
          a.author, s.name AS fonte, s.category AS fonte_categoria, s.site_url AS fonte_site
     FROM articles a LEFT JOIN sources s ON s.id = a.source_id`
 
@@ -241,7 +248,7 @@ function clausulas(filtros) {
   if (filtros.pais) { onde.push('EXISTS (SELECT 1 FROM article_paises fp WHERE fp.article_id = a.id AND fp.pais = ?)'); params.push(filtros.pais) }
   if (filtros.teatro) { onde.push('EXISTS (SELECT 1 FROM article_teatros ft WHERE ft.article_id = a.id AND ft.teatro = ?)'); params.push(filtros.teatro) }
   if (filtros.idioma) { onde.push('a.idioma = ?'); params.push(filtros.idioma) }
-  if (filtros.urgencia) { onde.push("COALESCE(a.urgency, 'BAIXO') = ?"); params.push(filtros.urgencia) }
+  if (filtros.urgencia) { onde.push(`COALESCE(${URGENCIA}, 'BAIXO') = ?`); params.push(filtros.urgencia) }
   if (filtros.q) { onde.push("a.search_key LIKE ? ESCAPE '\\'"); params.push(filtros.q) }
   return { sql: onde.length ? ` AND ${onde.join(' AND ')}` : '', params }
 }
@@ -299,7 +306,7 @@ function cobertura({ junta, params, days }) {
       params
     )),
     porUrgencia: porUrgencia(all(
-      `SELECT a.urgency, COUNT(DISTINCT a.id) AS total FROM articles a ${junta} WHERE ${base} GROUP BY a.urgency`,
+      `SELECT ${URGENCIA} AS urgency, COUNT(DISTINCT a.id) AS total FROM articles a ${junta} WHERE ${base} GROUP BY 1`,
       params
     )),
   }
@@ -345,9 +352,9 @@ router.get('/mundo/panorama', exigirPapel('user'), (req, res) => {
       WHERE ${ESCOPO} AND ${j.anterior} GROUP BY t.teatro`
   ).map((l) => [l.teatro, l.total]))
   const urgencias = all(
-    `SELECT t.teatro, a.urgency, COUNT(*) AS total
+    `SELECT t.teatro, ${URGENCIA} AS urgency, COUNT(*) AS total
        FROM article_teatros t JOIN articles a ON a.id = t.article_id
-      WHERE ${base} GROUP BY t.teatro, a.urgency`
+      WHERE ${base} GROUP BY t.teatro, 2`
   )
   const manchetes = all(
     `SELECT * FROM (

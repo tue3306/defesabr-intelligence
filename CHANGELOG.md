@@ -7,6 +7,78 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Não publicado]
 
+### Auditoria: segurança, o escopo Brasil e números que concordam
+
+**Segurança**
+
+- **Limite de tentativas contornável.** O teto de login lia o primeiro item de
+  `X-Forwarded-For`, que é o que o cliente escreve; trocar o cabeçalho a cada
+  tentativa bastava para nunca ser barrado. Passou a ler `req.ip`, com o
+  proxy do Railway como único salto confiável.
+- **Content-Security-Policy e HSTS** em produção. Só scripts desta origem; o
+  `fetch` vai só a ela e ao jsDelivr (atlas do mapa). Conferida servindo o
+  `dist/`: nenhuma violação no mapa, nas fontes, nos gráficos e no CSV.
+- **react-router 7.** A linha 6 inteira estava na faixa de dois avisos
+  moderados; `npm audit --omit=dev` agora devolve zero. Correções não
+  disruptivas também nas dependências de desenvolvimento.
+- **Parâmetro repetido derrubava a API.** `?q=a&q=b` chegava como array e a
+  busca respondia 500; o mesmo em `/news?category=…`. A API passou a ficar com
+  o primeiro valor de texto de cada parâmetro.
+- **Busca com curinga.** `%` e `_` digitados eram curingas do `LIKE`, e uma
+  busca só de pontuação ("%", "?") casava o acervo inteiro. Escapados, com
+  teto de 120 caracteres.
+- **Favoritos**: nota com tipo e tamanho validados, e teto de 60 por minuto no
+  `POST` anônimo, que criava uma linha a cada `X-Client-Id` inventado.
+
+**O escopo Brasil fala do Brasil**
+
+- 295 das 668 matérias aprovadas citavam **só países estrangeiros** — 39
+  críticas e 30 altas. "Ataque aéreo do exército de Myanmar" abria o aviso
+  crítico na tela, virava notificação e puxava o nível de alerta do país. A
+  urgência do escopo Brasil passou a ser **urgência para o Brasil**: sem
+  nenhuma âncora brasileira (o país citado, uma UF, a Amazônia Azul, uma
+  instituição como PF, Abin ou Embraer), o teto é MÉDIO. As matérias continuam
+  no clipping e na busca. CRÍTICO no acervo: 40 → 2.
+- **Coluna `urgency_mundo`**: a área Mundo & Conflitos lê a urgência na escala
+  internacional, e o ataque a Kiev segue crítico lá. De quebra, a
+  reclassificação deixou de gravar a urgência do Brasil nas matérias só do
+  mundo.
+- A regra está publicada em `/metodologia`, junto com as **exceções da
+  urgência** (fato antigo, ato administrativo, expressão descritiva), que a API
+  já publicava e a tela não mostrava. O guia dos níveis troca os exemplos de
+  Kiev e da Lituânia por casos brasileiros reais.
+
+**Números que concordam**
+
+- **Índice de alerta**: o medidor tinha faixas próprias (25/50/75) e o
+  servidor outras (35/60/80) — o mesmo 31 saía "Normal" no cartão e "Atenção"
+  no medidor, na mesma página. Agora usa as do servidor, escreve os limites na
+  legenda, segue as cores do modo daltônico e diz "sem dado" em vez de
+  desenhar "0 · Normal" quando não há matéria.
+- **Coleta na subida** também quando o acervo está velho, e não só vazio: o
+  servidor voltava de dias parado servindo notícia de cinco dias como recente
+  por quinze minutos.
+- **Séries e indicadores**: a origem no cabeçalho acompanha a aba ("World
+  Bank" aparecia sobre números do acervo de notícias).
+
+**Clareza**
+
+- O tour de boas-vindas ganhou o passo **"Escolha seus assuntos"**, com botão
+  que abre os interesses — a única escolha que muda o conteúdo.
+- Clipping: "Publicado por Mesa de Análise" sugeria uma equipe de analistas;
+  agora diz que a edição é gerada pela coleta automática.
+- Menu: "Tático · notícias do dia e ligações" e "Operacional · ataques
+  cibernéticos", no lugar de "setores e correlação" e "incidentes".
+- Correlações: "Setores sob pressão" virou "Setores com notícia e ataque"; a
+  área Mundo diz "Em português / inglês" em vez de "PT / EN".
+- Página inicial: casos de uso sem promessa de "antecipar riscos" — a
+  plataforma acompanha, não prevê.
+
+**Removido**
+
+- Dez funções exportadas e nunca usadas (`useAction`, `SkeletonMetric`,
+  `deadlineLabel`, `textoSobre` e outras).
+
 ### Revisão geral: dados honestos, alertas calibrados e o usuário leigo
 
 **Adicionado**

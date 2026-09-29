@@ -3,9 +3,11 @@ import { all, get, run } from '../db/index.js'
 import config from '../config.js'
 import { panorama, capacidades, historicoDeExecucoes } from '../services/status.js'
 import { coletarAgora, coletarFonte, estadoDoAgendador } from '../collectors/index.js'
-import { METODO_RELEVANCIA, avaliarRelevancia, classificar } from '../lib/relevance.js'
+import { METODO_RELEVANCIA, avaliarRelevancia } from '../lib/relevance.js'
+import { classificarParaOBrasil } from '../lib/ancora.js'
 import { exigirPapel } from '../lib/auth.js'
 import { limite } from '../lib/parametros.js'
+import { limitar } from '../lib/limite.js'
 import { registrarAuditoria, trilhaDeAuditoria } from '../lib/auditoria.js'
 import { alertasDeSeguranca } from './auth.js'
 import { resumoCurto } from '../lib/saneamento.js'
@@ -119,7 +121,7 @@ router.post('/system/method/test', exigirPapel('admin'), (req, res) => {
     // Texto recusado não entra no acervo e não recebe categoria: classificá-lo
     // mesmo assim exibia "Forças Armadas, urgência CRÍTICO" para uma previsão
     // de tempestade que o próprio filtro tinha acabado de recusar.
-    classificacao: r.relevante ? classificar(texto) : null,
+    classificacao: r.relevante ? classificarParaOBrasil(texto) : null,
     porque: r.relevante
       ? (r.naAbertura
         ? 'Termo inequívoco na abertura do texto.'
@@ -274,7 +276,10 @@ router.get('/bookmarks', (req, res) => {
   res.json({ items: itens, total: itens.length })
 })
 
-router.post('/bookmarks/:articleId', (req, res) => {
+// Teto por visitante: cada POST anônimo com um `X-Client-Id` novo criava uma
+// linha, e nada impedia um laço de encher a tabela. 60 por minuto sobra para
+// quem marca à mão.
+router.post('/bookmarks/:articleId', limitar({ max: 60, janelaMs: 60_000, porConta: true }), (req, res) => {
   const cliente = donoDe(req)
   if (!cliente) return res.status(400).json({ error: 'Entre na plataforma ou envie o cabeçalho X-Client-Id.' })
   const artigo = get('SELECT id, relevant, mundo FROM articles WHERE id = ?', [req.params.articleId])
@@ -287,7 +292,9 @@ router.post('/bookmarks/:articleId', (req, res) => {
   }
   run(
     'INSERT OR IGNORE INTO bookmarks (client_id, article_id, note) VALUES (?, ?, ?)',
-    [cliente, req.params.articleId, req.body?.note || null]
+    // A nota era gravada como viesse: um objeto no JSON derrubava a ligação do
+    // parâmetro com 500, e um texto de 200 KB entrava inteiro.
+    [cliente, req.params.articleId, typeof req.body?.note === 'string' ? req.body.note.slice(0, 500) : null]
   )
   res.status(201).json({ ok: true })
 })

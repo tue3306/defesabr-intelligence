@@ -53,13 +53,6 @@ export function formatDateTimeBR(date = new Date()) {
   return `${formatDateBR(d)} às ${formatTime(d)}`
 }
 
-/** Mês e ano: "agosto de 2026" — usado em agrupamentos de agenda. */
-export function formatMonthYear(date = new Date()) {
-  const d = parseDate(date)
-  if (!isValid(d)) return '—'
-  return `${MESES[d.getMonth()]} de ${d.getFullYear()}`
-}
-
 /** Tempo relativo: "há 45 min", "há 2h", "há 3 dias". */
 export function timeAgo(date) {
   const d = parseDate(date)
@@ -85,17 +78,6 @@ export function daysUntil(date, reference = new Date()) {
   const a = new Date(d.getFullYear(), d.getMonth(), d.getDate())
   const b = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate())
   return Math.round((a - b) / 86400000)
-}
-
-/** Rótulo humano de prazo: "vence hoje", "em 3 dias", "vencido há 2 dias". */
-export function deadlineLabel(date, reference = new Date()) {
-  const days = daysUntil(date, reference)
-  if (days === null) return '—'
-  if (days === 0) return 'vence hoje'
-  if (days === 1) return 'vence amanhã'
-  if (days > 1) return `em ${days} dias`
-  if (days === -1) return 'vencido ontem'
-  return `vencido há ${Math.abs(days)} dias`
 }
 
 function cap(s) {

@@ -86,16 +86,17 @@ export async function derivarGeografia() {
           if (a.mundo_score == null) {
             const m = avaliarMundo(texto)
             const termos = m.termos.slice(0, 8).join(', ') || null
+            const noMundo = m.mundo ? urgenciaMundo(a.title) : null
             if (!a.relevant && m.mundo) {
               run(
                 `UPDATE articles SET mundo = 1, mundo_score = ?, mundo_termos = ?,
-                        category = 'Internacional', urgency = ? WHERE id = ?`,
-                [m.pontos, termos, urgenciaMundo(a.title), a.id]
+                        category = 'Internacional', urgency = ?, urgency_mundo = ? WHERE id = ?`,
+                [m.pontos, termos, noMundo, noMundo, a.id]
               )
             } else {
               run(
-                'UPDATE articles SET mundo = ?, mundo_score = ?, mundo_termos = ? WHERE id = ?',
-                [m.mundo ? 1 : 0, m.pontos, termos, a.id]
+                'UPDATE articles SET mundo = ?, mundo_score = ?, mundo_termos = ?, urgency_mundo = ? WHERE id = ?',
+                [m.mundo ? 1 : 0, m.pontos, termos, noMundo, a.id]
               )
             }
             avaliados += 1
@@ -116,6 +117,20 @@ export async function derivarGeografia() {
         }
       })
       if (i + LOTE < pendentes.length) await ceder()
+    }
+
+    // ── URGÊNCIA NA ESCALA INTERNACIONAL, PARA O QUE ENTROU ANTES DA COLUNA ──
+    //
+    // `urgency_mundo` nasceu depois do acervo. Sem isto, as matérias do mundo
+    // já gravadas seguiriam lidas pela urgência do Brasil — agora com teto —
+    // e a área Mundo mostraria "Kiev sofre novo ataque" como MÉDIO.
+    const semEscala = all(
+      `SELECT id, title FROM articles WHERE mundo = 1 AND urgency_mundo IS NULL LIMIT ${TETO_POR_CICLO}`
+    )
+    if (semEscala.length) {
+      transacao(() => {
+        for (const a of semEscala) run('UPDATE articles SET urgency_mundo = ? WHERE id = ?', [urgenciaMundo(a.title), a.id])
+      })
     }
 
     // ── RETENÇÃO ──

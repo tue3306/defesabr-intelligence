@@ -259,8 +259,9 @@ export default function UserDashboard() {
             <p>
               Toda notícia recebe um nível: <strong>crítico</strong> (ataque, invasão, mortos — leia agora),{' '}
               <strong>alto</strong> (guerra, crise, operação — acompanhe), <strong>médio</strong> (contratos,
-              acordos) ou <strong>baixo</strong> (contexto). Críticos e altos chegam ao sino; só o crítico
-              abre um aviso na tela, uma vez por evento.
+              acordos) ou <strong>baixo</strong> (contexto). O nível mede o quanto o fato importa para o
+              Brasil: um bombardeio só no exterior fica em médio aqui e aparece inteiro em Mundo &amp;
+              Conflitos. Críticos e altos chegam ao sino; só o crítico abre um aviso na tela, uma vez por evento.
             </p>
           </div>
           <div>

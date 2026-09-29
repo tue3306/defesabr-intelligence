@@ -39,11 +39,36 @@ export function criarApp() {
 
   // ── Cabeçalhos de segurança ──
   //
-  // Quatro linhas, nenhuma dependência. Não há CSP aqui de propósito: a
-  // interface carrega o atlas de países de um CDN e as fontes do Google, e uma
-  // política restritiva escrita às pressas quebraria o mapa em produção sem
-  // avisar. CSP é trabalho para quando houver tempo de testá-la.
+  // Nenhuma dependência. A CSP lista exatamente o que a interface carrega de
+  // fora — as fontes do Google e o atlas de países do jsDelivr, que o mapa
+  // busca por `fetch` — e mais nada: nenhum script de terceiro roda nesta
+  // origem, que é onde mora o token de sessão. `'unsafe-inline'` vale só para
+  // ESTILO: os gráficos e as animações escrevem `style=` no elemento.
+  //
+  // Só em produção: o Vite de desenvolvimento injeta script inline para o
+  // recarregamento a quente, e a política o bloquearia. Conferida servindo o
+  // `dist/` com NODE_ENV=production — mapa, fontes, gráficos e exportação CSV.
+  const CSP = [
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com data:",
+    "img-src 'self' data: blob: https:",
+    "connect-src 'self' https://cdn.jsdelivr.net",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+  ].join('; ')
+  const producao = config.ambiente === 'production'
+
   app.use((req, res, next) => {
+    if (producao) {
+      res.setHeader('Content-Security-Policy', CSP)
+      // O Railway só serve HTTPS; isto impede o navegador de tentar HTTP de
+      // novo (e ser interceptado) nos próximos 180 dias.
+      res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains')
+    }
     // Impede o navegador de "adivinhar" o tipo de um arquivo servido — é o que
     // transforma um upload de texto em script executável.
     res.setHeader('X-Content-Type-Options', 'nosniff')
@@ -99,6 +124,25 @@ export function criarApp() {
       next()
     })
   }
+
+  // ── Parâmetros de consulta: um texto por nome ──
+  //
+  // O Express entrega `?q=a&q=b` como ARRAY e `?q[x]=1` como OBJETO. Nenhuma
+  // rota espera isso, e várias chamam `.trim()` ou passam o valor direto ao
+  // SQLite: `/api/search?q=a&q=b` respondia 500 ("trim is not a function"), e
+  // `/api/news?category=a&category=b` também, na ligação do parâmetro. Fica o
+  // primeiro valor de texto; o que não é texto some, como se não tivesse vindo.
+  app.use('/api', (req, res, next) => {
+    for (const [k, v] of Object.entries(req.query)) {
+      if (Array.isArray(v)) {
+        if (typeof v[0] === 'string') req.query[k] = v[0]
+        else delete req.query[k]
+      } else if (v !== undefined && typeof v !== 'string') {
+        delete req.query[k]
+      }
+    }
+    next()
+  })
 
   // Lê a sessão ANTES das rotas: quem exige papel encontra `req.conta` pronto,
   // e quem não exige simplesmente ignora. Não bloqueia nada por si só.

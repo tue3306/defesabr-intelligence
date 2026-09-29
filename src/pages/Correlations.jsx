@@ -116,7 +116,7 @@ export default function Correlations() {
       {p && (
         <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <Painel
-            titulo="Setores sob pressão"
+            titulo="Setores com notícia e ataque"
             dica="Setor com cobertura noticiosa E incidente registrado no período. A interseção é o que interessa: aparecer nos dois lados não significa serem o mesmo fato."
             vazio="Nenhum setor com as duas coisas no período."
             itens={p.setoresSobPressao?.slice(0, 6).map((s) => ({ chave: s.setor, rotulo: s.nome, valor: s.materias }))}

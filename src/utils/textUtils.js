@@ -1,8 +1,3 @@
-export function truncate(text = '', max = 140) {
-  if (text.length <= max) return text
-  return text.slice(0, max).trimEnd() + '…'
-}
-
 export function clipboard(text) {
   if (navigator?.clipboard?.writeText) return navigator.clipboard.writeText(text)
   return Promise.reject(new Error('Área de transferência indisponível'))
@@ -91,32 +86,4 @@ const daltonico = () => {
 export function categoryColor(cat) {
   const paleta = daltonico() ? categoryColorsDaltonico : categoryColors
   return paleta[cat] || categoryColors[cat] || '#64748b'
-}
-
-/**
- * Preto ou branco sobre `hex` — o que render mais contraste.
- *
- * Fundo definido em tempo de execução não aceita cor de texto fixa: a escolha
- * que funciona no vermelho escuro falha no âmbar claro.
- *
- * A tentação é cortar por um limiar de luminância, e é armadilha: o ouro
- * #caa733 tem luminância 0,40 — abaixo de qualquer limiar razoável, o que
- * indicaria texto branco — mas branco ali rende 2,3:1 e preto rende 7,4:1. A
- * luminância cresce devagar perto do meio da escala, e o limiar erra
- * exatamente na faixa dos amarelos e verdes onde mais importa.
- *
- * Então calculamos os dois contrastes e devolvemos o vencedor. É a definição
- * do que se quer, em vez de uma aproximação dela.
- */
-export function textoSobre(hex) {
-  const m = String(hex || '').replace('#', '').match(/.{2}/g)
-  if (!m || m.length < 3) return '#fff'
-  const [r, g, b] = m.slice(0, 3).map((h) => {
-    const v = parseInt(h, 16) / 255
-    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4
-  })
-  const L = 0.2126 * r + 0.7152 * g + 0.0722 * b
-  const contraste = (a, b2) => (Math.max(a, b2) + 0.05) / (Math.min(a, b2) + 0.05)
-  // Luminância de #111827 (o cinza-quase-preto do tema) é ~0,0114.
-  return contraste(L, 0.0114) >= contraste(L, 1) ? '#111827' : '#fff'
 }

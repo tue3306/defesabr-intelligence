@@ -23,12 +23,6 @@ const api = (caminho) => `${API_BASE_URL}/api${caminho}`
 /** Evento disparado pela camada de dados quando o servidor responde 401. */
 export const EVENTO_SESSAO_PERDIDA = 'defesabr:sessao-perdida'
 
-/** Papéis do produto — os mesmos que o servidor atribui. */
-export const ROLES = {
-  user: { id: 'user', label: ROLE_LABELS.user },
-  admin: { id: 'admin', label: ROLE_LABELS.admin },
-}
-
 async function chamar(metodo, caminho, corpo, token) {
   const r = await fetch(api(caminho), {
     method: metodo,
@@ -208,8 +202,5 @@ if (typeof window !== 'undefined') {
     if (useAuthStore.getState().isAuthenticated) useAuthStore.getState().logout('expirada')
   })
 }
-
-/** Token atual, para o cliente HTTP anexar às consultas. */
-export const tokenAtual = () => useAuthStore.getState().token
 
 export default useAuthStore

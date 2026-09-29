@@ -689,6 +689,9 @@ export const METODO_URGENCIA = {
       + 'documentário, homenagem, análise, opinião) e título que cita ano de dois ou mais anos atrás têm teto '
       + 'MÉDIO — o fato é verdadeiro, mas não é de hoje.',
     'Número de mortos explícito no título ("deixa 20 mortos", "mata 12") é CRÍTICO por conta própria.',
+    'Fato só no exterior, sem nada que o prenda ao Brasil — o país citado, uma UF, uma região como a '
+      + 'Amazônia Azul ou uma instituição brasileira —, tem teto MÉDIO: a urgência deste escopo é urgência '
+      + 'PARA O BRASIL. O mesmo fato aparece com o nível cheio em Mundo & Conflitos.',
     `Expressão que nomeia ASSUNTO militar (${EXPRESSOES_DE_ASSUNTO.length}: guerra híbrida, guerra `
       + 'eletrônica, navio de guerra) garante o piso MÉDIO: o texto é de defesa, ainda que não narre um fato novo.',
   ],

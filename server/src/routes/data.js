@@ -10,7 +10,7 @@ import { panoramaRansomware, alertasRansomware } from '../collectors/ransomware.
 import { atoresContraBrasil, ator } from '../collectors/atores.js'
 import { exigirPapel } from '../lib/auth.js'
 import { limitar } from '../lib/limite.js'
-import { limite } from '../lib/parametros.js'
+import { limite, termoLike } from '../lib/parametros.js'
 import { resumoCurto, urlSegura } from '../lib/saneamento.js'
 import { avaliarProposicao, METODO_PROPOSICOES } from '../lib/proposicoes.js'
 import { registrarAuditoria } from '../lib/auditoria.js'
@@ -27,7 +27,7 @@ router.get('/legislative', (req, res) => {
   const onde = []
   const params = []
   if (keyword) { onde.push('keyword = ?'); params.push(keyword) }
-  if (q) { onde.push('(code LIKE ? OR summary LIKE ?)'); params.push(`%${q}%`, `%${q}%`) }
+  if (q) { onde.push("(code LIKE ? ESCAPE '\\' OR summary LIKE ? ESCAPE '\\')"); params.push(termoLike(q), termoLike(q)) }
 
   // O filtro de domínio roda sobre todas as linhas antes do LIMIT: cortar antes
   // esconderia proposições relevantes atrás de irrelevantes mais recentes.
@@ -521,16 +521,20 @@ router.patch('/sources/:id', exigirPapel('admin'), (req, res) => {
 // pelo script de reclassificacao; o LIKE sobre o texto original permanece como
 // segunda chance, para nao perder linha ainda sem chave.
 router.get('/search', (req, res) => {
-  const q = (req.query.q || '').trim()
+  const q = (req.query.q || '').trim().slice(0, 120)
   if (!q) return res.json({ items: [], total: 0, groups: [], query: '' })
-  const like = `%${q}%`
-  const likeSemAcento = `%${normalizar(q)}%`
+  const like = termoLike(q)
+  // `normalizar` apaga pontuação: "%" ou "?" viravam texto vazio, e `LIKE '%%'`
+  // casava o acervo inteiro. Sem letra nem número, a forma normalizada não
+  // entra — e o termo original, escapado, não casa `search_key`, que não tem
+  // pontuação.
+  const likeSemAcento = termoLike(normalizar(q) || q)
 
   const noticias = all(
     `SELECT a.id, a.title, a.summary, a.category, a.urgency, a.published_at, a.url, s.name AS fonte
      FROM articles a LEFT JOIN sources s ON s.id = a.source_id
      WHERE a.relevant = 1
-       AND (a.search_key LIKE ? OR a.title LIKE ? OR a.summary LIKE ?)
+       AND (a.search_key LIKE ? ESCAPE '\\' OR a.title LIKE ? ESCAPE '\\' OR a.summary LIKE ? ESCAPE '\\')
      ORDER BY a.published_at DESC LIMIT 20`,
     [likeSemAcento, like, like]
   ).map((a) => ({
@@ -552,7 +556,7 @@ router.get('/search', (req, res) => {
   // "inteligência" artificial ou "fronteira" no nome de uma universidade.
   const proposicoes = all(
     `SELECT * FROM bills
-     WHERE search_key LIKE ? OR code LIKE ? OR summary LIKE ?
+     WHERE search_key LIKE ? ESCAPE '\\' OR code LIKE ? ESCAPE '\\' OR summary LIKE ? ESCAPE '\\'
      ORDER BY external_id DESC LIMIT 60`,
     [likeSemAcento, like, like]
   ).filter((b) => avaliarProposicao(b.summary).relevante).slice(0, 20).map((b) => ({

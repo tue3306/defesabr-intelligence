@@ -75,31 +75,4 @@ export function useResource(fetcher, deps = [], options = {}) {
   )
 }
 
-/**
- * Versão para ações disparadas pelo usuário (gerar relatório, salvar, etc.).
- * Não executa sozinha: devolve `run` e os estados da execução.
- */
-export function useAction(action) {
-  const [state, setState] = useState({ loading: false, error: null, data: null })
-  const actionRef = useRef(action)
-  actionRef.current = action
-
-  const run = useCallback(async (...args) => {
-    setState({ loading: true, error: null, data: null })
-    try {
-      const result = await actionRef.current(...args)
-      const data = result && typeof result === 'object' && 'data' in result ? result.data : result
-      setState({ loading: false, error: null, data })
-      return { ok: true, data }
-    } catch (error) {
-      setState({ loading: false, error, data: null })
-      return { ok: false, error }
-    }
-  }, [])
-
-  const reset = useCallback(() => setState({ loading: false, error: null, data: null }), [])
-
-  return { ...state, run, reset }
-}
-
 export default useResource

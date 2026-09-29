@@ -26,7 +26,7 @@ import SentimentChart from '../components/charts/SentimentChart'
 import MilitarySpendingChart from '../components/charts/MilitarySpendingChart'
 import BrazilDefenseBudget from '../components/charts/BrazilDefenseBudget'
 import ComparisonBarChart from '../components/charts/ComparisonBarChart'
-import GaugeChart from '../components/charts/GaugeChart'
+import GaugeChart, { LegendaAlerta } from '../components/charts/GaugeChart'
 import GlobalHeatmap from '../components/charts/GlobalHeatmap'
 import { useNewsVolume } from '../hooks/useNewsVolume'
 import {
@@ -207,6 +207,18 @@ export default function DataCharts() {
 
   const recarregar = () => { gasto.recarregar?.(); volume.recarregar?.() }
 
+  // A ORIGEM ACOMPANHA A ABA. O cabeçalho dizia "World Bank" sempre — inclusive
+  // sobre a aba que abre a página, cujos números vêm do acervo de notícias. O
+  // selo "dado real" seguia só o World Bank: com ele fora do ar, a tela inteira
+  // se declarava sem dado enquanto o volume do acervo estava ali, carregado.
+  const ORIGEM_DA_ABA = {
+    volume: { texto: 'Acervo de notícias coletadas', vivo: volumeCategoria.aoVivo ?? volume.aoVivo },
+    gastos: { texto: 'World Bank Open Data', vivo: gasto.aoVivo },
+    internacional: { texto: 'World Bank Open Data', vivo: comparacao.aoVivo ?? gasto.aoVivo },
+    risco: { texto: 'Acervo de notícias coletadas', vivo: !!paises.data },
+  }
+  const origem = ORIGEM_DA_ABA[tab] || ORIGEM_DA_ABA.volume
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -215,9 +227,9 @@ export default function DataCharts() {
         description="As séries que sustentam a leitura de conjuntura: volume noticioso, gasto militar comparado, cobertura por país e índice de alerta. Cada gráfico declara o que mostra e de onde vem."
         help="Cada painel declara a sua fonte e o que ela mede. Quando o servidor não responde, o painel mostra a ausência — nenhuma série é substituída por valores de exemplo."
         breadcrumb={[{ label: 'Estratégico' }, { label: 'Séries e indicadores' }]}
-        badges={<Badge type={gasto.aoVivo ? 'live' : 'sem-dado'} />}
+        badges={<Badge type={origem.vivo ? 'live' : 'sem-dado'} />}
         meta={[
-          { label: 'Origem', value: gasto.aoVivo ? 'World Bank, via servidor' : 'indisponível' },
+          { label: 'Origem desta aba', value: origem.vivo ? origem.texto : `${origem.texto} — indisponível` },
         ]}
         actions={
           <button type="button" onClick={recarregar} className="btn-ghost" aria-label="Recarregar as séries de dados">
@@ -440,6 +452,7 @@ export default function DataCharts() {
             filename="indice-de-alerta.csv"
           >
             <GaugeChart value={alerta.value} height={300} />
+            <LegendaAlerta />
           </ChartPanel>
 
           {/* Havia aqui um <TensionBoard />, componente que deixou de existir

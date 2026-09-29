@@ -335,6 +335,25 @@ console.log('\nURGÊNCIA')
     conferir(`${esperado}: ${titulo.slice(0, 26)}…`, urgencia === esperado, urgencia === esperado ? urgencia : `veio ${urgencia}`)
   }
 
+  // ÂNCORA NO BRASIL: no escopo Brasil, fato só no exterior para em MÉDIO —
+  // e segue com o nível cheio na área Mundo. Os brasileiros não são tocados,
+  // inclusive os que citam país estrangeiro ao lado de uma âncora.
+  const { classificarParaOBrasil } = await import('../src/lib/ancora.js')
+  const ancora = [
+    ['Rússia diz que lançou ataque massivo contra Kiev, Zaporizhia e Odessa', 'MEDIO'],
+    ['Prédio desaba em Gaza e mata ao menos 21; a defesa civil do território confirmou', 'MEDIO'],
+    ['Ataque aéreo do exército de Myanmar mata pelo menos 49 pessoas num mercado', 'MEDIO'],
+    ['Ataque hacker à Receita Federal expõe dados de contribuintes', 'CRITICO'],
+    ['Exército faz operação contra garimpo ilegal em Roraima', 'ALTO'],
+    ['Lula chama Múcio e comandantes após ataque à Venezuela', 'CRITICO'],
+    ['Brasil e Argentina: crise entre governos começa a pressionar a relação', 'ALTO'],
+    ['Polícia Federal deflagra operação contra facção na Tríplice Fronteira com Paraguai', 'ALTO'],
+  ]
+  for (const [titulo, esperado] of ancora) {
+    const { urgencia } = classificarParaOBrasil(titulo, titulo)
+    conferir(`âncora ${esperado}: ${titulo.slice(0, 19)}…`, urgencia === esperado, urgencia === esperado ? urgencia : `veio ${urgencia}`)
+  }
+
   // Termo militar em uso civil não aprova a matéria.
   const { avaliarRelevancia } = await import('../src/lib/relevance.js')
   const relevancia = [
@@ -447,6 +466,41 @@ console.log('\nMUNDO & CONFLITOS')
 
 console.log('\nERROS')
 await checar('GET rota inexistente', '/api/nao-existe', (b) => b?.error && 'devolve JSON de erro', { status: 404 })
+// O Express entrega `?q=a&q=b` como array; `.trim()` sobre ele dava 500.
+await checar('GET /search com q repetido', '/api/search?q=drone&q=navio', (b) =>
+  b?.query === 'drone' && 'fica o primeiro valor')
+await checar('GET /news com categoria repetida', '/api/news?category=x&category=y', (b) =>
+  Array.isArray(b?.items) && 'não derruba a ligação do parâmetro')
+await checar('GET /search?q[x]=1 (objeto)', '/api/search?q[x]=1', (b) =>
+  b?.total === 0 && 'objeto descartado, busca vazia')
+// `%` digitado era curinga do LIKE e "%%%%" casava o acervo inteiro — pelo
+// texto original e também pela forma normalizada, que apagava a pontuação e
+// virava `LIKE '%%'`. Escapado, só casa quem tem "%%%%" escrito: ninguém.
+await checar('GET /search?q=%%%% (curinga)', '/api/search?q=%25%25%25%25', (b) =>
+  b?.total === 0 && 'escapado, não casa o acervo')
+
+// Teto de tentativas: o IP vem do que o proxy viu, não do que o cliente
+// escreve em X-Forwarded-For. Lógica pura, sem rede.
+console.log('\nLIMITE DE TENTATIVAS')
+{
+  const { limitar } = await import('../src/lib/limite.js')
+  const mw = limitar({ max: 3, janelaMs: 60_000 })
+  let barradas = 0
+  for (let i = 0; i < 6; i += 1) {
+    const req = { ip: '203.0.113.9', headers: { 'x-forwarded-for': `10.0.0.${i}` }, baseUrl: '/api', path: '/teste-xff', socket: {} }
+    const res = { setHeader() {}, status() { barradas += 1; return { json() {} } } }
+    mw(req, res, () => {})
+  }
+  const nome = 'X-Forwarded-For forjado não escapa'
+  if (barradas === 3) {
+    passou += 1
+    console.log(`  \x1b[32m✓\x1b[0m ${nome.padEnd(36)} \x1b[2m3 de 6 barradas\x1b[0m`)
+  } else {
+    falhou += 1
+    problemas.push(`limite: ${barradas} de 6 barradas (esperado 3)`)
+    console.log(`  \x1b[31m✗\x1b[0m ${nome.padEnd(36)} ${barradas} barradas`)
+  }
+}
 
 // ── Relatório ──
 console.log(`\n${'─'.repeat(56)}`)

@@ -100,9 +100,23 @@ const servidor = app.listen(config.port, config.host, async () => {
 
   if (!config.coleta.naSubida) return
 
-  // Só coleta na subida se o acervo estiver vazio. Reiniciar o servidor não
-  // deve disparar sete requisições externas quando já há dado no banco.
+  // Coleta na subida se o acervo estiver vazio OU velho. Reiniciar o servidor
+  // logo depois de uma coleta não deve disparar requisições externas à toa —
+  // mas "já há dado no banco" não é o mesmo que "há dado de hoje". Com um
+  // volume no Railway, o acervo sobrevive a dias de serviço parado; a regra
+  // antiga subia servindo as notícias de cinco dias atrás como "recentes" e
+  // só buscava as novas quinze minutos depois, no primeiro ciclo do agendador.
   const artigos = get('SELECT COUNT(*) AS n FROM articles')?.n ?? 0
+  const ultima = get('SELECT MAX(last_fetch_at) AS t FROM sources')?.t
+  const idadeMin = ultima ? (Date.now() - Date.parse(ultima)) / 60_000 : Infinity
+  const velho = agendador.ativo && idadeMin > agendador.intervaloMinutos
+  if (artigos > 0 && velho) {
+    console.log(`  \x1b[2m[coleta] última coleta há ${Math.round(idadeMin / 60)} h — atualizando agora…\x1b[0m`)
+    coletarAgora('acervo-desatualizado')
+      .then((r) => console.log(`  [coleta] notícias    ${r.noticias?.novos ?? 0} novo(s), ${r.noticias?.relevantes ?? 0} relevante(s)\n`))
+      .catch((err) => console.error('  [coleta] falhou:', err?.message || err, '\n'))
+    return
+  }
   if (artigos > 0) {
     // Prometer "próxima coleta pelo agendador" com o agendador desligado é a
     // mensagem mais confusa possível: quem lê espera atualização que não vem.

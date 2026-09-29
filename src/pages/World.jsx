@@ -105,7 +105,7 @@ export default function World() {
           { label: 'Países', value: fmt(totais?.paises) },
           { label: 'Teatros com cobertura', value: fmt(totais?.teatrosComCobertura) },
           { label: 'Fontes', value: fmt(totais?.fontes) },
-          { label: 'PT / EN', value: `${fmt(totais?.porIdioma?.pt)} / ${fmt(totais?.porIdioma?.en)}` },
+          { label: 'Em português / inglês', value: `${fmt(totais?.porIdioma?.pt)} / ${fmt(totais?.porIdioma?.en)}` },
         ]}
         actions={<SeletorJanela dias={dias} onChange={mudarJanela} />}
       />

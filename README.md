@@ -209,6 +209,11 @@ Três regras valem ali:
 
 - **Separação.** Matéria que só a lente mundial aprovou nunca entra em clipping,
   nível de alerta, estatísticas nem notificações — essas telas são do Brasil.
+  E a que as duas lentes aprovaram tem **duas urgências**: no escopo Brasil,
+  fato só no exterior, sem âncora brasileira (o país, uma UF, a Amazônia Azul,
+  uma instituição como PF ou Embraer), para em MÉDIO — não abre aviso crítico
+  nem puxa o nível de alerta do país; na área Mundo, a coluna `urgency_mundo`
+  guarda o nível cheio na escala internacional.
 - **Cobertura, não risco.** Os 16 teatros são vocabulário de detecção; toda
   contagem vem do acervo, e teatro com zero aparece como *sem cobertura no
   período*, nunca como calmo. A tela mostra as regras de cada teatro.

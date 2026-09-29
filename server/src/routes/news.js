@@ -2,10 +2,11 @@ import { Router } from 'express'
 import { all, get } from '../db/index.js'
 import { ransomwareDoPais } from '../lib/ransomwarePais.js'
 import { METODO_RELEVANCIA } from '../lib/relevance.js'
-import { avaliarRelevancia, classificar } from '../lib/relevance.js'
+import { avaliarRelevancia } from '../lib/relevance.js'
+import { classificarParaOBrasil } from '../lib/ancora.js'
 import { UFS, REGIOES_ESTRATEGICAS, PAISES, detectarLugares, detectarPaises, nomePtDoPais, foraDaEscala, isoDoPais } from '../lib/geo.js'
 import { consolidar, LIMIAR_SIMILARIDADE, JANELA_HORAS } from '../lib/eventos.js'
-import { dias, limite } from '../lib/parametros.js'
+import { dias, limite, termoLike } from '../lib/parametros.js'
 // O cálculo e a régua do nível de alerta moram em lib/alerta.js: o número
 // aparece na tela e é publicado em /api/metodo, então não pode viver escondido
 // dentro de um handler de rota.
@@ -51,7 +52,7 @@ router.get('/news', (req, res) => {
   if (category) { onde.push('a.category = ?'); params.push(category) }
   if (urgency) { onde.push('a.urgency = ?'); params.push(urgency) }
   if (source) { onde.push('s.slug = ?'); params.push(source) }
-  if (q) { onde.push('(a.title LIKE ? OR a.summary LIKE ?)'); params.push(`%${q}%`, `%${q}%`) }
+  if (q) { onde.push("(a.title LIKE ? ESCAPE '\\' OR a.summary LIKE ? ESCAPE '\\')"); params.push(termoLike(q), termoLike(q)) }
   if (days && days !== 'all') {
     // `dias()` prende o valor à faixa 1..3650. Antes era `parseInt || 30`, e
     // um `?days=-5` virava o modificador '--5 days', que o SQLite não entende:
@@ -378,7 +379,7 @@ function paisesDoMundo(req, res, next) {
     // Cinco manchetes por país, as mais recentes — numa consulta só.
     const exemplos = all(
       `SELECT * FROM (
-         SELECT p.pais, a.id, a.title, a.category, a.urgency, a.published_at, a.url,
+         SELECT p.pais, a.id, a.title, a.category, COALESCE(a.urgency_mundo, a.urgency) AS urgency, a.published_at, a.url,
                 ROW_NUMBER() OVER (PARTITION BY p.pais ORDER BY a.published_at DESC, a.id DESC) AS ordem
            FROM article_paises p JOIN articles a ON a.id = p.article_id
           WHERE ${escopo}
@@ -594,7 +595,7 @@ router.get('/news/:id', (req, res) => {
       termosFracos: r.fracos,
       exclusoes: r.excluidos,
       forteNaAbertura: r.naAbertura,
-      classificacao: classificar(palheiro),
+      classificacao: classificarParaOBrasil(palheiro, a.title),
     },
   })
 })

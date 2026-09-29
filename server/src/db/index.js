@@ -128,6 +128,12 @@ const COLUNAS_ADICIONADAS = [
   ['articles', 'idioma', "TEXT NOT NULL DEFAULT 'pt'"],
   // Quando países e teatros deste artigo foram derivados. NULO = pendente.
   ['articles', 'geo_at', 'TEXT'],
+  // Urgência na escala INTERNACIONAL (`urgenciaMundo`), lida pela área Mundo.
+  // `urgency` passou a ser a urgência PARA O BRASIL, com teto quando a matéria
+  // não tem âncora brasileira (ver `lib/ancora.js`); sem esta coluna, o teto
+  // rebaixaria "Kiev sofre novo ataque" também na área Mundo. NULO = não é do
+  // mundo, ou ainda não derivada — a leitura cai em `urgency`.
+  ['articles', 'urgency_mundo', 'TEXT'],
   ['sources', 'idioma', "TEXT NOT NULL DEFAULT 'pt'"],
 ]
 
