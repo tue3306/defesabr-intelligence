@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
@@ -22,6 +22,7 @@ import {
   SlidersHorizontal,
   ExternalLink,
   HelpCircle,
+  Compass,
 } from 'lucide-react'
 import MetricCard from '../components/ui/MetricCard'
 import NewsCard from '../components/ui/NewsCard'
@@ -33,6 +34,7 @@ import Atualizacao from '../components/ui/Atualizacao'
 import NewsVolumeChart from '../components/charts/NewsVolumeChart'
 import MilitarySpendingChart from '../components/charts/MilitarySpendingChart'
 import GlobalHeatmap from '../components/charts/GlobalHeatmap'
+import VisitaGuiada from '../components/painel/VisitaGuiada'
 import { useNews } from '../hooks/useNews'
 import { useNewsStore } from '../store/newsStore'
 import { useNotificationStore } from '../store/notificationStore'
@@ -50,13 +52,14 @@ import { formatTime, timeAgo } from '../utils/dateUtils'
 // Número em pt-BR. `toFixed(3)` escrevia o dólar como "R$ 5.170" — lido aqui como cinco mil.
 const br = (v, casas) => Number(v).toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas })
 
-const Section = ({ children, className = '' }) => (
+const Section = ({ children, className = '', ...resto }) => (
   <motion.section
     initial={{ opacity: 0, y: 16 }}
     whileInView={{ opacity: 1, y: 0 }}
     viewport={{ once: true, margin: '-60px' }}
     transition={{ duration: 0.4 }}
     className={className}
+    {...resto}
   >
     {children}
   </motion.section>
@@ -85,6 +88,9 @@ export default function UserDashboard() {
   const volume = useNewsVolume(14)
   const gasto = useGastoMilitar()
   const marcarLida = useNotificationStore((s) => s.marcarLida)
+  // Visita guiada: só abre pelo botão — nunca sozinha, para não competir com
+  // o tour de boas-vindas nem interromper quem já conhece o painel.
+  const [visita, setVisita] = useState(false)
 
   // EM DESTAQUE AGORA — o que as últimas 48 horas trouxeram de mais urgente.
   // O clipping já devolve ordenado por urgência (crítico, alto, médio, baixo)
@@ -160,7 +166,7 @@ export default function UserDashboard() {
       <Section className="card overflow-hidden">
         <div className="on-dark relative bg-gradient-to-br from-military-darker via-military-card to-brand-900/40 p-6 sm:p-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="min-w-0">
+            <div className="min-w-0" data-tour="situacao">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-2 rounded-full bg-brand-500/15 px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-300">
                   <ShieldCheck size={14} /> Painel de Situação
@@ -188,12 +194,20 @@ export default function UserDashboard() {
                 <Link to="/apresentacao" className="btn-ghost border-white/20 text-white hover:bg-white/10">
                   <Tv size={16} /> Modo apresentação
                 </Link>
+                <button
+                  type="button"
+                  data-tour="visita-botao"
+                  onClick={() => setVisita(true)}
+                  className="btn-ghost btn-visita"
+                >
+                  <Compass size={16} aria-hidden="true" /> Visita guiada · 1 min
+                </button>
               </div>
             </div>
 
             {/* NÍVEL DE ALERTA — calculado no servidor sobre as matérias da
               * janela. Sem ocorrência, diz que não há: ausência não é calma. */}
-            <div className="w-full shrink-0 rounded-xl border border-white/10 bg-white/5 p-4 lg:w-64">
+            <div className="w-full shrink-0 rounded-xl border border-white/10 bg-white/5 p-4 lg:w-64" data-tour="alerta">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Nível de alerta · 7 dias</span>
                 <InfoTooltip
@@ -273,6 +287,9 @@ export default function UserDashboard() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2 md:col-span-2">
+            <button type="button" onClick={() => setVisita(true)} className="btn-primary px-3 py-1.5 text-xs">
+              <Compass size={13} aria-hidden="true" /> Fazer a visita guiada (1 min)
+            </button>
             <Link to="/metodologia#niveis" className="btn-ghost px-3 py-1.5 text-xs">O que significa cada nível</Link>
             <Link to="/metodologia#correlacao" className="btn-ghost px-3 py-1.5 text-xs">Como a correlação funciona</Link>
             <button type="button" onClick={() => useUiStore.getState().abrirInteresses()} className="btn-ghost px-3 py-1.5 text-xs">Escolher meus assuntos</button>
@@ -283,7 +300,7 @@ export default function UserDashboard() {
       </details>
 
       {/* ───────────── KPIs ───────────── */}
-      <Section>
+      <Section data-tour="kpis">
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <MetricCard
             icon={Newspaper}
@@ -317,7 +334,7 @@ export default function UserDashboard() {
       </Section>
 
       {/* ───────────── EM DESTAQUE AGORA ───────────── */}
-      <Section className="card p-5">
+      <Section className="card p-5" data-tour="destaque">
         <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
           <h2 id="em-destaque" className="flex items-center gap-2 text-lg font-bold tracking-tight">
             <Flame size={18} className="text-red-600 dark:text-red-400" aria-hidden="true" /> Em destaque agora
@@ -368,7 +385,7 @@ export default function UserDashboard() {
       </Section>
 
       {/* ───────────── AÇÕES RÁPIDAS + ÁREAS DE INTERESSE ───────────── */}
-      <Section className="card p-5">
+      <Section className="card p-5" data-tour="interesses">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap gap-2">
             <Link to="/clipping" className="btn-ghost text-sm"><Newspaper size={15} /> Clipping</Link>
@@ -432,7 +449,7 @@ export default function UserDashboard() {
       {/* ───────────── GRID PRINCIPAL ───────────── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <Section className="card p-5">
+          <Section className="card p-5" data-tour="mapa">
             <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
               <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
                 <Globe2 size={18} className="text-brand-400 dark:text-brand-300" /> Cobertura por país
@@ -450,7 +467,7 @@ export default function UserDashboard() {
         {/* ───────────── TRILHO LATERAL ───────────── */}
         <div className="space-y-6">
 
-          <Section className="card p-5">
+          <Section className="card p-5" data-tour="indicadores">
             <h2 className="mb-3 flex items-center gap-2 text-base font-bold tracking-tight">
               <Landmark size={17} className="text-brand-400 dark:text-brand-300" /> Indicadores
               <InfoTooltip text="Câmbio, Selic e IPCA do Sistema Gerenciador de Séries Temporais do Banco Central, coletados pelo servidor. A variação compara com o ponto anterior da própria série." />
@@ -487,7 +504,7 @@ export default function UserDashboard() {
             </Link>
           </Section>
 
-          <Section className="card p-5">
+          <Section className="card p-5" data-tour="alertas">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-base font-bold tracking-tight">
                 <Bell size={17} className="text-brand-400 dark:text-brand-300" /> Alertas recentes
@@ -577,7 +594,7 @@ export default function UserDashboard() {
       </div>
 
       {/* ───────────── NOTÍCIAS RECENTES ───────────── */}
-      <Section>
+      <Section data-tour="noticias">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
             <Newspaper size={18} className="text-brand-400 dark:text-brand-300" /> Notícias recentes
@@ -632,6 +649,8 @@ export default function UserDashboard() {
           </div>
         </div>
       )}
+
+      <VisitaGuiada aberta={visita} onFechar={() => setVisita(false)} />
     </div>
   )
 }

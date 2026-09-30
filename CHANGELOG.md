@@ -7,6 +7,23 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Não publicado]
 
+### Visita guiada do Painel
+
+- Botão **"Visita guiada · 1 min"** no cabeçalho do Painel (e atalho no bloco
+  "Primeira vez aqui?"). A visita rola o próprio painel, acende cada área e diz
+  para que ela serve, em 12 passos: situação e coleta, nível de alerta, os
+  quatro números, "Em destaque agora", atalhos e áreas de interesse, cobertura
+  por país, indicadores, alertas recentes, o sino, notícias recentes e o
+  encerramento. Dura cerca de um minuto — medido: 60,5 s.
+- Avança sozinha, com barra de progresso por passo e tempo restante; pode ser
+  pausada, voltada e fechada, também pelo teclado (setas, espaço, Esc). O foco
+  fica no cartão enquanto ela está aberta e volta ao botão ao fechar. No
+  celular, o cartão vira uma faixa no rodapé da tela.
+- Existe **só no Painel**: nenhuma outra tela ganhou botão ou visita, e nada
+  do que já existia mudou de comportamento.
+- Vídeo da visita, gravado na própria plataforma (1920×1080, 72 s):
+  `docs/video/visita-guiada-painel.mp4`.
+
 ### Auditoria: segurança, o escopo Brasil e números que concordam
 
 **Segurança**

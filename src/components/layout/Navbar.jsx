@@ -108,6 +108,7 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
           <div className="relative" ref={notifRef}>
             <button
               onClick={() => setNotifOpen((o) => !o)}
+              data-tour="sino"
               className="relative rounded-lg p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10"
               aria-label={`Notificações${unread ? ` (${unread} não lidas)` : ''}`}
               aria-expanded={notifOpen}

@@ -217,6 +217,19 @@ html:not(.dark) .on-dark .btn-ghost:hover {
   color: #ffffff;
 }
 
+/* Botão da visita guiada no cabeçalho do painel: contorno e texto dourados,
+   para ser achado entre os atalhos. #e0c25a sobre o fundo escuro do cabeçalho
+   passa de 9:1. O `html` na frente empata a especificidade da regra acima
+   (que pintaria tudo de branco), e vir depois dela desempata. */
+html .on-dark .btn-ghost.btn-visita {
+  border-color: rgba(224, 194, 90, 0.7);
+  color: #e0c25a;
+}
+html .on-dark .btn-ghost.btn-visita:hover {
+  background-color: rgba(224, 194, 90, 0.12);
+  color: #f0d77a;
+}
+
 /* Conteúdo apenas para leitores de tela */
 .sr-only {
   position: absolute;
@@ -236,6 +249,13 @@ html:not(.dark) .on-dark .btn-ghost:hover {
 }
 .skip-link:focus {
   @apply translate-y-0;
+}
+
+/* Visita guiada do painel: a rolagem até cada área para abaixo da barra
+   superior fixa (64 px), em vez de esconder o título atrás dela. */
+[data-tour] {
+  scroll-margin-top: 88px;
+  scroll-margin-bottom: 24px;
 }
 
 /* Respeita usuários que preferem menos movimento */
