@@ -1,109 +1,170 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { X, Pause, Play, ArrowLeft, ArrowRight, Check, RotateCcw, Compass } from 'lucide-react'
+import { useUiStore } from '../../store/uiStore'
 
 // -----------------------------------------------------------------------------
-// VISITA GUIADA DO PAINEL — cerca de um minuto, só nesta tela.
+// VISITA GUIADA PELA PLATAFORMA — menos de dois minutos, aberta pelo Painel.
 //
-// O tour de boas-vindas (OnboardingModal) descreve a plataforma em cartões
-// soltos, sem mostrar onde cada coisa fica. Esta visita faz o contrário: rola
-// o próprio painel, acende cada área e diz para que ela serve, na ordem em que
-// alguém que nunca viu o sistema precisa aprender — de "o que está
-// acontecendo" até "onde eu clico para agir".
+// Começa no Painel e percorre as principais telas, na ordem em que alguém que
+// nunca viu o sistema precisa conhecê-las: o resumo do dia, as notícias, as
+// ligações com o Brasil, o quadro estratégico, os ataques cibernéticos e onde
+// aprender. Em cada tela, acende o item do MENU LATERAL — é por ali que a
+// pessoa vai voltar sozinha depois — com o conteúdo da página visível atrás.
 //
-// Cada passo aponta para um elemento marcado com `data-tour="…"`. Se o alvo
-// não existe ou não está visível (o menu lateral no celular, por exemplo), o
-// cartão aparece no centro — a explicação não depende do destaque.
+// Cada passo tem a sua rota e, opcionalmente, um alvo marcado com
+// `data-tour="…"`. Sem alvo visível (o menu lateral no celular, por exemplo),
+// o cartão aparece no centro: a explicação não depende do destaque.
 //
-// Os tempos somam ~55 s de leitura; com a rolagem entre um passo e outro, a
-// visita inteira fica em torno de um minuto. O relógio só corre com o destaque
-// parado no lugar: tempo de rolagem não come tempo de leitura.
+// Os tempos somam ~82 s de leitura; com a troca de tela entre os passos, a
+// visita fica perto de 1 min 45 s. O relógio só corre com a tela carregada e o
+// destaque no lugar: tempo de carregamento não come tempo de leitura.
+//
+// Mora no Layout, e não no Painel, porque precisa sobreviver à troca de rota;
+// só o Painel tem o botão que a abre.
 // -----------------------------------------------------------------------------
+
+const MENU = 0.32 // véu mais leve quando o destaque é o menu: a página aparece atrás
 
 const PASSOS = [
   {
-    titulo: 'Bem-vindo ao seu painel',
-    texto: 'Aqui fica o resumo do que saiu sobre segurança e defesa do Brasil. Em cerca de um minuto, mostramos para que serve cada parte.',
-    ms: 4500,
-  },
-  {
-    alvo: 'situacao',
-    titulo: 'A situação agora',
-    texto: 'A plataforma coleta sozinha, a cada 15 minutos, notícias de mais de 60 fontes. Aqui você vê quando foi a última coleta e quantas matérias passaram no filtro.',
+    rota: '/painel',
+    titulo: 'Visita guiada pela plataforma',
+    texto: 'Em menos de dois minutos, passamos pelas principais áreas do DefesaBR: o que cada uma mostra e para que serve. Pause ou feche quando quiser.',
     ms: 5000,
   },
   {
+    rota: '/painel',
     alvo: 'alerta',
-    titulo: 'Nível de alerta',
-    texto: 'A média da urgência das notícias dos últimos 7 dias, de 0 a 100: normal, atenção, alerta ou crítico. Mede o que foi noticiado sobre o Brasil, não o risco real.',
-    ms: 5500,
+    titulo: 'Painel: o resumo do dia',
+    texto: 'A coleta roda sozinha a cada 15 minutos, em mais de 60 fontes. O nível de alerta é a média da urgência das notícias dos últimos 7 dias, de 0 a 100.',
+    ms: 6000,
   },
   {
-    alvo: 'kpis',
-    titulo: 'Seus números',
-    texto: 'Matérias aprovadas no acervo, alertas que você ainda não leu, notícias salvas na sua pasta e as áreas de interesse que você escolheu.',
-    ms: 4500,
-  },
-  {
+    rota: '/painel',
     alvo: 'destaque',
     titulo: 'Em destaque agora',
-    texto: 'O mais urgente das últimas 48 horas. Cada notícia traz o nível — crítico, alto, médio ou baixo — e abre no site do veículo que a publicou.',
+    texto: 'O mais urgente das últimas 48 horas. Cada notícia traz o nível — crítico, alto, médio ou baixo — e abre no site do veículo original.',
     ms: 5000,
   },
   {
-    alvo: 'interesses',
-    titulo: 'Atalhos e seus assuntos',
-    texto: 'Atalhos para as telas mais usadas e, ao lado, as áreas que você acompanha. Marque uma — Forças Armadas, Cibersegurança — e as notícias dela sobem para o topo.',
-    ms: 5000,
+    rota: '/painel',
+    alvo: 'sino',
+    titulo: 'Alertas no sino',
+    texto: 'Notícias altas e críticas viram alerta. O sino mostra quantos faltam ler; se algo crítico acontecer, um aviso aparece na tela.',
+    ms: 4500,
   },
   {
-    alvo: 'mapa',
-    titulo: 'Cobertura por país',
-    texto: 'Quantas notícias citam cada país. Clique em um país para abrir o dossiê: assuntos, manchetes e ataques cibernéticos no território. A cor mede cobertura, não perigo.',
+    rota: '/clipping',
+    alvo: 'menu-/clipping',
+    veu: MENU,
+    titulo: 'Clipping Diário',
+    texto: 'Todas as notícias do período, já filtradas e organizadas por assunto e urgência. Dá para filtrar, salvar na sua pasta e exportar em PDF.',
+    ms: 6000,
+  },
+  {
+    rota: '/correlacoes',
+    alvo: 'menu-/correlacoes',
+    veu: MENU,
+    titulo: 'Correlações',
+    texto: 'Liga notícias ao que a plataforma já sabe sobre o Brasil — organizações atacadas, grupos, estados — com a evidência à vista. É uma possível relação, não uma conclusão.',
+    ms: 6000,
+  },
+  {
+    rota: '/mapa',
+    alvo: 'menu-/mapa',
+    veu: MENU,
+    titulo: 'Mapa estratégico',
+    texto: 'Quantas notícias citam cada país. Clique em um país para abrir o dossiê: assuntos, manchetes e ataques cibernéticos no território.',
     ms: 5500,
   },
   {
-    alvo: 'indicadores',
-    titulo: 'Indicadores econômicos',
-    texto: 'Dólar, euro, Selic e inflação, direto do Banco Central, com a variação mais recente — números que pesam no custo da defesa.',
+    rota: '/mundo',
+    alvo: 'menu-/mundo',
+    veu: MENU,
+    titulo: 'Mundo & Conflitos',
+    texto: 'Guerras e outros países, Estados Unidos à frente, com urgência própria. O que acontece só lá fora fica aqui, sem inflar os alertas do Brasil.',
+    ms: 5500,
+  },
+  {
+    rota: '/economia',
+    alvo: 'menu-/economia',
+    veu: MENU,
+    titulo: 'Economia & Defesa',
+    texto: 'Câmbio, Selic, inflação e reservas do Banco Central, e o gasto militar comparado entre países. Cada número diz de quando é.',
+    ms: 5000,
+  },
+  {
+    rota: '/industria',
+    alvo: 'menu-/industria',
+    veu: MENU,
+    titulo: 'Base Industrial de Defesa',
+    texto: 'O que o Brasil exporta em aeronaves e armamento, por país de destino, segundo o Comex Stat do governo federal.',
     ms: 4500,
   },
   {
-    alvo: 'alertas',
-    titulo: 'Alertas recentes',
-    texto: 'Notícias de nível alto e crítico viram alerta. Abrir um deles já o marca como lido.',
-    ms: 4000,
-  },
-  {
-    alvo: 'sino',
-    titulo: 'O sino',
-    texto: 'Em qualquer tela, o sino mostra quantos alertas faltam ler. Se algo crítico acontecer, um aviso aparece no canto da tela.',
-    ms: 4000,
-  },
-  {
-    alvo: 'noticias',
-    titulo: 'Notícias recentes',
-    texto: 'O fluxo da coleta, com fonte e horário de cada matéria. “Ler mais” abre a notícia no site original; no Clipping, “Salvar” a guarda na sua pasta.',
+    rota: '/legislativo',
+    alvo: 'menu-/legislativo',
+    veu: MENU,
+    titulo: 'Radar Legislativo',
+    texto: 'Projetos da Câmara sobre defesa e segurança, com a situação de tramitação consultada na fonte oficial.',
     ms: 4500,
   },
   {
+    rota: '/ciberameacas',
+    alvo: 'menu-/ciberameacas',
+    veu: MENU,
+    titulo: 'Incidentes no Brasil',
+    texto: 'Organizações brasileiras que grupos de ransomware dizem ter atacado, com setor, data e o nível de criticidade de cada caso.',
+    ms: 5500,
+  },
+  {
+    rota: '/atores',
+    alvo: 'menu-/atores',
+    veu: MENU,
+    titulo: 'Grupos contra o Brasil',
+    texto: 'Quem ataca organizações brasileiras, quantas já expôs e como costuma entrar — técnicas mapeadas ao MITRE ATT&CK.',
+    ms: 4500,
+  },
+  {
+    rota: '/aprender',
+    alvo: 'menu-/aprender',
+    veu: MENU,
+    titulo: 'Centro Educacional',
+    texto: 'Glossário, trilhas de estudo e quiz para quem está começando em defesa, geopolítica e cibersegurança.',
+    ms: 4500,
+  },
+  {
+    rota: '/metodologia',
+    alvo: 'menu-/metodologia',
+    veu: MENU,
+    titulo: 'Como decidimos',
+    texto: 'As regras em linguagem simples: o que significa cada nível, como a correlação funciona e o que cada número mede.',
+    ms: 5000,
+  },
+  {
+    rota: '/painel',
     alvo: 'visita-botao',
     titulo: 'Pronto!',
-    texto: 'O menu lateral leva a todas as áreas, e “Como a plataforma decide” explica cada régua. Para rever esta visita, é só clicar aqui.',
-    ms: 4500,
+    texto: 'Tudo está no menu lateral, e Ctrl + K abre a busca em qualquer tela. Para rever esta visita, é só clicar aqui no Painel.',
+    ms: 5000,
   },
 ]
 
 const PAD = 8 // folga do destaque em volta do alvo
 const MARGEM = 16
 const TOPO = 64 // barra superior fixa
+const VEU = 0.64
 
+/** O primeiro elemento marcado que está de fato na tela (o menu do celular fica fora dela). */
 const alvoDe = (passo) => {
   if (!passo?.alvo) return null
-  const el = document.querySelector(`[data-tour="${passo.alvo}"]`)
-  if (!el) return null
-  const r = el.getBoundingClientRect()
-  return r.width > 0 && r.height > 0 ? el : null
+  for (const el of document.querySelectorAll(`[data-tour="${passo.alvo}"]`)) {
+    const r = el.getBoundingClientRect()
+    if (r.width > 0 && r.height > 0 && r.right > 0 && r.left < window.innerWidth) return el
+  }
+  return null
 }
 
 const mesmoRetangulo = (a, b) => (
@@ -114,22 +175,23 @@ const mesmoRetangulo = (a, b) => (
 
 const limitar = (v, min, max) => Math.min(Math.max(v, min), Math.max(min, max))
 
-/** Onde o cartão cabe: abaixo, acima, ao lado — ou por cima, no rodapé da tela. */
-function posicaoDoCartao(r, cw, ch) {
+/** Onde o cartão cabe. Item do menu: ao lado dele. Demais: abaixo, acima, ao lado — ou no rodapé da tela. */
+function posicaoDoCartao(r, cw, ch, menu) {
   const vw = window.innerWidth
   const vh = window.innerHeight
   if (!r) return { top: Math.max(MARGEM, (vh - ch) / 2), left: Math.max(MARGEM, (vw - cw) / 2) }
   if (vw < 640) return { top: vh - ch - MARGEM, left: MARGEM }
 
   const gap = 14
+  const topoLateral = limitar(r.top - 24, TOPO + MARGEM, vh - ch - MARGEM)
+  const direita = r.left + r.width + PAD + gap
+  if (menu && direita + cw <= vw - MARGEM) return { top: topoLateral, left: direita }
+
   const abaixo = r.top + r.height + PAD + gap
   const acima = r.top - PAD - gap - ch
   const leftAlinhado = limitar(r.left, MARGEM, vw - cw - MARGEM)
   if (abaixo + ch <= vh - MARGEM) return { top: abaixo, left: leftAlinhado }
   if (acima >= TOPO + MARGEM) return { top: acima, left: leftAlinhado }
-
-  const topoLateral = limitar(r.top, TOPO + MARGEM, vh - ch - MARGEM)
-  const direita = r.left + r.width + PAD + gap
   if (direita + cw <= vw - MARGEM) return { top: topoLateral, left: direita }
   const esquerda = r.left - PAD - gap - cw
   if (esquerda >= MARGEM) return { top: topoLateral, left: esquerda }
@@ -137,12 +199,17 @@ function posicaoDoCartao(r, cw, ch) {
   return { top: vh - ch - MARGEM, left: vw - cw - MARGEM }
 }
 
-export default function VisitaGuiada({ aberta, onFechar }) {
+export default function VisitaGuiada() {
+  const aberta = useUiStore((s) => s.visitaAberta)
+  const fechar = useUiStore((s) => s.fecharVisita)
+  const navegar = useNavigate()
+  const { pathname } = useLocation()
+
   const [indice, setIndice] = useState(0)
   const [decorrido, setDecorrido] = useState(0)
   const [pausada, setPausada] = useState(false)
   const [concluida, setConcluida] = useState(false)
-  // 'indo': rolando até o alvo; 'parado': destaque no lugar, relógio correndo.
+  // 'indo': trocando de tela ou rolando até o alvo; 'parado': relógio correndo.
   const [fase, setFase] = useState('indo')
   const [ret, setRet] = useState(null)
   const [tamCartao, setTamCartao] = useState({ w: 380, h: 220 })
@@ -150,8 +217,12 @@ export default function VisitaGuiada({ aberta, onFechar }) {
   const cartaoRef = useRef(null)
   const ultimaMudanca = useRef(0)
   const inicioDoPasso = useRef(0)
+  const rolouNoPasso = useRef(-1)
+  const rotaAtual = useRef(pathname)
   const focoAnterior = useRef(null)
   const idTitulo = useId()
+
+  useEffect(() => { rotaAtual.current = pathname }, [pathname])
 
   const reduzido = useMemo(
     () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches,
@@ -161,9 +232,8 @@ export default function VisitaGuiada({ aberta, onFechar }) {
   const ultimo = indice === PASSOS.length - 1
 
   // TROCAR DE PASSO ZERA O RELÓGIO NA MESMA ATUALIZAÇÃO. Zerá-lo depois, num
-  // efeito, deixava um ciclo em que o passo novo via o tempo do anterior: 5,5 s
-  // lidos no "Nível de alerta" já passavam dos 4,5 s de "Seus números", que era
-  // pulado sem aparecer.
+  // efeito, deixava um ciclo em que o passo novo via o tempo do anterior — e o
+  // passo mais curto que o seu antecessor era pulado sem aparecer.
   const irPara = useCallback((n) => {
     setIndice(n)
     setDecorrido(0)
@@ -180,24 +250,40 @@ export default function VisitaGuiada({ aberta, onFechar }) {
     const t = setTimeout(() => cartaoRef.current?.focus(), 50)
     return () => {
       clearTimeout(t)
-      focoAnterior.current?.focus?.()
+      // O botão que abriu pode ter sido recriado: a visita saiu do Painel e
+      // voltou. Nesse caso o foco vai para o botão que existe agora.
+      const volta = focoAnterior.current?.isConnected
+        ? focoAnterior.current
+        : document.querySelector('[data-tour="visita-botao"]')
+      volta?.focus?.()
     }
   }, [aberta, irPara])
 
-  // ── Trocar de passo: rolar até o alvo ──
+  // ── Trocar de passo: ir à tela dele ──
   useEffect(() => {
     if (!aberta) return
     ultimaMudanca.current = Date.now()
     inicioDoPasso.current = Date.now()
-    const el = alvoDe(PASSOS[indice])
-    if (!el) return
-    const alto = el.getBoundingClientRect().height > (window.innerHeight - TOPO) * 0.7
-    el.scrollIntoView({ behavior: reduzido ? 'auto' : 'smooth', block: alto ? 'start' : 'center' })
-  }, [aberta, indice, reduzido])
+    rolouNoPasso.current = -1
+    const rota = PASSOS[indice].rota
+    if (rota && rotaAtual.current !== rota) navegar(rota)
+  }, [aberta, indice, navegar])
 
-  // ── Medir o alvo: segue a rolagem, a animação de entrada e o redimensionamento ──
+  // ── Medir o alvo: segue a rolagem, a carga da tela e o redimensionamento ──
   const medir = useCallback(() => {
-    const el = alvoDe(PASSOS[indice])
+    const p = PASSOS[indice]
+    const naTela = !p.rota || rotaAtual.current === p.rota
+    const el = naTela ? alvoDe(p) : null
+    // A rolagem acontece quando o alvo aparece — na tela nova, ele só existe
+    // depois que a página carrega.
+    if (el && rolouNoPasso.current !== indice) {
+      rolouNoPasso.current = indice
+      const alto = el.getBoundingClientRect().height > (window.innerHeight - TOPO) * 0.7
+      el.scrollIntoView({
+        behavior: reduzido ? 'auto' : 'smooth',
+        block: p.alvo.startsWith('menu-') ? 'nearest' : alto ? 'start' : 'center',
+      })
+    }
     const r = el?.getBoundingClientRect()
     const novo = r ? { top: r.top, left: r.left, width: r.width, height: r.height } : null
     setRet((antigo) => {
@@ -205,27 +291,31 @@ export default function VisitaGuiada({ aberta, onFechar }) {
       ultimaMudanca.current = Date.now()
       return novo
     })
-  }, [indice])
+    return { naTela, achou: !!el }
+  }, [indice, reduzido])
 
   useEffect(() => {
     if (!aberta) return undefined
     let quadro = 0
     const laco = () => { medir(); quadro = requestAnimationFrame(laco) }
     quadro = requestAnimationFrame(laco)
-    // Relógio da leitura e medição de reserva (quando a aba não pinta quadros,
-    // o requestAnimationFrame para — o intervalo não).
+    // Medição de reserva e decisão de "chegou": quando a aba não pinta
+    // quadros, o requestAnimationFrame para — o intervalo não.
     const relogio = setInterval(() => {
-      medir()
+      const { naTela, achou } = medir()
       const agora = Date.now()
+      const semAlvo = !PASSOS[indice].alvo
       setFase((f) => {
         if (f !== 'indo') return f
-        const assentou = agora - ultimaMudanca.current > 220
-        const cansou = agora - inicioDoPasso.current > 1600
+        // 400 ms parado: o destaque desliza em 320 ms e o cartão só aparece
+        // depois que ele chegou ao alvo.
+        const assentou = naTela && (achou || semAlvo) && agora - ultimaMudanca.current > 400
+        const cansou = agora - inicioDoPasso.current > 3500 // alvo que não aparece: cartão no centro
         return assentou || cansou ? 'parado' : f
       })
     }, 100)
     return () => { cancelAnimationFrame(quadro); clearInterval(relogio) }
-  }, [aberta, medir])
+  }, [aberta, medir, indice])
 
   useEffect(() => {
     if (!aberta || fase !== 'parado' || pausada || concluida) return undefined
@@ -251,7 +341,7 @@ export default function VisitaGuiada({ aberta, onFechar }) {
   useEffect(() => {
     if (!aberta) return undefined
     const tecla = (e) => {
-      if (e.key === 'Escape') { e.preventDefault(); onFechar() }
+      if (e.key === 'Escape') { e.preventDefault(); fechar() }
       else if (e.key === 'ArrowRight') { e.preventDefault(); avancar() }
       else if (e.key === 'ArrowLeft') { e.preventDefault(); voltar() }
       else if (e.key === ' ' && e.target?.tagName !== 'BUTTON') { e.preventDefault(); setPausada((p) => !p) }
@@ -269,7 +359,7 @@ export default function VisitaGuiada({ aberta, onFechar }) {
     }
     window.addEventListener('keydown', tecla)
     return () => window.removeEventListener('keydown', tecla)
-  }, [aberta, avancar, voltar, onFechar])
+  }, [aberta, avancar, voltar, fechar])
 
   // Tamanho real do cartão, para posicioná-lo sem cortar na borda da tela. O
   // texto muda de tamanho a cada passo, e a largura acompanha a janela.
@@ -290,17 +380,20 @@ export default function VisitaGuiada({ aberta, onFechar }) {
   if (!aberta) return null
 
   const temAlvo = !!(passo.alvo && ret)
-  const pos = posicaoDoCartao(temAlvo ? ret : null, tamCartao.w, tamCartao.h)
-  const mostrarCartao = fase === 'parado' || !temAlvo
+  const menu = !!passo.alvo?.startsWith('menu-')
+  const pos = posicaoDoCartao(temAlvo ? ret : null, tamCartao.w, tamCartao.h, menu)
+  const mostrarCartao = fase === 'parado'
+  const veu = passo.veu ?? VEU
   const transicao = reduzido ? 'none' : 'top .32s ease, left .32s ease, width .32s ease, height .32s ease, opacity .25s ease'
   const restante = Math.max(0, Math.round(
     ((passo.ms - Math.min(decorrido, passo.ms)) + PASSOS.slice(indice + 1).reduce((s, p) => s + p.ms, 0)) / 1000,
   ))
+  const tempoRestante = restante >= 60 ? `${Math.floor(restante / 60)} min ${restante % 60} s` : `${restante} s`
 
   return createPortal(
     <div className="visita-guiada">
       {/* Bloqueia o clique na página: a visita é uma apresentação, e um
-          clique por engano no mapa tiraria a pessoa do painel no meio dela. */}
+          clique por engano tiraria a pessoa do roteiro no meio dele. */}
       <div className="fixed inset-0 z-[60]" aria-hidden="true" />
 
       {/* O escurecimento é a sombra do recorte — a área em foco fica acesa. */}
@@ -313,12 +406,16 @@ export default function VisitaGuiada({ aberta, onFechar }) {
             left: ret.left - PAD,
             width: ret.width + PAD * 2,
             height: ret.height + PAD * 2,
-            boxShadow: '0 0 0 9999px rgba(6, 10, 16, 0.64), 0 0 0 6px rgba(212, 180, 26, 0.18)',
+            boxShadow: `0 0 0 9999px rgba(6, 10, 16, ${veu}), 0 0 0 6px rgba(212, 180, 26, 0.22)`,
             transition: transicao,
           }}
         />
       ) : (
-        <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-[61]" style={{ background: 'rgba(6, 10, 16, 0.64)' }} />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed inset-0 z-[61]"
+          style={{ background: `rgba(6, 10, 16, ${veu})`, transition: reduzido ? 'none' : 'background .25s ease' }}
+        />
       )}
 
       <div
@@ -328,7 +425,9 @@ export default function VisitaGuiada({ aberta, onFechar }) {
         aria-labelledby={idTitulo}
         tabIndex={-1}
         className="fixed z-[62] w-[min(380px,calc(100vw-2rem))] rounded-2xl border border-gold-500/40 bg-white p-5 text-gray-900 shadow-2xl outline-none dark:bg-military-card dark:text-gray-100"
-        style={{ top: pos.top, left: pos.left, opacity: mostrarCartao ? 1 : 0, transition: transicao }}
+        // Some na hora ao trocar de passo (o texto novo não aparece no lugar
+        // antigo) e reaparece suavemente, já no lugar novo.
+        style={{ top: pos.top, left: pos.left, opacity: mostrarCartao ? 1 : 0, transition: mostrarCartao ? transicao : 'none' }}
       >
         <div className="flex items-center justify-between gap-3">
           <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-gold-600 dark:text-gold-400">
@@ -336,7 +435,7 @@ export default function VisitaGuiada({ aberta, onFechar }) {
           </span>
           <button
             type="button"
-            onClick={onFechar}
+            onClick={fechar}
             className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white"
             aria-label="Fechar a visita guiada"
           >
@@ -365,7 +464,7 @@ export default function VisitaGuiada({ aberta, onFechar }) {
           })}
         </div>
         <p className="mt-1.5 text-[11px] muted">
-          {concluida ? 'Visita concluída.' : pausada ? 'Pausada — continue quando quiser.' : `Cerca de ${restante} s até o fim`}
+          {concluida ? 'Visita concluída.' : pausada ? 'Pausada — continue quando quiser.' : `Cerca de ${tempoRestante} até o fim`}
           <span className="hidden sm:inline"> · setas navegam, espaço pausa, Esc fecha</span>
         </p>
 
@@ -379,7 +478,7 @@ export default function VisitaGuiada({ aberta, onFechar }) {
                 <button type="button" onClick={recomecar} className="btn-ghost px-3 py-1.5 text-sm">
                   <RotateCcw size={15} aria-hidden="true" /> Rever
                 </button>
-                <button type="button" onClick={onFechar} className="btn-primary px-3 py-1.5 text-sm">
+                <button type="button" onClick={fechar} className="btn-primary px-3 py-1.5 text-sm">
                   <Check size={15} aria-hidden="true" /> Concluir
                 </button>
               </>
@@ -394,7 +493,7 @@ export default function VisitaGuiada({ aberta, onFechar }) {
                   {pausada ? <Play size={15} aria-hidden="true" /> : <Pause size={15} aria-hidden="true" />}
                   {pausada ? 'Continuar' : 'Pausar'}
                 </button>
-                <button type="button" onClick={ultimo ? onFechar : avancar} className="btn-primary px-3 py-1.5 text-sm">
+                <button type="button" onClick={ultimo ? fechar : avancar} className="btn-primary px-3 py-1.5 text-sm">
                   {ultimo
                     ? <><Check size={15} aria-hidden="true" /> Concluir</>
                     : <>Próximo <ArrowRight size={15} aria-hidden="true" /></>}

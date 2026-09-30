@@ -14,6 +14,11 @@ export const useUiStore = create((set) => ({
   interessesAberto: false,
   abrirInteresses: () => set({ interessesAberto: true }),
   fecharInteresses: () => set({ interessesAberto: false }),
+  // A visita guiada começa no Painel e percorre as outras telas: precisa
+  // sobreviver à troca de rota, então mora no Layout e abre por aqui.
+  visitaAberta: false,
+  abrirVisita: () => set({ visitaAberta: true }),
+  fecharVisita: () => set({ visitaAberta: false }),
 }))
 
 export default useUiStore

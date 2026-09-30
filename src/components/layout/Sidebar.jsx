@@ -257,6 +257,7 @@ function Item({ item, collapsed, onClick, locked, restricted }) {
       to={to}
       end={end}
       onClick={onClick}
+      data-tour={`menu-${to}`}
       title={collapsed ? hint : undefined}
       aria-label={collapsed ? hint : undefined}
       className={({ isActive }) =>

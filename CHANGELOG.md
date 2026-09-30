@@ -7,22 +7,26 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Não publicado]
 
-### Visita guiada do Painel
+### Visita guiada pela plataforma
 
-- Botão **"Visita guiada · 1 min"** no cabeçalho do Painel (e atalho no bloco
-  "Primeira vez aqui?"). A visita rola o próprio painel, acende cada área e diz
-  para que ela serve, em 12 passos: situação e coleta, nível de alerta, os
-  quatro números, "Em destaque agora", atalhos e áreas de interesse, cobertura
-  por país, indicadores, alertas recentes, o sino, notícias recentes e o
-  encerramento. Dura cerca de um minuto — medido: 60,5 s.
-- Avança sozinha, com barra de progresso por passo e tempo restante; pode ser
-  pausada, voltada e fechada, também pelo teclado (setas, espaço, Esc). O foco
-  fica no cartão enquanto ela está aberta e volta ao botão ao fechar. No
-  celular, o cartão vira uma faixa no rodapé da tela.
-- Existe **só no Painel**: nenhuma outra tela ganhou botão ou visita, e nada
-  do que já existia mudou de comportamento.
-- Vídeo da visita, gravado na própria plataforma (1920×1080, 72 s):
-  `docs/video/visita-guiada-painel.mp4`.
+- Botão **"Visita guiada · 2 min"** no cabeçalho do Painel (e atalho no bloco
+  "Primeira vez aqui?"). A visita começa no Painel — resumo do dia, nível de
+  alerta, "Em destaque agora" e o sino — e segue sozinha pelas principais
+  telas: Clipping, Correlações, Mapa, Mundo & Conflitos, Economia, Base
+  Industrial, Radar Legislativo, Incidentes, Grupos, Centro Educacional e
+  "Como decidimos", voltando ao Painel no fim. São 16 passos em 1 min 31 s,
+  medidos.
+- Em cada tela, acende o item do **menu lateral** — é por ali que a pessoa
+  volta sozinha depois — com um véu leve, para o conteúdo da página continuar
+  visível, e explica em uma ou duas frases para que a tela serve.
+- Avança sozinha, com progresso por passo e tempo restante; pode ser pausada,
+  voltada e fechada, também pelo teclado (setas, espaço, Esc). Fechar no meio
+  deixa a pessoa na tela em que está. O foco fica no cartão e volta ao botão
+  ao fechar. No celular, o cartão vira uma faixa no rodapé.
+- O botão existe **só no Painel**; a visita mora no Layout porque precisa
+  sobreviver à troca de tela. Nada do que já existia mudou de comportamento.
+- Vídeo da visita, gravado na própria plataforma (1920×1080, 1 min 42 s):
+  `docs/video/visita-guiada.mp4`.
 
 ### Auditoria: segurança, o escopo Brasil e números que concordam
 

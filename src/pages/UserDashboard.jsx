@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
@@ -34,7 +34,6 @@ import Atualizacao from '../components/ui/Atualizacao'
 import NewsVolumeChart from '../components/charts/NewsVolumeChart'
 import MilitarySpendingChart from '../components/charts/MilitarySpendingChart'
 import GlobalHeatmap from '../components/charts/GlobalHeatmap'
-import VisitaGuiada from '../components/painel/VisitaGuiada'
 import { useNews } from '../hooks/useNews'
 import { useNewsStore } from '../store/newsStore'
 import { useNotificationStore } from '../store/notificationStore'
@@ -88,9 +87,10 @@ export default function UserDashboard() {
   const volume = useNewsVolume(14)
   const gasto = useGastoMilitar()
   const marcarLida = useNotificationStore((s) => s.marcarLida)
-  // Visita guiada: só abre pelo botão — nunca sozinha, para não competir com
-  // o tour de boas-vindas nem interromper quem já conhece o painel.
-  const [visita, setVisita] = useState(false)
+  // Visita guiada pela plataforma: só abre pelo botão — nunca sozinha, para
+  // não competir com o tour de boas-vindas. Ela mora no Layout, porque segue
+  // para as outras telas; este é o único lugar que a abre.
+  const abrirVisita = useUiStore((s) => s.abrirVisita)
 
   // EM DESTAQUE AGORA — o que as últimas 48 horas trouxeram de mais urgente.
   // O clipping já devolve ordenado por urgência (crítico, alto, médio, baixo)
@@ -166,7 +166,7 @@ export default function UserDashboard() {
       <Section className="card overflow-hidden">
         <div className="on-dark relative bg-gradient-to-br from-military-darker via-military-card to-brand-900/40 p-6 sm:p-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="min-w-0" data-tour="situacao">
+            <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-2 rounded-full bg-brand-500/15 px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-300">
                   <ShieldCheck size={14} /> Painel de Situação
@@ -197,10 +197,10 @@ export default function UserDashboard() {
                 <button
                   type="button"
                   data-tour="visita-botao"
-                  onClick={() => setVisita(true)}
+                  onClick={abrirVisita}
                   className="btn-ghost btn-visita"
                 >
-                  <Compass size={16} aria-hidden="true" /> Visita guiada · 1 min
+                  <Compass size={16} aria-hidden="true" /> Visita guiada · 2 min
                 </button>
               </div>
             </div>
@@ -287,8 +287,8 @@ export default function UserDashboard() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2 md:col-span-2">
-            <button type="button" onClick={() => setVisita(true)} className="btn-primary px-3 py-1.5 text-xs">
-              <Compass size={13} aria-hidden="true" /> Fazer a visita guiada (1 min)
+            <button type="button" onClick={abrirVisita} className="btn-primary px-3 py-1.5 text-xs">
+              <Compass size={13} aria-hidden="true" /> Fazer a visita guiada (2 min)
             </button>
             <Link to="/metodologia#niveis" className="btn-ghost px-3 py-1.5 text-xs">O que significa cada nível</Link>
             <Link to="/metodologia#correlacao" className="btn-ghost px-3 py-1.5 text-xs">Como a correlação funciona</Link>
@@ -300,7 +300,7 @@ export default function UserDashboard() {
       </details>
 
       {/* ───────────── KPIs ───────────── */}
-      <Section data-tour="kpis">
+      <Section>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <MetricCard
             icon={Newspaper}
@@ -385,7 +385,7 @@ export default function UserDashboard() {
       </Section>
 
       {/* ───────────── AÇÕES RÁPIDAS + ÁREAS DE INTERESSE ───────────── */}
-      <Section className="card p-5" data-tour="interesses">
+      <Section className="card p-5">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap gap-2">
             <Link to="/clipping" className="btn-ghost text-sm"><Newspaper size={15} /> Clipping</Link>
@@ -449,7 +449,7 @@ export default function UserDashboard() {
       {/* ───────────── GRID PRINCIPAL ───────────── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <Section className="card p-5" data-tour="mapa">
+          <Section className="card p-5">
             <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
               <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
                 <Globe2 size={18} className="text-brand-400 dark:text-brand-300" /> Cobertura por país
@@ -467,7 +467,7 @@ export default function UserDashboard() {
         {/* ───────────── TRILHO LATERAL ───────────── */}
         <div className="space-y-6">
 
-          <Section className="card p-5" data-tour="indicadores">
+          <Section className="card p-5">
             <h2 className="mb-3 flex items-center gap-2 text-base font-bold tracking-tight">
               <Landmark size={17} className="text-brand-400 dark:text-brand-300" /> Indicadores
               <InfoTooltip text="Câmbio, Selic e IPCA do Sistema Gerenciador de Séries Temporais do Banco Central, coletados pelo servidor. A variação compara com o ponto anterior da própria série." />
@@ -504,7 +504,7 @@ export default function UserDashboard() {
             </Link>
           </Section>
 
-          <Section className="card p-5" data-tour="alertas">
+          <Section className="card p-5">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-base font-bold tracking-tight">
                 <Bell size={17} className="text-brand-400 dark:text-brand-300" /> Alertas recentes
@@ -594,7 +594,7 @@ export default function UserDashboard() {
       </div>
 
       {/* ───────────── NOTÍCIAS RECENTES ───────────── */}
-      <Section data-tour="noticias">
+      <Section>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
             <Newspaper size={18} className="text-brand-400 dark:text-brand-300" /> Notícias recentes
@@ -649,8 +649,6 @@ export default function UserDashboard() {
           </div>
         </div>
       )}
-
-      <VisitaGuiada aberta={visita} onFechar={() => setVisita(false)} />
     </div>
   )
 }
