@@ -8,11 +8,11 @@
 
 O que ameaça o país, antes de virar notícia.
 
-### [→ Ver a plataforma funcionando](https://defesabr-intelligence-production-4693.up.railway.app/)
+### [→ Ver a plataforma funcionando](https://defesabr-intelligence-production-a8cb.up.railway.app/)
 
 <sub>No ar, com dado real, coletado a cada 15 minutos.</sub>
 
-[![Ver ao vivo](https://img.shields.io/badge/ver%20ao%20vivo-defesabr--intelligence-caa733?style=for-the-badge)](https://defesabr-intelligence-production-4693.up.railway.app/)
+[![Ver ao vivo](https://img.shields.io/badge/ver%20ao%20vivo-defesabr--intelligence-caa733?style=for-the-badge)](https://defesabr-intelligence-production-a8cb.up.railway.app/)
 
 [![React 18](https://img.shields.io/badge/React-18-149eca?logo=react&logoColor=white)](https://react.dev/)
 [![Vite 5](https://img.shields.io/badge/Vite-5-646cff?logo=vite&logoColor=white)](https://vitejs.dev/)
@@ -673,7 +673,7 @@ interface, e a pessoa vê o aviso de que precisa entrar de novo.
 ## Deploy no Railway
 
 Esta instância está no ar em
-**[defesabr-intelligence-production-4693.up.railway.app](https://defesabr-intelligence-production-4693.up.railway.app/)**,
+**[defesabr-intelligence-production-a8cb.up.railway.app](https://defesabr-intelligence-production-a8cb.up.railway.app/)**,
 publicada a cada push na `main`.
 
 Para subir a sua, basta conectar o repositório:
@@ -746,7 +746,7 @@ marca a capacidade *Persistência (SQLite)* como **DISCO EFÊMERO**.
 `/api/health` responde com a identidade do deploy:
 
 ```bash
-curl -s https://defesabr-intelligence-production-4693.up.railway.app/api/health
+curl -s https://defesabr-intelligence-production-a8cb.up.railway.app/api/health
 ```
 
 ```json
