@@ -147,7 +147,14 @@ export function panoramaCorrelacao(dias) {
     artigosAvaliados: get(`SELECT COUNT(*) AS n FROM articles a WHERE a.br_score IS NOT NULL AND ${naJanela}`)?.n ?? 0,
     artigosComCorrelacao: get(`SELECT COUNT(DISTINCT c.article_id) AS n ${comArtigo}`)?.n ?? 0,
     correlacoes: get(`SELECT COUNT(*) AS n ${comArtigo}`)?.n ?? 0,
-    entidades: get('SELECT COUNT(*) AS n FROM article_entities')?.n ?? 0,
+    // Todas as outras parcelas respeitam `naJanela`; esta varria a tabela
+    // inteira e saía ao lado de `periodoDias`, inflando 748 contra 290 em 30
+    // dias. Um total que não acompanha o filtro logo acima parece conta
+    // errada — e era.
+    entidades: get(
+      `SELECT COUNT(*) AS n FROM article_entities ae
+         JOIN articles a ON a.id = ae.article_id WHERE ${naJanela}`
+    )?.n ?? 0,
     porRegra: all(
       `SELECT c.regra, COUNT(*) AS total, MAX(c.forca) AS forca
          ${comArtigo} GROUP BY c.regra ORDER BY forca DESC, total DESC`

@@ -231,7 +231,11 @@ export default function UserDashboard() {
                 </>
               ) : (
                 <p className="mt-2 text-sm text-gray-300">
-                  {indice.carregando ? 'Calculando…' : 'Sem ocorrências relevantes nos últimos 7 dias para calcular o nível.'}
+                  {indice.carregando
+                    ? 'Calculando…'
+                    : indice.erro
+                      ? 'Índice indisponível — a API não respondeu. Isto não quer dizer que não houve ocorrência.'
+                      : 'Sem ocorrências relevantes nos últimos 7 dias para calcular o nível.'}
                 </p>
               )}
             </div>

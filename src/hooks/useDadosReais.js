@@ -24,19 +24,28 @@ import { apiOnline, viaPonte } from '../services/apiBridge'
 
 /** Executa `fn` uma vez, só se a API responder. Padrão comum aos hooks abaixo. */
 function useDaApi(fn, deps = []) {
-  const [estado, setEstado] = useState({ dados: null, aoVivo: false, carregando: true })
+  const [estado, setEstado] = useState({ dados: null, aoVivo: false, carregando: true, erro: false })
 
   useEffect(() => {
     let vivo = true
     ;(async () => {
       try {
-        if (!(await apiOnline())) return
+        // `erro` SEPARA "a fonte não respondeu" de "não há dado no período".
+        //
+        // Sem esse canal os dois estados eram idênticos (`dados: null`), e as
+        // telas liam o silêncio como fato: o Painel afirmava "Sem ocorrências
+        // relevantes nos últimos 7 dias" e o primeiro slide da apresentação,
+        // "Sem ocorrências no período para calcular" — com a API fora do ar.
+        // Afirmar calmaria porque a coleta caiu é exatamente o que este
+        // produto não pode fazer.
+        if (!(await apiOnline())) {
+          if (vivo) setEstado({ dados: null, aoVivo: false, carregando: false, erro: true })
+          return
+        }
         const r = await fn()
-        if (vivo && r != null) setEstado({ dados: r, aoVivo: true, carregando: false })
+        if (vivo) setEstado({ dados: r ?? null, aoVivo: r != null, carregando: false, erro: false })
       } catch {
-        // Silêncio proposital: o chamador já tem o acervo local como padrão.
-      } finally {
-        if (vivo) setEstado((e) => ({ ...e, carregando: false }))
+        if (vivo) setEstado({ dados: null, aoVivo: false, carregando: false, erro: true })
       }
     })()
     return () => { vivo = false }
@@ -57,7 +66,7 @@ function useDaApi(fn, deps = []) {
  * Perde-se uma curva; ganha-se uma série que corresponde ao mundo.
  */
 export function useGastoMilitar() {
-  const { dados, aoVivo, carregando } = useDaApi(async () => {
+  const { dados, aoVivo, carregando, erro } = useDaApi(async () => {
     const d = await viaPonte('GET /economy/indicators', {})
     const porCodigo = Object.fromEntries((d?.indicators || []).map((i) => [i.code, i]))
     const usd = porCodigo['MS.MIL.XPND.CD']?.series || []
@@ -80,7 +89,7 @@ export function useGastoMilitar() {
     return linhas.length ? linhas : null
   })
 
-  return { data: dados || [], aoVivo, carregando }
+  return { data: dados || [], aoVivo, carregando, erro }
 }
 
 /**
@@ -91,7 +100,7 @@ export function useGastoMilitar() {
  * dos dois gráficos, e o servidor o marca como `ambos`.
  */
 export function useComparacaoPIB(grupo = 'vizinhanca') {
-  const { dados, aoVivo, carregando } = useDaApi(async () => {
+  const { dados, aoVivo, carregando, erro } = useDaApi(async () => {
     const d = await viaPonte('GET /economy/comparison', {})
     const itens = (d?.items || [])
       .filter((i) => i.value != null)
@@ -107,7 +116,7 @@ export function useComparacaoPIB(grupo = 'vizinhanca') {
     return itens.length > 1 ? itens : null
   }, [grupo])
 
-  return { data: dados || [], aoVivo, carregando }
+  return { data: dados || [], aoVivo, carregando, erro }
 }
 
 /** Atalho para o recorte da vizinhança, que é o uso mais comum. */
@@ -131,7 +140,7 @@ const ISO3_PARA_ISO2 = {
  * — é o caso da China.
  */
 export function useGastoGlobal() {
-  const { dados, aoVivo, carregando } = useDaApi(async () => {
+  const { dados, aoVivo, carregando, erro } = useDaApi(async () => {
     const d = await viaPonte('GET /economy/comparison', { code: 'MS.MIL.XPND.CD' })
     const itens = (d?.items || [])
       .filter((i) => i.value != null)
@@ -144,7 +153,7 @@ export function useGastoGlobal() {
     return itens.length > 1 ? itens : null
   })
 
-  return { data: dados || [], aoVivo, carregando }
+  return { data: dados || [], aoVivo, carregando, erro }
 }
 
 /**
@@ -155,7 +164,7 @@ export function useGastoGlobal() {
  * imediatamente anterior, para o gráfico mostrar movimento real de pauta.
  */
 export function useVolumePorCategoria(dias = 30) {
-  const { dados, aoVivo, carregando } = useDaApi(async () => {
+  const { dados, aoVivo, carregando, erro } = useDaApi(async () => {
     const [atual, dobro] = await Promise.all([
       viaPonte('GET /news/volume', { days: dias }),
       viaPonte('GET /news/volume', { days: dias * 2 }),
@@ -173,7 +182,7 @@ export function useVolumePorCategoria(dias = 30) {
     }))
   }, [dias])
 
-  return { data: dados || [], aoVivo, carregando }
+  return { data: dados || [], aoVivo, carregando, erro }
 }
 
 /**
@@ -188,7 +197,7 @@ export function useVolumePorCategoria(dias = 30) {
  * O rótulo muda junto com o dado.
  */
 export function useRegioesEstrategicas(dias = 180) {
-  const { dados, aoVivo, carregando } = useDaApi(async () => {
+  const { dados, aoVivo, carregando, erro } = useDaApi(async () => {
     const d = await viaPonte('GET /news/geo', { days: dias })
     const regs = (d?.regioes || []).filter((r) => r.total > 0)
     if (!regs.length) return null
@@ -204,7 +213,7 @@ export function useRegioesEstrategicas(dias = 180) {
     }))
   }, [dias])
 
-  return { data: dados || [], aoVivo, carregando }
+  return { data: dados || [], aoVivo, carregando, erro }
 }
 
 /**
@@ -216,7 +225,7 @@ export function useRegioesEstrategicas(dias = 180) {
  * ninguém pode contestar, e portanto não vale nada.
  */
 export function useIndiceDeAlerta(dias = 7) {
-  const { dados, aoVivo, carregando } = useDaApi(async () => {
+  const { dados, aoVivo, carregando, erro } = useDaApi(async () => {
     const d = await viaPonte('GET /clipping/latest', { days: dias })
     // A ponte achata `alert: {level, score, basis}` em campos com prefixo, para
     // casar com a forma que a tela de clipping já consumia. Ler `d.alert` aqui
@@ -231,6 +240,7 @@ export function useIndiceDeAlerta(dias = 7) {
     basis: dados?.basis ?? null,
     aoVivo,
     carregando,
+    erro,
   }
 }
 
@@ -245,12 +255,12 @@ export function useIndiceDeAlerta(dias = 7) {
  * daí, com a ressalva de que o capítulo de aeronaves inclui aviação civil.
  */
 export function useExportacoes() {
-  const { dados, aoVivo, carregando } = useDaApi(async () => {
+  const { dados, aoVivo, carregando, erro } = useDaApi(async () => {
     const d = await viaPonte('GET /economy/exports', {})
     return d?.porCapitulo?.length ? d : null
   })
 
-  return { data: dados, aoVivo, carregando }
+  return { data: dados, aoVivo, carregando, erro }
 }
 
 /**
@@ -264,12 +274,12 @@ export function useIndicadoresBcb(gatilho = 0) {
   // `gatilho` existe para a tela de Economia poder se atualizar sozinha sem F5:
   // basta incrementar um contador no intervalo que ela escolher. Com o valor
   // padrão o comportamento é o de sempre — busca uma vez, na montagem.
-  const { dados, aoVivo, carregando } = useDaApi(async () => {
+  const { dados, aoVivo, carregando, erro } = useDaApi(async () => {
     const d = await viaPonte('GET /economy/bcb', {})
     return Object.keys(d?.series || {}).length ? d : null
   }, [gatilho])
 
-  return { series: dados?.series || null, provider: dados?.provider, aoVivo, carregando }
+  return { series: dados?.series || null, provider: dados?.provider, aoVivo, carregando, erro }
 }
 
 /**
@@ -280,7 +290,7 @@ export function useIndicadoresBcb(gatilho = 0) {
  * mesma fonte e do mesmo ano de referência, o que antes não era verdade.
  */
 export function usePib() {
-  const { dados, aoVivo, carregando } = useDaApi(async () => {
+  const { dados, aoVivo, carregando, erro } = useDaApi(async () => {
     const d = await viaPonte('GET /economy/comparison', { code: 'NY.GDP.MKTP.CD' })
     const itens = (d?.items || [])
       .filter((i) => i.value != null)
@@ -294,5 +304,5 @@ export function usePib() {
     return itens.length > 1 ? itens : null
   })
 
-  return { data: dados || [], aoVivo, carregando }
+  return { data: dados || [], aoVivo, carregando, erro }
 }

@@ -105,8 +105,20 @@ export function limitar({ max = 20, janelaMs = 60_000, soFalhas = false, porCont
     }
 
     if (soFalhas) {
-      // Só debita ao saber o desfecho: login correto não consome cota.
-      res.on('finish', () => { if (res.statusCode >= 400) atual.contagem += 1 })
+      // Reserva a vaga JÁ na admissão e devolve se o desfecho for bom.
+      //
+      // Debitar só no `finish` deixava o teto sem efeito sob concorrência: a
+      // conferência de senha é assíncrona (scrypt roda fora do event loop), e
+      // requisições simultâneas liam `contagem` ainda em zero — nenhuma delas
+      // havia terminado — e eram TODAS admitidas antes do primeiro débito. O
+      // teto de 10 por 5 min valia para quem tentasse em fila, não para quem
+      // disparasse tudo de uma vez, que é justamente o caso do ataque.
+      //
+      // Reservando na entrada, o limite passa a contar tentativas EM VOO; o
+      // estorno no `finish` preserva a intenção original de que um login
+      // correto não consome cota.
+      atual.contagem += 1
+      res.on('finish', () => { if (res.statusCode < 400) atual.contagem -= 1 })
     } else {
       atual.contagem += 1
     }

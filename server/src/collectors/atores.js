@@ -111,6 +111,11 @@ export async function coletarAtores() {
 
   let gravados = 0
   let falhas = 0
+  // O catch era vazio: com a chave revogada, 119 respostas 401 sumiam sem
+  // deixar rastro no banco nem no stdout, e o painel dizia "falhou: sem
+  // detalhe". Guardar os motivos distintos custa um Set e devolve o
+  // diagnóstico.
+  const motivos = new Set()
 
   for (const p of pendentes) {
     try {
@@ -118,7 +123,7 @@ export async function coletarAtores() {
         headers: { 'X-Api-Key': chave },
         tentativas: 1,
       })
-      if (!d?.group) { falhas += 1; continue }
+      if (!d?.group) { falhas += 1; motivos.add('resposta sem grupo'); continue }
 
       run(
         `INSERT INTO threat_actors
@@ -154,8 +159,9 @@ export async function coletarAtores() {
         ]
       )
       gravados += 1
-    } catch {
+    } catch (e) {
       falhas += 1
+      motivos.add(String(e?.message || e).slice(0, 80))
     }
   }
 
@@ -163,6 +169,9 @@ export async function coletarAtores() {
     ok: gravados > 0 || falhas === 0,
     gravados,
     falhas,
+    // Sem isto o painel dizia "Última execução falhou: sem detalhe" e o 401
+    // da chave revogada não existia em lugar nenhum.
+    erro: falhas ? `${falhas} de ${pendentes.length} perfil(is) falharam: ${[...motivos].slice(0, 3).join(' · ')}` : null,
     pendentes: pendentes.length,
     partidaFria: pendentes.length > POR_CICLO,
     duracaoMs: Date.now() - inicio,
@@ -241,7 +250,7 @@ export function ator(nome) {
     return {
       nome,
       perfil: null,
-      motivo: 'Perfil ainda não coletado — a renovação processa doze atores por ciclo.',
+      motivo: `Perfil ainda não coletado — a renovação processa ${POR_CICLO} atores por ciclo.`,
       vitimasBrasileiras: brasileiras,
     }
   }

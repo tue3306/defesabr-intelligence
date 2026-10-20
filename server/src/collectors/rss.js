@@ -713,7 +713,28 @@ export async function coletarFonte(fonte) {
 export async function coletarTodas() {
   const fontes = all("SELECT * FROM sources WHERE enabled = 1 AND kind = 'rss'")
   const resultados = await Promise.all(fontes.map((f) => coletarFonte(f)))
+  const falharam = resultados.filter((r) => !r.ok)
+
+  // VEREDITO EXPLÍCITO. Este agregado era o único coletor que não devolvia
+  // `ok` nem `erro`, e `registrar()` tratava a ausência como sucesso: com as
+  // 62 fontes fora do ar, a execução era gravada com ok=1 e erro nulo, o
+  // painel dizia "operacional · 0 novos" sobre o acervo velho, a saúde ficava
+  // em 100% e nenhum aviso chegava a quem administra. Falha virava fato.
+  //
+  // Mesma régua das outras fontes (ver camara.js e indicators.js): falha em
+  // algumas é normal e a próxima execução recupera; falha em TODAS é falha da
+  // coleta. A diferença é que aqui o detalhe da falha PARCIAL também é
+  // preservado — jogá-lo fora é o que esconde uma fonte morta entre 61 vivas.
+  const ok = falharam.length < resultados.length || resultados.length === 0
+  const erro = falharam.length
+    ? `${falharam.length} de ${resultados.length} fonte(s) não responderam: ` +
+      falharam.slice(0, 3).map((r) => r.fonte).join(', ') +
+      (falharam.length > 3 ? '…' : '')
+    : null
+
   return {
+    ok,
+    erro,
     fontes: resultados.length,
     // `encontrados` faltava no agregado, e o registro da execução caía no
     // fallback zero. A trilha de auditoria exibia "0 encontrados, 268 novos" —

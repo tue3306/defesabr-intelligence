@@ -104,7 +104,11 @@ export function gerarNotificacoes(resultados = {}) {
   // Falha inteira de um coletor interessa a quem administra, não a quem lê.
   const dia = agora().slice(0, 10)
   for (const r of Object.values(resultados)) {
-    if (!r || typeof r !== 'object' || !r.coletor || r.ok !== false) continue
+    // `ok !== false` deixava passar o coletor que não declarava desfecho:
+    // `undefined !== false` é verdadeiro, então a falha inteira do RSS não
+    // gerava aviso nenhum. Agora só o sucesso declarado silencia. O coletor
+    // opcional sem chave devolve `ok: true, ignorado: true` e segue fora.
+    if (!r || typeof r !== 'object' || !r.coletor || r.ok === true) continue
     criadas += inserir({
       ref: `coleta:${r.coletor}:${dia}`,
       kind: 'sistema',

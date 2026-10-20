@@ -37,7 +37,11 @@ function PostureSlide() {
         <span>Normal</span><span>Crítico</span>
       </div>
       <p className="mt-4 max-w-xl text-xs muted">
-        {a.basis ? `Média ponderada da urgência — ${a.basis}.` : 'Sem ocorrências no período para calcular.'}
+        {a.basis
+          ? `Média ponderada da urgência — ${a.basis}.`
+          : a.erro
+            ? 'Índice indisponível — a API não respondeu.'
+            : 'Sem ocorrências no período para calcular.'}
       </p>
     </div>
   )

@@ -94,7 +94,13 @@ async function registrar(nome, fn, gatilho = 'agendado') {
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       nome, inicioIso, agora(), duracao,
-      resultado.ok === false ? 0 : 1,
+      // `ok` PRECISA ser explícito. Enquanto a regra foi `=== false ? 0 : 1`,
+      // qualquer coletor que esquecesse o campo era gravado como sucesso —
+      // e foi assim que a falha de TODAS as fontes de notícia entrou na
+      // trilha de auditoria como execução boa. Otimismo por omissão não cabe
+      // num painel cuja função é ser conferível: quem não declara que deu
+      // certo, não deu.
+      resultado.ok === true ? 1 : 0,
       resultado.encontrados ?? resultado.gravados ?? 0,
       resultado.novos ?? resultado.gravados ?? 0,
       resultado.erro || null,

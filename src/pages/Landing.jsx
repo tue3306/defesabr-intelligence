@@ -62,7 +62,7 @@ const Section = ({ children, className = '' }) => (
 )
 
 export default function Landing() {
-  const { news, loading } = useNews()
+  const { news, loading, erro: erroNoticias } = useNews()
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const user = useAuthStore((s) => s.user)
 
@@ -492,7 +492,18 @@ export default function Landing() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {loading
             ? Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)
-            : feed.map((n) => <NewsCard key={n.id} news={n} variant="compact" />)}
+            : feed.length
+              ? feed.map((n) => <NewsCard key={n.id} news={n} variant="compact" />)
+              : (
+                /* Buraco em branco na PRIMEIRA tela do produto era o pior lugar
+                   possível para um erro mudo: o `erro` do useNews vinha sendo
+                   descartado no destructuring. Agora a seção diz o que houve. */
+                <p className="col-span-full rounded-xl border border-dashed border-gray-300 px-4 py-6 text-center text-sm muted dark:border-white/15">
+                  {erroNoticias
+                    ? 'Não foi possível carregar as notícias agora — a API não respondeu.'
+                    : 'Nenhuma notícia no período.'}
+                </p>
+              )}
         </div>
         <Link to="/painel" className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300">
           Ver mais notícias <ArrowRight size={15} />

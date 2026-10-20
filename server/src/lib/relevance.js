@@ -71,7 +71,14 @@ const FORTES = [
   'industria de defesa', 'base industrial de defesa', 'poder naval',
   'dissuasao', 'adido militar', 'comando militar', 'estado-maior',
   // Programas e sistemas nomeados
-  'prosub', 'sisfron', 'sisgaaz', 'gripen', 'tamandare', 'astros',
+  // "astros" SOZINHO SAIU, pela mesma razão de "riachuelo" logo abaixo: é o
+  // lançador do Exército e é também o plural de astro, celebridade. Como termo
+  // FORTE ele aprovava sozinho, e duas matérias sobre convocação da seleção
+  // venezuelana entraram no acervo carimbadas como "Programas & Meios" (ids
+  // 770 e 783, único termo casado: astros). As matérias legítimas do lançador
+  // não dependem dele — trazem "exercito", "sisfron", "avibras" ou "misseis"
+  // junto —, então ele desce para FRACOS e a forma inequívoca fica aqui.
+  'prosub', 'sisfron', 'sisgaaz', 'gripen', 'tamandare', 'astros 2020',
   // "riachuelo" SOZINHO SAIU: é também a rede de lojas, e "Riachuelo finca os
   // pés na Oscar Freire" entrava como programa naval. Matéria do submarino
   // diz "submarino", que é termo forte por conta própria.
@@ -157,6 +164,8 @@ const FRACOS = [
   // eleitoral, sanitária e judicial com a mesma frequência que em defesa.
   // Continuam úteis para pontuar, mas não qualificam sozinhos.
   'desinformacao', 'crime organizado', 'faccao criminosa', 'contrabando',
+  // "astros": ver a nota em FORTES. Pontua quando acompanhado, nunca aprova só.
+  'astros',
   'policia federal', 'receita federal', 'forca nacional', 'itamaraty',
   'onu', 'mercosul', 'geopolitica', 'pre-sal', 'seguranca nacional',
   'orcamento', 'aeronautica', 'ransomware', 'ataque hacker',
@@ -190,6 +199,46 @@ const semUsoCivil = (t) => RX_USO_CIVIL.reduce((acc, rx) => acc.replace(rx, ' ')
 function fronteira(termo) {
   const escapado = termo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   return new RegExp(`(?<![\\p{L}\\p{N}])${escapado}(?![\\p{L}\\p{N}])`, 'iu')
+}
+
+/**
+ * Onde cada termo da lista casou, e não apenas SE casou.
+ *
+ * A contagem simples não distingue duas menções independentes de uma só
+ * menção contada duas vezes, porque a lista tem termos que se contêm:
+ * "forca aerea brasileira" casa também "forca aerea". Com posição, dá para
+ * perguntar se os sinais são mesmo dois.
+ */
+function spansDe(lista, texto) {
+  const spans = []
+  for (const { rx, termo } of lista) {
+    const g = new RegExp(rx.source, rx.flags.includes('g') ? rx.flags : `${rx.flags}g`)
+    for (const m of texto.matchAll(g)) {
+      spans.push({ termo, ini: m.index, fim: m.index + m[0].length })
+    }
+  }
+  return spans
+}
+
+/**
+ * Quantos termos DIFERENTES têm uma menção que não se sobrepõe às já contadas.
+ *
+ * Duas exigências ao mesmo tempo, e as duas importam:
+ *  • termos diferentes — a regra sempre quis "duas palavras exclusivas do
+ *    domínio", não a mesma palavra repetida;
+ *  • menções que não se sobrepõem — "forca aerea brasileira" casa também
+ *    "forca aerea" no MESMO trecho, e isso é um sinal, não dois.
+ *
+ * Varredura gulosa pelo fim do intervalo, que é o jeito padrão de achar o
+ * maior conjunto de intervalos disjuntos.
+ */
+function termosDisjuntos(spans) {
+  const usados = new Set()
+  let fim = -1
+  for (const s of [...spans].sort((a, b) => a.fim - b.fim)) {
+    if (s.ini >= fim && !usados.has(s.termo)) { usados.add(s.termo); fim = s.fim }
+  }
+  return usados.size
 }
 
 const RX_FORTES = FORTES.map((t) => ({ termo: t, rx: fronteira(normalizar(t)) }))
@@ -447,14 +496,42 @@ export function avaliarRelevancia(texto) {
   const fracos = RX_FRACOS.filter(({ rx }) => rx.test(palheiro)).map((e) => e.termo)
   const fortesNaAbertura = RX_FORTES.filter(({ rx }) => rx.test(inicio)).map((e) => e.termo)
 
+  // Sinal forte que vive DENTRO de uma expressão de exclusão não é sinal:
+  // "defesa" dentro de "defesa do consumidor" fala de outro assunto.
+  //
+  // Esta é a guarda que `EXCLUSOES` prometia e não entregava. A regra antiga
+  // era `excluidos.length > 0 && fortes.length === 0`, e `suficiente` já
+  // exigia ao menos um termo forte — as duas condições eram mutuamente
+  // exclusivas, então a lista NUNCA mudou uma decisão. E a plataforma publica
+  // essa etapa em /api/metodo e na tela do Clipping, num produto cujo
+  // argumento é que a régua é inspecionável. Agora a exclusão atua onde faz
+  // sentido: anulando o termo forte que ela explica.
+  // `palheiro` e `inicio` são strings transformadas DIFERENTES, cada uma com
+  // suas próprias posições — por isso as exclusões são medidas em cada uma.
+  const fortesValidos = (texto) => {
+    const fora = spansDe(RX_EXCLUSOES, texto)
+    return spansDe(RX_FORTES, texto)
+      .filter((s) => !fora.some((e) => s.ini >= e.ini && s.fim <= e.fim))
+  }
+  const spansFortes = fortesValidos(palheiro)
+
   // REGRA: um termo forte sozinho precisa estar na ABERTURA, onde o jornalismo
   // põe o assunto. Enterrado no corpo, ele só vale acompanhado de um segundo
   // termo forte — duas palavras exclusivas do domínio no mesmo texto já não
   // são coincidência.
-  const suficiente = fortesNaAbertura.length >= 1 || fortes.length >= 2
+  //
+  // "Duas" passou a significar duas menções QUE NÃO SE SOBREPÕEM. Contando por
+  // termo, "Força Aérea Brasileira" valia por dois e uma menção única no nono
+  // parágrafo aprovava o texto: foi assim que a morte de um cantor e um caso
+  // de polícia em Niterói entraram no acervo de defesa com urgência ALTA, e o
+  // primeiro ainda virou notificação crítica.
+  const suficiente = fortesValidos(inicio).length >= 1 || termosDisjuntos(spansFortes) >= 2
 
-  // Exclusão derruba quando o único sinal é fraco. Com termo forte presente,
-  // uma menção à Defesa Civil dentro de uma operação militar segue valendo.
+  // A guarda antiga fica. Sobre o acervo de hoje ela não decide nada — todas
+  // as exclusões casam em texto que já não tem termo forte —, mas custa uma
+  // comparação e cobre o caso em que `inicio`, que passa por `semUsoCivil()`
+  // e não é um pedaço de `palheiro`, divirja dele. O efeito real das
+  // exclusões agora vem do filtro de spans acima.
   const desqualificado = excluidos.length > 0 && fortes.length === 0
 
   return {

@@ -53,9 +53,14 @@ export async function coletarComex() {
     return {
       coletor: 'comex',
       ok: true,
-      encontrados: recente,
+      // `encontrados` é "itens que a FONTE devolveu", e aqui a fonte nem foi
+      // consultada. Mandar a contagem do acervo fazia a trilha de auditoria
+      // registrar "536 encontrados" para uma execução sem requisição alguma —
+      // numa tela cuja função declarada é ser conferível.
+      encontrados: 0,
       novos: 0,
       pulado: true,
+      jaNoAcervo: recente,
       motivo: 'dado do Comex Stat tem menos de 12 horas; a fonte publica mensalmente',
       duracaoMs: Date.now() - inicio,
     }

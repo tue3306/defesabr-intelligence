@@ -74,6 +74,15 @@ function capacidadeDeColeta({ id, nome, coletor, descricao, evidencia, contagem,
   } else if (!execucao.ok) {
     estado = 'degradado'
     detalhe = `Última execução falhou: ${execucao.error || 'sem detalhe'}`
+  } else if (execucao.error) {
+    // Execução que terminou COM erro registrado não é operacional, ainda que
+    // tenha gravado alguma linha. Antes o `error` só era lido quando ok=0, e
+    // uma falha parcial ficava invisível: o câmbio do Banco Central grava
+    // ok=1 com "usd: sem resposta em 15000ms", e o cartão exibia
+    // "operacional" contando cotações de ciclos anteriores — justamente a
+    // série que havia falhado.
+    estado = 'degradado'
+    detalhe = `Executou com falha parcial: ${execucao.error}`
   } else if (total === 0) {
     estado = 'degradado'
     detalhe = 'Executou sem erro, mas o acervo está vazio.'

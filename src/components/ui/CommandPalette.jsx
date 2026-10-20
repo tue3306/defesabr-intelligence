@@ -56,7 +56,7 @@ import { normalize } from '../../utils/semanticSearch'
 //
 // A ordem é a da altitude: do quadro do país ao incidente com nome e data.
 // ─────────────────────────────────────────────────────────────────────────────
-const GROUPS = ['Navegação', 'Estratégico', 'Tático', 'Operacional', 'Produção', 'Conta', 'Ações']
+const GROUPS = ['Navegação', 'Estratégico', 'Tático', 'Operacional', 'Conta', 'Administração', 'Ações']
 
 export default function CommandPalette() {
   const navigate = useNavigate()
@@ -166,6 +166,12 @@ export default function CommandPalette() {
   }, [commands, query, navigate])
 
   // Agrupa preservando a ordem canônica dos grupos.
+  //
+  // Grupo que não esteja em GROUPS vai para o FIM em vez de sumir. Antes ele
+  // era descartado: `Administração` não constava da lista, e os três comandos
+  // de administrador nunca chegavam à tela — embora continuassem no total do
+  // rodapé e no alcance das setas. Um grupo novo não pode desaparecer em
+  // silêncio só por faltar uma string aqui.
   const grouped = useMemo(() => {
     const map = new Map()
     results.forEach((c) => {
@@ -173,8 +179,19 @@ export default function CommandPalette() {
       if (!map.has(g)) map.set(g, [])
       map.get(g).push(c)
     })
-    return GROUPS.filter((g) => map.has(g)).map((g) => ({ group: g, items: map.get(g) }))
+    const ordem = [
+      ...GROUPS.filter((g) => map.has(g)),
+      ...[...map.keys()].filter((g) => !GROUPS.includes(g)),
+    ]
+    return ordem.map((g) => ({ group: g, items: map.get(g) }))
   }, [results])
+
+  // A MESMA lista que a tela desenha, achatada. `results` está na ordem de
+  // criação dos comandos; a tela desenha na ordem dos GRUPOS. Eram dois
+  // espaços de índice diferentes, e a navegação por teclado usava o errado:
+  // a seta destacava uma linha e o Enter abria outra. Tudo o que depende da
+  // posição visível — setas, Enter e a contagem do rodapé — lê daqui.
+  const visiveis = useMemo(() => grouped.flatMap((g) => g.items), [grouped])
 
   useEffect(() => { setActive(0) }, [query])
 
@@ -198,9 +215,9 @@ export default function CommandPalette() {
   }
 
   const onInputKey = (e) => {
-    if (e.key === 'ArrowDown') { e.preventDefault(); setActive((a) => Math.min(a + 1, results.length - 1)) }
+    if (e.key === 'ArrowDown') { e.preventDefault(); setActive((a) => Math.min(a + 1, visiveis.length - 1)) }
     else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((a) => Math.max(a - 1, 0)) }
-    else if (e.key === 'Enter') { e.preventDefault(); choose(results[active]) }
+    else if (e.key === 'Enter') { e.preventDefault(); choose(visiveis[active]) }
   }
 
   if (!open) return null
@@ -237,7 +254,7 @@ export default function CommandPalette() {
         </div>
 
         <div id="paleta-resultados" ref={listRef} role="listbox" className="max-h-[55vh] overflow-y-auto p-2">
-          {results.length === 0 && (
+          {visiveis.length === 0 && (
             <p className="px-3 py-8 text-center text-sm muted">Nenhum comando encontrado para “{query}”.</p>
           )}
           {grouped.map(({ group, items }) => (
@@ -280,7 +297,7 @@ export default function CommandPalette() {
 
         <div className="flex items-center justify-between border-t border-gray-200 px-3 py-2 text-[11px] muted dark:border-gray-700/40">
           <span className="hidden sm:inline">↑ ↓ navegar · ⏎ abrir · esc fechar</span>
-          <span>{results.length} resultado{results.length === 1 ? '' : 's'}</span>
+          <span>{visiveis.length} resultado{visiveis.length === 1 ? '' : 's'}</span>
         </div>
       </div>
     </div>,

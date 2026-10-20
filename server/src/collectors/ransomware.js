@@ -343,7 +343,7 @@ export function alertasRansomware({ horas = 48 } = {}) {
     `SELECT external_id, victim, "group", sector, discovered_at, criticality, criticality_reason, nature
        FROM ransomware_victims
       WHERE country = 'BR' AND criticality = 'CRITICO'
-        AND discovered_at >= datetime('now', ?)
+        AND datetime(discovered_at) >= datetime('now', ?)
       ORDER BY discovered_at DESC LIMIT 10`,
     [`-${horas} hours`]
   )
