@@ -147,7 +147,7 @@ export default function Search() {
               id="busca-global"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ex.: PROSUB, fronteira, Marinha, FIMI, ciberataque…"
+              placeholder="Ex.: submarino, fronteira, Marinha, ciberataque…"
               className="input pl-10 pr-10"
               autoComplete="off"
               autoFocus

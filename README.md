@@ -397,7 +397,7 @@ do ambiente; a conta de usuário é criada pela própria suíte e removida no fi
 | [Agência Gov](https://agenciagov.ebc.com.br) | RSS | Comunicação do governo federal |
 | [Senado Federal](https://www12.senado.leg.br/noticias) | RSS | Pauta legislativa de defesa |
 | [DefesaNet](https://www.defesanet.com.br) · [Poder Naval](https://www.naval.com.br) · [Tecnodefesa](https://tecnodefesa.com.br) | RSS | Imprensa especializada |
-| [Google Notícias](https://news.google.com) (2 buscas) | RSS | Varre a imprensa inteira — responde localmente; o Google recusa o IP do Railway |
+| [Google Notícias](https://news.google.com) (4 buscas) | RSS | Varre a imprensa inteira — defesa, Forças Armadas, conflitos e EUA/Pentágono |
 | [Dados Abertos da Câmara](https://dadosabertos.camara.leg.br) | API | Proposições e situação de tramitação |
 | [World Bank Open Data](https://data.worldbank.org) | API | Gasto militar, efetivo e PIB — 13 países |
 | [Banco Central (SGS)](https://dadosabertos.bcb.gov.br) | API | Dólar, euro, IPCA, Selic e IGP-M |
@@ -440,10 +440,10 @@ avaliação.
 de defasagem: serve para série histórica e não para dizer a que taxa o dólar
 fechou. O SGS do Banco Central entrega o dado do dia.
 
-Algumas fontes desejáveis **não** entraram, e o motivo está no código: Marinha,
-FAB e Poder360 respondem **403** a cliente automatizado; o Exército não publica
-RSS; STF e STJ usam proteção anti-robô, e contorná-la seria evasão de detecção,
-não coleta.
+Algumas fontes desejáveis **não** entraram, e o motivo está no código: Marinha
+e FAB respondem **403** a cliente automatizado; o Exército não publica RSS; STF
+e STJ usam proteção anti-robô, e contorná-la seria evasão de detecção, não
+coleta.
 
 ### O que ela ainda não faz
 
@@ -576,7 +576,7 @@ escala em linguagem acessível, com o que ela **não** significa. **Privacidade 
 |---|---|---|---|
 | `POST` | `/auth/register` | — | Cria conta com **usuário e senha**, papel `user` |
 | `POST` | `/auth/login` | — | Devolve token assinado |
-| `GET` | `/auth/me` | — | Quem é o portador deste token |
+| `GET` | `/auth/me` | `token` | Quem é o portador deste token; 401 sem sessão |
 | `GET` | `/auth/adocao` | — | Esta instalação está sem administrador? |
 | `POST` | `/auth/adotar` | — | Cria o primeiro administrador, com o código de adoção. 409 se já houver um |
 | `PATCH` | `/auth/me` | `user` | Troca o nome de exibição |
@@ -608,7 +608,7 @@ escala em linguagem acessível, com o que ela **não** significa. **Privacidade 
 | `POST` | `/system/collect` | `admin` | Dispara a coleta completa |
 | `POST` | `/system/collect/:sourceId` | `admin` | Coleta uma fonte só (diagnóstico) |
 | `GET` | `/health` | — | Sonda de saúde (usada pelo Railway) |
-| `GET` | `/meta` | — | Identidade, fontes e o que ainda não é implementado |
+| `GET` | `/meta` | — | Identidade, fontes, estado das variáveis de conta e armazenamento |
 
 ### Favoritos
 | Método | Rota | Guarda | O que faz |
@@ -629,9 +629,9 @@ escala em linguagem acessível, com o que ela **não** significa. **Privacidade 
 │   │   ├── config.js           variáveis de ambiente
 │   │   ├── db/                 conexão, esquema e migrações incrementais
 │   │   ├── lib/                auth · relevance · correlacao · proposicoes · notificacoes · guia · …
-│   │   ├── collectors/         rss · camara · indicators · bcb · comex · ransomware · atores · agendador
+│   │   ├── collectors/         rss · camara · indicators · bcb · comex · ransomware · atores · correlacoes · geografia · newsapi · agendador
 │   │   ├── services/status.js  diagnóstico derivado do banco
-│   │   └── routes/             auth · news · data · intel · notificacoes · guia · system
+│   │   └── routes/             auth · news · data · intel · metodo · mundo · notificacoes · guia · system
 │   └── scripts/                collect · check · check-auth · reclassify · reset
 └── src/                        Interface — React + Vite
     ├── services/

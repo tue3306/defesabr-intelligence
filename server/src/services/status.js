@@ -248,7 +248,7 @@ export function capacidades() {
         nome: 'Agregadores de notícias',
         grupo: 'Coleta',
         estado: 'opcional',
-        detalhe: 'Não configurado (GNEWS_API_KEY ou NEWSDATA_API_KEY). As fontes RSS cobrem os mesmos veículos.',
+        detalhe: 'Sem chave de API. As fontes RSS cobrem os mesmos veículos.',
         descricao: 'Opcional. Sem chave, o coletor não roda e não conta como falha.',
         fonte: 'gnews.io · newsdata.io',
         metricas: {},
@@ -421,6 +421,11 @@ export function panorama() {
     acervo: {
       artigos: contar('SELECT COUNT(*) AS n FROM articles'),
       artigosRelevantes: contar('SELECT COUNT(*) AS n FROM articles WHERE relevant = 1'),
+      // Denominador do FILTRO, que não é o acervo inteiro: fora dele ficam as
+      // matérias que só a lente mundial gravou. Sem este número na resposta, o
+      // cartão do painel exibia "861 aprovados" ao lado de "3373 no acervo", e
+      // quem dividia chegava a 26% — com 42% escrito dois cartões abaixo.
+      artigosAvaliadosPeloFiltro: contar('SELECT COUNT(*) AS n FROM articles WHERE NOT (relevant = 0 AND mundo = 1)'),
       proposicoes: contar('SELECT COUNT(*) AS n FROM bills'),
       indicadores: contar('SELECT COUNT(*) AS n FROM indicators'),
       fontes: contar('SELECT COUNT(*) AS n FROM sources'),

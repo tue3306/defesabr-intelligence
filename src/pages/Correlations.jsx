@@ -247,7 +247,7 @@ function Correlacao({ c, aberto, onToggle }) {
           <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider dark:bg-white/5">
             <Icon size={11} /> {c.alvo?.rotulo || c.alvo?.id}
           </span>
-          <span className="chip font-mono text-[10px]" title="Quão direta é a ligação: 5 = mesmo site ou nome; 2 = só o mesmo setor. Não mede perigo.">força {c.forca}</span>
+          <span className="chip font-mono text-[10px]" title="Quão direta é a ligação: 5 = mesmo site ou nome; 2 = só o mesmo setor. Não mede perigo.">força {c.forca} de 5</span>
           <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">
             possível relação
           </span>

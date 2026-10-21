@@ -67,7 +67,7 @@ export default function StrategicMap() {
       </div>
 
       <section className="card p-5">
-        <GlobalHeatmap height={460} />
+        <GlobalHeatmap height={360} />
       </section>
 
       {/* ── O RESTO DO MUNDO TEM ÁREA PRÓPRIA ──

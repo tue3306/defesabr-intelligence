@@ -111,13 +111,13 @@ export default function CountryDossier({ pais, dias = 180 }) {
               </div>
               <div className="rounded-lg bg-gray-100 p-3 dark:bg-white/5">
                 <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider muted">
-                  <ShieldAlert size={11} /> Vítimas de ransomware
+                  <ShieldAlert size={11} /> Vítimas de grupos de extorsão
                 </p>
                 <p className="mt-0.5 font-mono text-2xl font-extrabold tabular-nums">
                   {rw.disponivel ? rw.total : '—'}
                 </p>
                 <p className="text-[11px] muted">
-                  {rw.disponivel ? 'organizações divulgadas' : 'país fora do catálogo ISO'}
+                  {rw.disponivel ? 'organizações divulgadas, todo o histórico' : 'país fora do catálogo ISO'}
                 </p>
               </div>
             </div>

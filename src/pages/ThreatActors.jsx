@@ -191,8 +191,18 @@ function Ator({ a, aberto, onToggle }) {
           {a.vitimasBr} no Brasil{a.vitimasMundo ? ` · ${a.vitimasMundo} no mundo` : ''}
         </span>
         <span className="ml-auto flex items-center gap-3 text-xs muted">
-          {a.tecnicas > 0 && <span>{a.tecnicas} técnicas</span>}
-          {a.ferramentas > 0 && <span>{a.ferramentas} ferramentas</span>}
+          {/* Em branco, a célula se lia como "este grupo não usa técnica
+            * nenhuma" — numa página cujo subtítulo promete justamente as
+            * técnicas mapeadas. A verdade é que a fonte não mapeou esse grupo,
+            * e isso precisa estar escrito. */}
+          {a.tecnicas > 0 || a.ferramentas > 0 ? (
+            <>
+              {a.tecnicas > 0 && <span>{a.tecnicas} técnicas</span>}
+              {a.ferramentas > 0 && <span>{a.ferramentas} ferramentas</span>}
+            </>
+          ) : (
+            <span className="italic">sem mapeamento na fonte</span>
+          )}
           <ChevronDown size={16} className={aberto ? 'rotate-180 transition-transform' : 'transition-transform'} />
         </span>
       </button>

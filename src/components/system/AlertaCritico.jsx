@@ -194,12 +194,18 @@ export default function AlertaCritico() {
   // caminhos: ver os detalhes, abrir a matéria, dispensar. A página por trás
   // continua clicável e rolável. `role="alert"` faz o leitor de tela anunciar
   // o conteúdo assim que ele aparece — sem roubar o foco de quem digita.
+  //
+  // A largura caiu de max-w-md (448px) para max-w-xs (320px): o aviso cobria a
+  // coluna central em toda tela projetada. Segue ancorado no RODAPÉ de
+  // propósito — subi-lo tapava ainda mais os cartões do topo, que é onde ficam
+  // os números. Com 437px de altura numa tela de 900px ele sempre cobre algo,
+  // então para apresentar vale o próprio link "Desligar avisos na tela".
   // ───────────────────────────────────────────────────────────────────────────
   return (
     <aside
       role="alert"
       aria-labelledby="alerta-critico-titulo"
-      className="fixed inset-x-3 bottom-3 z-[60] mx-auto max-w-md animate-scale-in sm:inset-x-auto sm:right-5 sm:bottom-5 sm:mx-0"
+      className="fixed inset-x-3 bottom-3 z-[60] mx-auto max-w-md animate-scale-in sm:inset-x-auto sm:right-5 sm:bottom-5 sm:mx-0 sm:max-w-xs"
     >
       <div className="overflow-hidden rounded-xl border-2 border-[var(--nivel-critico)] bg-white shadow-modal dark:bg-military-dark">
         <div className="flex items-center justify-between gap-3 bg-[var(--nivel-critico)] px-4 py-2 text-white">

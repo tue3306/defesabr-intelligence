@@ -223,7 +223,7 @@ export default function CyberThreats() {
             <div className="grid gap-6 lg:grid-cols-2">
               <Ranking
                 titulo="Grupos que mais atacam o Brasil"
-                subtitulo="Quantas organizações brasileiras cada grupo divulgou na janela."
+                subtitulo={`Quantas organizações brasileiras cada grupo divulgou nos últimos ${dias} dias.`}
                 itens={br.porGrupo}
               />
               <Ranking
@@ -270,7 +270,7 @@ export default function CyberThreats() {
 
               {br.itens.length === 0 ? (
                 <p className="mt-3 text-sm muted">
-                  Nenhuma organização brasileira foi divulgada na janela. Isso não significa
+                  Nenhuma organização brasileira foi divulgada nos últimos {dias} dias. Isso não significa
                   ausência de incidentes: significa ausência de divulgação pública.
                 </p>
               ) : (
@@ -337,7 +337,7 @@ export default function CyberThreats() {
                 ordena corretamente entre si, mas não é o quadro mundial. */}
             <Ranking
               titulo="Grupos mais ativos na amostra recente"
-              subtitulo={`Ordenados entre si dentro das ${d.global.amostra} divulgações que a coleta trouxe na janela — não é o ranking mundial.`}
+              subtitulo={`Ordenados entre si dentro das ${d.global.amostra} divulgações que a coleta trouxe nos últimos ${dias} dias — não é o ranking mundial.`}
               itens={d.global.porGrupo}
               icone={Users}
             />
@@ -362,7 +362,9 @@ function Ranking({ titulo, subtitulo, itens, icone: Icone }) {
         {titulo}
       </h2>
       <p className="mt-1 text-sm muted">{subtitulo}</p>
-      {!itens.length && <p className="mt-3 text-sm muted">Sem registros na janela.</p>}
+      {/* O período vem escrito no subtítulo logo acima, que o chamador monta
+        * com a janela escolhida — aqui não há como saber qual é. */}
+      {!itens.length && <p className="mt-3 text-sm muted">Sem registros no período.</p>}
       <div className="mt-4 space-y-2">
         {itens.map((i) => (
           <div key={i.nome} className="flex items-center gap-3 text-sm">

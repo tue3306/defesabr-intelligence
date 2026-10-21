@@ -132,7 +132,9 @@ indistinguível de uma inventada.
 
 **Persistência no Railway.** O disco é efêmero: sem volume, o acervo é
 recoletado a cada deploy (~8 s) e as contas criadas pelo cadastro somem. Para
-persistir, montar volume e apontar `DB_PATH=/data/defesabr.db`. A migração
+persistir, basta montar um volume em `/data`: o servidor lê
+`RAILWAY_VOLUME_MOUNT_PATH` e passa a guardar o banco lá sozinho, sem precisar
+de `DB_PATH`. A migração
 incremental de colunas existe justamente para esse cenário — sem ela, o primeiro
 deploy depois de um volume quebraria com "no such column".
 
@@ -140,9 +142,10 @@ deploy depois de um volume quebraria com "no such column".
 toda sessão cai no reinício. O log avisa em amarelo quando está nesse estado, e
 o painel do administrador mostra o alerta.
 
-**Três fontes bloqueadas por IP de datacenter.** Os dois feeds do Google
-Notícias e o Defesa Aérea & Naval respondem de uma máquina doméstica e recusam
-o Railway. Está documentado em `server/src/collectors/rss.js`. Contornar
+**Uma fonte bloqueada por IP de datacenter.** O Defesa Aérea & Naval responde
+200 de uma máquina doméstica e 403 de dentro do Railway; os feeds do Google
+Notícias, antes citados aqui, funcionam normalmente no Railway e entregam
+matéria. Está documentado em `server/src/collectors/rss.js`. Contornar
 exigiria disfarçar a origem da requisição, o que é evasão de detecção e não
 coleta.
 

@@ -103,7 +103,7 @@ export default function World() {
         meta={[
           { label: 'Matérias', value: fmt(totais?.materias) },
           { label: 'Países', value: fmt(totais?.paises) },
-          { label: 'Teatros com cobertura', value: fmt(totais?.teatrosComCobertura) },
+          { label: 'Teatros de conflito com cobertura', value: fmt(totais?.teatrosComCobertura) },
           { label: 'Fontes', value: fmt(totais?.fontes) },
           { label: 'Em português / inglês', value: `${fmt(totais?.porIdioma?.pt)} / ${fmt(totais?.porIdioma?.en)}` },
         ]}
@@ -163,6 +163,19 @@ export default function World() {
                 Conflitos e teatros
                 <InfoTooltip text="O catálogo é vocabulário de detecção, não uma lista de guerras declaradas. Todo número é contagem de matérias do acervo; teatro sem matéria no período aparece com zero." />
               </h2>
+              {/* A barra colorida de cada cartão só tinha explicação no hover,
+                * que não existe numa projeção: sem chave, vermelho+laranja lê-se
+                * como "mais grave", que é justamente o que o aviso do topo pede
+                * para não concluir. */}
+              <ul className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] muted">
+                <li className="font-semibold">Urgência das matérias:</li>
+                {URGENCIAS.map((u) => (
+                  <li key={u.id} className="inline-flex items-center gap-1">
+                    <span className="h-2.5 w-2.5 rounded-sm" style={{ background: u.cor }} aria-hidden="true" />
+                    {u.rotulo}
+                  </li>
+                ))}
+              </ul>
               {teatros.length === 0 ? (
                 <p className="card p-4 text-sm muted">O servidor não devolveu o catálogo de teatros.</p>
               ) : (

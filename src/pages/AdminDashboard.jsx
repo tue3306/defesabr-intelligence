@@ -178,7 +178,9 @@ export default function AdminDashboard() {
             icon={ScrollText}
             label="Artigos no acervo"
             value={acervo?.artigos != null ? String(acervo.artigos) : '—'}
-            hint={acervo ? `${acervo.artigosRelevantes} aprovados pelo filtro` : 'coletados e guardados'}
+            hint={acervo
+              ? `${acervo.artigosRelevantes} de ${acervo.artigosAvaliadosPeloFiltro} avaliados no escopo Brasil`
+              : 'coletados e guardados'}
             accent="brand"
           />
           <MetricCard

@@ -125,8 +125,8 @@ export default function Landing() {
           <dl className="mt-7 grid max-w-3xl grid-cols-2 gap-4 sm:grid-cols-4">
             <Prova
               valor={v.vitimasBr}
-              rotulo="organizações brasileiras"
-              detalhe="com vazamento divulgado desde 2017"
+              rotulo="vazamentos divulgados"
+              detalhe="de organizações brasileiras, desde 2017"
             />
             <Prova
               valor={v.fontes}
@@ -136,7 +136,7 @@ export default function Landing() {
             <Prova
               valor={v.artigos}
               rotulo="matérias no acervo"
-              detalhe="aprovadas por filtro auditável"
+              detalhe="aprovadas pela regra de relevância publicada"
             />
             <Prova
               valor={v.paises}
@@ -155,9 +155,9 @@ export default function Landing() {
                   * cobranca, o pior primeiro clique possivel. Correlacoes exige
                   * sessao, e a tela de bloqueio oferece as duas contas: o funil
                   * fica honesto e curto. */}
-                <Link to="/correlacoes" className="btn-primary"><Link2 size={16} /> Ver as correlações</Link>
+                <Link to="/correlacoes" className="btn-primary"><Link2 size={16} /> Ver as correlações · exige conta</Link>
                 <Link to="/clipping" className="btn-ghost border-white/30 text-white hover:bg-white/10">
-                  Ver o clipping de hoje
+                  Ver o clipping de hoje · exige conta
                 </Link>
               </>
             )}
@@ -168,10 +168,10 @@ export default function Landing() {
 
           <p className="mt-5 text-xs text-gray-400">
             {v.aoVivo
-              ? 'Números lidos da API agora — nenhum é escrito à mão.'
+              ? 'Números lidos do servidor agora — nenhum é escrito à mão.'
               : v.carregando
                 ? 'Consultando a base…'
-                : 'A API não respondeu; os números aparecem quando ela voltar.'}
+                : 'O servidor não respondeu; os números aparecem quando ele voltar.'}
           </p>
 
         </div>
@@ -271,7 +271,7 @@ export default function Landing() {
               icone={Crosshair}
               titulo="Quem ataca o Brasil, e como entra"
               texto="Boletim de ameaça lista centenas de grupos no mundo. Aqui só os que têm VÍTIMA
-                     BRASILEIRA registrada — com as táticas mapeadas ao MITRE ATT&CK, as ferramentas
+                     BRASILEIRA registrada — com as táticas mapeadas ao MITRE ATT&CK (catálogo internacional de táticas de ataque), as ferramentas
                      conhecidas e quantos já atingiram o Estado."
               numero={v.gruposContraBrasil}
               unidade="grupos com vítima no Brasil"

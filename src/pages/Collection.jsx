@@ -250,7 +250,7 @@ export default function Collection() {
                     <td className="py-2 pr-4 font-medium">{r.collector}</td>
                     <td className="py-2 pr-4 font-mono tabular-nums">{r.items_found ?? '—'}</td>
                     <td className="py-2 pr-4 font-mono tabular-nums">{r.items_new ?? '—'}</td>
-                    <td className="py-2 pr-4 font-mono text-xs tabular-nums muted">{r.duration_ms}ms</td>
+                    <td className="py-2 pr-4 font-mono text-xs tabular-nums muted">{r.duration_ms >= 1000 ? `${(r.duration_ms / 1000).toFixed(1).replace('.', ',')} s` : `${r.duration_ms} ms`}</td>
                     <td className="py-2">
                       {r.ok ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-800 dark:text-emerald-300">

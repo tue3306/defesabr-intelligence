@@ -62,7 +62,7 @@ export default function Ticker() {
       },
       {
         icon: Activity,
-        label: 'Nível de alerta',
+        label: 'Nível de alerta (7 dias)',
         value: nivel && alerta.value != null ? `${nivel.label} · ${alerta.value}/100` : '—',
         to: '/painel',
       },

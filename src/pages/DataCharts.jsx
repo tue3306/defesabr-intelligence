@@ -265,7 +265,7 @@ export default function DataCharts() {
           <ChartPanel
             badge={volumeCategoria.aoVivo ? 'live' : 'sem-dado'}
             title="Volume por categoria — 30 dias"
-            subtitle="Quanto de cada tema o acervo trouxe, e mais ou menos que nos 30 dias anteriores. A barra fina é o período anterior."
+            subtitle="Quantas matérias de cada tema o acervo trouxe, e mais ou menos que nos 30 dias anteriores. A barra fina é o período anterior."
             method="Contagem de matérias por categoria em duas janelas de 30 dias, ordenada por volume. O período anterior é a diferença entre a janela de 60 dias e a de 30 — a contagem, não uma estimativa. Mede COBERTURA, não ocorrência: dez matérias sobre a mesma operação são dez."
             rows={volumeCategoria.data}
             filename="volume-por-categoria.csv"

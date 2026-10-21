@@ -51,7 +51,7 @@ export default function AvisoPrivacidade() {
     <div
       role="region"
       aria-label="Aviso de privacidade"
-      className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-3xl animate-scale-in rounded-xl border border-gray-200 bg-white p-4 shadow-dropdown dark:border-white/10 dark:bg-military-dark sm:inset-x-4 sm:bottom-4"
+      className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-3xl animate-scale-in rounded-xl border border-gray-200 bg-white p-4 shadow-dropdown dark:border-white/10 dark:bg-military-dark sm:inset-x-4 sm:bottom-4 sm:left-4 sm:right-auto sm:mx-0 sm:max-w-sm"
     >
       <div className="flex items-start gap-3">
         <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-500/15 text-brand-500 dark:text-brand-300">

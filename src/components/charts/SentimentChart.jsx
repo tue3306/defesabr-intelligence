@@ -6,7 +6,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   Cell,
 } from 'recharts'
 import { tooltipStyle } from './chartTheme'
@@ -81,7 +80,11 @@ export default function SentimentChart({ data = [], height = 320 }) {
           axisLine={false}
         />
         <Tooltip {...tooltipStyle} cursor={{ fill: 'rgba(148,163,184,0.08)' }} />
-        <Legend wrapperStyle={{ fontSize: 12 }} />
+        {/* Sem <Legend>: o quadradinho dela sairia VERDE para "Período atual",
+          * e nenhuma barra é verde — cada uma usa a cor da sua categoria. Uma
+          * legenda que não corresponde a nada na tela atrapalha mais do que a
+          * ausência dela, e o subtítulo do cartão já diz que a barra fina é o
+          * período anterior. */}
         {/* O `fill` aqui existe só para a LEGENDA: as barras usam a cor da
           * categoria via <Cell>, e sem um fill no <Bar> o quadradinho da
           * legenda sai preto — a cor padrão do SVG. */}
@@ -93,7 +96,7 @@ export default function SentimentChart({ data = [], height = 320 }) {
         <Bar
           name="Período anterior"
           dataKey="anterior"
-          fill="rgba(148,163,184,0.55)"
+          fill="rgba(148,163,184,0.85)"
           radius={[0, 3, 3, 0]}
           barSize={7}
         />

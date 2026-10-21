@@ -373,9 +373,11 @@ export default function GlobalHeatmap({
       {/* ── LEGENDA ── */}
       <div className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[11px] muted">
         <span className="font-semibold">Menções no período:</span>
-        {FAIXAS.slice(1).map((f) => <Legenda key={f.rotulo} cor={f.cor} rotulo={f.rotulo} />)}
-        <Legenda cor={FAIXAS[0].cor} rotulo={FAIXAS[0].rotulo} />
-        <Legenda cor="#147a43" rotulo="Brasil (âncora)" />
+        {/* Ordem natural: o zero é o FAIXAS[0] e vem PRIMEIRO. Impresso por
+          * último, a escala subia até "o mais citado" e terminava em "sem
+          * menção", com o zero depois do máximo. */}
+        {FAIXAS.map((f) => <Legenda key={f.rotulo} cor={f.cor} rotulo={f.rotulo} />)}
+        <Legenda cor="#147a43" rotulo="Brasil (fora da escala)" />
         <Legenda cor="#caa733" rotulo="selecionado" />
       </div>
       <p className="mt-1.5 text-center text-[11px] muted">

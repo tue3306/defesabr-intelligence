@@ -316,7 +316,14 @@ function ProposalCard({ item, onOpen }) {
           <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${stage.classes}`}>
             <Icon size={11} /> {stage.label}
           </span>
-          {temBarra && <span className="font-mono text-xs font-bold tabular-nums muted">{stage.pct}%</span>}
+          {temBarra && (
+            <span
+              className="font-mono text-xs font-bold tabular-nums muted"
+              title="Posição no rito de tramitação, não probabilidade de virar lei."
+            >
+              tramitação {stage.pct}%
+            </span>
+          )}
         </div>
         {temBarra && (
           <span className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-gray-200 dark:bg-white/10">

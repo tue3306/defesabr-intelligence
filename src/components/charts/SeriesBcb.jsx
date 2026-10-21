@@ -160,7 +160,7 @@ export default function SeriesBcb({ series, height = 260, ordem }) {
               y={media}
               stroke={CHART_GOLD}
               strokeDasharray="4 4"
-              label={{ value: 'média', position: 'insideTopRight', fill: CHART_GOLD, fontSize: 10 }}
+              label={{ value: 'média', position: 'insideTopRight', fill: '#8a6f10', fontSize: 11 }}
             />
             <Line
               type="monotone"
