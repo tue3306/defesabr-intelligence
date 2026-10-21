@@ -21,6 +21,12 @@ O que ameaça o país, antes de virar notícia.
 [![SQLite](https://img.shields.io/badge/SQLite-node%3Asqlite-003b57?logo=sqlite&logoColor=white)](https://nodejs.org/api/sqlite.html)
 [![License: MIT](https://img.shields.io/badge/license-MIT-5c616a)](LICENSE)
 
+**[Projeto de pesquisa](docs/projeto-de-pesquisa.md)** ·
+**[Arquitetura](docs/ARCHITECTURE.md)** ·
+**[Mudanças](CHANGELOG.md)** ·
+**[Próximos passos](ROADMAP.md)** ·
+**[Visita guiada em vídeo](docs/video/visita-guiada.mp4)**
+
 </div>
 
 ---
@@ -315,7 +321,7 @@ conta é criada, ou assumida se o nome já estiver em uso.
 | Quem | O que alcança |
 |---|---|
 | **Visitante** | página inicial, centro educacional, sobre |
-| **Usuário** | painel, clipping, correlações, mapa, dados, radar legislativo, incidentes, grupos, busca, arquivo e pasta, notificações, minha conta e configurações |
+| **Usuário** | painel, clipping, correlações, mapa, Mundo & Conflitos, economia, base industrial, dados, radar legislativo, incidentes, grupos, busca, arquivo e pasta, notificações, modo apresentação, minha conta e configurações |
 | **Administrador** | tudo o que o usuário alcança, mais Console de Governança, Método & Coleta, Disponibilidade das Fontes, consulta de tramitação ao vivo e os avisos de falha de coleta |
 
 > **A verificação acontece no SERVIDOR.** O login devolve um token HMAC-SHA256

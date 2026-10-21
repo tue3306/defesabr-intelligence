@@ -14,8 +14,8 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
   alerta, "Em destaque agora" e o sino — e segue sozinha pelas principais
   telas: Clipping, Correlações, Mapa, Mundo & Conflitos, Economia, Base
   Industrial, Radar Legislativo, Incidentes, Grupos, Centro Educacional e
-  "Como decidimos", voltando ao Painel no fim. São 16 passos em 1 min 31 s,
-  medidos.
+  "Como decidimos", voltando ao Painel no fim. São 16 passos: os tempos somam
+  1 min 22 s e, com as transições, a visita leva cerca de 1 min 45 s — medidos.
 - Em cada tela, acende o item do **menu lateral** — é por ali que a pessoa
   volta sozinha depois — com um véu leve, para o conteúdo da página continuar
   visível, e explica em uma ou duas frases para que a tela serve.
