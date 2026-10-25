@@ -52,6 +52,30 @@ test('toda tabela de public tem RLS ligado e nenhuma política', async () => {
   assert.equal(politicas.length, 0)
 })
 
+test('iso_agora não é executável por PUBLIC (nem anon/authenticated no Supabase)', async () => {
+  const { rows } = await cliente.query(`
+    SELECT count(*)::int AS n
+      FROM pg_proc p, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
+     WHERE p.proname = 'iso_agora' AND a.grantee = 0 AND a.privilege_type = 'EXECUTE'`)
+  assert.equal(rows[0].n, 0)
+  // O dono (quem conecta o servidor) segue podendo: os DEFAULTs dependem dela.
+  const { rows: dono } = await cliente.query("SELECT iso_agora() AS v")
+  assert.ok(dono[0].v)
+})
+
+test('ROLLBACK que falha não esconde o erro original da migração', async () => {
+  const falso = {
+    async query(sql) {
+      if (sql.includes('CREATE TABLE IF NOT EXISTS schema_migrations')) return { rows: [] }
+      if (sql.startsWith('SELECT nome FROM schema_migrations')) return { rows: [] }
+      if (sql === 'BEGIN') return { rows: [] }
+      if (sql === 'ROLLBACK') throw new Error('conexão perdida')
+      throw new Error('erro original')
+    },
+  }
+  await assert.rejects(aplicarMigracoes(falso), /Migração 0001_esquema\.sql falhou: erro original/)
+})
+
 test('iso_agora formata como o SQLite', async () => {
   const { rows } = await cliente.query(
     "SELECT iso_agora() AS agora, iso_agora('-1 days') AS ontem, iso_agora('-14 minutes') AS antes",

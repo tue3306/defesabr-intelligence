@@ -2,8 +2,11 @@ import { readdir, readFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-// supabase/migrations/ na raiz do repositório: é onde a CLI do Supabase também
-// as procura, então o mesmo arquivo serve ao banco local e ao de produção.
+// supabase/migrations/ na raiz do repositório. O mesmo arquivo serve ao banco
+// local e ao de produção, mas quem aplica é SEMPRE `npm run migrate` (esta
+// função), nunca `supabase db push`: os nomes não seguem o carimbo de data que
+// a CLI do Supabase exige, e o controle do que já rodou é a nossa tabela
+// `schema_migrations`, não a `supabase_migrations` da CLI.
 const PASTA = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'supabase', 'migrations')
 
 // Migrações cujo nome começa com 01 dependem de pg_cron (agendamento), que só
@@ -65,7 +68,11 @@ async function aplicar(conexao) {
       await conexao.query('INSERT INTO schema_migrations (nome, aplicada_em) VALUES ($1, $2)', [arquivo, instante()])
       await conexao.query('COMMIT')
     } catch (erro) {
-      await conexao.query('ROLLBACK')
+      try {
+        await conexao.query('ROLLBACK')
+      } catch {
+        // Conexão já perdida: o erro que explica a falha é o da migração.
+      }
       throw new Error(`Migração ${arquivo} falhou: ${erro.message}`, { cause: erro })
     }
     aplicadas.push(arquivo)
