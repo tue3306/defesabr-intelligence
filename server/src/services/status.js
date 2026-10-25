@@ -22,6 +22,9 @@ export function enderecoDoBanco() {
   }
 }
 
+/** AUTH_SECRET do ambiente tem o tamanho mínimo para valer? */
+const segredoValidoNoAmbiente = () => (process.env.AUTH_SECRET || '').length >= 16
+
 // -----------------------------------------------------------------------------
 // STATUS DA PLATAFORMA
 //
@@ -379,7 +382,11 @@ export async function capacidades() {
         + 'requisição seguinte, sem esperar o token vencer. `npm run check:auth` confere as rotas.',
       fonte: 'server/src/lib/auth.js · server/src/routes/auth.js',
       pendente: 'Recuperação de senha e confirmação de e-mail não existem: dependem de envio de '
-        + 'e-mail, que esta instalação não tem.',
+        + 'e-mail, que esta instalação não tem.'
+        + (config.ambiente === 'production' && !segredoValidoNoAmbiente()
+          ? ' Defina AUTH_SECRET (16+ caracteres) no ambiente: sem ela o segredo das sessões fica '
+            + 'só no banco e não sobrevive a um banco recriado.'
+          : ''),
       metricas: {
         contas: (await get('SELECT COUNT(*) AS n FROM users'))?.n ?? 0,
         papeis: 2,

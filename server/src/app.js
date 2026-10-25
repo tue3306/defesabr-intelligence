@@ -228,6 +228,7 @@ export function criarApp() {
     if (config.ambiente !== 'production') console.error(err?.stack)
     res.status(err?.status || 500).json({
       error: err?.expose ? err.message : 'Erro interno no servidor.',
+      ...(err?.expose && err.code ? { code: err.code } : {}),
       // O detalhe só sai fora de produção: em produção ele vaza estrutura
       // interna para quem quer que consiga provocar o erro.
       ...(config.ambiente !== 'production' ? { detalhe: String(err?.message || err) } : {}),

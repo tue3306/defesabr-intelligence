@@ -87,8 +87,22 @@ export function segredoDaSessao() {
   return cache
 }
 
+/** Erro de quem precisa do segredo e não o tem: 503, nunca 401. */
+function sessaoIndisponivel(causa) {
+  const err = new Error('Sessões indisponíveis no momento. Tente de novo em instantes.', { cause: causa })
+  err.status = 503
+  err.expose = true
+  err.code = 'SESSAO_INDISPONIVEL'
+  return err
+}
+
 async function assinar(payloadB64) {
-  const { segredo } = await segredoDaSessao()
+  let segredo
+  try {
+    ({ segredo } = await segredoDaSessao())
+  } catch (err) {
+    throw sessaoIndisponivel(err)
+  }
   return createHmac('sha256', segredo).update(payloadB64).digest('base64url')
 }
 
@@ -151,16 +165,31 @@ export async function lerToken(token) {
  */
 const HIERARQUIA = { user: 1, admin: 2 }
 
+function indisponivel(res) {
+  return res.status(503).json({
+    error: 'Serviço temporariamente indisponível. Tente de novo em instantes.',
+    code: 'BANCO_INDISPONIVEL',
+  })
+}
+
 /**
  * Middleware: lê o token do cabeçalho e põe a conta em `req.conta`.
  *
  * Não bloqueia — rotas públicas continuam públicas. Quem exige papel usa
  * `exigirPapel` abaixo.
  */
-export async function lerConta(req, _res, next) {
+export async function lerConta(req, res, next) {
   const cabecalho = req.headers.authorization || ''
   const token = cabecalho.startsWith('Bearer ') ? cabecalho.slice(7) : null
-  const payload = token ? await lerToken(token) : null
+  let payload = null
+  try {
+    payload = token ? await lerToken(token) : null
+  } catch {
+    // Sem o segredo não dá para dizer se o token vale: indisponibilidade, não
+    // credencial inválida. Responder 401 faria o navegador desconectar quem
+    // está com sessão boa.
+    return indisponivel(res)
+  }
 
   // ───────────────────────────────────────────────────────────────────────────
   // O TOKEN PROVA QUEM É. O BANCO DIZ O QUE ESSA PESSOA PODE AGORA.
@@ -184,11 +213,15 @@ export async function lerConta(req, _res, next) {
     return next()
   }
 
+  // Banco fora NÃO é "conta inexistente": tratar como 401 desconectaria todo
+  // mundo a cada soluço do banco. O 401 fica só para conta inexistente,
+  // suspensa ou revogada.
   let atual = null
   try {
     atual = await get('SELECT name, role, status, sessoes_desde FROM users WHERE id = ?', [payload.sub])
-  } catch {
-    atual = null
+  } catch (err) {
+    console.error('[auth] banco indisponível ao ler a conta:', err?.message || err)
+    return indisponivel(res)
   }
 
   // Token emitido antes do marco de revogação — troca de senha ou "encerrar

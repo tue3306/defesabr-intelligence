@@ -53,7 +53,7 @@ const servidor = app.listen(config.port, config.host, async () => {
   if (contas.removidas) console.log(`  Contas        ${contas.removidas} conta(s) pública(s) antiga(s) removida(s)`)
   for (const aviso of contas.avisos) console.log(`  [33mContas        ${aviso}[0m`)
   // De onde veio o segredo que assina as sessoes. Quem hospeda precisa saber:
-  // 'banco' sobrevive a reinicio; 'memoria' nao.
+  // 'ambiente' e 'banco' sobrevivem a reinicio.
   let seg = {}
   try {
     seg = await segredoDaSessao()
@@ -64,8 +64,6 @@ const servidor = app.listen(config.port, config.host, async () => {
     console.log('  [2mSessões       segredo gerado e guardado no banco desta instalação[0m')
   } else if (seg.origem === 'banco') {
     console.log('  [2mSessões       segredo do banco — sobrevivem ao reinício[0m')
-  } else if (seg.origem === 'memoria') {
-    console.log('  [33mSessões       segredo em memória: caem a cada reinício (banco não gravável)[0m')
   }
   if (config.auth.segredoFraco) {
     // Em amarelo, não em cinza: quem definiu a variável acredita ter
