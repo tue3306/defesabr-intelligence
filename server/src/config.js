@@ -166,6 +166,14 @@ export const config = {
     },
   },
 
+  // Segredo do Bearer que o pg_cron (Supabase) envia a POST /api/cron/ciclo.
+  // Abaixo de 16 caracteres é ignorado, como o AUTH_SECRET: segredo curto
+  // parece configurado e é adivinhável. Ignorado = a rota responde 503, e o
+  // cron fica desligado em vez de aberto.
+  cron: {
+    segredo: (process.env.CRON_SECRET || '').length >= 16 ? process.env.CRON_SECRET : null,
+  },
+
   coleta: {
     // Intervalo do ciclo de coleta. 0 desliga — útil em teste automatizado.
     //

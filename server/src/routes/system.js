@@ -157,7 +157,7 @@ router.get('/meta', async (req, res) => {
     node: process.version,
     ambiente: config.ambiente,
     deploy: config.deploy,
-    agendador: estadoDoAgendador(),
+    agendador: await estadoDoAgendador(),
     // O banco sobrevive à próxima publicação? Era a pergunta que explicava
     // contas que "somiam sozinhas" no disco efêmero do Railway. Com o Postgres
     // gerenciado a resposta é sempre sim; o campo fica para quem já o lê.

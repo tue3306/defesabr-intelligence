@@ -138,6 +138,21 @@ const ROTAS = [
   //
   // Identificador inexistente de propósito: 404 prova que a guarda passou sem
   // mexer no estado de leitura de ninguém. `read-all` muda só a conta que chama.
+  // O ciclo do pg_cron autentica por segredo compartilhado, não por sessão: o
+  // papel não muda nada. O que se mede é a GUARDA, sem depender do valor do
+  // CRON_SECRET (que a suíte não conhece): sem cabeçalho e com Bearer errado
+  // devem dar 401 em qualquer identidade. Exige a API subida COM CRON_SECRET —
+  // sem ele a rota responde 503, e este caso falha de propósito.
+  { metodo: 'POST', caminho: '/api/cron/ciclo', minimo: null, autorizado: 401, muta: true },
+  {
+    metodo: 'POST',
+    caminho: '/api/cron/ciclo',
+    minimo: null,
+    autorizado: 401,
+    cabecalhos: { Authorization: 'Bearer errado' },
+    muta: true,
+  },
+
   { metodo: 'GET', caminho: '/api/notifications', minimo: 'user' },
   { metodo: 'POST', caminho: '/api/notifications/read-all', minimo: 'user', muta: true },
   { metodo: 'POST', caminho: '/api/notifications/999999/read', minimo: 'user', autorizado: 404, muta: true },
@@ -257,6 +272,8 @@ async function main() {
           headers: {
             'Content-Type': 'application/json',
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            // Depois da sessão: o caso do cron precisa sobrepor o Authorization.
+            ...(rota.cabecalhos || {}),
           },
           body: rota.corpo ? JSON.stringify(rota.corpo) : undefined,
         })

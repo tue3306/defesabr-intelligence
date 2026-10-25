@@ -13,6 +13,8 @@ import metodo from './routes/metodo.js'
 import notificacoes from './routes/notificacoes.js'
 import mundo from './routes/mundo.js'
 import { lerConta } from './lib/auth.js'
+import { waitUntil } from '@vercel/functions'
+import { criarRotaCron } from './routes/cron.js'
 
 // -----------------------------------------------------------------------------
 // APLICAÇÃO EXPRESS
@@ -151,6 +153,11 @@ export function criarApp() {
   // olha a promessa: sem o `.catch(next)`, uma falha ao resolver o segredo
   // deixaria a requisição pendurada em vez de virar 500 JSON.
   app.use('/api', (req, res, next) => lerConta(req, res, next).catch(next))
+
+  // Fora da Vercel `waitUntil` não faz nada (o contexto não existe) e a promessa
+  // segue por conta própria, pois o processo continua vivo. A promessa recebida
+  // já vem com `.catch`, então nunca vira rejeição sem dono.
+  app.use('/api', criarRotaCron({ emSegundoPlano: waitUntil }))
 
   app.use('/api', autenticacao)
   app.use('/api', noticias)

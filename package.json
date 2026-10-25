@@ -27,6 +27,7 @@
     "test:server": "npm --prefix server test"
   },
   "dependencies": {
+    "@vercel/functions": "^3.10.3",
     "framer-motion": "^11.3.24",
     "jspdf": "^4.2.1",
     "lucide-react": "^0.427.0",

@@ -116,6 +116,7 @@ async function capacidadeDeColeta({ id, nome, coletor, descricao, evidencia, con
 
 /** Todas as capacidades da plataforma, com o estado real de cada uma. */
 export async function capacidades() {
+  const estadoAgendador = await estadoDoAgendador()
   const artigos = await contar('SELECT COUNT(*) AS n FROM articles')
   const relevantes = await contar('SELECT COUNT(*) AS n FROM articles WHERE relevant = 1')
   // Denominador do filtro do Brasil: sem o que só a lente mundial gravou
@@ -294,7 +295,7 @@ export async function capacidades() {
       nome: 'Agendador de coleta',
       grupo: 'Processamento',
       ...(() => {
-        const s = estadoDoAgendador()
+        const s = estadoAgendador
         return {
           estado: s.ativo ? 'operacional' : 'opcional',
           detalhe: s.ativo
@@ -418,7 +419,7 @@ export async function panorama() {
         : 0,
     },
     capacidades: caps,
-    agendador: estadoDoAgendador(),
+    agendador: await estadoDoAgendador(),
     acervo: {
       artigos: await contar('SELECT COUNT(*) AS n FROM articles'),
       artigosRelevantes: await contar('SELECT COUNT(*) AS n FROM articles WHERE relevant = 1'),

@@ -11,6 +11,7 @@ import { coletarBcb } from './bcb.js'
 import { calcularCorrelacoes } from './correlacoes.js'
 import { derivarGeografia } from './geografia.js'
 import { gerarNotificacoes } from '../lib/notificacoes.js'
+import { tomarArrendamento, liberarArrendamento, arrendamentoTomado } from '../lib/arrendamento.js'
 
 // -----------------------------------------------------------------------------
 // ORQUESTRAÇÃO DA COLETA
@@ -253,7 +254,6 @@ export async function coletarTudo(gatilho = 'agendado', { somente } = {}) {
 // ─────────────────────────────────────────────────────────────────────────────
 let temporizador = null
 let ativo = false
-let emAndamento = false
 let ultimaExecucao = null
 let proximaExecucao = null
 
@@ -263,8 +263,9 @@ let proximaExecucao = null
  * Com `setInterval` o relógio contava do início, então uma coleta de 3 minutos
  * deixava só 12 até a seguinte e "próxima coleta" na tela mostrava o horário
  * errado. Encadeado, o intervalo é sempre entre o fim de um e o começo do outro,
- * e não há como dois ciclos do agendador se sobreporem. A trava `emAndamento`
- * continua valendo para a coleta disparada à mão no meio de um ciclo.
+ * e não há como dois ciclos do agendador se sobreporem. O arrendamento em banco
+ * (`iniciarColeta`) vale para a coleta disparada à mão ou pelo pg_cron no meio
+ * de um ciclo, inclusive vinda de outra instância.
  */
 export function iniciarAgendador() {
   const minutos = config.coleta.intervaloMinutos
@@ -284,15 +285,11 @@ export function iniciarAgendador() {
 
   const ciclo = async () => {
     temporizador = null
-    if (!emAndamento) {
-      emAndamento = true
-      try {
-        ultimaExecucao = await coletarTudo('agendado')
-      } catch (err) {
-        console.error('[coleta] ciclo falhou:', err?.message || err)
-      } finally {
-        emAndamento = false
-      }
+    try {
+      const coleta = await iniciarColeta('agendado')
+      if (coleta) await coleta.concluido
+    } catch (err) {
+      console.error('[coleta] ciclo falhou:', err?.message || err)
     }
     agendar()
   }
@@ -308,27 +305,57 @@ export function pararAgendador() {
   proximaExecucao = null
 }
 
-/** Coleta sob demanda, com a mesma trava do agendador. */
-export async function coletarAgora(gatilho = 'manual') {
-  if (emAndamento) {
-    return { jaEmAndamento: true, mensagem: 'Já existe uma coleta em andamento.' }
-  }
-  emAndamento = true
-  try {
-    ultimaExecucao = await coletarTudo(gatilho)
-    return ultimaExecucao
-  } finally {
-    emAndamento = false
-  }
+// Validade do arrendamento da coleta. Folga sobre o ciclo medido (59 s a frio)
+// e abaixo do intervalo do cron: se a função morrer sem liberar, o próximo
+// ciclo retoma sozinho em vez de ficar trancado.
+const VALIDADE_COLETA_MS = 360_000
+
+/**
+ * Toma o arrendamento `'coleta'` e inicia o ciclo.
+ *
+ * Devolve `null` se outro ciclo detém o arrendamento; senão `{ concluido }`, com
+ * a promessa do ciclo. É um objeto, e não a promessa direta, porque uma função
+ * `async` achata promessas: devolver a promessa do ciclo faria `await
+ * iniciarColeta()` esperar o ciclo inteiro, e a rota do cron precisa responder
+ * 202 antes disso.
+ *
+ * O arrendamento é liberado no `finally`, mesmo se o ciclo lançar; falha ao
+ * liberar é registrada e não derruba o resultado (o vencimento cobre o resto).
+ * `ciclo` existe para teste.
+ */
+export async function iniciarColeta(gatilho, { somente, ciclo = coletarTudo } = {}) {
+  const token = await tomarArrendamento('coleta', VALIDADE_COLETA_MS)
+  if (!token) return null
+  const concluido = (async () => {
+    try {
+      ultimaExecucao = await ciclo(gatilho, { somente })
+      return ultimaExecucao
+    } finally {
+      await liberarArrendamento('coleta', token).catch((err) => {
+        console.error('[coleta] falha ao liberar o arrendamento:', err?.message || err)
+      })
+    }
+  })()
+  return { concluido }
 }
 
-export const estadoDoAgendador = () => ({
+/** Coleta sob demanda, com o mesmo arrendamento do agendador e do cron. */
+export async function coletarAgora(gatilho = 'manual') {
+  const coleta = await iniciarColeta(gatilho)
+  if (!coleta) {
+    return { jaEmAndamento: true, mensagem: 'Já existe uma coleta em andamento.' }
+  }
+  return coleta.concluido
+}
+
+/** `emAndamento` reflete o arrendamento no banco: vale entre instâncias. */
+export const estadoDoAgendador = async () => ({
   ativo,
-  emAndamento,
+  emAndamento: await arrendamentoTomado('coleta'),
   intervaloMinutos: config.coleta.intervaloMinutos,
   proximaExecucao,
   ultimaExecucao: ultimaExecucao?.concluidoEm || null,
 })
 
 export { semearFontes, coletarFonte, coletarTodas }
-export default { coletarTudo, coletarAgora, iniciarAgendador, pararAgendador, estadoDoAgendador }
+export default { coletarTudo, coletarAgora, iniciarColeta, iniciarAgendador, pararAgendador, estadoDoAgendador }
