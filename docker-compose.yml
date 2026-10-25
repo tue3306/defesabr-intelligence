@@ -1,0 +1,25 @@
+# Postgres local para desenvolvimento e testes. Em produção o banco é o
+# Supabase; aqui a versão acompanha a dele para o SQL rodar igual nos dois.
+# A porta 54329 evita colidir com um Postgres já instalado na máquina (5432).
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: defesabr
+      POSTGRES_PASSWORD: defesabr
+      POSTGRES_DB: defesabr
+    ports:
+      - "54329:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Cria o banco de testes, separado do de desenvolvimento: os testes
+      # recriam o schema inteiro e não podem apagar dados de quem desenvolve.
+      - ./docker/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U defesabr -d defesabr"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  pgdata:

@@ -678,6 +678,8 @@ interface, e a pessoa vê o aviso de que precisa entrar de novo.
 
 ## Deploy no Railway
 
+> Migração em curso para Vercel + Supabase: veja o roteiro em [`docs/DEPLOY.md`](docs/DEPLOY.md).
+
 Esta instância está no ar em
 **[defesabr-intelligence-production-a8cb.up.railway.app](https://defesabr-intelligence-production-a8cb.up.railway.app/)**,
 publicada a cada push na `main`.

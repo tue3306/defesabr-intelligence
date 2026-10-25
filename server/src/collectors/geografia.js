@@ -1,5 +1,5 @@
 import { all, run, agora, transacao } from '../db/index.js'
-import config from '../config.js'
+import { aplicarRetencao } from '../lib/retencao.js'
 import { detectarPaises } from '../lib/geo.js'
 import { avaliarMundo, detectarTeatros, urgenciaMundo } from '../lib/mundo.js'
 import { limparRodape, CARACTERES_CONSIDERADOS } from '../lib/relevance.js'
@@ -29,8 +29,9 @@ import { limparRodape, CARACTERES_CONSIDERADOS } from '../lib/relevance.js'
 //      na coleta.
 //   2. Países e teatros são recalculados do zero para o artigo (apaga e grava),
 //      o que torna o passo idempotente.
-//   3. Retenção: cobertura só internacional mais velha que
-//      `MUNDO_RETENCAO_DIAS` sai do banco.
+//   3. Retenção (lib/retencao.js): cobertura só internacional mais velha que
+//      `MUNDO_RETENCAO_DIAS` sai do banco, e a janela encurta se ele passar do
+//      orçamento.
 //
 // A ORDEM NO CICLO: roda depois de `rss` e `agregadores`, que trazem os
 // artigos, e antes de `correlacoes` — a mesma ideia de dependência expressa
@@ -42,10 +43,12 @@ const TETO_POR_CICLO = 3000
 
 /**
  * Artigos por transação. Entre um lote e outro o laço devolve a vez ao event
- * loop: medido na cópia do acervo, cada artigo custa ~2,5 ms (788 derivados em
- * 2,0 s, lente + países + teatros + escrita). 3.000 numa transação só seriam
- * quase oito segundos de servidor surdo, healthcheck incluído; em lotes de 50,
- * a maior pausa fica perto de 130 ms.
+ * loop: a lente e a detecção de países são CPU síncrona (a escrita agora é
+ * assíncrona, mas o custo da avaliação continua). Medido na cópia do acervo
+ * com o adaptador anterior, cada artigo custava ~2,5 ms; 3.000 numa só
+ * passagem seriam quase oito segundos de servidor surdo, healthcheck incluído.
+ * Em lotes de 50, a maior pausa fica perto de 130 ms, e cada transação
+ * continua curta.
  */
 const LOTE = 50
 
@@ -63,11 +66,11 @@ const textoDoArtigo = (a) => limparRodape(`${a.title} ${a.summary || ''}`).slice
 export async function derivarGeografia() {
   const inicio = Date.now()
   try {
-    const pendentes = all(
+    const pendentes = await all(
       `SELECT id, title, summary, relevant, mundo, mundo_score
          FROM articles
         WHERE geo_at IS NULL
-        ORDER BY published_at DESC
+        ORDER BY published_at DESC NULLS LAST
         LIMIT ${TETO_POR_CICLO}`
     )
 
@@ -78,7 +81,7 @@ export async function derivarGeografia() {
 
     for (let i = 0; i < pendentes.length; i += LOTE) {
       const lote = pendentes.slice(i, i + LOTE)
-      transacao(() => {
+      await transacao(async () => {
         const quando = agora()
         for (const a of lote) {
           const texto = textoDoArtigo(a)
@@ -88,13 +91,13 @@ export async function derivarGeografia() {
             const termos = m.termos.slice(0, 8).join(', ') || null
             const noMundo = m.mundo ? urgenciaMundo(a.title) : null
             if (!a.relevant && m.mundo) {
-              run(
+              await run(
                 `UPDATE articles SET mundo = 1, mundo_score = ?, mundo_termos = ?,
                         category = 'Internacional', urgency = ?, urgency_mundo = ? WHERE id = ?`,
                 [m.pontos, termos, noMundo, noMundo, a.id]
               )
             } else {
-              run(
+              await run(
                 'UPDATE articles SET mundo = ?, mundo_score = ?, mundo_termos = ?, urgency_mundo = ? WHERE id = ?',
                 [m.mundo ? 1 : 0, m.pontos, termos, noMundo, a.id]
               )
@@ -103,17 +106,17 @@ export async function derivarGeografia() {
             if (m.mundo && !a.mundo) novos += 1
           }
 
-          run('DELETE FROM article_paises WHERE article_id = ?', [a.id])
-          run('DELETE FROM article_teatros WHERE article_id = ?', [a.id])
+          await run('DELETE FROM article_paises WHERE article_id = ?', [a.id])
+          await run('DELETE FROM article_teatros WHERE article_id = ?', [a.id])
           for (const pais of detectarPaises(texto)) {
-            run('INSERT OR IGNORE INTO article_paises (article_id, pais) VALUES (?, ?)', [a.id, pais])
+            await run('INSERT INTO article_paises (article_id, pais) VALUES (?, ?) ON CONFLICT DO NOTHING', [a.id, pais])
             paises += 1
           }
           for (const teatro of detectarTeatros(texto)) {
-            run('INSERT OR IGNORE INTO article_teatros (article_id, teatro) VALUES (?, ?)', [a.id, teatro])
+            await run('INSERT INTO article_teatros (article_id, teatro) VALUES (?, ?) ON CONFLICT DO NOTHING', [a.id, teatro])
             teatros += 1
           }
-          run('UPDATE articles SET geo_at = ? WHERE id = ?', [quando, a.id])
+          await run('UPDATE articles SET geo_at = ? WHERE id = ?', [quando, a.id])
         }
       })
       if (i + LOTE < pendentes.length) await ceder()
@@ -124,27 +127,22 @@ export async function derivarGeografia() {
     // `urgency_mundo` nasceu depois do acervo. Sem isto, as matérias do mundo
     // já gravadas seguiriam lidas pela urgência do Brasil — agora com teto —
     // e a área Mundo mostraria "Kiev sofre novo ataque" como MÉDIO.
-    const semEscala = all(
+    const semEscala = await all(
       `SELECT id, title FROM articles WHERE mundo = 1 AND urgency_mundo IS NULL LIMIT ${TETO_POR_CICLO}`
     )
     if (semEscala.length) {
-      transacao(() => {
-        for (const a of semEscala) run('UPDATE articles SET urgency_mundo = ? WHERE id = ?', [urgenciaMundo(a.title), a.id])
+      await transacao(async () => {
+        for (const a of semEscala) await run('UPDATE articles SET urgency_mundo = ? WHERE id = ?', [urgenciaMundo(a.title), a.id])
       })
     }
 
     // ── RETENÇÃO ──
     //
-    // Só o que é EXCLUSIVAMENTE internacional (`relevant = 0 AND mundo = 1`): o
-    // acervo de defesa do Brasil não tem prazo. E nunca o que está numa pasta —
-    // `bookmarks` tem chave estrangeira com CASCADE, e apagar a matéria
-    // apagaria em silêncio o que alguém guardou de propósito.
-    const removidos = Number(run(
-      `DELETE FROM articles
-        WHERE relevant = 0 AND mundo = 1
-          AND published_at < strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-${config.mundo.retencaoDias} days')
-          AND id NOT IN (SELECT article_id FROM bookmarks)`
-    ).changes || 0)
+    // Por prazo e por pressão contra o teto do banco; poupa `relevant = 1` e o
+    // que está numa pasta. Ver lib/retencao.js. `removidos` segue sendo o
+    // número de matérias só-mundo apagadas, como o histórico de execuções espera.
+    const retencao = await aplicarRetencao()
+    const removidos = retencao.removidos.mundo
 
     return {
       ok: true,

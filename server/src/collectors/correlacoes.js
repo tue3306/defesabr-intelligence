@@ -56,13 +56,13 @@ const TETO_POR_CICLO = 900
 export async function calcularCorrelacoes({ janelaDias = JANELA_RECALCULO_DIAS, teto = TETO_POR_CICLO } = {}) {
   const inicio = Date.now()
 
-  const artigos = all(
+  const artigos = await all(
     `SELECT id, title, summary, category, urgency, published_at
        FROM articles
       WHERE relevant = 1
         AND (published_at IS NULL
-             OR published_at >= strftime('%Y-%m-%dT%H:%M:%SZ','now', '-${Math.trunc(janelaDias)} days'))
-      ORDER BY published_at DESC
+             OR published_at >= iso_agora('-${Math.trunc(janelaDias)} days'))
+      ORDER BY published_at DESC NULLS LAST
       LIMIT ${Math.trunc(teto)}`
   )
 
@@ -75,38 +75,40 @@ export async function calcularCorrelacoes({ janelaDias = JANELA_RECALCULO_DIAS, 
   let comCorrelacao = 0
 
   // Uma transação para o lote inteiro. São milhares de escritas pequenas; sem
-  // isso, cada uma vira uma sincronização de disco e o passo passa de segundos
-  // a minutos.
-  transacao(() => {
+  // isso, cada uma vira um commit próprio (e uma ida e volta ao banco) e o
+  // passo passa de segundos a minutos.
+  await transacao(async () => {
     for (const a of artigos) {
-      const { entidades, correlacoes, brScore, brMotivo } = correlacionar(a)
+      const { entidades, correlacoes, brScore, brMotivo } = await correlacionar(a)
 
       // Substitui o resultado anterior deste artigo em vez de acumular: o
       // recálculo tem de ser idempotente, senão cada ciclo duplicaria as
       // ligações e a contagem exibida cresceria sozinha.
-      run('DELETE FROM article_entities WHERE article_id = ?', [a.id])
-      run('DELETE FROM correlations WHERE article_id = ?', [a.id])
+      await run('DELETE FROM article_entities WHERE article_id = ?', [a.id])
+      await run('DELETE FROM correlations WHERE article_id = ?', [a.id])
 
       for (const e of entidades) {
-        run(
-          `INSERT OR IGNORE INTO article_entities (article_id, tipo, entidade_id, nome, termo)
-           VALUES (?, ?, ?, ?, ?)`,
+        await run(
+          `INSERT INTO article_entities (article_id, tipo, entidade_id, nome, termo)
+           VALUES (?, ?, ?, ?, ?)
+           ON CONFLICT DO NOTHING`,
           [a.id, e.tipo, e.id, e.nome, e.termo]
         )
       }
 
       for (const c of correlacoes) {
-        run(
-          `INSERT OR IGNORE INTO correlations
+        await run(
+          `INSERT INTO correlations
              (article_id, regra, alvo_tipo, alvo_id, alvo_rotulo, motivo, evidencia,
               contexto_br, impacto, forca)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT DO NOTHING`,
           [a.id, c.regra, c.alvoTipo, String(c.alvoId).slice(0, 200), c.alvoRotulo,
             c.motivo, c.evidencia, c.contextoBr, c.impacto, c.forca]
         )
       }
 
-      run('UPDATE articles SET br_score = ?, br_motivo = ? WHERE id = ?', [brScore, brMotivo, a.id])
+      await run('UPDATE articles SET br_score = ?, br_motivo = ? WHERE id = ?', [brScore, brMotivo, a.id])
 
       totalEntidades += entidades.length
       totalCorrelacoes += correlacoes.length
@@ -137,25 +139,25 @@ export async function calcularCorrelacoes({ janelaDias = JANELA_RECALCULO_DIAS, 
  * total que não acompanha o filtro que está logo acima dele parece conta
  * errada, e era.
  */
-export function panoramaCorrelacao(dias) {
+export async function panoramaCorrelacao(dias) {
   const naJanela = Number.isInteger(dias) && dias > 0
-    ? `(a.published_at IS NULL OR a.published_at >= strftime('%Y-%m-%dT%H:%M:%SZ','now', '-${dias} days'))`
+    ? `(a.published_at IS NULL OR a.published_at >= iso_agora('-${dias} days'))`
     : '1 = 1'
   const comArtigo = `FROM correlations c JOIN articles a ON a.id = c.article_id WHERE ${naJanela}`
   return {
     periodoDias: Number.isInteger(dias) && dias > 0 ? dias : null,
-    artigosAvaliados: get(`SELECT COUNT(*) AS n FROM articles a WHERE a.br_score IS NOT NULL AND ${naJanela}`)?.n ?? 0,
-    artigosComCorrelacao: get(`SELECT COUNT(DISTINCT c.article_id) AS n ${comArtigo}`)?.n ?? 0,
-    correlacoes: get(`SELECT COUNT(*) AS n ${comArtigo}`)?.n ?? 0,
+    artigosAvaliados: (await get(`SELECT COUNT(*) AS n FROM articles a WHERE a.br_score IS NOT NULL AND ${naJanela}`))?.n ?? 0,
+    artigosComCorrelacao: (await get(`SELECT COUNT(DISTINCT c.article_id) AS n ${comArtigo}`))?.n ?? 0,
+    correlacoes: (await get(`SELECT COUNT(*) AS n ${comArtigo}`))?.n ?? 0,
     // Todas as outras parcelas respeitam `naJanela`; esta varria a tabela
     // inteira e saía ao lado de `periodoDias`, inflando 748 contra 290 em 30
     // dias. Um total que não acompanha o filtro logo acima parece conta
     // errada — e era.
-    entidades: get(
+    entidades: (await get(
       `SELECT COUNT(*) AS n FROM article_entities ae
          JOIN articles a ON a.id = ae.article_id WHERE ${naJanela}`
-    )?.n ?? 0,
-    porRegra: all(
+    ))?.n ?? 0,
+    porRegra: await all(
       `SELECT c.regra, COUNT(*) AS total, MAX(c.forca) AS forca
          ${comArtigo} GROUP BY c.regra ORDER BY forca DESC, total DESC`
     ),

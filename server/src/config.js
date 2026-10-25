@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import { dirname, join, isAbsolute } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 // -----------------------------------------------------------------------------
@@ -38,6 +38,42 @@ const numOuZero = (valor, padrao) => {
   return Number.isFinite(n) && n >= 0 ? n : padrao
 }
 
+// AMBIENTE — e por que ele não é só `process.env.NODE_ENV`.
+//
+// O Railway não define NODE_ENV por conta própria. O deploy subia, portanto,
+// com `ambiente: 'development'`, e três comportamentos de desenvolvimento
+// ficavam ativos num serviço público:
+//
+//   • o tratador de erros anexava `detalhe` com a mensagem crua da exceção,
+//     expondo estrutura interna a quem conseguisse provocar um 500;
+//   • o CORS liberava QUALQUER origem localhost — conferido no ar, a
+//     produção respondia `access-control-allow-origin: http://localhost:9999`;
+//   • o log despejava o stack de cada erro.
+//
+// Depender de alguém lembrar de definir a variável no painel é depender de
+// memória para uma decisão de segurança. O Railway injeta as suas próprias
+// variáveis em todo deploy; a presença delas é sinal suficiente.
+//
+// A Vercel também não define NODE_ENV na função, mas injeta VERCEL_ENV
+// ('production', 'preview' ou 'development'). Preview conta como produção de
+// propósito: é uma URL pública, com o mesmo código, e precisa das mesmas
+// defesas — e, por isso, das mesmas variáveis obrigatórias (DATABASE_URL etc.).
+// 'development' só aparece em `vercel dev`, na máquina de quem desenvolve.
+//
+// NODE_ENV explícito continua tendo a palavra final — quem quiser depurar em
+// produção define `NODE_ENV=development` e assume a escolha.
+// Definido fora do objeto porque `banco` também precisa dele durante a
+// construção; `config.ambiente` apenas o expõe, para haver uma só definição.
+const ambienteAtual = process.env.NODE_ENV
+  || (process.env.RAILWAY_ENVIRONMENT
+    || process.env.RAILWAY_ENVIRONMENT_NAME
+    || process.env.RAILWAY_PROJECT_ID
+    || process.env.RAILWAY_SERVICE_ID
+    || process.env.VERCEL_ENV === 'production'
+    || process.env.VERCEL_ENV === 'preview'
+    ? 'production'
+    : 'development')
+
 export const config = {
   // O Railway injeta PORT; localmente cai em 3001.
   port: num(process.env.PORT, 3001),
@@ -46,67 +82,28 @@ export const config = {
   // servidor subir e ficar inalcançável de fora do contêiner.
   host: process.env.HOST || '0.0.0.0',
 
-  // AMBIENTE — e por que ele não é só `process.env.NODE_ENV`.
-  //
-  // O Railway não define NODE_ENV por conta própria. O deploy subia, portanto,
-  // com `ambiente: 'development'`, e três comportamentos de desenvolvimento
-  // ficavam ativos num serviço público:
-  //
-  //   • o tratador de erros anexava `detalhe` com a mensagem crua da exceção,
-  //     expondo estrutura interna a quem conseguisse provocar um 500;
-  //   • o CORS liberava QUALQUER origem localhost — conferido no ar, a
-  //     produção respondia `access-control-allow-origin: http://localhost:9999`;
-  //   • o log despejava o stack de cada erro.
-  //
-  // Depender de alguém lembrar de definir a variável no painel é depender de
-  // memória para uma decisão de segurança. O Railway injeta as suas próprias
-  // variáveis em todo deploy; a presença delas é sinal suficiente.
-  //
-  // NODE_ENV explícito continua tendo a palavra final — quem quiser depurar em
-  // produção define `NODE_ENV=development` e assume a escolha.
-  ambiente: process.env.NODE_ENV
-    || (process.env.RAILWAY_ENVIRONMENT
-      || process.env.RAILWAY_ENVIRONMENT_NAME
-      || process.env.RAILWAY_PROJECT_ID
-      || process.env.RAILWAY_SERVICE_ID
-      ? 'production'
-      : 'development'),
+  ambiente: ambienteAtual,
 
-  // O banco fica em server/data/ por padrão. No Railway, apontar DB_PATH para
-  // um volume montado é o que dá persistência entre deploys — sem volume, o
-  // disco é efêmero e o acervo é recoletado a cada reinício.
-  // ───────────────────────────────────────────────────────────────────────────
-  // ONDE O BANCO MORA, E POR QUE O VOLUME É DETECTADO SOZINHO
+  // POSTGRES (Supabase em produção, Docker em desenvolvimento).
   //
-  // No Railway, o disco do contêiner é EFÊMERO: cada publicação sobe um
-  // contêiner novo e o banco nasce vazio. O acervo se recoleta em segundos, mas
-  // as CONTAS não voltam — quem tinha conta some, e a instalação fica sem
-  // administrador. Foi o que aconteceu neste projeto, deploy após deploy.
-  //
-  // A solução é montar um volume. O que se pedia era montar o volume E definir
-  // `DB_PATH` apontando para ele — duas ações, e esquecer a segunda deixa tudo
-  // exatamente como estava, sem erro nenhum na tela.
-  //
-  // O Railway injeta `RAILWAY_VOLUME_MOUNT_PATH` em todo serviço com volume
-  // montado. Lendo essa variável, montar o volume BASTA: o banco passa a viver
-  // nele sozinho. `DB_PATH` continua tendo precedência, para quem quiser
-  // escolher o caminho.
-  // ───────────────────────────────────────────────────────────────────────────
-  dbPath: (() => {
-    const p = process.env.DB_PATH
-    if (p) return isAbsolute(p) ? p : join(process.cwd(), p)
-    const volume = process.env.RAILWAY_VOLUME_MOUNT_PATH
-    if (volume) return join(volume, 'defesabr.db')
-    return join(raiz, 'data', 'defesabr.db')
-  })(),
-
-  // O banco sobrevive à próxima publicação?
-  //
-  // `efemero` é só para produção: na máquina de quem desenvolve, `server/data`
-  // persiste e não há nada a avisar.
-  armazenamento: {
-    volume: process.env.RAILWAY_VOLUME_MOUNT_PATH || null,
-    caminhoEscolhido: Boolean(process.env.DB_PATH),
+  // Em produção não há padrão: um servidor que subisse apontando para o
+  // Postgres local falharia só na primeira consulta, longe da causa. Melhor
+  // recusar o boot com a mensagem certa.
+  banco: {
+    url: (() => {
+      const url = process.env.DATABASE_URL
+      if (url) return url
+      if (ambienteAtual === 'production') {
+        throw new Error('DATABASE_URL não definida: em produção a conexão com o Postgres (Supabase) é obrigatória.')
+      }
+      return 'postgres://defesabr:defesabr@localhost:54329/defesabr'
+    })(),
+    // Cada função serverless abre o próprio pool; poucas conexões por instância
+    // para não estourar o limite do pooler do Supabase.
+    poolMax: num(process.env.DB_POOL_MAX, 3),
+    // DATABASE_CA_CERT (CA do Supabase, em PEM) é lida direto do ambiente por
+    // db/conexao.js, que decide o TLS: com ela, certificado verificado; sem ela,
+    // cifrado sem verificação e um aviso no log.
   },
 
   // Em produção o próprio servidor entrega o front compilado, então não há
@@ -148,12 +145,13 @@ export const config = {
   auth: {
     // Segredo que assina os tokens de sessão.
     //
-    // Sem AUTH_SECRET no ambiente, gera um aleatório a cada boot — o que
-    // INVALIDA as sessões a cada reinício. É o padrão certo: um segredo fixo
-    // embutido no código seria público (o repositório é aberto), e qualquer
-    // pessoa poderia assinar um token de administrador.
+    // Quem assina de fato é `resolverSegredo` (lib/segredo.js): AUTH_SECRET do
+    // ambiente primeiro; sem ele, o segredo guardado no banco. Aqui ficam só os
+    // sinais que o boot e o painel exibem. Nunca há segredo fixo no código: o
+    // repositório é aberto e qualquer pessoa poderia assinar um token.
     //
-    // No Railway, defina AUTH_SECRET para as sessões sobreviverem ao deploy.
+    // Em produção (Vercel), defina AUTH_SECRET: é o único que sobrevive a um
+    // banco recriado.
     // Um segredo curto é pior que nenhum: dá a sensação de estar configurado
     // e é adivinhável por força bruta. Abaixo de 16 caracteres ele é recusado
     // em favor do aleatório, e `segredoFraco` faz o servidor avisar no boot.
@@ -180,6 +178,14 @@ export const config = {
     },
   },
 
+  // Segredo do Bearer que o pg_cron (Supabase) envia a POST /api/cron/ciclo.
+  // Abaixo de 16 caracteres é ignorado, como o AUTH_SECRET: segredo curto
+  // parece configurado e é adivinhável. Ignorado = a rota responde 503, e o
+  // cron fica desligado em vez de aberto.
+  cron: {
+    segredo: (process.env.CRON_SECRET || '').length >= 16 ? process.env.CRON_SECRET : null,
+  },
+
   coleta: {
     // Intervalo do ciclo de coleta. 0 desliga — útil em teste automatizado.
     //
@@ -204,6 +210,19 @@ export const config = {
     retencaoDias: num(process.env.MUNDO_RETENCAO_DIAS, 180),
   },
 
+  // Teto de armazenamento. O Supabase Free para de aceitar escrita em 500 MB;
+  // 400 deixa folga até o admin rodar VACUUM FULL (DELETE não encolhe o
+  // arquivo — ver lib/retencao.js). Acima dele, a
+  // retenção do só-mundo encurta (lib/retencao.js) e o painel de status avisa.
+  armazenamento: {
+    orcamentoBytes: num(process.env.DB_ORCAMENTO_MB, 400) * 1024 * 1024,
+  },
+
+  // O audit_log é só histórico de leitura: depois deste prazo sai do banco.
+  auditoria: {
+    retencaoDias: num(process.env.AUDITORIA_RETENCAO_DIAS, 365),
+  },
+
   versao: process.env.npm_package_version || '2.0.0',
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -218,8 +237,9 @@ export const config = {
   // "Está no ar" e "está atualizado" são perguntas diferentes, e uma sonda que
   // só responde a primeira deixa a segunda sem dono.
   //
-  // O Railway injeta estas variáveis em todo deploy originado do GitHub, sem
-  // configuração nenhuma. Localmente elas não existem e o bloco vira `null` —
+  // O Railway (RAILWAY_*) e a Vercel (VERCEL_GIT_*, VERCEL_DEPLOYMENT_ID)
+  // injetam estas variáveis em todo deploy originado do GitHub, sem
+  // configuração nenhuma. As do Railway vêm primeiro enquanto ele existir. Localmente elas não existem e o bloco vira `null` —
   // que é a resposta correta: `npm start` na máquina de quem clona não é um
   // deploy e não tem commit associado.
   //
@@ -228,9 +248,9 @@ export const config = {
   // que alguém escreveu — não é campo para servir em rota pública.
   // ───────────────────────────────────────────────────────────────────────────
   deploy: (() => {
-    const sha = process.env.RAILWAY_GIT_COMMIT_SHA || ''
-    const branch = process.env.RAILWAY_GIT_BRANCH || ''
-    const id = process.env.RAILWAY_DEPLOYMENT_ID || ''
+    const sha = process.env.RAILWAY_GIT_COMMIT_SHA || process.env.VERCEL_GIT_COMMIT_SHA || ''
+    const branch = process.env.RAILWAY_GIT_BRANCH || process.env.VERCEL_GIT_COMMIT_REF || ''
+    const id = process.env.RAILWAY_DEPLOYMENT_ID || process.env.VERCEL_DEPLOYMENT_ID || ''
     if (!sha && !branch && !id) return null
     return {
       commit: sha ? sha.slice(0, 7) : null,
@@ -242,10 +262,5 @@ export const config = {
     }
   })(),
 }
-
-// Produção sem volume e sem caminho escolhido = banco recriado a cada deploy.
-config.armazenamento.efemero = config.ambiente === 'production'
-  && !config.armazenamento.volume
-  && !config.armazenamento.caminhoEscolhido
 
 export default config

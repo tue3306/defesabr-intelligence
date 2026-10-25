@@ -1,4 +1,4 @@
-import { Router } from 'express'
+import { roteador } from '../lib/roteador.js'
 import { exigirPapel } from '../lib/auth.js'
 import { limite } from '../lib/parametros.js'
 import {
@@ -18,19 +18,19 @@ import {
 // se guarda o que cada conta fez com eles.
 // -----------------------------------------------------------------------------
 
-const router = Router()
+const router = roteador()
 
-router.get('/notifications', exigirPapel('user'), (req, res) => {
-  res.json(listarNotificacoes(req.conta, { limite: limite(req.query.limit, 50, 200) }))
+router.get('/notifications', exigirPapel('user'), async (req, res) => {
+  res.json(await listarNotificacoes(req.conta, { limite: limite(req.query.limit, 50, 200) }))
 })
 
-router.post('/notifications/read-all', exigirPapel('user'), (req, res) => {
-  const alteradas = marcarTodasLidas(req.conta)
-  res.json({ ok: true, alteradas, ...listarNotificacoes(req.conta) })
+router.post('/notifications/read-all', exigirPapel('user'), async (req, res) => {
+  const alteradas = await marcarTodasLidas(req.conta)
+  res.json({ ok: true, alteradas, ...(await listarNotificacoes(req.conta)) })
 })
 
 /** Carrega o id e confere que a conta enxerga o aviso. */
-function alvo(req, res) {
+async function alvo(req, res) {
   const id = Number(req.params.id)
   if (!Number.isInteger(id) || id <= 0) {
     res.status(400).json({ error: 'Identificador de notificação inválido.' })
@@ -38,31 +38,31 @@ function alvo(req, res) {
   }
   // 404 tanto para inexistente quanto para aviso de outro papel: dizer "existe,
   // mas não é para você" revelaria o que o administrador recebe.
-  if (!notificacaoVisivel(req.conta, id)) {
+  if (!(await notificacaoVisivel(req.conta, id))) {
     res.status(404).json({ error: 'Notificação não encontrada.' })
     return null
   }
   return id
 }
 
-router.post('/notifications/:id/read', exigirPapel('user'), (req, res) => {
-  const id = alvo(req, res)
+router.post('/notifications/:id/read', exigirPapel('user'), async (req, res) => {
+  const id = await alvo(req, res)
   if (!id) return
-  marcarLida(req.conta, id)
+  await marcarLida(req.conta, id)
   res.json({ ok: true, id, read: true })
 })
 
-router.delete('/notifications/:id/read', exigirPapel('user'), (req, res) => {
-  const id = alvo(req, res)
+router.delete('/notifications/:id/read', exigirPapel('user'), async (req, res) => {
+  const id = await alvo(req, res)
   if (!id) return
-  marcarNaoLida(req.conta, id)
+  await marcarNaoLida(req.conta, id)
   res.json({ ok: true, id, read: false })
 })
 
-router.delete('/notifications/:id', exigirPapel('user'), (req, res) => {
-  const id = alvo(req, res)
+router.delete('/notifications/:id', exigirPapel('user'), async (req, res) => {
+  const id = await alvo(req, res)
   if (!id) return
-  dispensar(req.conta, id)
+  await dispensar(req.conta, id)
   res.json({ ok: true, id, dismissed: true })
 })
 

@@ -11,6 +11,7 @@ import { coletarBcb } from './bcb.js'
 import { calcularCorrelacoes } from './correlacoes.js'
 import { derivarGeografia } from './geografia.js'
 import { gerarNotificacoes } from '../lib/notificacoes.js'
+import { tomarArrendamento, liberarArrendamento, arrendamentoTomado } from '../lib/arrendamento.js'
 
 // -----------------------------------------------------------------------------
 // ORQUESTRAÇÃO DA COLETA
@@ -51,12 +52,12 @@ export const CADENCIA_MINUTOS = {
 const GATILHOS_SEM_CADENCIA = new Set(['manual', 'primeira-execucao', 'cli'])
 
 /** A última execução bem-sucedida deste coletor é recente demais? */
-function cedoDemais(nome, gatilho) {
+export async function cedoDemais(nome, gatilho) {
   const minutos = CADENCIA_MINUTOS[nome] || 0
   if (!minutos || GATILHOS_SEM_CADENCIA.has(gatilho)) return false
-  const ultima = get(
+  const ultima = await get(
     `SELECT finished_at FROM collector_runs
-      WHERE collector = ? AND ok = 1 AND finished_at >= strftime('%Y-%m-%dT%H:%M:%SZ', 'now', ?)
+      WHERE collector = ? AND ok = 1 AND finished_at >= iso_agora(?)
       ORDER BY id DESC LIMIT 1`,
     // 1 minuto de folga: um ciclo de 15 que terminou em 29:40 não deve pular o de 30.
     [nome, `-${minutos - 1} minutes`],
@@ -65,8 +66,8 @@ function cedoDemais(nome, gatilho) {
 }
 
 /** Envolve um coletor para que o resultado vire linha no histórico. */
-async function registrar(nome, fn, gatilho = 'agendado') {
-  if (cedoDemais(nome, gatilho)) {
+export async function registrar(nome, fn, gatilho = 'agendado') {
+  if (await cedoDemais(nome, gatilho)) {
     return { coletor: nome, ok: true, pulado: true, motivo: `cadência de ${CADENCIA_MINUTOS[nome]} min` }
   }
   const inicio = Date.now()
@@ -88,7 +89,7 @@ async function registrar(nome, fn, gatilho = 'agendado') {
   // execuções que não aconteceram.
   if (resultado?.ignorado) return { coletor: nome, duracaoMs: duracao, ...resultado }
 
-  run(
+  await run(
     `INSERT INTO collector_runs
        (collector, started_at, finished_at, duration_ms, ok, items_found, items_new, error, trigger)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -107,7 +108,7 @@ async function registrar(nome, fn, gatilho = 'agendado') {
       gatilho,
     ]
   )
-  aparar(nome)
+  await aparar(nome)
 
   return { coletor: nome, duracaoMs: duracao, ...resultado }
 }
@@ -122,8 +123,8 @@ async function registrar(nome, fn, gatilho = 'agendado') {
 const EXECUCOES_POR_COLETOR = 700
 
 /** Apara o histórico, preservando as execuções recentes de cada coletor. */
-function aparar(nome) {
-  run(
+async function aparar(nome) {
+  await run(
     `DELETE FROM collector_runs
       WHERE collector = ?
         AND id NOT IN (
@@ -134,9 +135,20 @@ function aparar(nome) {
   )
 }
 
-/** Ciclo completo. Devolve o que cada coletor fez. */
-export async function coletarTudo(gatilho = 'agendado') {
+/**
+ * Ciclo completo. Devolve o que cada coletor fez.
+ *
+ * `somente` restringe o ciclo a um grupo de coletores (pelos nomes de
+ * `CADENCIA_MINUTOS`): quem está fora da lista devolve `pulado` e NÃO entra no
+ * histórico de execuções — não rodou, então não há o que registrar. A ordem de
+ * dependência abaixo é a mesma com ou sem filtro.
+ */
+export async function coletarTudo(gatilho = 'agendado', { somente } = {}) {
   const inicio = Date.now()
+  const grupo = Array.isArray(somente) ? new Set(somente) : null
+  const rodar = (nome, fn) => (grupo && !grupo.has(nome)
+    ? Promise.resolve({ coletor: nome, ok: true, pulado: true, motivo: 'fora do grupo' })
+    : registrar(nome, fn, gatilho))
 
   // Em paralelo porque são serviços independentes: uma API lenta não deve
   // atrasar as outras.
@@ -151,13 +163,13 @@ export async function coletarTudo(gatilho = 'agendado') {
   //
   // Cada um busca de um servico diferente e nao depende de nenhum outro.
   const [noticias, legislativo, indicadores, comex, bcb, agregadores, ransomware] = await Promise.all([
-    registrar('rss', coletarTodas, gatilho),
-    registrar('camara', coletarCamara, gatilho),
-    registrar('worldbank', coletarWorldBank, gatilho),
-    registrar('comex', coletarComex, gatilho),
-    registrar('bcb', coletarBcb, gatilho),
-    registrar('agregadores', coletarAgregadores, gatilho),
-    registrar('ransomware', coletarRansomware, gatilho),
+    rodar('rss', coletarTodas),
+    rodar('camara', coletarCamara),
+    rodar('worldbank', coletarWorldBank),
+    rodar('comex', coletarComex),
+    rodar('bcb', coletarBcb),
+    rodar('agregadores', coletarAgregadores),
+    rodar('ransomware', coletarRansomware),
   ])
 
   // ── DEPOIS, O QUE DEPENDE DO QUE ACABOU DE ENTRAR ──
@@ -174,7 +186,7 @@ export async function coletarTudo(gatilho = 'agendado') {
   // A dependencia agora esta expressa na estrutura: quem depende de dado
   // recem-inserido roda depois de quem o insere. Custa alguns segundos a mais
   // de coleta e elimina a corrida.
-  const atores = await registrar('atores', coletarAtores, gatilho)
+  const atores = await rodar('atores', coletarAtores)
 
   // ── PAÍSES E TEATROS DO QUE ACABOU DE ENTRAR ──
   //
@@ -184,7 +196,7 @@ export async function coletarTudo(gatilho = 'agendado') {
   // matéria mais recente seria justamente a que não aparece. Roda antes de
   // `correlacoes` para o ciclo terminar com as duas derivações sobre o mesmo
   // acervo.
-  const geografia = await registrar('geografia', derivarGeografia, gatilho)
+  const geografia = await rodar('geografia', derivarGeografia)
 
   // ── POR ULTIMO, O QUE DEPENDE DE TODOS ──
   //
@@ -195,7 +207,7 @@ export async function coletarTudo(gatilho = 'agendado') {
   // Nao busca nada fora: e derivacao pura sobre o que acabou de entrar. Por
   // isso nao tem tratamento de rede nem retentativa, e por isso e barato o
   // suficiente para rodar a cada ciclo.
-  const correlacoes = await registrar('correlacoes', calcularCorrelacoes, gatilho)
+  const correlacoes = await rodar('correlacoes', calcularCorrelacoes)
 
   // Depois, e só se a Câmara respondeu: enriquecer exige uma requisição por
   // proposição, então roda em lote pequeno e fora do caminho crítico.
@@ -210,7 +222,7 @@ export async function coletarTudo(gatilho = 'agendado') {
   // de entrar. Falha aqui não pode derrubar o resultado da coleta.
   let notificacoes = { criadas: 0 }
   try {
-    notificacoes = gerarNotificacoes({ noticias, legislativo, indicadores, comex, bcb, agregadores, ransomware, atores, geografia, correlacoes })
+    notificacoes = await gerarNotificacoes({ noticias, legislativo, indicadores, comex, bcb, agregadores, ransomware, atores, geografia, correlacoes })
   } catch (err) {
     console.error('[coleta] notificações falharam:', err?.message || err)
   }
@@ -242,7 +254,6 @@ export async function coletarTudo(gatilho = 'agendado') {
 // ─────────────────────────────────────────────────────────────────────────────
 let temporizador = null
 let ativo = false
-let emAndamento = false
 let ultimaExecucao = null
 let proximaExecucao = null
 
@@ -252,8 +263,9 @@ let proximaExecucao = null
  * Com `setInterval` o relógio contava do início, então uma coleta de 3 minutos
  * deixava só 12 até a seguinte e "próxima coleta" na tela mostrava o horário
  * errado. Encadeado, o intervalo é sempre entre o fim de um e o começo do outro,
- * e não há como dois ciclos do agendador se sobreporem. A trava `emAndamento`
- * continua valendo para a coleta disparada à mão no meio de um ciclo.
+ * e não há como dois ciclos do agendador se sobreporem. O arrendamento em banco
+ * (`iniciarColeta`) vale para a coleta disparada à mão ou pelo pg_cron no meio
+ * de um ciclo, inclusive vinda de outra instância.
  */
 export function iniciarAgendador() {
   const minutos = config.coleta.intervaloMinutos
@@ -273,15 +285,11 @@ export function iniciarAgendador() {
 
   const ciclo = async () => {
     temporizador = null
-    if (!emAndamento) {
-      emAndamento = true
-      try {
-        ultimaExecucao = await coletarTudo('agendado')
-      } catch (err) {
-        console.error('[coleta] ciclo falhou:', err?.message || err)
-      } finally {
-        emAndamento = false
-      }
+    try {
+      const coleta = await iniciarColeta('agendado')
+      if (coleta) await coleta.concluido
+    } catch (err) {
+      console.error('[coleta] ciclo falhou:', err?.message || err)
     }
     agendar()
   }
@@ -297,27 +305,57 @@ export function pararAgendador() {
   proximaExecucao = null
 }
 
-/** Coleta sob demanda, com a mesma trava do agendador. */
-export async function coletarAgora(gatilho = 'manual') {
-  if (emAndamento) {
-    return { jaEmAndamento: true, mensagem: 'Já existe uma coleta em andamento.' }
-  }
-  emAndamento = true
-  try {
-    ultimaExecucao = await coletarTudo(gatilho)
-    return ultimaExecucao
-  } finally {
-    emAndamento = false
-  }
+// Validade do arrendamento da coleta. Folga sobre o ciclo medido (59 s a frio)
+// e abaixo do intervalo do cron: se a função morrer sem liberar, o próximo
+// ciclo retoma sozinho em vez de ficar trancado.
+const VALIDADE_COLETA_MS = 360_000
+
+/**
+ * Toma o arrendamento `'coleta'` e inicia o ciclo.
+ *
+ * Devolve `null` se outro ciclo detém o arrendamento; senão `{ concluido }`, com
+ * a promessa do ciclo. É um objeto, e não a promessa direta, porque uma função
+ * `async` achata promessas: devolver a promessa do ciclo faria `await
+ * iniciarColeta()` esperar o ciclo inteiro, e a rota do cron precisa responder
+ * 202 antes disso.
+ *
+ * O arrendamento é liberado no `finally`, mesmo se o ciclo lançar; falha ao
+ * liberar é registrada e não derruba o resultado (o vencimento cobre o resto).
+ * `ciclo` existe para teste.
+ */
+export async function iniciarColeta(gatilho, { somente, ciclo = coletarTudo } = {}) {
+  const token = await tomarArrendamento('coleta', VALIDADE_COLETA_MS)
+  if (!token) return null
+  const concluido = (async () => {
+    try {
+      ultimaExecucao = await ciclo(gatilho, { somente })
+      return ultimaExecucao
+    } finally {
+      await liberarArrendamento('coleta', token).catch((err) => {
+        console.error('[coleta] falha ao liberar o arrendamento:', err?.message || err)
+      })
+    }
+  })()
+  return { concluido }
 }
 
-export const estadoDoAgendador = () => ({
+/** Coleta sob demanda, com o mesmo arrendamento do agendador e do cron. */
+export async function coletarAgora(gatilho = 'manual') {
+  const coleta = await iniciarColeta(gatilho)
+  if (!coleta) {
+    return { jaEmAndamento: true, mensagem: 'Já existe uma coleta em andamento.' }
+  }
+  return coleta.concluido
+}
+
+/** `emAndamento` reflete o arrendamento no banco: vale entre instâncias. */
+export const estadoDoAgendador = async () => ({
   ativo,
-  emAndamento,
+  emAndamento: await arrendamentoTomado('coleta'),
   intervaloMinutos: config.coleta.intervaloMinutos,
   proximaExecucao,
   ultimaExecucao: ultimaExecucao?.concluidoEm || null,
 })
 
 export { semearFontes, coletarFonte, coletarTodas }
-export default { coletarTudo, coletarAgora, iniciarAgendador, pararAgendador, estadoDoAgendador }
+export default { coletarTudo, coletarAgora, iniciarColeta, iniciarAgendador, pararAgendador, estadoDoAgendador }

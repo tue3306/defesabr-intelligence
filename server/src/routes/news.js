@@ -1,4 +1,4 @@
-import { Router } from 'express'
+import { roteador } from '../lib/roteador.js'
 import { all, get } from '../db/index.js'
 import { ransomwareDoPais } from '../lib/ransomwarePais.js'
 import { METODO_RELEVANCIA } from '../lib/relevance.js'
@@ -6,7 +6,7 @@ import { avaliarRelevancia } from '../lib/relevance.js'
 import { classificarParaOBrasil } from '../lib/ancora.js'
 import { UFS, REGIOES_ESTRATEGICAS, PAISES, detectarLugares, detectarPaises, nomePtDoPais, foraDaEscala, isoDoPais } from '../lib/geo.js'
 import { consolidar, LIMIAR_SIMILARIDADE, JANELA_HORAS } from '../lib/eventos.js'
-import { dias, limite, termoLike } from '../lib/parametros.js'
+import { dias, limite, termoLike, idNumerico } from '../lib/parametros.js'
 // O cálculo e a régua do nível de alerta moram em lib/alerta.js: o número
 // aparece na tela e é publicado em /api/metodo, então não pode viver escondido
 // dentro de um handler de rota.
@@ -14,7 +14,7 @@ import { nivelDeAlerta } from '../lib/alerta.js'
 import { exigirPapel } from '../lib/auth.js'
 import { resumoCurto, urlSegura } from '../lib/saneamento.js'
 
-const router = Router()
+const router = roteador()
 
 const mapear = (a) => ({
   id: a.id,
@@ -39,7 +39,7 @@ const SELECT_BASE = `
   FROM articles a LEFT JOIN sources s ON s.id = a.source_id`
 
 // GET /api/news — feed com filtros
-router.get('/news', (req, res) => {
+router.get('/news', async (req, res) => {
   const { category, urgency, q, source, days = '30', limit = '60', includeIrrelevant } = req.query
 
   const onde = []
@@ -52,50 +52,51 @@ router.get('/news', (req, res) => {
   if (category) { onde.push('a.category = ?'); params.push(category) }
   if (urgency) { onde.push('a.urgency = ?'); params.push(urgency) }
   if (source) { onde.push('s.slug = ?'); params.push(source) }
-  if (q) { onde.push("(a.title LIKE ? ESCAPE '\\' OR a.summary LIKE ? ESCAPE '\\')"); params.push(termoLike(q), termoLike(q)) }
+  // ILIKE: o LIKE do SQLite ignorava a caixa, o do Postgres não.
+  if (q) { onde.push("(a.title ILIKE ? ESCAPE '\\' OR a.summary ILIKE ? ESCAPE '\\')"); params.push(termoLike(q), termoLike(q)) }
   if (days && days !== 'all') {
     // `dias()` prende o valor à faixa 1..3650. Antes era `parseInt || 30`, e
     // um `?days=-5` virava o modificador '--5 days', que o SQLite não entende:
     // a comparação dava NULL, nenhuma linha casava, e a resposta saía vazia
     // como se a coleta não tivesse trazido nada.
-    onde.push(`a.published_at >= strftime('%Y-%m-%dT%H:%M:%SZ','now', '-${dias(days, 30)} days')`)
+    onde.push(`a.published_at >= iso_agora('-${dias(days, 30)} days')`)
   }
 
-  const itens = all(
+  const itens = (await all(
     `${SELECT_BASE} ${onde.length ? `WHERE ${onde.join(' AND ')}` : ''}
      ORDER BY a.published_at DESC NULLS LAST, a.id DESC LIMIT ?`,
     // `Math.min(-1, 200)` é -1, e `LIMIT -1` no SQLite significa SEM LIMITE:
     // `?limit=-1` devolvia o acervo inteiro, furando o teto que existe para
     // proteger memória e tempo de resposta. `limite()` prende à faixa.
     [...params, limite(limit, 60, 200)]
-  ).map(mapear)
+  )).map(mapear)
 
   res.json({
     items: itens,
     total: itens.length,
     // Denominador do filtro do Brasil — ver `filtro` em /news/stats.
-    totalCollected: get('SELECT COUNT(*) AS n FROM articles WHERE NOT (relevant = 0 AND mundo = 1)')?.n ?? 0,
-    totalRelevant: get('SELECT COUNT(*) AS n FROM articles WHERE relevant = 1')?.n ?? 0,
-    lastFetchAt: get('SELECT MAX(last_fetch_at) AS t FROM sources')?.t || null,
-    categories: all(
+    totalCollected: (await get('SELECT COUNT(*) AS n FROM articles WHERE NOT (relevant = 0 AND mundo = 1)'))?.n ?? 0,
+    totalRelevant: (await get('SELECT COUNT(*) AS n FROM articles WHERE relevant = 1'))?.n ?? 0,
+    lastFetchAt: (await get('SELECT MAX(last_fetch_at) AS t FROM sources'))?.t || null,
+    categories: (await all(
       'SELECT DISTINCT category FROM articles WHERE relevant = 1 AND category IS NOT NULL ORDER BY category'
-    ).map((r) => r.category),
+    )).map((r) => r.category),
     method: METODO_RELEVANCIA,
   })
 })
 
 // GET /api/news/clipping — a seleção do período
-router.get('/news/clipping', (req, res) => {
+router.get('/news/clipping', async (req, res) => {
   const days = dias(req.query.days, 7)
   const limit = limite(req.query.limit, 20, 60)
 
-  const artigos = all(
+  const artigos = await all(
     `${SELECT_BASE}
      WHERE a.relevant = 1
-       AND a.published_at >= strftime('%Y-%m-%dT%H:%M:%SZ','now', '-${days} days')
+       AND a.published_at >= iso_agora('-${days} days')
      ORDER BY CASE a.urgency
                 WHEN 'CRITICO' THEN 1 WHEN 'ALTO' THEN 2 WHEN 'MEDIO' THEN 3 ELSE 4 END,
-              a.published_at DESC
+              a.published_at DESC NULLS LAST
      LIMIT ?`,
     [limit]
   )
@@ -115,23 +116,23 @@ router.get('/news/clipping', (req, res) => {
   //
   // Em vez disso o servidor diz quanto existe em cada janela, e a interface
   // pode afirmar as duas coisas: não houve nada hoje, e aqui está onde há.
-  const janelas = [1, 3, 7, 30, 90].map((d) => ({
+  const janelas = await Promise.all([1, 3, 7, 30, 90].map(async (d) => ({
     days: d,
-    count: get(
+    count: (await get(
       `SELECT COUNT(*) AS n FROM articles
-       WHERE relevant = 1 AND published_at >= strftime('%Y-%m-%dT%H:%M:%SZ','now', '-${d} days')`
-    )?.n ?? 0,
-  }))
+       WHERE relevant = 1 AND published_at >= iso_agora('-${d} days')`
+    ))?.n ?? 0,
+  })))
 
   res.json({
     periodDays: days,
     generatedAt: new Date().toISOString(),
     // ALERTA SOBRE A JANELA INTEIRA, e não sobre `artigos` — que vem
     // ordenado por urgência e cortado em LIMIT. Ver `nivelDeAlerta`.
-    alert: nivelDeAlerta(all(
+    alert: nivelDeAlerta(await all(
       `SELECT urgency FROM articles
         WHERE relevant = 1
-          AND published_at >= strftime('%Y-%m-%dT%H:%M:%SZ','now', '-${days} days')`
+          AND published_at >= iso_agora('-${days} days')`
     )),
     news: artigos.map(mapear),
     byCategory: porCategoria,
@@ -141,32 +142,32 @@ router.get('/news/clipping', (req, res) => {
       ? (janelas.find((w) => w.days > days && w.count > 0) || null)
       : null,
     // Denominador do filtro do Brasil — ver `filtro` em /news/stats.
-    totalCollected: get('SELECT COUNT(*) AS n FROM articles WHERE NOT (relevant = 0 AND mundo = 1)')?.n ?? 0,
-    relevantTotal: get('SELECT COUNT(*) AS n FROM articles WHERE relevant = 1')?.n ?? 0,
+    totalCollected: (await get('SELECT COUNT(*) AS n FROM articles WHERE NOT (relevant = 0 AND mundo = 1)'))?.n ?? 0,
+    relevantTotal: (await get('SELECT COUNT(*) AS n FROM articles WHERE relevant = 1'))?.n ?? 0,
     // Fontes que RESPONDERAM na última execução — não as que estão cadastradas.
     // A tela do clipping mostra este número como "fontes ativas", e ativa aqui
     // significa "entregou conteúdo quando foi procurada", não "alguém a marcou
     // como habilitada".
-    activeSources: get(
+    activeSources: (await get(
       "SELECT COUNT(*) AS n FROM sources WHERE enabled = 1 AND last_status = 'ok'",
-    )?.n ?? 0,
+    ))?.n ?? 0,
     method: METODO_RELEVANCIA,
   })
 })
 
 // GET /api/news/stats — agregações para os gráficos
-router.get('/news/stats', (req, res) => {
+router.get('/news/stats', async (req, res) => {
   const days = dias(req.query.days, 30)
-  const corte = `strftime('%Y-%m-%dT%H:%M:%SZ','now', '-${days} days')`
+  const corte = `iso_agora('-${days} days')`
 
   res.json({
     periodDays: days,
-    porDia: all(
+    porDia: await all(
       `SELECT substr(published_at, 1, 10) AS dia, COUNT(*) AS total
        FROM articles WHERE relevant = 1 AND published_at >= ${corte}
        GROUP BY dia ORDER BY dia ASC`
     ),
-    porCategoria: all(
+    porCategoria: await all(
       `SELECT category AS nome, COUNT(*) AS total
        FROM articles WHERE relevant = 1 AND published_at >= ${corte}
        GROUP BY category ORDER BY total DESC`
@@ -175,17 +176,17 @@ router.get('/news/stats', (req, res) => {
     // Sem isto, a tela tinha a contagem diária e a distribuição por categoria
     // separadas, e não dava para empilhar uma na outra: a série empilhada
     // vinha de um array escrito à mão em mockData.
-    porDiaCategoria: all(
+    porDiaCategoria: await all(
       `SELECT substr(published_at, 1, 10) AS dia, category AS categoria, COUNT(*) AS total
        FROM articles WHERE relevant = 1 AND published_at >= ${corte}
        GROUP BY dia, categoria ORDER BY dia ASC`
     ),
-    porUrgencia: all(
+    porUrgencia: await all(
       `SELECT urgency AS nome, COUNT(*) AS total
        FROM articles WHERE relevant = 1 AND published_at >= ${corte}
        GROUP BY urgency`
     ),
-    porFonte: all(
+    porFonte: await all(
       `SELECT s.name AS nome, COUNT(*) AS total
        FROM articles a JOIN sources s ON s.id = a.source_id
        WHERE a.relevant = 1 AND a.published_at >= ${corte}
@@ -201,11 +202,11 @@ router.get('/news/stats', (req, res) => {
     // primeira coleta com a lente: 406 aprovados de 1.211 artigos (34%) com
     // elas, 406 de 888 (46%) sem — e antes da lente eram 384 de 906 (42%).
     filtro: {
-      coletados: get(
+      coletados: (await get(
         `SELECT COUNT(*) AS n FROM articles
           WHERE published_at >= ${corte} AND NOT (relevant = 0 AND mundo = 1)`
-      )?.n ?? 0,
-      aprovados: get(`SELECT COUNT(*) AS n FROM articles WHERE relevant = 1 AND published_at >= ${corte}`)?.n ?? 0,
+      ))?.n ?? 0,
+      aprovados: (await get(`SELECT COUNT(*) AS n FROM articles WHERE relevant = 1 AND published_at >= ${corte}`))?.n ?? 0,
     },
   })
 })
@@ -220,20 +221,20 @@ router.get('/news/stats', (req, res) => {
 // sao diferentes, cada redacao escreve o seu. Aqui viram UM evento com TRES
 // fontes — e "tres veiculos cobriram isto" e informacao, enquanto "tres linhas
 // parecidas" e ruido.
-router.get('/news/eventos', exigirPapel('user'), (req, res) => {
+router.get('/news/eventos', exigirPapel('user'), async (req, res) => {
   const days = dias(req.query.days, 7)
   const categoria = String(req.query.category || '').trim()
   const urgencia = String(req.query.urgency || '').trim().toUpperCase()
 
-  const artigos = all(
+  const artigos = await all(
     `SELECT a.id, a.title, a.summary, a.url, a.category, a.urgency, a.published_at,
             s.name AS fonte
        FROM articles a LEFT JOIN sources s ON s.id = a.source_id
       WHERE a.relevant = 1
-        AND a.published_at >= strftime('%Y-%m-%dT%H:%M:%SZ','now', '-${days} days')
+        AND a.published_at >= iso_agora('-${days} days')
         ${categoria ? 'AND a.category = ?' : ''}
         ${urgencia ? 'AND a.urgency = ?' : ''}
-      ORDER BY a.published_at DESC`,
+      ORDER BY a.published_at DESC NULLS LAST`,
     [categoria, urgencia].filter(Boolean)
   )
 
@@ -246,11 +247,11 @@ router.get('/news/eventos', exigirPapel('user'), (req, res) => {
   // lista de botoes encolhia para um so — e, com um so, a barra sumia inteira.
   // Nao havia como voltar e escolher outra. As categorias agora sao contadas no
   // periodo SEM o filtro de categoria, e viajam separadas dos eventos.
-  const categorias = all(
+  const categorias = await all(
     `SELECT a.category AS nome, COUNT(*) AS materias
        FROM articles a
       WHERE a.relevant = 1 AND a.category IS NOT NULL
-        AND a.published_at >= strftime('%Y-%m-%dT%H:%M:%SZ','now', '-${days} days')
+        AND a.published_at >= iso_agora('-${days} days')
         ${urgencia ? 'AND a.urgency = ?' : ''}
       GROUP BY a.category ORDER BY materias DESC, a.category`,
     urgencia ? [urgencia] : []
@@ -313,7 +314,7 @@ router.get('/news/eventos', exigirPapel('user'), (req, res) => {
 // Conflitos: a cobertura internacional não é parte da vitrine pública.
 // A forma da resposta é a mesma nos dois.
 // ─────────────────────────────────────────────────────────────────────────────
-router.get('/news/countries', (req, res, next) => {
+router.get('/news/countries', async (req, res, next) => {
   const escopo = req.query.escopo === undefined ? 'brasil' : String(req.query.escopo)
   if (!['brasil', 'mundo'].includes(escopo)) {
     return res.status(400).json({ error: 'Escopo inválido. Use `brasil` ou `mundo`.', campo: 'escopo' })
@@ -321,11 +322,11 @@ router.get('/news/countries', (req, res, next) => {
   if (escopo === 'mundo') return exigirPapel('user')(req, res, () => paisesDoMundo(req, res, next))
 
   const days = dias(req.query.days, 180)
-  const artigos = all(
+  const artigos = await all(
     `SELECT id, title, summary, category, urgency, published_at, url
      FROM articles
-     WHERE relevant = 1 AND published_at >= strftime('%Y-%m-%dT%H:%M:%SZ','now', '-${days} days')
-     ORDER BY published_at DESC`
+     WHERE relevant = 1 AND published_at >= iso_agora('-${days} days')
+     ORDER BY published_at DESC NULLS LAST`
   )
 
   const porPais = new Map()
@@ -359,28 +360,28 @@ router.get('/news/countries', (req, res, next) => {
  * `semPaisIdentificado` inclui o artigo ainda não derivado (`geo_at` nulo):
  * para a contagem, ele de fato ainda não tem país identificado.
  */
-function paisesDoMundo(req, res, next) {
+async function paisesDoMundo(req, res, next) {
   try {
     const days = dias(req.query.days, 180)
-    const corte = `strftime('%Y-%m-%dT%H:%M:%SZ','now', '-${days} days')`
+    const corte = `iso_agora('-${days} days')`
     const escopo = `(a.relevant = 1 OR a.mundo = 1) AND a.published_at >= ${corte}`
 
-    const totalAnalisado = get(`SELECT COUNT(*) AS n FROM articles a WHERE ${escopo}`)?.n ?? 0
-    const semPais = get(
+    const totalAnalisado = (await get(`SELECT COUNT(*) AS n FROM articles a WHERE ${escopo}`))?.n ?? 0
+    const semPais = (await get(
       `SELECT COUNT(*) AS n FROM articles a
         WHERE ${escopo} AND NOT EXISTS (SELECT 1 FROM article_paises p WHERE p.article_id = a.id)`
-    )?.n ?? 0
-    const totais = all(
+    ))?.n ?? 0
+    const totais = await all(
       `SELECT p.pais AS nome, COUNT(*) AS total
          FROM article_paises p JOIN articles a ON a.id = p.article_id
         WHERE ${escopo}
         GROUP BY p.pais ORDER BY total DESC, p.pais`
     )
     // Cinco manchetes por país, as mais recentes — numa consulta só.
-    const exemplos = all(
+    const exemplos = await all(
       `SELECT * FROM (
          SELECT p.pais, a.id, a.title, a.category, COALESCE(a.urgency_mundo, a.urgency) AS urgency, a.published_at, a.url,
-                ROW_NUMBER() OVER (PARTITION BY p.pais ORDER BY a.published_at DESC, a.id DESC) AS ordem
+                ROW_NUMBER() OVER (PARTITION BY p.pais ORDER BY a.published_at DESC NULLS LAST, a.id DESC) AS ordem
            FROM article_paises p JOIN articles a ON a.id = p.article_id
           WHERE ${escopo}
        ) WHERE ordem <= 5`
@@ -455,22 +456,22 @@ function respostaDePaises({ days, items, totalAnalisado, semPais }) {
 // NAO INVENTA RELACAO. Um pais so aparece ligado a uma noticia se o detector
 // achou o termo dele no texto; se nao achou, o dossie diz que nao ha
 // cobertura, em vez de estimar.
-router.get('/news/pais/:nome', exigirPapel('user'), (req, res) => {
+router.get('/news/pais/:nome', exigirPapel('user'), async (req, res) => {
   const nome = String(req.params.nome).slice(0, 60)
   const days = dias(req.query.days, 180)
   const iso = isoDoPais(nome)
   const pt = nomePtDoPais(nome)
 
-  const janela = (d) => `strftime('%Y-%m-%dT%H:%M:%SZ','now', '-${d} days')`
+  const janela = (d) => `iso_agora('-${d} days')`
 
   // Detecta em memoria: a deteccao e por regex sobre o texto, e nao ha coluna
   // de pais no artigo. Com algumas centenas de linhas isso custa poucos ms.
-  const candidatos = all(
+  const candidatos = await all(
     `SELECT a.id, a.title, a.summary, a.category, a.urgency, a.published_at, a.url,
             s.name AS fonte
        FROM articles a LEFT JOIN sources s ON s.id = a.source_id
       WHERE a.relevant = 1 AND a.published_at >= ${janela(days * 2)}
-      ORDER BY a.published_at DESC`
+      ORDER BY a.published_at DESC NULLS LAST`
   )
 
   const corte = new Date(Date.now() - days * 86400000).toISOString()
@@ -513,7 +514,7 @@ router.get('/news/pais/:nome', exigirPapel('user'), (req, res) => {
     })),
     // Ransomware, quando o pais tem codigo ISO conhecido. Sem ISO nao ha como
     // cruzar, e `disponivel` diz isso. Ver lib/ransomwarePais.js.
-    ransomware: ransomwareDoPais(iso),
+    ransomware: await ransomwareDoPais(iso),
     nota: 'Um pais so aparece ligado a uma noticia quando o detector encontrou um termo dele '
       + 'no texto — nome, gentilico ou capital. Mencao e o que se mede; relacao causal, nao.',
   })
@@ -525,12 +526,12 @@ router.get('/news/pais/:nome', exigirPapel('user'), (req, res) => {
 // não declara o que mede vira um mapa de perigo na cabeca de quem olha: uma
 // notícia de orçamento citando Brasília pesaria igual a uma operação de
 // fronteira citando Roraima.
-router.get('/news/geo', (req, res) => {
+router.get('/news/geo', async (req, res) => {
   const days = dias(req.query.days, 90)
-  const artigos = all(
+  const artigos = await all(
     `SELECT id, title, summary, category, urgency, published_at, url
      FROM articles
-     WHERE relevant = 1 AND published_at >= strftime('%Y-%m-%dT%H:%M:%SZ','now', '-${days} days')`
+     WHERE relevant = 1 AND published_at >= iso_agora('-${days} days')`
   )
 
   const porUf = Object.fromEntries(UFS.map((u) => [u.uf, { ...u, total: 0, exemplos: [] }]))
@@ -576,8 +577,11 @@ router.get('/news/geo', (req, res) => {
 })
 
 // GET /api/news/:id
-router.get('/news/:id', (req, res) => {
-  const a = get(`${SELECT_BASE} WHERE a.id = ?`, [req.params.id])
+router.get('/news/:id', async (req, res) => {
+  // O id vai para uma coluna BIGINT: texto ali é erro de tipo no Postgres (o
+  // SQLite só não achava a linha). Fora do formato é o mesmo 404 de antes.
+  const id = idNumerico(req.params.id)
+  const a = id && await get(`${SELECT_BASE} WHERE a.id = ?`, [id])
   // Cobertura só-mundial é conteúdo de conta, como em /api/mundo/*. Sem
   // sessão, a resposta é a mesma de quem pede um id que não existe.
   if (!a || (!req.conta && !a.relevant && a.mundo)) return res.status(404).json({ error: 'Notícia não encontrada.' })

@@ -480,16 +480,18 @@ await checar('GET /search?q=%%%% (curinga)', '/api/search?q=%25%25%25%25', (b) =
   b?.total === 0 && 'escapado, não casa o acervo')
 
 // Teto de tentativas: o IP vem do que o proxy viu, não do que o cliente
-// escreve em X-Forwarded-For. Lógica pura, sem rede.
+// escreve em X-Forwarded-For. Sem rede, mas o contador mora no banco: o caminho
+// leva um sufixo aleatório para não herdar linhas de uma execução anterior.
 console.log('\nLIMITE DE TENTATIVAS')
 {
   const { limitar } = await import('../src/lib/limite.js')
   const mw = limitar({ max: 3, janelaMs: 60_000 })
   let barradas = 0
+  const caminho = `/teste-xff-${Date.now()}`
   for (let i = 0; i < 6; i += 1) {
-    const req = { ip: '203.0.113.9', headers: { 'x-forwarded-for': `10.0.0.${i}` }, baseUrl: '/api', path: '/teste-xff', socket: {} }
-    const res = { setHeader() {}, status() { barradas += 1; return { json() {} } } }
-    mw(req, res, () => {})
+    const req = { ip: '203.0.113.9', headers: { 'x-forwarded-for': `10.0.0.${i}` }, baseUrl: '/api', path: caminho, socket: {} }
+    const res = { setHeader() {}, on() {}, status() { barradas += 1; return { json() {} } } }
+    await mw(req, res, () => {})
   }
   const nome = 'X-Forwarded-For forjado não escapa'
   if (barradas === 3) {

@@ -14,23 +14,27 @@
 //     contêiner. Um laço de shell derruba a plataforma sem exploit nenhum.
 //
 // O scrypt passou a ser assíncrono (ver `lib/auth.js`), o que resolve o
-// travamento do event loop. Este módulo resolve o resto: um teto por IP, em
-// memória, sem dependência nova.
+// travamento do event loop. Este módulo resolve o resto: um teto por IP, sem
+// dependência nova.
 //
-// POR QUE EM MEMÓRIA. O Railway roda uma instância e reinicia a cada deploy;
-// um contador em memória some junto, e isso é aceitável — quem estava sendo
-// barrado ganha tentativas de novo, não acesso. Um armazenamento externo só se
-// justifica com várias instâncias, que não é o caso.
+// POR QUE NO BANCO. A plataforma é serverless: várias instâncias atendem ao
+// mesmo tempo, cada requisição pode cair numa diferente, e uma instância some
+// quando fica ociosa. Um contador em memória valeria POR INSTÂNCIA — o teto de
+// 10 tentativas virava 10 vezes o número de instâncias, e zerava a cada
+// reciclagem. O contador mora em `limite_tentativas`, no Postgres, e a admissão
+// é um único upsert atômico: instâncias diferentes disputam a mesma linha e o
+// banco serializa.
 //
 // O que NÃO se faz aqui: contar por e-mail. Isso permitiria a um terceiro
 // trancar a conta de alguém só mandando senhas erradas — a proteção viraria a
 // ferramenta do ataque.
 // -----------------------------------------------------------------------------
 
-const janelas = new Map()
+import { waitUntil } from '@vercel/functions'
+import { get, run } from '../db/index.js'
 
 /**
- * IP de quem chama, atrás do proxy do Railway.
+ * IP de quem chama, atrás do proxy da plataforma.
  *
  * `req.ip`, e não o PRIMEIRO item de `x-forwarded-for`. O primeiro item é o
  * que o próprio cliente escreveu: o proxy ACRESCENTA o endereço real ao fim da
@@ -83,20 +87,48 @@ function chave(req, porConta) {
  *                                   IP quando não há. Para rota autenticada
  *                                   cujo custo é da própria pessoa — ver a nota
  *                                   acima de `chave()`.
+ * @param {(p: Promise<void>) => void} opcoes.emSegundoPlano  recebe o estorno
+ *                                   feito depois da resposta. Padrão: o
+ *                                   `waitUntil` da Vercel — ver o `finish` abaixo.
  */
-export function limitar({ max = 20, janelaMs = 60_000, soFalhas = false, porConta = false } = {}) {
-  return (req, res, next) => {
+export function limitar({
+  max = 20, janelaMs = 60_000, soFalhas = false, porConta = false, emSegundoPlano = waitUntil,
+} = {}) {
+  return async (req, res, next) => {
     const k = `${chave(req, porConta)}:${req.baseUrl}${req.path}`
     const agora = Date.now()
-    const registro = janelas.get(k)
 
-    if (!registro || agora > registro.expira) {
-      janelas.set(k, { contagem: 0, expira: agora + janelaMs })
+    let linha
+    try {
+      // Admissão atômica: abre a janela ou, se ela venceu, a reabre em 1; senão
+      // soma 1. Reservar JÁ aqui (e não no `finish`) é o que faz o teto valer
+      // sob rajada: a conferência de senha é assíncrona, e requisições
+      // simultâneas leriam todas a contagem ainda em zero. O banco devolve o
+      // valor já somado, então cada requisição enxerga a sua posição na fila.
+      linha = await get(
+        `INSERT INTO limite_tentativas (chave, contagem, expira) VALUES (?, 1, ?)
+         ON CONFLICT (chave) DO UPDATE SET
+           contagem = CASE WHEN limite_tentativas.expira <= ? THEN 1 ELSE limite_tentativas.contagem + 1 END,
+           expira   = CASE WHEN limite_tentativas.expira <= ? THEN excluded.expira ELSE limite_tentativas.expira END
+         RETURNING contagem, expira`,
+        [k, agora + janelaMs, agora, agora],
+      )
+    } catch (err) {
+      // Sem o contador não há como garantir o teto, e liberar sem teto
+      // reabriria a força bruta: falha fechada.
+      console.error('[limite] banco indisponível:', err?.message || err)
+      return res.status(503).json({
+        error: 'Serviço temporariamente indisponível. Tente de novo em instantes.',
+        code: 'BANCO_INDISPONIVEL',
+      })
     }
-    const atual = janelas.get(k)
 
-    if (atual.contagem >= max) {
-      const faltam = Math.ceil((atual.expira - agora) / 1000)
+    const { contagem, expira } = linha
+
+    if (contagem > max) {
+      // Quem é barrado não consome cota: devolve a vaga que acabou de reservar.
+      await estornar(k, expira)
+      const faltam = Math.max(1, Math.ceil((expira - agora) / 1000))
       res.setHeader('Retry-After', String(faltam))
       return res.status(429).json({
         error: `Tentativas demais. Aguarde ${faltam}s e tente de novo.`,
@@ -104,35 +136,40 @@ export function limitar({ max = 20, janelaMs = 60_000, soFalhas = false, porCont
       })
     }
 
+    // Um desfecho bom devolve a vaga: login correto não consome cota. Atrelado à
+    // MESMA janela (`expira`) para não estornar numa janela que já foi reaberta.
     if (soFalhas) {
-      // Reserva a vaga JÁ na admissão e devolve se o desfecho for bom.
-      //
-      // Debitar só no `finish` deixava o teto sem efeito sob concorrência: a
-      // conferência de senha é assíncrona (scrypt roda fora do event loop), e
-      // requisições simultâneas liam `contagem` ainda em zero — nenhuma delas
-      // havia terminado — e eram TODAS admitidas antes do primeiro débito. O
-      // teto de 10 por 5 min valia para quem tentasse em fila, não para quem
-      // disparasse tudo de uma vez, que é justamente o caso do ataque.
-      //
-      // Reservando na entrada, o limite passa a contar tentativas EM VOO; o
-      // estorno no `finish` preserva a intenção original de que um login
-      // correto não consome cota.
-      atual.contagem += 1
-      res.on('finish', () => { if (res.statusCode < 400) atual.contagem -= 1 })
-    } else {
-      atual.contagem += 1
+      // O `finish` dispara DEPOIS da resposta sair, e na Vercel a função pode
+      // ser congelada logo em seguida, com o UPDATE ainda no ar: a vaga ficaria
+      // consumida. Entregar a promessa ao `waitUntil` mantém a função viva até
+      // ele terminar. Fora da Vercel o `waitUntil` não faz nada e a promessa
+      // segue sozinha; `estornar` já captura o próprio erro.
+      res.on('finish', () => { if (res.statusCode < 400) emSegundoPlano(estornar(k, expira)) })
     }
 
     next()
   }
 }
 
-// Faxina periódica: sem ela o Map cresce com um par por IP visto, para sempre.
-// `unref()` para não segurar o processo aberto no encerramento.
-const faxina = setInterval(() => {
-  const agora = Date.now()
-  for (const [k, v] of janelas) if (agora > v.expira) janelas.delete(k)
-}, 5 * 60_000)
-faxina.unref?.()
+/** Devolve uma vaga da janela `expira`; falha de banco não derruba a resposta. */
+async function estornar(k, expira) {
+  try {
+    await run(
+      'UPDATE limite_tentativas SET contagem = GREATEST(contagem - 1, 0) WHERE chave = ? AND expira = ?',
+      [k, expira],
+    )
+  } catch (err) {
+    console.error('[limite] estorno não gravado:', err?.message || err)
+  }
+}
 
-export default { limitar }
+/**
+ * Apaga as janelas vencidas. Sem instância fixa não há `setInterval` que dure,
+ * então a retenção periódica (Tarefa de coleta) chama esta função.
+ */
+export async function apagarJanelasVencidas() {
+  const { changes } = await run('DELETE FROM limite_tentativas WHERE expira <= ?', [Date.now()])
+  return changes
+}
+
+export default { limitar, apagarJanelasVencidas }

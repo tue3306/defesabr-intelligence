@@ -1,4 +1,4 @@
-import { Router } from 'express'
+import { roteador } from '../lib/roteador.js'
 import { all, get, run } from '../db/index.js'
 import { situacaoDaProposicao, gravarSituacao, PALAVRAS_CHAVE } from '../collectors/camara.js'
 import {
@@ -10,16 +10,16 @@ import { panoramaRansomware, alertasRansomware } from '../collectors/ransomware.
 import { atoresContraBrasil, ator } from '../collectors/atores.js'
 import { exigirPapel } from '../lib/auth.js'
 import { limitar } from '../lib/limite.js'
-import { limite, termoLike } from '../lib/parametros.js'
+import { limite, termoLike, idNumerico } from '../lib/parametros.js'
 import { resumoCurto, urlSegura } from '../lib/saneamento.js'
 import { avaliarProposicao, METODO_PROPOSICOES } from '../lib/proposicoes.js'
 import { registrarAuditoria } from '../lib/auditoria.js'
 
-const router = Router()
+const router = roteador()
 
 // ═══════════════════════════ LEGISLATIVO ═══════════════════════════
 
-router.get('/legislative', (req, res) => {
+router.get('/legislative', async (req, res) => {
   const { q, keyword, limit = '120' } = req.query
   // `todas=true` inclui as que só casaram a palavra-chave da busca — para quem
   // quiser conferir o que o filtro deixou de fora.
@@ -27,18 +27,19 @@ router.get('/legislative', (req, res) => {
   const onde = []
   const params = []
   if (keyword) { onde.push('keyword = ?'); params.push(keyword) }
-  if (q) { onde.push("(code LIKE ? ESCAPE '\\' OR summary LIKE ? ESCAPE '\\')"); params.push(termoLike(q), termoLike(q)) }
+  // ILIKE: o LIKE do SQLite ignorava a caixa, o do Postgres não.
+  if (q) { onde.push("(code ILIKE ? ESCAPE '\\' OR summary ILIKE ? ESCAPE '\\')"); params.push(termoLike(q), termoLike(q)) }
 
   // O filtro de domínio roda sobre todas as linhas antes do LIMIT: cortar antes
   // esconderia proposições relevantes atrás de irrelevantes mais recentes.
   // Ordem pelo id da Câmara, que cresce com o registro. Pela data de
   // apresentação, as já consultadas passavam à frente de mais novas que ainda
   // não tinham data — a busca por palavra-chave não a devolve.
-  const avaliadas = all(
+  const avaliadas = (await all(
     `SELECT * FROM bills ${onde.length ? `WHERE ${onde.join(' AND ')}` : ''}
-     ORDER BY external_id DESC`,
+     ORDER BY external_id DESC NULLS LAST`,
     params
-  ).map((b) => ({ b, avaliacao: avaliarProposicao(b.summary) }))
+  )).map((b) => ({ b, avaliacao: avaliarProposicao(b.summary) }))
 
   const foraDoDominio = avaliadas.filter((x) => !x.avaliacao.relevante).length
   const doRadar = avaliadas.filter((x) => todas || x.avaliacao.relevante)
@@ -70,7 +71,7 @@ router.get('/legislative', (req, res) => {
     // requisição por proposição, então o enriquecimento roda em lote a cada
     // coleta. Contava o acervo inteiro, inclusive o que o Radar não mostra.
     semSituacao: doRadar.filter((x) => !x.b.status_text).length,
-    lastFetchAt: get('SELECT MAX(fetched_at) AS t FROM bills')?.t || null,
+    lastFetchAt: (await get('SELECT MAX(fetched_at) AS t FROM bills'))?.t || null,
     keywords: PALAVRAS_CHAVE,
     provider: 'dadosabertos.camara.leg.br',
   })
@@ -98,11 +99,12 @@ router.post('/legislative/:id/refresh',
   limitar({ max: 20, janelaMs: 60_000 }),
   async (req, res, next) => {
     try {
-      const b = get('SELECT * FROM bills WHERE id = ?', [req.params.id])
+      const id = idNumerico(req.params.id)
+      const b = id && await get('SELECT * FROM bills WHERE id = ?', [id])
       if (!b) return res.status(404).json({ error: 'Proposição não encontrada.' })
 
       const s = await situacaoDaProposicao(b.external_id)
-      if (s) gravarSituacao(b.id, s)
+      if (s) await gravarSituacao(b.id, s)
       res.json({
         ok: !!s,
         status: s,
@@ -113,16 +115,17 @@ router.post('/legislative/:id/refresh',
 
 // ═══════════════════════════ ECONOMIA ═══════════════════════════
 
-router.get('/economy/indicators', (req, res) => {
+router.get('/economy/indicators', async (req, res) => {
+  const indicadores = await Promise.all(INDICADORES_WB.map(async (ind) => ({
+    code: ind.code,
+    label: ind.label,
+    unit: ind.unit,
+    latest: await ultimoValor(ind.code, 'BRA'),
+    series: await serie(ind.code, 'BRA'),
+  })))
   res.json({
-    indicators: INDICADORES_WB.map((ind) => ({
-      code: ind.code,
-      label: ind.label,
-      unit: ind.unit,
-      latest: ultimoValor(ind.code, 'BRA'),
-      series: serie(ind.code, 'BRA'),
-    })),
-    exchange: ultimoCambio(),
+    indicators: indicadores,
+    exchange: await ultimoCambio(),
     // A PROCEDÊNCIA TEM DE APONTAR PARA QUEM PRODUZIU O NÚMERO.
     //
     // Dizia `['World Bank Open Data', 'AwesomeAPI']`, e o câmbio deixou de vir
@@ -143,11 +146,12 @@ router.get('/economy/indicators', (req, res) => {
   })
 })
 
-router.get('/economy/comparison', (req, res) => {
+router.get('/economy/comparison', async (req, res) => {
   const code = req.query.code || 'MS.MIL.XPND.GD.ZS'
+  const valores = await Promise.all(PAISES_COMPARACAO.map(({ iso }) => ultimoValor(code, iso)))
   const itens = PAISES_COMPARACAO
-    .map(({ iso, nome, bandeira, grupo }) => {
-      const v = ultimoValor(code, iso)
+    .map(({ iso, nome, bandeira, grupo }, i) => {
+      const v = valores[i]
       // `grupo` deixa a tela separar vizinhança de potências sem precisar
       // manter a própria lista de quem é o quê.
       return v ? { code: iso, country: nome, flag: bandeira, grupo, ...v } : null
@@ -188,8 +192,8 @@ router.get('/economy/comparison', (req, res) => {
 // A diferenca para o World Bank e a ATUALIDADE. O World Bank publica com um a
 // dois anos de defasagem, o que serve para serie historica e nao serve para
 // dizer a que taxa o dolar fechou. O SGS entrega o dado do dia.
-router.get('/economy/bcb', (req, res) => {
-  const linhas = all(
+router.get('/economy/bcb', async (req, res) => {
+  const linhas = await all(
     `SELECT code, period, value, unit, fetched_at
      FROM indicators WHERE provider = 'bcb'
      ORDER BY period ASC`
@@ -254,12 +258,12 @@ router.get('/economy/bcb', (req, res) => {
   })
 })
 
-router.get('/economy/exports', (req, res) => {
-  const linhas = all(
+router.get('/economy/exports', async (req, res) => {
+  const linhas = await all(
     `SELECT code, country, period, value
      FROM indicators
      WHERE provider = 'comexstat'
-     ORDER BY period DESC, value DESC`
+     ORDER BY period DESC NULLS LAST, value DESC`
   )
 
   if (!linhas.length) {
@@ -326,11 +330,11 @@ router.get('/economy/exports', (req, res) => {
 // Publico: sao registros que os proprios atacantes publicam. O recorte
 // brasileiro vem em primeiro plano e o global como referencia — sem ela,
 // "3 vitimas no Brasil" nao diz se e muito ou pouco.
-router.get('/cyber/ransomware', (req, res) => {
+router.get('/cyber/ransomware', async (req, res) => {
   // 365 por padrao: o acervo brasileiro vai de 2017 a hoje, e uma janela curta
   // esconderia justamente a serie que da sentido ao numero do mes.
   const dias = Math.min(Math.max(parseInt(req.query.days, 10) || 365, 1), 3650)
-  const p = panoramaRansomware({ dias, limite: limite(req.query.limit, 60, 200) })
+  const p = await panoramaRansomware({ dias, limite: limite(req.query.limit, 60, 200) })
 
   // SEM SESSAO devolve os AGREGADOS e nao as listas.
   //
@@ -369,33 +373,33 @@ router.get('/cyber/ransomware', (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // GET /api/cyber/atores — quem ataca o Brasil, e o que se sabe de cada um
-router.get('/cyber/atores', exigirPapel('user'), (req, res) => {
+router.get('/cyber/atores', exigirPapel('user'), async (req, res) => {
   res.json({
-    items: atoresContraBrasil({ limite: limite(req.query.limit, 20, 60) }),
+    items: await atoresContraBrasil({ limite: limite(req.query.limit, 20, 60) }),
     nota: '`vitimasBr` vem do acervo desta plataforma; `vitimasMundo` vem da fonte e '
       + 'conta o planeta inteiro. Sao numeros diferentes de proposito.',
   })
 })
 
 // GET /api/cyber/ator/:nome — perfil completo: TTPs e ferramentas
-router.get('/cyber/ator/:nome', exigirPapel('user'), (req, res) => {
-  res.json(ator(String(req.params.nome).slice(0, 80)))
+router.get('/cyber/ator/:nome', exigirPapel('user'), async (req, res) => {
+  res.json(await ator(String(req.params.nome).slice(0, 80)))
 })
 
 // GET /api/cyber/alertas — so o que exige atencao agora
 //
 // Pergunta estreita de proposito: incidente CRITICO contra organizacao
 // brasileira nas ultimas N horas. Quem alerta nao precisa do painel inteiro.
-router.get('/cyber/alertas', exigirPapel('user'), (req, res) => {
+router.get('/cyber/alertas', exigirPapel('user'), async (req, res) => {
   const horas = Math.min(Math.max(parseInt(req.query.hours, 10) || 48, 1), 720)
-  const itens = alertasRansomware({ horas })
+  const itens = await alertasRansomware({ horas })
   res.json({ horas, total: itens.length, items: itens })
 })
 
-router.get('/sources/summary', (req, res) => {
-  const r = get(
+router.get('/sources/summary', async (req, res) => {
+  const r = await get(
     `SELECT COUNT(*) AS total,
-            SUM(CASE WHEN last_status = 'ok' THEN 1 ELSE 0 END) AS ok
+            SUM(CASE WHEN last_status = 'ok' THEN 1 ELSE 0 END)::int AS ok
        FROM sources WHERE enabled = 1`
   )
 
@@ -407,10 +411,10 @@ router.get('/sources/summary', (req, res) => {
   // ESCRITA A MAO com `status: 'online'` fixo, incluindo tres que o proprio
   // codigo documenta como HTTP 403. Luz verde ao lado de fonte quebrada e
   // pior que nenhuma luz.
-  const itens = all(
+  const itens = (await all(
     `SELECT name, category, last_status, last_count, last_fetch_at
        FROM sources WHERE enabled = 1 ORDER BY name`
-  ).map((f) => ({
+  )).map((f) => ({
     name: f.name,
     category: f.category,
     status: f.last_status || 'nunca',
@@ -421,8 +425,8 @@ router.get('/sources/summary', (req, res) => {
   res.json({ total: r?.total ?? 0, ok: r?.ok ?? 0, items: itens })
 })
 
-router.get('/sources', exigirPapel('admin'), (req, res) => {
-  const itens = all(
+router.get('/sources', exigirPapel('admin'), async (req, res) => {
+  const itens = (await all(
     `SELECT s.*, (SELECT COUNT(*) FROM articles a WHERE a.source_id = s.id) AS artigos,
             -- Aprovadas por QUALQUER uma das duas lentes. Contando só o filtro
             -- do Brasil, Defense News, Al Jazeera e as demais fontes
@@ -430,7 +434,7 @@ router.get('/sources', exigirPapel('admin'), (req, res) => {
             -- as suas matérias na área Mundo.
             (SELECT COUNT(*) FROM articles a WHERE a.source_id = s.id AND (a.relevant = 1 OR a.mundo = 1)) AS relevantes
      FROM sources s ORDER BY s.name`
-  ).map((s) => ({
+  )).map((s) => ({
     id: s.id,
     slug: s.slug,
     name: s.name,
@@ -486,8 +490,9 @@ router.get('/sources', exigirPapel('admin'), (req, res) => {
 // `admin` e não `analyst`: mexer no que a plataforma coleta é ato de
 // governança, e é o mesmo papel que `/system/collect/:sourceId` já exigia
 // para a operação irmã.
-router.patch('/sources/:id', exigirPapel('admin'), (req, res) => {
-  const s = get('SELECT * FROM sources WHERE id = ?', [req.params.id])
+router.patch('/sources/:id', exigirPapel('admin'), async (req, res) => {
+  const id = idNumerico(req.params.id)
+  const s = id && await get('SELECT * FROM sources WHERE id = ?', [id])
   if (!s) return res.status(404).json({ error: 'Fonte não encontrada.' })
   if (typeof req.body?.enabled !== 'boolean') {
     // Antes respondia `{ ok: true }` a um corpo sem `enabled`, sem ter mudado
@@ -495,9 +500,9 @@ router.patch('/sources/:id', exigirPapel('admin'), (req, res) => {
     // alteração que não aconteceu.
     return res.status(400).json({ error: 'Envie `enabled` como booleano.', campo: 'enabled' })
   }
-  run('UPDATE sources SET enabled = ? WHERE id = ?', [req.body.enabled ? 1 : 0, s.id])
+  await run('UPDATE sources SET enabled = ? WHERE id = ?', [req.body.enabled ? 1 : 0, s.id])
   if (!!s.enabled !== req.body.enabled) {
-    registrarAuditoria(req, {
+    await registrarAuditoria(req, {
       acao: req.body.enabled ? 'Coleta da fonte religada' : 'Coleta da fonte pausada',
       alvo: `Fonte · ${s.name}`,
       nivel: req.body.enabled ? 'info' : 'warn',
@@ -520,7 +525,11 @@ router.patch('/sources/:id', exigirPapel('admin'), (req, res) => {
 // `search_key` cobre as linhas coletadas depois da mudanca e as retroagidas
 // pelo script de reclassificacao; o LIKE sobre o texto original permanece como
 // segunda chance, para nao perder linha ainda sem chave.
-router.get('/search', (req, res) => {
+//
+// ILIKE, e nao LIKE: o LIKE do SQLite ignorava a caixa do ASCII e o do Postgres
+// diferencia. `search_key` ja vem em minusculas, mas titulo e ementa nao — sem
+// o ILIKE, "exercito" deixaria de achar "EXERCITO" escrito em caixa alta.
+router.get('/search', async (req, res) => {
   const q = (req.query.q || '').trim().slice(0, 120)
   if (!q) return res.json({ items: [], total: 0, groups: [], query: '' })
   const like = termoLike(q)
@@ -530,14 +539,14 @@ router.get('/search', (req, res) => {
   // pontuação.
   const likeSemAcento = termoLike(normalizar(q) || q)
 
-  const noticias = all(
+  const noticias = (await all(
     `SELECT a.id, a.title, a.summary, a.category, a.urgency, a.published_at, a.url, s.name AS fonte
      FROM articles a LEFT JOIN sources s ON s.id = a.source_id
      WHERE a.relevant = 1
-       AND (a.search_key LIKE ? ESCAPE '\\' OR a.title LIKE ? ESCAPE '\\' OR a.summary LIKE ? ESCAPE '\\')
-     ORDER BY a.published_at DESC LIMIT 20`,
+       AND (a.search_key ILIKE ? ESCAPE '\\' OR a.title ILIKE ? ESCAPE '\\' OR a.summary ILIKE ? ESCAPE '\\')
+     ORDER BY a.published_at DESC NULLS LAST LIMIT 20`,
     [likeSemAcento, like, like]
-  ).map((a) => ({
+  )).map((a) => ({
     id: `noticia-${a.id}`,
     type: 'noticia',
     typeLabel: 'Notícias',
@@ -554,12 +563,12 @@ router.get('/search', (req, res) => {
 
   // Só as de defesa: a busca devolvia também as que a Câmara achou por
   // "inteligência" artificial ou "fronteira" no nome de uma universidade.
-  const proposicoes = all(
+  const proposicoes = (await all(
     `SELECT * FROM bills
-     WHERE search_key LIKE ? ESCAPE '\\' OR code LIKE ? ESCAPE '\\' OR summary LIKE ? ESCAPE '\\'
-     ORDER BY external_id DESC LIMIT 60`,
+     WHERE search_key ILIKE ? ESCAPE '\\' OR code ILIKE ? ESCAPE '\\' OR summary ILIKE ? ESCAPE '\\'
+     ORDER BY external_id DESC NULLS LAST LIMIT 60`,
     [likeSemAcento, like, like]
-  ).filter((b) => avaliarProposicao(b.summary).relevante).slice(0, 20).map((b) => ({
+  )).filter((b) => avaliarProposicao(b.summary).relevante).slice(0, 20).map((b) => ({
     id: `bill-${b.id}`,
     type: 'proposicao',
     typeLabel: 'Legislativo',
@@ -573,7 +582,7 @@ router.get('/search', (req, res) => {
   }))
 
   // As fontes sao ~50 linhas: normalizar em JS custa menos que uma coluna.
-  const fontes = all('SELECT * FROM sources').filter(
+  const fontes = (await all('SELECT * FROM sources')).filter(
     (f) => normalizar(f.name).includes(normalizar(q))
   ).slice(0, 8).map((s) => ({
     id: `fonte-${s.id}`,

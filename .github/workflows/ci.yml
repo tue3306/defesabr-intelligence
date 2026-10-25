@@ -12,35 +12,68 @@ concurrency:
   cancel-in-progress: true
 
 # -----------------------------------------------------------------------------
-# O QUE ESTE WORKFLOW VERIFICA, E POR QUE PASSOU A VERIFICAR MAIS
+# O QUE ESTE WORKFLOW VERIFICA, E POR QUE VERIFICA TANTO
 #
-# Ele rodava `npm run build` no Node 20 e mais nada. Duas coisas erradas:
+# Ele rodava `npm run build` e mais nada. Um CI assim passa mesmo com o servidor
+# inteiro quebrado, porque o build é só o Vite.
 #
-#   NODE 20 NÃO RODA ESTE SERVIDOR. `package.json` declara `engines: >=24`, e o
-#   servidor usa `node:sqlite`, que não existe no 20. O build é só o Vite, então
-#   passava — e passaria mesmo com o servidor inteiro quebrado.
+#   POSTGRES DE VERDADE. O servidor fala com Postgres (Supabase em produção), e
+#   o esquema vive em `supabase/migrations/`. O job sobe um `postgres:17` como
+#   serviço e aplica as MESMAS migrações que vão para produção — um CI contra
+#   outro banco, ou sem banco, aprovaria SQL que o Supabase recusa.
 #
-#   NENHUM TESTE RODAVA. O projeto tem duas suítes que sobem contra a API real
-#   (`npm run check` e `npm run check:auth`, incluindo as rotas que MUDAM
-#   estado). Um CI verde que nunca as executou dá confiança sem
-#   base — é o mesmo defeito que este projeto já corrigiu num indicador de
-#   saúde que não media nada.
+#   NODE 24. `package.json` declara `engines: >=24`; o CI usa a versão que o
+#   projeto exige, não a que por acaso estava à mão.
 #
-# Agora o CI faz o que alguém faria à mão antes de um deploy: instala, passa o
-# lint, compila, SOBE O SERVIDOR e roda as duas suítes contra ele.
+#   AS SUÍTES RODAM. `npm run test:server` testa o servidor contra o banco
+#   `defesabr_test`; `npm run check` e `npm run check:auth` sobem contra a API
+#   real (incluindo as rotas que MUDAM estado). Um CI verde que nunca as
+#   executou dá confiança sem base — o mesmo defeito que este projeto já
+#   corrigiu num indicador de saúde que não media nada.
+#
+# Dois bancos no mesmo serviço: `defesabr` (a API que as suítes de fora
+# consultam) e `defesabr_test` (os testes do servidor, que recriam o schema a
+# cada arquivo). Os testes recusam qualquer banco que não termine em `_test`.
+# As credenciais abaixo são descartáveis: o banco nasce e morre com o job.
 # -----------------------------------------------------------------------------
 
 jobs:
   verificar:
     name: Lint, build e suítes
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: defesabr
+          POSTGRES_PASSWORD: defesabr
+          POSTGRES_DB: defesabr
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgres://defesabr:defesabr@localhost:5432/defesabr
+      TEST_DATABASE_URL: postgres://defesabr:defesabr@localhost:5432/defesabr_test
+      # A rota de ciclo exige segredo (>= 16 caracteres); sem ele a suíte de
+      # autorização não consegue provar que a rota recusa quem não o conhece.
+      CRON_SECRET: ci-segredo-descartavel-do-ciclo
+      ADMIN_USERNAME: ci-admin
+      ADMIN_PASSWORD: ci-senha-descartavel
+      API_URL: http://localhost:3001
+
     steps:
       - uses: actions/checkout@v4
 
       - name: Node 24
         uses: actions/setup-node@v4
         with:
-          # A versão que `engines` exige e que `node:sqlite` precisa.
+          # A versão que `engines` exige.
           node-version: '24'
           cache: 'npm'
 
@@ -53,15 +86,21 @@ jobs:
       - name: Build
         run: npm run build
 
-      # O servidor sobe com o banco vazio, cria o esquema, semeia as fontes e
-      # dispara uma coleta. `COLLECT_INTERVAL_MINUTES=0` desliga o agendador
-      # para que ele não colete por cima das suítes.
-      # Conta de administrador descartável: o banco do CI nasce e morre com o
-      # job. As variáveis são as mesmas que o servidor e as suítes leem.
-      - name: Subir a API
+      - name: Criar o banco de testes
         env:
-          ADMIN_USERNAME: ci-admin
-          ADMIN_PASSWORD: ci-senha-descartavel
+          PGPASSWORD: defesabr
+        run: psql -h localhost -U defesabr -d defesabr -c 'CREATE DATABASE defesabr_test'
+
+      # Esquema, fontes padrão e conta de administrador no banco `defesabr`.
+      - name: Migrar
+        run: npm run migrate
+
+      - name: Testes do servidor
+        run: npm run test:server
+
+      # `COLLECT_INTERVAL_MINUTES=0` desliga o agendador para que ele não
+      # colete por cima das suítes.
+      - name: Subir a API
         run: |
           COLLECT_INTERVAL_MINUTES=0 PORT=3001 npm start &
           for i in $(seq 1 60); do
@@ -74,14 +113,6 @@ jobs:
 
       - name: Suíte de forma das respostas
         run: npm run check
-        env:
-          API_URL: http://localhost:3001
-          ADMIN_USERNAME: ci-admin
-          ADMIN_PASSWORD: ci-senha-descartavel
 
       - name: Suíte de autorização
         run: npm run check:auth
-        env:
-          API_URL: http://localhost:3001
-          ADMIN_USERNAME: ci-admin
-          ADMIN_PASSWORD: ci-senha-descartavel

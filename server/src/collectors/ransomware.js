@@ -110,12 +110,12 @@ export async function coletarRansomware() {
       encontrados += itens.length
       let gravou = 0
 
-      transacao(() => {
+      await transacao(async () => {
         for (const v of itens) {
           const id = String(v?.id || '').trim()
           const vitima = String(v?.victim || v?.post_title || '').trim()
           if (!id || !vitima) continue
-          if (get('SELECT id FROM ransomware_victims WHERE external_id = ?', [id])) continue
+          if (await get('SELECT id FROM ransomware_victims WHERE external_id = ?', [id])) continue
 
           const pais = String(v?.country || '').trim().toUpperCase() || null
 
@@ -130,7 +130,7 @@ export async function coletarRansomware() {
             if (c.nivel === 'CRITICO') criticos += 1
           }
 
-          run(
+          await run(
             `INSERT INTO ransomware_victims
                (external_id, victim, "group", country, sector, discovered_at, attack_date,
                 post_url, website, description, criticality, criticality_reason, nature)
@@ -186,7 +186,7 @@ export async function coletarRansomware() {
     const v = st?.stats?.victims
     const g = st?.stats?.groups
     if (Number.isFinite(v)) {
-      run(
+      await run(
         `INSERT INTO indicators (provider, code, country, period, value, unit)
          VALUES ('ransomware', 'vitimas_indice', 'WLD', ?, ?, 'vitimas')
          ON CONFLICT (provider, code, country, period) DO UPDATE SET value = excluded.value`,
@@ -194,7 +194,7 @@ export async function coletarRansomware() {
       )
     }
     if (Number.isFinite(g)) {
-      run(
+      await run(
         `INSERT INTO indicators (provider, code, country, period, value, unit)
          VALUES ('ransomware', 'grupos_indice', 'WLD', ?, ?, 'grupos')
          ON CONFLICT (provider, code, country, period) DO UPDATE SET value = excluded.value`,
@@ -227,11 +227,11 @@ export async function coletarRansomware() {
  * O recorte brasileiro em primeiro plano, com o global como referência — sem
  * ela, "3 vítimas no Brasil" não diz se é muito ou pouco.
  */
-export function panoramaRansomware({ dias = 365, limite = 60 } = {}) {
+export async function panoramaRansomware({ dias = 365, limite = 60 } = {}) {
   const desde = `-${dias} days`
-  const brWhere = "country = 'BR' AND discovered_at >= date('now', ?)"
+  const brWhere = "country = 'BR' AND discovered_at >= substr(iso_agora(?), 1, 10)"
 
-  const total = get(`SELECT COUNT(*) AS n FROM ransomware_victims WHERE ${brWhere}`, [desde])?.n ?? 0
+  const total = (await get(`SELECT COUNT(*) AS n FROM ransomware_victims WHERE ${brWhere}`, [desde]))?.n ?? 0
 
   return {
     periodoDias: dias,
@@ -239,30 +239,30 @@ export function panoramaRansomware({ dias = 365, limite = 60 } = {}) {
       total,
       // Histórico completo do país, independente da janela — é o número que
       // dá dimensão ao recorte, e ele existe desde 2017.
-      totalHistorico: get("SELECT COUNT(*) AS n FROM ransomware_victims WHERE country = 'BR'")?.n ?? 0,
+      totalHistorico: (await get("SELECT COUNT(*) AS n FROM ransomware_victims WHERE country = 'BR'"))?.n ?? 0,
       // `victim` é o TÍTULO DO POST do grupo criminoso, não a razão social da
       // organização — ver `lib/vitima.js`. `nomeDaVitima` devolve o nome
       // exibível e mantém o original em `victimBruto`, para que a afirmação
       // continue conferível contra a fonte.
-      itens: all(
+      itens: (await all(
         `SELECT external_id, victim, "group", sector, discovered_at, attack_date,
                 post_url, website, criticality, criticality_reason, nature
            FROM ransomware_victims
           WHERE ${brWhere}
-          ORDER BY discovered_at DESC LIMIT ?`,
+          ORDER BY discovered_at DESC NULLS LAST LIMIT ?`,
         [desde, limite]
-      ).map(comNomeLimpo),
-      porCriticidade: all(
+      )).map(comNomeLimpo),
+      porCriticidade: await all(
         `SELECT criticality AS nivel, COUNT(*) AS total FROM ransomware_victims
           WHERE ${brWhere} AND criticality IS NOT NULL
           GROUP BY criticality`, [desde]
       ),
-      porSetor: all(
+      porSetor: await all(
         `SELECT sector AS nome, COUNT(*) AS total FROM ransomware_victims
           WHERE ${brWhere} AND sector IS NOT NULL
           GROUP BY sector ORDER BY total DESC LIMIT 10`, [desde]
       ),
-      porGrupo: all(
+      porGrupo: await all(
         `SELECT "group" AS nome, COUNT(*) AS total FROM ransomware_victims
           WHERE ${brWhere} AND "group" IS NOT NULL
           GROUP BY "group" ORDER BY total DESC LIMIT 10`, [desde]
@@ -271,56 +271,56 @@ export function panoramaRansomware({ dias = 365, limite = 60 } = {}) {
       // `porGrupo.length` e anunciava "10 grupos com vitima no Brasil" —
       // eram 109, e o 10 era o LIMIT da consulta. Numero de vitrine que sai
       // de um LIMIT e a forma mais silenciosa de mentir.
-      gruposTotal: get(
+      gruposTotal: (await get(
         `SELECT COUNT(DISTINCT "group") AS n FROM ransomware_victims
           WHERE country = 'BR' AND "group" IS NOT NULL AND "group" != ''`
-      )?.n ?? 0,
-      porAno: all(
+      ))?.n ?? 0,
+      porAno: await all(
         `SELECT substr(discovered_at, 1, 4) AS ano, COUNT(*) AS total
            FROM ransomware_victims
           WHERE country = 'BR' AND discovered_at IS NOT NULL
           GROUP BY ano ORDER BY ano DESC LIMIT 8`
       ),
       // O recorte que este produto existe para enxergar: Estado brasileiro.
-      estado: all(
+      estado: (await all(
         `SELECT external_id, victim, "group", sector, discovered_at, website, criticality_reason
            FROM ransomware_victims
           WHERE country = 'BR' AND nature = 'estado'
-          ORDER BY discovered_at DESC LIMIT 20`
-      ).map(comNomeLimpo),
+          ORDER BY discovered_at DESC NULLS LAST LIMIT 20`
+      )).map(comNomeLimpo),
     },
     // O indice inteiro, direto da fonte. E o unico denominador honesto: o
     // nosso banco tem todas as brasileiras e so uma amostra recente do resto.
     indice: {
-      vitimas: get(
+      vitimas: (await get(
         "SELECT value FROM indicators WHERE provider='ransomware' AND code='vitimas_indice' ORDER BY period DESC LIMIT 1"
-      )?.value ?? null,
-      grupos: get(
+      ))?.value ?? null,
+      grupos: (await get(
         "SELECT value FROM indicators WHERE provider='ransomware' AND code='grupos_indice' ORDER BY period DESC LIMIT 1"
-      )?.value ?? null,
+      ))?.value ?? null,
     },
     global: {
       // ATENCAO a quem for usar: esta contagem e da AMOSTRA no banco, nao do
       // mundo. Serve para ranquear grupos e paises entre si, nunca como
       // denominador de percentual — ver `indice` acima.
-      amostra: get(
-        "SELECT COUNT(*) AS n FROM ransomware_victims WHERE discovered_at >= date('now', ?)", [desde]
-      )?.n ?? 0,
-      porPais: all(
+      amostra: (await get(
+        "SELECT COUNT(*) AS n FROM ransomware_victims WHERE discovered_at >= substr(iso_agora(?), 1, 10)", [desde]
+      ))?.n ?? 0,
+      porPais: await all(
         `SELECT country AS iso, COUNT(*) AS total FROM ransomware_victims
-          WHERE country IS NOT NULL AND discovered_at >= date('now', ?)
+          WHERE country IS NOT NULL AND discovered_at >= substr(iso_agora(?), 1, 10)
           GROUP BY country ORDER BY total DESC LIMIT 12`, [desde]
       ),
-      porGrupo: all(
+      porGrupo: await all(
         `SELECT "group" AS nome, COUNT(*) AS total FROM ransomware_victims
-          WHERE "group" IS NOT NULL AND discovered_at >= date('now', ?)
+          WHERE "group" IS NOT NULL AND discovered_at >= substr(iso_agora(?), 1, 10)
           GROUP BY "group" ORDER BY total DESC LIMIT 10`, [desde]
       ),
     },
-    acervo: get('SELECT COUNT(*) AS n FROM ransomware_victims')?.n ?? 0,
-    ultimaColeta: get(
+    acervo: (await get('SELECT COUNT(*) AS n FROM ransomware_victims'))?.n ?? 0,
+    ultimaColeta: (await get(
       "SELECT MAX(finished_at) AS q FROM collector_runs WHERE collector = 'ransomware'"
-    )?.q || null,
+    ))?.q || null,
     fonte: 'ransomware.live — índice público de vazamentos divulgados por grupos de extorsão',
     nota: 'Registros publicados pelos próprios atacantes nos seus sites de extorsão. '
       + 'A presença de uma organização aqui indica reivindicação de ataque, não confirmação '
@@ -338,13 +338,18 @@ export function panoramaRansomware({ dias = 365, limite = 60 } = {}) {
  * estreita — "apareceu algo crítico nas últimas N horas?" — e não do painel
  * inteiro.
  */
-export function alertasRansomware({ horas = 48 } = {}) {
+export async function alertasRansomware({ horas = 48 } = {}) {
+  // `discovered_at` chega da fonte em formatos diferentes ("2026-09-15 10:00:00"
+  // e ISO com "T") e é texto livre. O CASE devolve NULL para o que não começa
+  // com uma data, em vez de o cast derrubar a consulta inteira: no Postgres,
+  // `regex AND cast` não garante a ordem de avaliação.
   return all(
     `SELECT external_id, victim, "group", sector, discovered_at, criticality, criticality_reason, nature
        FROM ransomware_victims
       WHERE country = 'BR' AND criticality = 'CRITICO'
-        AND datetime(discovered_at) >= datetime('now', ?)
-      ORDER BY discovered_at DESC LIMIT 10`,
+        AND CASE WHEN discovered_at ~ '^\\d{4}-\\d{2}-\\d{2}' THEN discovered_at::timestamptz END
+              >= (now() + ?::interval)
+      ORDER BY discovered_at DESC NULLS LAST LIMIT 10`,
     [`-${horas} hours`]
   )
 }

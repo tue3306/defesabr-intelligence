@@ -43,11 +43,11 @@ export async function coletarComex() {
   //
   // Se já há dado recente no banco, a coleta é pulada. Educação com quem
   // publica de graça, e menos uma forma de o painel ficar sem número.
-  const recente = get(
+  const recente = (await get(
     `SELECT COUNT(*) AS n FROM indicators
      WHERE provider = 'comexstat'
-       AND fetched_at >= strftime('%Y-%m-%dT%H:%M:%SZ','now','-12 hours')`,
-  )?.n ?? 0
+       AND fetched_at >= iso_agora('-12 hours')`,
+  ))?.n ?? 0
 
   if (recente > 0) {
     return {
@@ -106,16 +106,16 @@ export async function coletarComex() {
     }
 
     let gravados = 0
-    transacao(() => {
+    await transacao(async () => {
       for (const l of linhas) {
         const valor = Number(l.metricFOB)
         if (!Number.isFinite(valor) || valor <= 0) continue
-        run(
+        await run(
           `INSERT INTO indicators (provider, code, country, period, value, unit)
            VALUES ('comexstat', ?, ?, ?, ?, 'US$ FOB')
            ON CONFLICT (provider, code, country, period)
            DO UPDATE SET value = excluded.value,
-                         fetched_at = strftime('%Y-%m-%dT%H:%M:%SZ','now')`,
+                         fetched_at = iso_agora()`,
           // O código guarda o capítulo; o "país" aqui é o DESTINO da exportação.
           [`NCM-${l.chapterCode}`, String(l.country || '').trim(), String(l.year), valor]
         )

@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { all, get, run, agora } from '../db/index.js'
+import { all, get, run, insert, agora } from '../db/index.js'
 import { hashSenha, senhaConfere, emitirToken, exigirPapel } from '../lib/auth.js'
 import config from '../config.js'
 import { limitar } from '../lib/limite.js'
@@ -89,10 +89,10 @@ const publico = (u) => ({
 })
 
 /** Remove a conta e tudo o que é só dela. */
-function removerConta(id) {
-  run('DELETE FROM bookmarks WHERE client_id = ?', [`conta:${id}`])
-  apagarEstadoDaConta(id)
-  run('DELETE FROM users WHERE id = ?', [id])
+async function removerConta(id) {
+  await run('DELETE FROM bookmarks WHERE client_id = ?', [`conta:${id}`])
+  await apagarEstadoDaConta(id)
+  await run('DELETE FROM users WHERE id = ?', [id])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -134,28 +134,28 @@ export async function semearContas() {
   const avisos = []
 
   for (const email of EMAILS_LEGADOS) {
-    const antiga = get('SELECT id FROM users WHERE email = ?', [email])
-    if (antiga) { removerConta(antiga.id); removidas += 1 }
+    const antiga = await get('SELECT id FROM users WHERE email = ?', [email])
+    if (antiga) { await removerConta(antiga.id); removidas += 1 }
   }
-  const usuarioLegado = get('SELECT id FROM users WHERE username = ?', [CONTAS_LEGADAS.usuario])
-  if (usuarioLegado) { removerConta(usuarioLegado.id); removidas += 1 }
+  const usuarioLegado = await get('SELECT id FROM users WHERE username = ?', [CONTAS_LEGADAS.usuario])
+  if (usuarioLegado) { await removerConta(usuarioLegado.id); removidas += 1 }
 
   const { usuario, senha } = config.auth.administrador
-  const adminLegado = get('SELECT id FROM users WHERE username = ?', [CONTAS_LEGADAS.admin])
+  const adminLegado = await get('SELECT id FROM users WHERE username = ?', [CONTAS_LEGADAS.admin])
 
   if (usuario && senha && RX_USUARIO.test(usuario)) {
-    const existente = get('SELECT id, role, status FROM users WHERE username = ?', [usuario])
+    const existente = await get('SELECT id, role, status FROM users WHERE username = ?', [usuario])
 
     if (!existente) {
       const { sal, hash } = await hashSenha(senha)
       if (adminLegado) {
-        run(
+        await run(
           `UPDATE users SET username = ?, email = ?, name = 'Administrador', password_hash = ?, password_salt = ?,
              role = 'admin', status = 'ativo', sessoes_desde = ? WHERE id = ?`,
           [usuario, emailDerivado(usuario), hash, sal, Date.now(), adminLegado.id],
         )
       } else {
-        run(
+        await run(
           `INSERT INTO users (name, username, email, password_hash, password_salt, role, plan, auth_provider)
            VALUES ('Administrador', ?, ?, ?, ?, 'admin', 'institucional', 'local')`,
           [usuario, emailDerivado(usuario), hash, sal],
@@ -168,7 +168,7 @@ export async function semearContas() {
       // assume — papel, situação e senha vêm do ambiente, e toda sessão antiga
       // deixa de valer na requisição seguinte.
       const { sal, hash } = await hashSenha(senha)
-      run(
+      await run(
         `UPDATE users SET password_hash = ?, password_salt = ?, role = 'admin', status = 'ativo',
            sessoes_desde = ? WHERE id = ?`,
         [hash, sal, Date.now(), existente.id],
@@ -178,7 +178,7 @@ export async function semearContas() {
     }
 
     if (existente && adminLegado) {
-      removerConta(adminLegado.id)
+      await removerConta(adminLegado.id)
       removidas += 1
     }
   } else {
@@ -187,7 +187,7 @@ export async function semearContas() {
     }
     avisos.push('ADMIN_USERNAME e ADMIN_PASSWORD não definidos — nenhuma conta de administrador foi criada.')
     if (adminLegado) {
-      run("UPDATE users SET status = 'suspenso', sessoes_desde = ? WHERE id = ?", [Date.now(), adminLegado.id])
+      await run("UPDATE users SET status = 'suspenso', sessoes_desde = ? WHERE id = ?", [Date.now(), adminLegado.id])
       avisos.push('A antiga conta admin123 foi suspensa: a senha dela era pública.')
     }
   }
@@ -200,24 +200,9 @@ export async function semearContas() {
  */
 export async function alertasDeSeguranca() {
   const alertas = []
-  // UM PROBLEMA, UM ALERTA.
-  //
-  // Eram dois avisos para a mesma causa: "sem volume" e "AUTH_SECRET não
-  // definido". Sem `AUTH_SECRET`, o segredo das sessões é gerado e GUARDADO NO
-  // BANCO — então ele sobrevive a reinício e a deploy sempre que o banco
-  // sobreviver. Com volume montado, não há nada a avisar; sem volume, o que se
-  // perde não é só a sessão: são as contas inteiras.
-  if (config.armazenamento.efemero) {
-    alertas.push({
-      id: 'sem-volume',
-      nivel: 'critico',
-      titulo: 'O banco é recriado a cada publicação',
-      detalhe: 'Este serviço está sem volume montado: contas, pasta pessoal, estado das '
-        + 'notificações e o segredo das sessões somem no próximo deploy — por isso as sessões '
-        + 'caem e o administrador precisa ser criado de novo. Monte um volume no serviço; o '
-        + 'caminho é detectado sozinho, sem definir DB_PATH.',
-    })
-  } else if (!config.auth.segredoFixado) {
+  // O banco é o Postgres gerenciado: contas e segredo das sessões sobrevivem a
+  // deploy por definição, e o antigo alerta de disco efêmero deixou de ter causa.
+  if (!config.auth.segredoFixado) {
     // Banco persistente e segredo no banco: as sessões sobrevivem. Fica como
     // nota de configuração, não como alerta de que algo está quebrado.
     alertas.push({
@@ -226,7 +211,7 @@ export async function alertasDeSeguranca() {
       titulo: 'AUTH_SECRET não definido — o segredo das sessões vive no banco',
       detalhe: 'As sessões sobrevivem a reinício e a deploy porque o banco é persistente. '
         + 'Definir AUTH_SECRET no ambiente é o passo seguinte: aí o segredo deixa de depender '
-        + 'do arquivo do banco.',
+        + 'do conteúdo do banco.',
     })
   }
   return alertas
@@ -238,10 +223,10 @@ export async function alertasDeSeguranca() {
  * Aceitar os dois deixa a porta aberta para login por e-mail no futuro sem que
  * o formulário mude.
  */
-const contaPorIdentificador = (bruto) => {
+const contaPorIdentificador = async (bruto) => {
   const id = String(bruto || '').trim().toLowerCase()
   if (!id) return null
-  return get('SELECT * FROM users WHERE username = ? OR email = ?', [id, id]) || null
+  return (await get('SELECT * FROM users WHERE username = ? OR email = ?', [id, id])) || null
 }
 
 const validarSenha = (senha, campo) => {
@@ -275,20 +260,20 @@ router.post('/auth/register', limitar({ max: 5, janelaMs: 10 * 60_000 }), async 
     const problema = validarSenha(senha, 'password')
     if (problema) return res.status(400).json(problema)
 
-    if (get('SELECT id FROM users WHERE username = ? OR email = ?', [usuario, emailDerivado(usuario)])) {
+    if (await get('SELECT id FROM users WHERE username = ? OR email = ?', [usuario, emailDerivado(usuario)])) {
       // 409 e não 400: o pedido está correto, o conflito é de estado.
       return res.status(409).json({ error: 'Este nome de usuário já está em uso.', campo: 'username' })
     }
 
     const { sal, hash } = await hashSenha(senha)
-    const info = run(
+    // `insert` devolve a linha criada (RETURNING): o Postgres não tem rowid.
+    const conta = await insert(
       `INSERT INTO users (name, username, email, password_hash, password_salt, role, plan, auth_provider)
        VALUES (?, ?, ?, ?, ?, 'user', 'institucional', 'local')`,
       [usuario, usuario, emailDerivado(usuario), hash, sal],
+      'users',
     )
-
-    const conta = get('SELECT * FROM users WHERE id = ?', [info.lastInsertRowid])
-    run('UPDATE users SET last_login_at = ? WHERE id = ?', [agora(), conta.id])
+    await run('UPDATE users SET last_login_at = ? WHERE id = ?', [agora(), conta.id])
 
     // O CADASTRO ENTRA NA TRILHA DE AUDITORIA.
     //
@@ -297,12 +282,12 @@ router.post('/auth/register', limitar({ max: 5, janelaMs: 10 * 60_000 }), async 
     // e a única pista era a data de criação na linha. Quem governa a
     // instalação precisa ver a criação junto do resto, na mesma ordem
     // cronológica. O ator é a própria pessoa: ninguém a criou por ela.
-    registrarAuditoria(
+    await registrarAuditoria(
       { conta: { sub: conta.id, name: conta.name } },
       { acao: 'Conta criada pelo cadastro', alvo: `Conta · ${conta.username}` },
     )
 
-    res.status(201).json({ user: publico(conta), token: emitirToken(conta) })
+    res.status(201).json({ user: publico(conta), token: await emitirToken(conta) })
   } catch (err) { next(err) }
 })
 
@@ -316,15 +301,18 @@ router.post('/auth/register', limitar({ max: 5, janelaMs: 10 * 60_000 }), async 
 // serviço: sem administrador, não há como governar a instalação nem como criar
 // um pela interface. Ver server/src/lib/adocao.js.
 // ─────────────────────────────────────────────────────────────────────────────
-router.get('/auth/adocao', (_req, res) => {
-  res.json({
-    disponivel: adocaoDisponivel(),
-    // A instrução some junto com a disponibilidade: numa instalação governada,
-    // a tela não fala de código nenhum.
-    nota: adocaoDisponivel()
-      ? 'Esta instalação ainda não tem administrador. Quem tem o código de adoção pode criar o primeiro.'
-      : null,
-  })
+router.get('/auth/adocao', async (_req, res, next) => {
+  try {
+    const disponivel = await adocaoDisponivel()
+    res.json({
+      disponivel,
+      // A instrução some junto com a disponibilidade: numa instalação governada,
+      // a tela não fala de código nenhum.
+      nota: disponivel
+        ? 'Esta instalação ainda não tem administrador. Quem tem o código de adoção pode criar o primeiro.'
+        : null,
+    })
+  } catch (err) { next(err) }
 })
 
 router.post('/auth/adotar', limitar({ max: 5, janelaMs: 10 * 60_000 }), async (req, res, next) => {
@@ -332,7 +320,7 @@ router.post('/auth/adotar', limitar({ max: 5, janelaMs: 10 * 60_000 }), async (r
     // A ordem importa: a indisponibilidade é respondida ANTES de olhar o
     // código. Numa instalação com administrador, a rota não é um oráculo que
     // diz se um código está certo.
-    if (!adocaoDisponivel()) {
+    if (!(await adocaoDisponivel())) {
       return res.status(409).json({
         error: 'Esta instalação já tem administrador. A adoção só vale enquanto não há nenhum.',
         code: 'JA_TEM_ADMINISTRADOR',
@@ -358,11 +346,11 @@ router.post('/auth/adotar', limitar({ max: 5, janelaMs: 10 * 60_000 }), async (r
     if (problema) return res.status(400).json(problema)
 
     const conta = await adotarInstalacao({ username: usuario, password: senha, emailDerivado })
-    registrarAuditoria(
+    await registrarAuditoria(
       { conta: { sub: conta.id } },
       { acao: 'Instalação adotada: primeiro administrador criado', alvo: `Conta · ${conta.username}`, nivel: 'warn' },
     )
-    res.status(201).json({ user: publico(conta), token: emitirToken(conta) })
+    res.status(201).json({ user: publico(conta), token: await emitirToken(conta) })
   } catch (err) { next(err) }
 })
 
@@ -372,7 +360,7 @@ router.post('/auth/adotar', limitar({ max: 5, janelaMs: 10 * 60_000 }), async (r
 // 10 tentativas por IP a cada 5 minutos, contando só as que FALHAM.
 router.post('/auth/login', limitar({ max: 10, janelaMs: 5 * 60_000, soFalhas: true }), async (req, res, next) => {
   try {
-    const conta = contaPorIdentificador(req.body?.username ?? req.body?.identifier ?? req.body?.email)
+    const conta = await contaPorIdentificador(req.body?.username ?? req.body?.identifier ?? req.body?.email)
 
     // A MESMA resposta para identificador inexistente e senha errada: distinguir
     // os dois permitiria descobrir quais contas existem.
@@ -396,38 +384,42 @@ router.post('/auth/login', limitar({ max: 10, janelaMs: 5 * 60_000, soFalhas: tr
       })
     }
 
-    run('UPDATE users SET last_login_at = ? WHERE id = ?', [agora(), conta.id])
-    const atualizada = get('SELECT * FROM users WHERE id = ?', [conta.id])
-    res.json({ user: publico(atualizada), token: emitirToken(atualizada) })
+    await run('UPDATE users SET last_login_at = ? WHERE id = ?', [agora(), conta.id])
+    const atualizada = await get('SELECT * FROM users WHERE id = ?', [conta.id])
+    res.json({ user: publico(atualizada), token: await emitirToken(atualizada) })
   } catch (err) { next(err) }
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
 // A PRÓPRIA CONTA
 // ─────────────────────────────────────────────────────────────────────────────
-const contaDaSessao = (req, res) => {
-  const conta = req.conta ? get('SELECT * FROM users WHERE id = ?', [req.conta.sub]) : null
+const contaDaSessao = async (req, res) => {
+  const conta = req.conta ? await get('SELECT * FROM users WHERE id = ?', [req.conta.sub]) : null
   if (!conta) res.status(401).json({ error: 'Sessão ausente ou expirada.', code: 'SEM_SESSAO' })
   return conta
 }
 
 // GET /api/auth/me — valida o token e devolve a conta
-router.get('/auth/me', (req, res) => {
-  const conta = contaDaSessao(req, res)
-  if (conta) res.json({ user: publico(conta) })
+router.get('/auth/me', async (req, res, next) => {
+  try {
+    const conta = await contaDaSessao(req, res)
+    if (conta) res.json({ user: publico(conta) })
+  } catch (err) { next(err) }
 })
 
 // PATCH /api/auth/me — nome de exibição
-router.patch('/auth/me', exigirPapel('user'), (req, res) => {
-  const conta = contaDaSessao(req, res)
-  if (!conta) return
+router.patch('/auth/me', exigirPapel('user'), async (req, res, next) => {
+  try {
+    const conta = await contaDaSessao(req, res)
+    if (!conta) return
 
-  const nome = String(req.body?.name ?? '').trim().replace(/\s+/g, ' ')
-  if (nome.length < 2 || nome.length > 80) {
-    return res.status(400).json({ error: 'O nome precisa ter entre 2 e 80 caracteres.', campo: 'name' })
-  }
-  run('UPDATE users SET name = ? WHERE id = ?', [nome, conta.id])
-  res.json({ user: publico(get('SELECT * FROM users WHERE id = ?', [conta.id])) })
+    const nome = String(req.body?.name ?? '').trim().replace(/\s+/g, ' ')
+    if (nome.length < 2 || nome.length > 80) {
+      return res.status(400).json({ error: 'O nome precisa ter entre 2 e 80 caracteres.', campo: 'name' })
+    }
+    await run('UPDATE users SET name = ? WHERE id = ?', [nome, conta.id])
+    res.json({ user: publico(await get('SELECT * FROM users WHERE id = ?', [conta.id])) })
+  } catch (err) { next(err) }
 })
 
 // PUT /api/auth/senha — troca de senha, com a atual
@@ -437,7 +429,7 @@ router.patch('/auth/me', exigirPapel('user'), (req, res) => {
 // antes da troca deixa de valer, e esta recebe um token novo.
 router.put('/auth/senha', exigirPapel('user'), limitar({ max: 5, janelaMs: 10 * 60_000, porConta: true }), async (req, res, next) => {
   try {
-    const conta = contaDaSessao(req, res)
+    const conta = await contaDaSessao(req, res)
     if (!conta) return
     if ((conta.auth_provider || 'local') !== 'local') {
       return res.status(400).json({ error: 'Esta conta entra pelo provedor externo e não tem senha local.' })
@@ -455,12 +447,12 @@ router.put('/auth/senha', exigirPapel('user'), limitar({ max: 5, janelaMs: 10 * 
     }
 
     const { sal, hash } = await hashSenha(nova)
-    run(
+    await run(
       'UPDATE users SET password_hash = ?, password_salt = ?, sessoes_desde = ? WHERE id = ?',
       [hash, sal, Date.now(), conta.id],
     )
-    const atualizada = get('SELECT * FROM users WHERE id = ?', [conta.id])
-    res.json({ ok: true, user: publico(atualizada), token: emitirToken(atualizada) })
+    const atualizada = await get('SELECT * FROM users WHERE id = ?', [conta.id])
+    res.json({ ok: true, user: publico(atualizada), token: await emitirToken(atualizada) })
   } catch (err) { next(err) }
 })
 
@@ -482,7 +474,7 @@ router.put('/auth/senha', exigirPapel('user'), limitar({ max: 5, janelaMs: 10 * 
 // que confere se a plataforma ficaria sem administrador ativo.
 router.delete('/auth/me', exigirPapel('user'), limitar({ max: 5, janelaMs: 10 * 60_000, porConta: true }), async (req, res, next) => {
   try {
-    const conta = contaDaSessao(req, res)
+    const conta = await contaDaSessao(req, res)
     if (!conta) return
     if (conta.role === 'admin') {
       return res.status(409).json({
@@ -497,8 +489,8 @@ router.delete('/auth/me', exigirPapel('user'), limitar({ max: 5, janelaMs: 10 * 
       }
     }
 
-    removerConta(conta.id)
-    registrarAuditoria({ conta: null }, { acao: 'Conta excluída pelo próprio titular', alvo: 'Conta de usuário', nivel: 'info' })
+    await removerConta(conta.id)
+    await registrarAuditoria({ conta: null }, { acao: 'Conta excluída pelo próprio titular', alvo: 'Conta de usuário', nivel: 'info' })
     res.json({ ok: true })
   } catch (err) { next(err) }
 })
@@ -512,38 +504,41 @@ router.delete('/auth/me', exigirPapel('user'), limitar({ max: 5, janelaMs: 10 * 
 // A interface também desabilita os botões, mas trava só no navegador não trava.
 // ─────────────────────────────────────────────────────────────────────────────
 
-router.get('/users', exigirPapel('admin'), (_req, res) => {
-  // NUNCA devolve `password_hash` nem `password_salt`: a consulta os deixa de fora.
-  const items = all(
-    `SELECT id, name, username, email, role, status, auth_provider, created_at, last_login_at
-       FROM users ORDER BY CASE role WHEN 'admin' THEN 0 ELSE 1 END, id`
-  ).map((u) => ({
-    id: String(u.id),
-    name: u.name,
-    username: u.username,
-    email: emailReal(u.email),
-    role: u.role,
-    authProvider: u.auth_provider || 'local',
-    status: u.status || 'ativo',
-    since: u.created_at,
-    lastAccess: u.last_login_at,
-  }))
+router.get('/users', exigirPapel('admin'), async (_req, res, next) => {
+  try {
+    // NUNCA devolve `password_hash` nem `password_salt`: a consulta os deixa de fora.
+    const linhas = await all(
+      `SELECT id, name, username, email, role, status, auth_provider, created_at, last_login_at
+         FROM users ORDER BY CASE role WHEN 'admin' THEN 0 ELSE 1 END, id`
+    )
+    const items = linhas.map((u) => ({
+      id: String(u.id),
+      name: u.name,
+      username: u.username,
+      email: emailReal(u.email),
+      role: u.role,
+      authProvider: u.auth_provider || 'local',
+      status: u.status || 'ativo',
+      since: u.created_at,
+      lastAccess: u.last_login_at,
+    }))
 
-  res.json({ items, total: items.length })
+    res.json({ items, total: items.length })
+  } catch (err) { next(err) }
 })
 
 const PAPEIS_ATRIBUIVEIS = new Set(['user', 'admin'])
 const SITUACOES = new Set(['ativo', 'suspenso'])
 
-const adminsAtivos = () =>
-  get("SELECT COUNT(*) AS n FROM users WHERE role = 'admin' AND COALESCE(status, 'ativo') = 'ativo'")?.n ?? 0
+const adminsAtivos = async () =>
+  (await get("SELECT COUNT(*) AS n FROM users WHERE role = 'admin' AND COALESCE(status, 'ativo') = 'ativo'"))?.n ?? 0
 
 /** Carrega o alvo e aplica as duas travas. Devolve `{ conta }` ou `{ erro }`. */
-function alvoDaGovernanca(req, { deixaDeSerAdminAtivo }) {
+async function alvoDaGovernanca(req, { deixaDeSerAdminAtivo }) {
   const id = Number(req.params.id)
   if (!Number.isInteger(id) || id <= 0) return { status: 400, erro: 'Identificador de conta inválido.' }
 
-  const conta = get('SELECT id, name, username, role, status FROM users WHERE id = ?', [id])
+  const conta = await get('SELECT id, name, username, role, status FROM users WHERE id = ?', [id])
   if (!conta) return { status: 404, erro: 'Conta não encontrada.' }
 
   if (conta.id === req.conta.sub) {
@@ -551,7 +546,7 @@ function alvoDaGovernanca(req, { deixaDeSerAdminAtivo }) {
   }
 
   const eraAdminAtivo = conta.role === 'admin' && (conta.status || 'ativo') === 'ativo'
-  if (eraAdminAtivo && deixaDeSerAdminAtivo && adminsAtivos() <= 1) {
+  if (eraAdminAtivo && deixaDeSerAdminAtivo && (await adminsAtivos()) <= 1) {
     return {
       status: 409,
       erro: 'Esta é a última conta de administrador ativa. A plataforma ficaria sem governança.',
@@ -562,62 +557,66 @@ function alvoDaGovernanca(req, { deixaDeSerAdminAtivo }) {
 }
 
 // PATCH /api/users/:id — papel e situação
-router.patch('/users/:id', exigirPapel('admin'), (req, res) => {
-  const { role, status } = req.body || {}
+router.patch('/users/:id', exigirPapel('admin'), async (req, res, next) => {
+  try {
+    const { role, status } = req.body || {}
 
-  if (role === undefined && status === undefined) {
-    return res.status(400).json({ error: 'Informe o papel ou a situação.' })
-  }
-  if (role !== undefined && !PAPEIS_ATRIBUIVEIS.has(role)) {
-    return res.status(400).json({ error: 'Papel inválido. Os papéis são Usuário e Administrador.' })
-  }
-  if (status !== undefined && !SITUACOES.has(status)) {
-    return res.status(400).json({ error: 'Situação inválida. As situações são ativo e suspenso.' })
-  }
+    if (role === undefined && status === undefined) {
+      return res.status(400).json({ error: 'Informe o papel ou a situação.' })
+    }
+    if (role !== undefined && !PAPEIS_ATRIBUIVEIS.has(role)) {
+      return res.status(400).json({ error: 'Papel inválido. Os papéis são Usuário e Administrador.' })
+    }
+    if (status !== undefined && !SITUACOES.has(status)) {
+      return res.status(400).json({ error: 'Situação inválida. As situações são ativo e suspenso.' })
+    }
 
-  const deixaDeSerAdminAtivo = (role !== undefined && role !== 'admin') || status === 'suspenso'
-  const alvo = alvoDaGovernanca(req, { deixaDeSerAdminAtivo })
-  if (alvo.erro) return res.status(alvo.status).json({ error: alvo.erro, code: alvo.code })
+    const deixaDeSerAdminAtivo = (role !== undefined && role !== 'admin') || status === 'suspenso'
+    const alvo = await alvoDaGovernanca(req, { deixaDeSerAdminAtivo })
+    if (alvo.erro) return res.status(alvo.status).json({ error: alvo.erro, code: alvo.code })
 
-  if (role !== undefined) run('UPDATE users SET role = ? WHERE id = ?', [role, alvo.conta.id])
-  if (status !== undefined) run('UPDATE users SET status = ? WHERE id = ?', [status, alvo.conta.id])
+    if (role !== undefined) await run('UPDATE users SET role = ? WHERE id = ?', [role, alvo.conta.id])
+    if (status !== undefined) await run('UPDATE users SET status = ? WHERE id = ?', [status, alvo.conta.id])
 
-  const atual = get('SELECT id, name, role, status FROM users WHERE id = ?', [alvo.conta.id])
+    const atual = await get('SELECT id, name, role, status FROM users WHERE id = ?', [alvo.conta.id])
 
-  const ROTULO = { user: 'Usuário', admin: 'Administrador' }
-  if (role !== undefined && role !== alvo.conta.role) {
-    registrarAuditoria(req, {
-      acao: `Papel alterado de ${ROTULO[alvo.conta.role] || alvo.conta.role} para ${ROTULO[role]}`,
-      alvo: `Conta · ${atual.name}`,
-      nivel: 'warn',
+    const ROTULO = { user: 'Usuário', admin: 'Administrador' }
+    if (role !== undefined && role !== alvo.conta.role) {
+      await registrarAuditoria(req, {
+        acao: `Papel alterado de ${ROTULO[alvo.conta.role] || alvo.conta.role} para ${ROTULO[role]}`,
+        alvo: `Conta · ${atual.name}`,
+        nivel: 'warn',
+      })
+    }
+    if (status !== undefined && status !== (alvo.conta.status || 'ativo')) {
+      await registrarAuditoria(req, {
+        acao: status === 'suspenso' ? 'Conta suspensa' : 'Conta reativada',
+        alvo: `Conta · ${atual.name}`,
+        nivel: status === 'suspenso' ? 'warn' : 'info',
+      })
+    }
+
+    // O efeito é imediato: a próxima requisição da pessoa já sai com o novo
+    // papel, ou sem sessão se foi suspensa (ver `lerConta`).
+    res.json({
+      ok: true,
+      conta: { id: String(atual.id), name: atual.name, role: atual.role, status: atual.status },
+      efeito: 'imediato',
     })
-  }
-  if (status !== undefined && status !== (alvo.conta.status || 'ativo')) {
-    registrarAuditoria(req, {
-      acao: status === 'suspenso' ? 'Conta suspensa' : 'Conta reativada',
-      alvo: `Conta · ${atual.name}`,
-      nivel: status === 'suspenso' ? 'warn' : 'info',
-    })
-  }
-
-  // O efeito é imediato: a próxima requisição da pessoa já sai com o novo
-  // papel, ou sem sessão se foi suspensa (ver `lerConta`).
-  res.json({
-    ok: true,
-    conta: { id: String(atual.id), name: atual.name, role: atual.role, status: atual.status },
-    efeito: 'imediato',
-  })
+  } catch (err) { next(err) }
 })
 
 // DELETE /api/users/:id — remove a conta, a pasta e o estado das notificações
-router.delete('/users/:id', exigirPapel('admin'), (req, res) => {
-  const alvo = alvoDaGovernanca(req, { deixaDeSerAdminAtivo: true })
-  if (alvo.erro) return res.status(alvo.status).json({ error: alvo.erro, code: alvo.code })
+router.delete('/users/:id', exigirPapel('admin'), async (req, res, next) => {
+  try {
+    const alvo = await alvoDaGovernanca(req, { deixaDeSerAdminAtivo: true })
+    if (alvo.erro) return res.status(alvo.status).json({ error: alvo.erro, code: alvo.code })
 
-  removerConta(alvo.conta.id)
-  registrarAuditoria(req, { acao: 'Conta removida', alvo: `Conta · ${alvo.conta.name}`, nivel: 'warn' })
+    await removerConta(alvo.conta.id)
+    await registrarAuditoria(req, { acao: 'Conta removida', alvo: `Conta · ${alvo.conta.name}`, nivel: 'warn' })
 
-  res.json({ ok: true, removida: { id: String(alvo.conta.id), name: alvo.conta.name } })
+    res.json({ ok: true, removida: { id: String(alvo.conta.id), name: alvo.conta.name } })
+  } catch (err) { next(err) }
 })
 
 export default router

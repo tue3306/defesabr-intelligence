@@ -1,24 +1,31 @@
-import { relative } from 'node:path'
-import { all, get } from '../db/index.js'
+import { all, get, modoTls } from '../db/index.js'
+import { descricaoTls } from '../db/conexao.js'
 import config from '../config.js'
 import { estadoDoAgendador } from '../collectors/index.js'
 import { METODO_RELEVANCIA } from '../lib/relevance.js'
+import { tamanhoDoBanco } from '../lib/retencao.js'
 
 /**
- * Caminho enxuto para exibir na tela: relativo à raiz do projeto, com barras
- * normais em qualquer sistema.
+ * Onde o banco está, para exibir na tela: host e nome do banco, NUNCA usuário
+ * nem senha.
  *
- * O caminho absoluto não ajuda ninguém e atrapalha duas vezes: revela a árvore
- * de diretórios de quem roda o servidor, e num contêiner aponta para um lugar
- * que não existe fora dele.
+ * A URL de conexão carrega a senha. Esta tela é aberta por qualquer
+ * administrador e a resposta passa por logs e capturas de tela, então a URL
+ * inteira nunca entra aqui: só o que ajuda a saber "estou olhando para qual
+ * banco?". URL ilegível vira um texto neutro em vez de vazar pedaço dela.
  */
-function caminhoRelativo(absoluto) {
-  const rel = relative(config.raizProjeto, absoluto).replace(/\\/g, '/')
-  // Se o banco estiver fora da árvore do projeto (`DB_PATH` apontando para um
-  // volume, por exemplo), `relative` devolve uma escada de "../". Nesse caso o
-  // absoluto é a informação honesta.
-  return rel && !rel.startsWith('..') ? rel : absoluto
+export function enderecoDoBanco() {
+  try {
+    const { hostname, port, pathname } = new URL(config.banco.url)
+    const nome = decodeURIComponent(pathname.replace(/^\//, '')) || 'postgres'
+    return `${hostname}${port ? `:${port}` : ''}/${nome}`
+  } catch {
+    return 'endereço do banco não legível'
+  }
 }
+
+/** AUTH_SECRET do ambiente tem o tamanho mínimo para valer? */
+const segredoValidoNoAmbiente = () => (process.env.AUTH_SECRET || '').length >= 16
 
 // -----------------------------------------------------------------------------
 // STATUS DA PLATAFORMA
@@ -41,10 +48,10 @@ function caminhoRelativo(absoluto) {
 // que impede a plataforma de prometer o que não entrega.
 // -----------------------------------------------------------------------------
 
-const contar = (sql, params = []) => get(sql, params)?.n ?? 0
+const contar = async (sql, params = []) => (await get(sql, params))?.n ?? 0
 
 /** Última execução registrada de um coletor. */
-function ultimaExecucao(coletor) {
+async function ultimaExecucao(coletor) {
   return get(
     `SELECT started_at, finished_at, duration_ms, ok, items_found, items_new, error, trigger
      FROM collector_runs WHERE collector = ? ORDER BY started_at DESC LIMIT 1`,
@@ -53,8 +60,8 @@ function ultimaExecucao(coletor) {
 }
 
 /** Taxa de sucesso recente — distingue "quebrou agora" de "vive quebrado". */
-function confiabilidade(coletor, ultimas = 10) {
-  const linhas = all(
+async function confiabilidade(coletor, ultimas = 10) {
+  const linhas = await all(
     'SELECT ok FROM collector_runs WHERE collector = ? ORDER BY started_at DESC LIMIT ?',
     [coletor, ultimas]
   )
@@ -62,9 +69,9 @@ function confiabilidade(coletor, ultimas = 10) {
   return Math.round((linhas.filter((l) => l.ok).length / linhas.length) * 100)
 }
 
-function capacidadeDeColeta({ id, nome, coletor, descricao, evidencia, contagem, fonte, grupo = 'Coleta' }) {
-  const execucao = ultimaExecucao(coletor)
-  const total = contagem()
+async function capacidadeDeColeta({ id, nome, coletor, descricao, evidencia, contagem, fonte, grupo = 'Coleta' }) {
+  const execucao = await ultimaExecucao(coletor)
+  const total = await contagem()
 
   let estado
   let detalhe
@@ -104,33 +111,85 @@ function capacidadeDeColeta({ id, nome, coletor, descricao, evidencia, contagem,
       ultimaExecucao: execucao?.finished_at || null,
       duracaoMs: execucao?.duration_ms ?? null,
       novosNaUltima: execucao?.items_new ?? null,
-      confiabilidade: confiabilidade(coletor),
+      confiabilidade: await confiabilidade(coletor),
+    },
+  }
+}
+
+/** Percentual do orçamento a partir do qual o item de armazenamento avisa. */
+const LIMIAR_AMARELO = 70
+const LIMIAR_VERMELHO = 100
+
+const emMB = (bytes) => `${(bytes / 1024 / 1024).toFixed(1)} MB`
+
+/**
+ * Item "Armazenamento": quanto do orçamento do banco está usado.
+ *
+ * O vocabulário de `estado` só tem operacional/degradado/opcional (o front
+ * traduz para operational/degraded/optional/planned), então o nível pedido
+ * mapeia assim: até 70% = operacional; acima de 70% = degradado (amarelo);
+ * acima de 100% = degradado também, com `metricas.nivel = 'vermelho'` e o texto
+ * dizendo que o orçamento estourou. Não inventei um estado novo para não
+ * quebrar a tradução do front.
+ */
+async function armazenamento() {
+  const { bytes, porTabela } = await tamanhoDoBanco()
+  const orcamento = config.armazenamento.orcamentoBytes
+  const percentual = Math.round((bytes / orcamento) * 100)
+  const maior = porTabela[0] || null
+  const nivel = percentual > LIMIAR_VERMELHO ? 'vermelho' : percentual > LIMIAR_AMARELO ? 'amarelo' : 'verde'
+
+  // DELETE não encolhe o arquivo: só VACUUM FULL devolve espaço ao disco (e é
+  // isso que pg_database_size e o modo somente-leitura do Supabase medem). Sem
+  // a instrução no próprio texto, o admin esperaria a retenção "resolver".
+  const acao = ' — rode VACUUM FULL nas maiores tabelas (docs/DEPLOY.md, "Armazenamento")'
+  const sufixo = nivel === 'vermelho' ? ` · orçamento ESTOURADO: a retenção está encurtando o só-mundo${acao}`
+    : nivel === 'amarelo' ? ` · perto do orçamento${acao}` : ''
+  return {
+    id: 'armazenamento',
+    nome: 'Armazenamento',
+    grupo: 'Processamento',
+    estado: nivel === 'verde' ? 'operacional' : 'degradado',
+    detalhe: `${emMB(bytes)} de ${emMB(orcamento)} (${percentual}%)`
+      + `${maior ? ` · maior tabela: ${maior.tabela} (${emMB(maior.bytes)})` : ''}${sufixo}`,
+    descricao: 'Tamanho do banco contra o orçamento (DB_ORCAMENTO_MB). Amarelo acima de 70%, vermelho '
+      + 'acima de 100%. A retenção por prazo e por pressão roda ao fim de cada ciclo, mas DELETE e '
+      + 'autovacuum só liberam espaço para reuso interno: o tamanho medido não cai. Para devolver '
+      + 'espaço, rode VACUUM FULL na tabela (trava a tabela; faça em horário de pouco uso).',
+    fonte: 'server/src/lib/retencao.js',
+    metricas: {
+      bytes,
+      orcamentoBytes: orcamento,
+      percentual,
+      nivel,
+      maiorTabela: maior,
     },
   }
 }
 
 /** Todas as capacidades da plataforma, com o estado real de cada uma. */
-export function capacidades() {
-  const artigos = contar('SELECT COUNT(*) AS n FROM articles')
-  const relevantes = contar('SELECT COUNT(*) AS n FROM articles WHERE relevant = 1')
+export async function capacidades() {
+  const estadoAgendador = await estadoDoAgendador()
+  const artigos = await contar('SELECT COUNT(*) AS n FROM articles')
+  const relevantes = await contar('SELECT COUNT(*) AS n FROM articles WHERE relevant = 1')
   // Denominador do filtro do Brasil: sem o que só a lente mundial gravou
   // (`relevant = 0 AND mundo = 1`). Ver `filtro` em /news/stats — contar essas
   // matérias faria a taxa de aprovação cair sem o filtro ter mudado.
-  const avaliadosPeloFiltro = contar('SELECT COUNT(*) AS n FROM articles WHERE NOT (relevant = 0 AND mundo = 1)')
+  const avaliadosPeloFiltro = await contar('SELECT COUNT(*) AS n FROM articles WHERE NOT (relevant = 0 AND mundo = 1)')
 
   return [
     // ── COLETA ──
-    capacidadeDeColeta({
+    await capacidadeDeColeta({
       id: 'coleta-rss',
       nome: 'Coleta de notícias (RSS)',
       coletor: 'rss',
       descricao: 'O servidor busca o XML direto de quem publica — sem proxy de terceiro e sem chave de API.',
       // Listava três domínios quando o catálogo tem dezenas de fontes.
-      fonte: `${contar('SELECT COUNT(*) AS n FROM sources WHERE enabled = 1')} fonte(s) ativa(s) no catálogo — ver Governança → Fontes e coleta`,
+      fonte: `${await contar('SELECT COUNT(*) AS n FROM sources WHERE enabled = 1')} fonte(s) ativa(s) no catálogo — ver Governança → Fontes e coleta`,
       contagem: () => artigos,
       evidencia: (t, e) => `${t} artigo(s) no acervo · ${e.items_new} novo(s) na última execução`,
     }),
-    capacidadeDeColeta({
+    await capacidadeDeColeta({
       id: 'coleta-camara',
       nome: 'Proposições legislativas',
       coletor: 'camara',
@@ -140,7 +199,7 @@ export function capacidades() {
       contagem: () => contar('SELECT COUNT(*) AS n FROM bills'),
       evidencia: (t) => `${t} proposição(ões) coletadas por palavra-chave`,
     }),
-    capacidadeDeColeta({
+    await capacidadeDeColeta({
       id: 'coleta-worldbank',
       nome: 'Indicadores econômicos',
       coletor: 'worldbank',
@@ -149,11 +208,11 @@ export function capacidades() {
       contagem: () => contar("SELECT COUNT(*) AS n FROM indicators WHERE provider = 'worldbank'"),
       evidencia: (t) => `${t} ponto(s) de série histórica`,
     }),
-    capacidadeDeColeta({
+    await capacidadeDeColeta({
       id: 'coleta-cambio',
       nome: 'Câmbio',
-      // O coletor `cambio` deixou de existir: a AwesomeAPI recusava o IP do
-      // Railway e o BCB já traz dólar e euro. A capacidade continua fazendo
+      // O coletor `cambio` deixou de existir: a AwesomeAPI recusava o IP da
+      // hospedagem e o BCB já traz dólar e euro. A capacidade continua fazendo
       // sentido — ela descreve o dado, não o processo —, mas precisa medir o
       // coletor que de fato o produz, senão fica em "nunca executado" para
       // sempre por procurar execuções de um coletor removido.
@@ -169,7 +228,7 @@ export function capacidades() {
     // O ciclo roda nove coletores e esta tela mostrava quatro. Exportações,
     // ransomware, atores e correlações alimentam telas inteiras — e, se um
     // deles parasse, o painel de saúde continuaria verde.
-    capacidadeDeColeta({
+    await capacidadeDeColeta({
       id: 'coleta-comex',
       nome: 'Exportações de defesa',
       coletor: 'comex',
@@ -178,7 +237,7 @@ export function capacidades() {
       contagem: () => contar("SELECT COUNT(*) AS n FROM indicators WHERE provider = 'comexstat'"),
       evidencia: (t) => `${t} registro(s) de exportação`,
     }),
-    capacidadeDeColeta({
+    await capacidadeDeColeta({
       id: 'coleta-ransomware',
       nome: 'Vítimas de ransomware',
       coletor: 'ransomware',
@@ -187,7 +246,7 @@ export function capacidades() {
       contagem: () => contar('SELECT COUNT(*) AS n FROM ransomware_victims'),
       evidencia: (t) => `${t} vítima(s) registradas`,
     }),
-    capacidadeDeColeta({
+    await capacidadeDeColeta({
       id: 'coleta-atores',
       nome: 'Atores de ameaça',
       coletor: 'atores',
@@ -196,7 +255,7 @@ export function capacidades() {
       contagem: () => contar('SELECT COUNT(*) AS n FROM threat_actors'),
       evidencia: (t) => `${t} ator(es) catalogados`,
     }),
-    capacidadeDeColeta({
+    await capacidadeDeColeta({
       id: 'correlacoes',
       nome: 'Correlações entre notícias',
       coletor: 'correlacoes',
@@ -209,7 +268,7 @@ export function capacidades() {
     // A lição do bloco acima vale para o coletor novo: a derivação geográfica
     // alimenta o mapa e toda a área Mundo & Conflitos, e parada ela deixaria as
     // telas congeladas com o painel verde.
-    capacidadeDeColeta({
+    await capacidadeDeColeta({
       id: 'geografia',
       nome: 'Países e teatros de conflito',
       coletor: 'geografia',
@@ -219,12 +278,12 @@ export function capacidades() {
       contagem: () => contar('SELECT COUNT(*) AS n FROM articles WHERE geo_at IS NOT NULL'),
       evidencia: (t) => `${t} artigo(s) com países e teatros derivados`,
     }),
-    (() => {
+    await (async () => {
       // Agregadores com chave são opcionais: sem chave não rodam, e isso não é
       // falha. Com chave, medem-se como qualquer coletor.
       const temChave = !!(config.agregadores?.gnews || config.agregadores?.newsdata)
       if (temChave) {
-        const execucao = ultimaExecucao('agregadores')
+        const execucao = await ultimaExecucao('agregadores')
         return {
           id: 'coleta-agregadores',
           nome: 'Agregadores de notícias',
@@ -239,7 +298,7 @@ export function capacidades() {
             ultimaExecucao: execucao?.finished_at || null,
             duracaoMs: execucao?.duration_ms ?? null,
             novosNaUltima: execucao?.items_new ?? null,
-            confiabilidade: confiabilidade('agregadores'),
+            confiabilidade: await confiabilidade('agregadores'),
           },
         }
       }
@@ -276,7 +335,7 @@ export function capacidades() {
       grupo: 'Processamento',
       estado: relevantes > 0 ? 'operacional' : 'degradado',
       detalhe: relevantes > 0
-        ? `${contar('SELECT COUNT(DISTINCT category) AS n FROM articles WHERE relevant = 1')} categoria(s) em uso`
+        ? `${await contar('SELECT COUNT(DISTINCT category) AS n FROM articles WHERE relevant = 1')} categoria(s) em uso`
         : 'Sem artigos classificados.',
       descricao: 'Derivada por regra de palavra-chave. A urgência é medida só na abertura do texto — '
         + 'numa janela grande quase todo texto tem alguma palavra tensa, e uma escala em que tudo é '
@@ -289,7 +348,7 @@ export function capacidades() {
       nome: 'Agendador de coleta',
       grupo: 'Processamento',
       ...(() => {
-        const s = estadoDoAgendador()
+        const s = estadoAgendador
         return {
           estado: s.ativo ? 'operacional' : 'opcional',
           detalhe: s.ativo
@@ -303,26 +362,19 @@ export function capacidades() {
     },
     {
       id: 'persistencia',
-      nome: 'Persistência (SQLite)',
+      nome: 'Persistência (Postgres)',
       grupo: 'Processamento',
       estado: 'operacional',
-      // Caminho RELATIVO à raiz do projeto. O absoluto expunha a árvore de
-      // diretórios da máquina de quem roda ("C:\Users\fulano\Desktop\...") numa
-      // tela que qualquer administrador abre — e num deploy o caminho do
-      // contêiner não diz nada a ninguém.
-      detalhe: `${all("SELECT name FROM sqlite_master WHERE type='table'").length} tabelas · ${caminhoRelativo(config.dbPath)}`
-        + (config.armazenamento.efemero ? ' · DISCO EFÊMERO' : config.armazenamento.volume ? ' · volume montado' : ''),
-      descricao: 'Módulo nativo node:sqlite — sem compilação de binário nativo, o que faz `npm install` '
-        + 'funcionar na primeira tentativa em qualquer máquina.'
-        + (config.armazenamento.efemero
-          ? ' Este serviço está sem volume: o banco é recriado a cada publicação, e as contas somem junto.'
-          : ''),
-      pendente: config.armazenamento.efemero
-        ? 'Monte um volume no serviço para o banco sobreviver aos deploys. O caminho é detectado sozinho.'
-        : null,
-      fonte: 'node:sqlite',
-      metricas: { registros: artigos + contar('SELECT COUNT(*) AS n FROM bills') },
+      // Só host e nome do banco: a URL de conexão carrega usuário e senha.
+      detalhe: `${(await all("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")).length} tabelas · ${enderecoDoBanco()} · ${descricaoTls(modoTls)}`,
+      descricao: 'Postgres gerenciado (Supabase), fora da instância que atende a API: o acervo e as '
+        + 'contas sobrevivem a deploys e a instâncias novas. O esquema vem das migrações em '
+        + '`supabase/migrations/`.',
+      pendente: null,
+      fonte: 'Postgres (Supabase)',
+      metricas: { registros: artigos + await contar('SELECT COUNT(*) AS n FROM bills'), tls: modoTls },
     },
+    await armazenamento(),
 
     // ── ENTREGA ──
     {
@@ -343,8 +395,8 @@ export function capacidades() {
       detalhe: artigos > 0
         ? 'Busca por texto em notícias, proposições e fontes, no banco.'
         : 'Sem acervo para buscar.',
-      descricao: 'LIKE sobre título, resumo e ementa. Suficiente para este volume; um índice FTS5 '
-        + 'seria o próximo passo se o acervo crescer uma ordem de grandeza.',
+      descricao: 'LIKE sobre título, resumo e ementa. Suficiente para este volume; a busca de texto '
+        + 'completa do Postgres seria o próximo passo se o acervo crescer uma ordem de grandeza.',
       fonte: 'server/src/routes/data.js',
       metricas: { registros: artigos },
     },
@@ -353,23 +405,23 @@ export function capacidades() {
       nome: 'Favoritos',
       grupo: 'Entrega',
       estado: 'operacional',
-      detalhe: `${contar('SELECT COUNT(*) AS n FROM bookmarks')} item(ns) salvos`,
+      detalhe: `${await contar('SELECT COUNT(*) AS n FROM bookmarks')} item(ns) salvos`,
       descricao: 'Guardados por conta no servidor: a pasta acompanha a pessoa em qualquer navegador. '
         + 'Remover a conta remove a pasta junto.',
       fonte: 'server/src/routes/system.js',
-      metricas: { registros: contar('SELECT COUNT(*) AS n FROM bookmarks') },
+      metricas: { registros: await contar('SELECT COUNT(*) AS n FROM bookmarks') },
     },
     {
       id: 'notificacoes',
       nome: 'Notificações',
       grupo: 'Entrega',
       estado: 'operacional',
-      detalhe: `${contar('SELECT COUNT(*) AS n FROM notifications')} aviso(s) nos últimos 30 dias`,
+      detalhe: `${await contar('SELECT COUNT(*) AS n FROM notifications')} aviso(s) nos últimos 30 dias`,
       descricao: 'Gerados pelo servidor ao fim de cada coleta — matéria relevante de urgência alta ou '
         + 'crítica e organização brasileira com incidente crítico nas últimas 48 horas; falha inteira '
         + 'de coletor só para administradores. O estado de leitura é guardado por conta.',
       fonte: 'server/src/lib/notificacoes.js',
-      metricas: { registros: contar('SELECT COUNT(*) AS n FROM notifications') },
+      metricas: { registros: await contar('SELECT COUNT(*) AS n FROM notifications') },
     },
 
     {
@@ -385,9 +437,13 @@ export function capacidades() {
         + 'requisição seguinte, sem esperar o token vencer. `npm run check:auth` confere as rotas.',
       fonte: 'server/src/lib/auth.js · server/src/routes/auth.js',
       pendente: 'Recuperação de senha e confirmação de e-mail não existem: dependem de envio de '
-        + 'e-mail, que esta instalação não tem.',
+        + 'e-mail, que esta instalação não tem.'
+        + (config.ambiente === 'production' && !segredoValidoNoAmbiente()
+          ? ' Defina AUTH_SECRET (16+ caracteres) no ambiente: sem ela o segredo das sessões fica '
+            + 'só no banco e não sobrevive a um banco recriado.'
+          : ''),
       metricas: {
-        contas: get('SELECT COUNT(*) AS n FROM users')?.n ?? 0,
+        contas: (await get('SELECT COUNT(*) AS n FROM users'))?.n ?? 0,
         papeis: 2,
       },
     },
@@ -395,8 +451,8 @@ export function capacidades() {
 }
 
 /** Panorama consolidado, com o resumo que o cabeçalho do painel exibe. */
-export function panorama() {
-  const caps = capacidades()
+export async function panorama() {
+  const caps = await capacidades()
   const porEstado = (e) => caps.filter((c) => c.estado === e).length
   // Opcional (sem chave, por decisão de quem instala) também fica fora da conta:
   // não é algo que a plataforma deixou de entregar.
@@ -417,27 +473,27 @@ export function panorama() {
         : 0,
     },
     capacidades: caps,
-    agendador: estadoDoAgendador(),
+    agendador: await estadoDoAgendador(),
     acervo: {
-      artigos: contar('SELECT COUNT(*) AS n FROM articles'),
-      artigosRelevantes: contar('SELECT COUNT(*) AS n FROM articles WHERE relevant = 1'),
+      artigos: await contar('SELECT COUNT(*) AS n FROM articles'),
+      artigosRelevantes: await contar('SELECT COUNT(*) AS n FROM articles WHERE relevant = 1'),
       // Denominador do FILTRO, que não é o acervo inteiro: fora dele ficam as
       // matérias que só a lente mundial gravou. Sem este número na resposta, o
       // cartão do painel exibia "861 aprovados" ao lado de "3373 no acervo", e
       // quem dividia chegava a 26% — com 42% escrito dois cartões abaixo.
-      artigosAvaliadosPeloFiltro: contar('SELECT COUNT(*) AS n FROM articles WHERE NOT (relevant = 0 AND mundo = 1)'),
-      proposicoes: contar('SELECT COUNT(*) AS n FROM bills'),
-      indicadores: contar('SELECT COUNT(*) AS n FROM indicators'),
-      fontes: contar('SELECT COUNT(*) AS n FROM sources'),
-      fontesComErro: contar("SELECT COUNT(*) AS n FROM sources WHERE last_status = 'erro'"),
-      favoritos: contar('SELECT COUNT(*) AS n FROM bookmarks'),
+      artigosAvaliadosPeloFiltro: await contar('SELECT COUNT(*) AS n FROM articles WHERE NOT (relevant = 0 AND mundo = 1)'),
+      proposicoes: await contar('SELECT COUNT(*) AS n FROM bills'),
+      indicadores: await contar('SELECT COUNT(*) AS n FROM indicators'),
+      fontes: await contar('SELECT COUNT(*) AS n FROM sources'),
+      fontesComErro: await contar("SELECT COUNT(*) AS n FROM sources WHERE last_status = 'erro'"),
+      favoritos: await contar('SELECT COUNT(*) AS n FROM bookmarks'),
     },
     ambiente: {
       node: process.version,
       ambiente: config.ambiente,
       versao: config.versao,
       uptimeSegundos: Math.round(process.uptime()),
-      banco: caminhoRelativo(config.dbPath),
+      banco: enderecoDoBanco(),
     },
   }
 }

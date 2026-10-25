@@ -1,4 +1,4 @@
-import { get, run, transacao } from '../db/index.js'
+import { all, get, run, transacao } from '../db/index.js'
 import { buscarJson } from '../lib/fetcher.js'
 import { avaliarProposicao } from '../lib/proposicoes.js'
 import { chaveDeBusca } from '../lib/relevance.js'
@@ -105,14 +105,11 @@ export async function coletarCamara() {
   // `search_key` NULA, e a busca por "exercito" devolvia ZERO proposições
   // contra UMA de "exército"; "operacao", zero contra duas de "operação". O
   // Radar Legislativo era invisível para quem não acentua.
-  //
-  // O que já estava gravado é corrigido na subida — ver `migrate()` em
-  // server/src/db/index.js.
 
-  transacao(() => {
+  await transacao(async () => {
     for (const p of proposicoes) {
-      if (get('SELECT id FROM bills WHERE external_id = ?', [p.externalId])) continue
-      run(
+      if (await get('SELECT id FROM bills WHERE external_id = ?', [p.externalId])) continue
+      await run(
         `INSERT INTO bills (external_id, code, house, summary, url, keyword, search_key)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [p.externalId, p.code, 'Câmara', p.summary, p.url, p.keyword,
@@ -153,14 +150,13 @@ const SITUACAO_VALE_DIAS = 7
  * artificial antes das de defesa gastava o lote com o que ninguém vê.
  */
 export async function enriquecerSituacoes(limite = 12) {
-  const { all } = await import('../db/index.js')
-  const fila = all(
+  const fila = (await all(
     `SELECT id, external_id, summary, status_text, status_at FROM bills
      WHERE status_text IS NULL OR status_at IS NULL
-        OR status_at < strftime('%Y-%m-%dT%H:%M:%SZ', 'now', ?)
+        OR status_at < iso_agora(?)
      ORDER BY external_id DESC`,
     [`-${SITUACAO_VALE_DIAS} days`]
-  ).map((b) => ({
+  )).map((b) => ({
     ...b,
     nunca: b.status_text == null,
     relevante: avaliarProposicao(b.summary).relevante,
@@ -179,7 +175,7 @@ export async function enriquecerSituacoes(limite = 12) {
   for (const b of lote) {
     const s = await situacaoDaProposicao(b.external_id)
     if (!s) continue
-    gravarSituacao(b.id, s)
+    await gravarSituacao(b.id, s)
     atualizadas += 1
     if (b.nunca) novas += 1
   }
@@ -188,11 +184,11 @@ export async function enriquecerSituacoes(limite = 12) {
 }
 
 /** Grava a situação consultada e a data da consulta. */
-export function gravarSituacao(id, s) {
-  run(
+export async function gravarSituacao(id, s) {
+  await run(
     `UPDATE bills SET status_text = ?, presented_at = COALESCE(?, presented_at),
        summary = COALESCE(?, summary),
-       status_at = strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE id = ?`,
+       status_at = iso_agora() WHERE id = ?`,
     [s.statusText, s.presentedAt, s.summary, id]
   )
 }

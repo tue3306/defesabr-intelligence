@@ -13,6 +13,9 @@ import metodo from './routes/metodo.js'
 import notificacoes from './routes/notificacoes.js'
 import mundo from './routes/mundo.js'
 import { lerConta } from './lib/auth.js'
+import { waitUntil } from '@vercel/functions'
+import { criarRotaCron } from './routes/cron.js'
+import { CABECALHOS_SEGURANCA, CABECALHOS_SO_PRODUCAO } from './lib/cabecalhos.js'
 
 // -----------------------------------------------------------------------------
 // APLICAÇÃO EXPRESS
@@ -39,47 +42,17 @@ export function criarApp() {
 
   // ── Cabeçalhos de segurança ──
   //
-  // Nenhuma dependência. A CSP lista exatamente o que a interface carrega de
-  // fora — as fontes do Google e o atlas de países do jsDelivr, que o mapa
-  // busca por `fetch` — e mais nada: nenhum script de terceiro roda nesta
-  // origem, que é onde mora o token de sessão. `'unsafe-inline'` vale só para
-  // ESTILO: os gráficos e as animações escrevem `style=` no elemento.
-  //
-  // Só em produção: o Vite de desenvolvimento injeta script inline para o
-  // recarregamento a quente, e a política o bloquearia. Conferida servindo o
-  // `dist/` com NODE_ENV=production — mapa, fontes, gráficos e exportação CSV.
-  const CSP = [
-    "default-src 'self'",
-    "script-src 'self'",
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "font-src 'self' https://fonts.gstatic.com data:",
-    "img-src 'self' data: blob: https:",
-    "connect-src 'self' https://cdn.jsdelivr.net",
-    "object-src 'none'",
-    "base-uri 'self'",
-    "form-action 'self'",
-    "frame-ancestors 'none'",
-  ].join('; ')
+  // Valores em `lib/cabecalhos.js`, a fonte única (o vercel.json os repete e um
+  // teste guarda a igualdade). CSP e HSTS só em produção: o Vite de
+  // desenvolvimento injeta script inline para o recarregamento a quente, e a
+  // política o bloquearia. Conferida servindo o `dist/` com NODE_ENV=production.
   const producao = config.ambiente === 'production'
+  const aplicaveis = CABECALHOS_SEGURANCA.filter(
+    ({ key }) => producao || !CABECALHOS_SO_PRODUCAO.includes(key),
+  )
 
   app.use((req, res, next) => {
-    if (producao) {
-      res.setHeader('Content-Security-Policy', CSP)
-      // O Railway só serve HTTPS; isto impede o navegador de tentar HTTP de
-      // novo (e ser interceptado) nos próximos 180 dias.
-      res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains')
-    }
-    // Impede o navegador de "adivinhar" o tipo de um arquivo servido — é o que
-    // transforma um upload de texto em script executável.
-    res.setHeader('X-Content-Type-Options', 'nosniff')
-    // Sem isto a plataforma pode ser embutida num iframe de terceiro e ter os
-    // cliques sequestrados por uma camada invisível por cima.
-    res.setHeader('X-Frame-Options', 'DENY')
-    // Não vaza o caminho interno visitado para sites externos ao clicar num link.
-    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
-    // Nada aqui usa câmera, microfone ou localização; declarar isso fecha a
-    // porta para qualquer script de terceiro que tente pedi-los.
-    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+    for (const { key, value } of aplicaveis) res.setHeader(key, value)
     next()
   })
 
@@ -146,7 +119,16 @@ export function criarApp() {
 
   // Lê a sessão ANTES das rotas: quem exige papel encontra `req.conta` pronto,
   // e quem não exige simplesmente ignora. Não bloqueia nada por si só.
-  app.use('/api', lerConta)
+  //
+  // `lerConta` é assíncrona (assinatura e conta vêm do banco). O Express 4 não
+  // olha a promessa: sem o `.catch(next)`, uma falha ao resolver o segredo
+  // deixaria a requisição pendurada em vez de virar 500 JSON.
+  app.use('/api', (req, res, next) => lerConta(req, res, next).catch(next))
+
+  // Fora da Vercel `waitUntil` não faz nada (o contexto não existe) e a promessa
+  // segue por conta própria, pois o processo continua vivo. A promessa recebida
+  // já vem com `.catch`, então nunca vira rejeição sem dono.
+  app.use('/api', criarRotaCron({ emSegundoPlano: waitUntil }))
 
   app.use('/api', autenticacao)
   app.use('/api', noticias)
@@ -224,6 +206,7 @@ export function criarApp() {
     if (config.ambiente !== 'production') console.error(err?.stack)
     res.status(err?.status || 500).json({
       error: err?.expose ? err.message : 'Erro interno no servidor.',
+      ...(err?.expose && err.code ? { code: err.code } : {}),
       // O detalhe só sai fora de produção: em produção ele vaza estrutura
       // interna para quem quer que consiga provocar o erro.
       ...(config.ambiente !== 'production' ? { detalhe: String(err?.message || err) } : {}),

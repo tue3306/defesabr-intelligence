@@ -1,41 +1,41 @@
 import { existsSync } from 'node:fs'
-import { migrate, get } from './db/index.js'
+import { get, pool, fecharBanco as encerrarPool } from './db/index.js'
+import { aplicarMigracoes } from './db/migracoes.js'
+import { semearTudo } from './db/semear.js'
 import config from './config.js'
 import { criarApp } from './app.js'
-import { semearFontes, iniciarAgendador, coletarAgora, pararAgendador } from './collectors/index.js'
-import { semearAgregadores } from './collectors/newsapi.js'
-import { db } from './db/index.js'
+import { iniciarAgendador, coletarAgora, pararAgendador } from './collectors/index.js'
+import { segredoDaSessao } from './lib/auth.js'
+import { enderecoDoBanco } from './services/status.js'
 
-// Fecha o banco uma vez só, mesmo que os dois caminhos de saída disparem.
-//
-// Em modo WAL, sair sem fechar deixa o `-wal` sem checkpoint: o SQLite se
-// recupera sozinho na abertura seguinte, então não há corrupção — mas o
-// arquivo cresce e o primeiro acesso depois do deploy paga a recuperação.
+// Encerra o pool uma vez só, mesmo que os dois caminhos de saída disparem:
+// `pool.end()` chamado duas vezes rejeita, e a segunda chamada viria do
+// temporizador de segurança do encerramento.
 let bancoFechado = false
 function fecharBanco() {
   if (bancoFechado) return
   bancoFechado = true
-  try { db.close() } catch { /* já fechado */ }
+  encerrarPool().catch(() => { /* já encerrado */ })
 }
-import { semearContas } from './routes/auth.js'
-import { segredoDaSessao } from './lib/auth.js'
 
 // -----------------------------------------------------------------------------
-// PONTO DE ENTRADA
+// PONTO DE ENTRADA — SÓ PARA O DESENVOLVIMENTO LOCAL
 //
-// Ordem: esquema → fontes → servidor → coleta.
+// Ordem: migrações → semeadura → servidor → coleta.
+//
+// Em produção quem serve a API é a função da Vercel, e as migrações rodam no
+// deploy (`npm run migrate`). Aqui o processo é longo e cuida de tudo sozinho,
+// para que `npm run dev` num clone recém-feito suba com o banco pronto.
 //
 // A coleta vem DEPOIS do listen de propósito. Ela leva de 5 a 20 segundos
 // (sete feeds, treze buscas na Câmara, quatro séries do World Bank); esperá-la
-// atrasaria o healthcheck e o Railway mataria o contêiner antes de subir.
+// atrasaria a primeira resposta da API sem motivo.
 // -----------------------------------------------------------------------------
 
-migrate()
-const fontesCriadas = semearFontes() + semearAgregadores()
-// `await` no topo do módulo: `semearContas` é assíncrona (scrypt fora do event
-// loop), e sem esperar por ela a porta abriria antes de a conta de
-// administrador existir.
-const contas = await semearContas()
+// `await` no topo do módulo: sem esperar, a porta abriria antes de o esquema
+// existir e de a conta de administrador ser criada.
+await aplicarMigracoes(pool)
+const { fontes: fontesCriadas, contas } = await semearTudo()
 
 const app = criarApp()
 const servidor = app.listen(config.port, config.host, async () => {
@@ -45,27 +45,25 @@ const servidor = app.listen(config.port, config.host, async () => {
   console.log(`  API           http://localhost:${config.port}/api`)
   console.log(`  Ambiente      ${config.ambiente}`)
   console.log(`  Node          ${process.version}`)
-  console.log(`  Banco         ${config.dbPath}${config.armazenamento.volume ? ' (volume montado)' : ''}`)
-  if (config.armazenamento.efemero) {
-    // Amarelo, e não cinza: quem publica precisa saber que as contas somem na
-    // próxima publicação — inclusive a de administrador.
-    console.log('  [33mBanco         SEM VOLUME: o banco é recriado a cada publicação e as contas somem[0m')
-    console.log('  [2m              Monte um volume no serviço; o caminho é detectado sozinho[0m')
-  }
+  // Só host e nome do banco: a URL de conexão carrega usuário e senha.
+  console.log(`  Banco         Postgres em ${enderecoDoBanco()}`)
   if (fontesCriadas) console.log(`  Fontes        ${fontesCriadas} cadastradas`)
   if (contas.criadas) console.log(`  Contas        conta de administrador criada (ADMIN_USERNAME)`)
   if (contas.assumidas) console.log(`  Contas        conta de administrador assumida pelo ambiente`)
   if (contas.removidas) console.log(`  Contas        ${contas.removidas} conta(s) pública(s) antiga(s) removida(s)`)
   for (const aviso of contas.avisos) console.log(`  [33mContas        ${aviso}[0m`)
   // De onde veio o segredo que assina as sessoes. Quem hospeda precisa saber:
-  // 'banco' sobrevive a reinicio; 'memoria' nao.
-  const seg = segredoDaSessao()
+  // 'ambiente' e 'banco' sobrevivem a reinicio.
+  let seg = {}
+  try {
+    seg = await segredoDaSessao()
+  } catch (err) {
+    console.log(`  [33mSessões       segredo não resolvido: ${err?.message || err}[0m`)
+  }
   if (seg.origem === 'banco-novo') {
     console.log('  [2mSessões       segredo gerado e guardado no banco desta instalação[0m')
   } else if (seg.origem === 'banco') {
     console.log('  [2mSessões       segredo do banco — sobrevivem ao reinício[0m')
-  } else if (seg.origem === 'memoria') {
-    console.log('  [33mSessões       segredo em memória: caem a cada reinício (banco não gravável)[0m')
   }
   if (config.auth.segredoFraco) {
     // Em amarelo, não em cinza: quem definiu a variável acredita ter
@@ -102,12 +100,12 @@ const servidor = app.listen(config.port, config.host, async () => {
 
   // Coleta na subida se o acervo estiver vazio OU velho. Reiniciar o servidor
   // logo depois de uma coleta não deve disparar requisições externas à toa —
-  // mas "já há dado no banco" não é o mesmo que "há dado de hoje". Com um
-  // volume no Railway, o acervo sobrevive a dias de serviço parado; a regra
-  // antiga subia servindo as notícias de cinco dias atrás como "recentes" e
-  // só buscava as novas quinze minutos depois, no primeiro ciclo do agendador.
-  const artigos = get('SELECT COUNT(*) AS n FROM articles')?.n ?? 0
-  const ultima = get('SELECT MAX(last_fetch_at) AS t FROM sources')?.t
+  // mas "já há dado no banco" não é o mesmo que "há dado de hoje". O banco
+  // sobrevive a dias de serviço parado; a regra antiga subia servindo as
+  // notícias de cinco dias atrás como "recentes" e só buscava as novas quinze
+  // minutos depois, no primeiro ciclo do agendador.
+  const artigos = (await get('SELECT COUNT(*) AS n FROM articles'))?.n ?? 0
+  const ultima = (await get('SELECT MAX(last_fetch_at) AS t FROM sources'))?.t
   const idadeMin = ultima ? (Date.now() - Date.parse(ultima)) / 60_000 : Infinity
   const velho = agendador.ativo && idadeMin > agendador.intervaloMinutos
   if (artigos > 0 && velho) {
@@ -153,11 +151,6 @@ const servidor = app.listen(config.port, config.host, async () => {
 // assíncrona escrita sem `next(err)`, um coletor chamado fora de `registrar()`
 // — para o servidor inteiro morrer por causa de um feed fora do ar.
 //
-// No Railway isso é caro de um jeito específico: o disco é efêmero, então cada
-// reinício recomeça o acervo do zero e a plataforma passa alguns minutos com
-// as telas vazias. E `restartPolicyMaxRetries: 3` significa que três quedas
-// seguidas param o serviço de vez.
-//
 // OS DOIS CASOS PEDEM RESPOSTAS OPOSTAS, e é por isso que não há um tratador
 // só para ambos:
 //
@@ -171,8 +164,8 @@ const servidor = app.listen(config.port, config.host, async () => {
 //   meio, e o que sobrou pode estar pela metade: uma transação aberta, um
 //   arquivo sem fechar. Seguir servindo a partir de um estado que ninguém
 //   consegue descrever é como se serve dado errado com cara de certo. Sair
-//   com código 1 e deixar o Railway subir de novo é o desfecho honesto — e o
-//   banco é fechado antes, para o WAL não ficar sem checkpoint.
+//   com código 1 é o desfecho honesto — e o pool é encerrado antes, para as
+//   conexões não ficarem penduradas no Postgres.
 // ─────────────────────────────────────────────────────────────────────────────
 process.on('unhandledRejection', (motivo) => {
   console.error('[31m[processo] promessa rejeitada sem tratamento:[0m', motivo?.message || motivo)
@@ -187,15 +180,15 @@ process.on('uncaughtException', (err) => {
   process.exit(1)
 })
 
-// Encerramento limpo. Sem isto, o Railway espera o timeout a cada deploy —
-// e conexões abertas ficam penduradas.
+// Encerramento limpo. Sem isto, Ctrl+C deixaria conexões abertas penduradas
+// no Postgres até o servidor as derrubar por inatividade.
 for (const sinal of ['SIGTERM', 'SIGINT']) {
   process.on(sinal, () => {
     console.log(`\n  ${sinal} — encerrando…`)
     pararAgendador()
     servidor.close(() => { fecharBanco(); process.exit(0) })
-    // Rede de segurança: se uma conexão ficar pendurada, sai mesmo assim.
-    // Fecha o banco aqui também, senão este caminho sairia sem checkpoint.
+    // Rede de segurança: se uma conexão HTTP ficar pendurada, sai mesmo assim.
+    // Encerra o pool aqui também, senão este caminho sairia sem fechá-lo.
     setTimeout(() => { fecharBanco(); process.exit(0) }, 5000).unref()
   })
 }

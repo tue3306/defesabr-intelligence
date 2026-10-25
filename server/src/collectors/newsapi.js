@@ -103,7 +103,7 @@ export async function coletarAgregadores() {
       const itens = NORMALIZAR[p.id](bruto)
       let novos = 0
 
-      transacao(() => {
+      await transacao(async () => {
         for (const item of itens) {
           if (!item.guid || !item.titulo) continue
 
@@ -112,17 +112,17 @@ export async function coletarAgregadores() {
           const r = avaliarRelevancia(palheiro)
           if (!r.relevante) continue
 
-          if (get('SELECT id FROM articles WHERE guid = ?', [item.guid])) continue
+          if (await get('SELECT id FROM articles WHERE guid = ?', [item.guid])) continue
           const chave = chaveDeTitulo(item.titulo)
-          if (chave && get('SELECT id FROM articles WHERE title_key = ?', [chave])) continue
+          if (chave && await get('SELECT id FROM articles WHERE title_key = ?', [chave])) continue
 
           const c = classificar(palheiro, item.titulo)
           const categoria = c.categoria
           const urgencia = urgenciaParaOBrasil(c.urgencia, palheiro)
-          const fonte = get('SELECT id FROM sources WHERE slug = ?', [`agregador-${p.id}`])
+          const fonte = await get('SELECT id FROM sources WHERE slug = ?', [`agregador-${p.id}`])
           if (!fonte) continue
 
-          run(
+          await run(
             `INSERT INTO articles
                (source_id, guid, title, title_key, url, summary, author, published_at,
                 category, urgency, relevant, relevance_score, matched_terms)
@@ -158,13 +158,13 @@ export async function coletarAgregadores() {
 }
 
 /** Cadastra a fonte de cada agregador configurado. */
-export function semearAgregadores() {
+export async function semearAgregadores() {
   let criadas = 0
   for (const p of PROVEDORES) {
     if (!p.chave()) continue
     const slug = `agregador-${p.id}`
-    if (get('SELECT id FROM sources WHERE slug = ?', [slug])) continue
-    run(
+    if (await get('SELECT id FROM sources WHERE slug = ?', [slug])) continue
+    await run(
       `INSERT INTO sources (slug, name, url, site_url, kind, category, somente_relevantes)
        VALUES (?, ?, ?, ?, 'api', 'Agregador', 1)`,
       [slug, `${p.nome} (API)`, p.url('***'), p.id === 'gnews' ? 'https://gnews.io' : 'https://newsdata.io']
