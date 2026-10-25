@@ -54,6 +54,12 @@ const numOuZero = (valor, padrao) => {
 // memória para uma decisão de segurança. O Railway injeta as suas próprias
 // variáveis em todo deploy; a presença delas é sinal suficiente.
 //
+// A Vercel também não define NODE_ENV na função, mas injeta VERCEL_ENV
+// ('production', 'preview' ou 'development'). Preview conta como produção de
+// propósito: é uma URL pública, com o mesmo código, e precisa das mesmas
+// defesas — e, por isso, das mesmas variáveis obrigatórias (DATABASE_URL etc.).
+// 'development' só aparece em `vercel dev`, na máquina de quem desenvolve.
+//
 // NODE_ENV explícito continua tendo a palavra final — quem quiser depurar em
 // produção define `NODE_ENV=development` e assume a escolha.
 // Definido fora do objeto porque `banco` também precisa dele durante a
@@ -63,6 +69,8 @@ const ambienteAtual = process.env.NODE_ENV
     || process.env.RAILWAY_ENVIRONMENT_NAME
     || process.env.RAILWAY_PROJECT_ID
     || process.env.RAILWAY_SERVICE_ID
+    || process.env.VERCEL_ENV === 'production'
+    || process.env.VERCEL_ENV === 'preview'
     ? 'production'
     : 'development')
 
@@ -93,6 +101,9 @@ export const config = {
     // Cada função serverless abre o próprio pool; poucas conexões por instância
     // para não estourar o limite do pooler do Supabase.
     poolMax: num(process.env.DB_POOL_MAX, 3),
+    // DATABASE_CA_CERT (CA do Supabase, em PEM) é lida direto do ambiente por
+    // db/conexao.js, que decide o TLS: com ela, certificado verificado; sem ela,
+    // cifrado sem verificação e um aviso no log.
   },
 
   // Em produção o próprio servidor entrega o front compilado, então não há
@@ -134,12 +145,13 @@ export const config = {
   auth: {
     // Segredo que assina os tokens de sessão.
     //
-    // Sem AUTH_SECRET no ambiente, gera um aleatório a cada boot — o que
-    // INVALIDA as sessões a cada reinício. É o padrão certo: um segredo fixo
-    // embutido no código seria público (o repositório é aberto), e qualquer
-    // pessoa poderia assinar um token de administrador.
+    // Quem assina de fato é `resolverSegredo` (lib/segredo.js): AUTH_SECRET do
+    // ambiente primeiro; sem ele, o segredo guardado no banco. Aqui ficam só os
+    // sinais que o boot e o painel exibem. Nunca há segredo fixo no código: o
+    // repositório é aberto e qualquer pessoa poderia assinar um token.
     //
-    // No Railway, defina AUTH_SECRET para as sessões sobreviverem ao deploy.
+    // Em produção (Vercel), defina AUTH_SECRET: é o único que sobrevive a um
+    // banco recriado.
     // Um segredo curto é pior que nenhum: dá a sensação de estar configurado
     // e é adivinhável por força bruta. Abaixo de 16 caracteres ele é recusado
     // em favor do aleatório, e `segredoFraco` faz o servidor avisar no boot.
@@ -224,8 +236,9 @@ export const config = {
   // "Está no ar" e "está atualizado" são perguntas diferentes, e uma sonda que
   // só responde a primeira deixa a segunda sem dono.
   //
-  // O Railway injeta estas variáveis em todo deploy originado do GitHub, sem
-  // configuração nenhuma. Localmente elas não existem e o bloco vira `null` —
+  // O Railway (RAILWAY_*) e a Vercel (VERCEL_GIT_*, VERCEL_DEPLOYMENT_ID)
+  // injetam estas variáveis em todo deploy originado do GitHub, sem
+  // configuração nenhuma. As do Railway vêm primeiro enquanto ele existir. Localmente elas não existem e o bloco vira `null` —
   // que é a resposta correta: `npm start` na máquina de quem clona não é um
   // deploy e não tem commit associado.
   //
@@ -234,9 +247,9 @@ export const config = {
   // que alguém escreveu — não é campo para servir em rota pública.
   // ───────────────────────────────────────────────────────────────────────────
   deploy: (() => {
-    const sha = process.env.RAILWAY_GIT_COMMIT_SHA || ''
-    const branch = process.env.RAILWAY_GIT_BRANCH || ''
-    const id = process.env.RAILWAY_DEPLOYMENT_ID || ''
+    const sha = process.env.RAILWAY_GIT_COMMIT_SHA || process.env.VERCEL_GIT_COMMIT_SHA || ''
+    const branch = process.env.RAILWAY_GIT_BRANCH || process.env.VERCEL_GIT_COMMIT_REF || ''
+    const id = process.env.RAILWAY_DEPLOYMENT_ID || process.env.VERCEL_DEPLOYMENT_ID || ''
     if (!sha && !branch && !id) return null
     return {
       commit: sha ? sha.slice(0, 7) : null,
