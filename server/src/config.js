@@ -211,7 +211,8 @@ export const config = {
   },
 
   // Teto de armazenamento. O Supabase Free para de aceitar escrita em 500 MB;
-  // 400 deixa folga para o que o VACUUM ainda não devolveu. Acima dele, a
+  // 400 deixa folga até o admin rodar VACUUM FULL (DELETE não encolhe o
+  // arquivo — ver lib/retencao.js). Acima dele, a
   // retenção do só-mundo encurta (lib/retencao.js) e o painel de status avisa.
   armazenamento: {
     orcamentoBytes: num(process.env.DB_ORCAMENTO_MB, 400) * 1024 * 1024,

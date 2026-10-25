@@ -205,9 +205,13 @@ público, recusa de `AUTH_SECRET` com menos de 16 caracteres.
   - Se mesmo em 60 dias continuar acima, não apaga mais nada: alerta vermelho
     no painel. A decisão fica com o admin (apertar o acervo ou passar ao Pro).
 - **Onde roda.** Dentro do ciclo, no coletor `geografia`, como hoje. Os
-  `DELETE`s são em lotes com teto por ciclo, para caber no tempo da função. O
-  autovacuum devolve espaço aos poucos, e a folga do orçamento existe para
-  isso.
+  `DELETE`s são em lotes com teto por ciclo, para caber no tempo da função.
+  `DELETE` e autovacuum **não** encolhem o arquivo: o espaço das linhas
+  apagadas fica para reuso interno e `pg_database_size` (a métrica que o
+  Supabase usa para o modo somente-leitura) não cai. Só `VACUUM FULL <tabela>`
+  devolve espaço, e ele trava a tabela — é passo manual do admin, em horário
+  de pouco uso, guiado pelo painel e pelo runbook de `docs/DEPLOY.md`. A folga
+  do orçamento (400 de 500 MB) existe para dar tempo a esse passo.
 - **Pausa por inatividade.** O ciclo de 15 min deve manter o projeto ativo.
   `docs/DEPLOY.md` traz como verificar; o plano B é um job `SELECT 1` no
   próprio `pg_cron`.

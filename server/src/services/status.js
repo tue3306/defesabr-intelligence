@@ -139,8 +139,12 @@ async function armazenamento() {
   const maior = porTabela[0] || null
   const nivel = percentual > LIMIAR_VERMELHO ? 'vermelho' : percentual > LIMIAR_AMARELO ? 'amarelo' : 'verde'
 
-  const sufixo = nivel === 'vermelho' ? ' · orçamento ESTOURADO: a retenção está encurtando o só-mundo'
-    : nivel === 'amarelo' ? ' · perto do orçamento' : ''
+  // DELETE não encolhe o arquivo: só VACUUM FULL devolve espaço ao disco (e é
+  // isso que pg_database_size e o modo somente-leitura do Supabase medem). Sem
+  // a instrução no próprio texto, o admin esperaria a retenção "resolver".
+  const acao = ' — rode VACUUM FULL nas maiores tabelas (docs/DEPLOY.md, "Armazenamento")'
+  const sufixo = nivel === 'vermelho' ? ` · orçamento ESTOURADO: a retenção está encurtando o só-mundo${acao}`
+    : nivel === 'amarelo' ? ` · perto do orçamento${acao}` : ''
   return {
     id: 'armazenamento',
     nome: 'Armazenamento',
@@ -149,7 +153,9 @@ async function armazenamento() {
     detalhe: `${emMB(bytes)} de ${emMB(orcamento)} (${percentual}%)`
       + `${maior ? ` · maior tabela: ${maior.tabela} (${emMB(maior.bytes)})` : ''}${sufixo}`,
     descricao: 'Tamanho do banco contra o orçamento (DB_ORCAMENTO_MB). Amarelo acima de 70%, vermelho '
-      + 'acima de 100%. A retenção por prazo e por pressão roda ao fim de cada ciclo.',
+      + 'acima de 100%. A retenção por prazo e por pressão roda ao fim de cada ciclo, mas DELETE e '
+      + 'autovacuum só liberam espaço para reuso interno: o tamanho medido não cai. Para devolver '
+      + 'espaço, rode VACUUM FULL na tabela (trava a tabela; faça em horário de pouco uso).',
     fonte: 'server/src/lib/retencao.js',
     metricas: {
       bytes,

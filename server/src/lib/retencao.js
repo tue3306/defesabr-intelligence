@@ -16,9 +16,18 @@ import { apagarJanelasVencidas } from './limite.js'
 // matéria em `bookmarks` (a chave estrangeira é CASCADE: apagar o artigo
 // apagaria em silêncio o que alguém guardou de propósito).
 //
-// DELETE não encolhe `pg_database_size` na hora — o espaço só volta após o
-// VACUUM. Por isso a pressão é de no máximo TRÊS passadas por chamada (180, 120,
-// 60) e nunca um laço "até caber".
+// DELETE NÃO encolhe `pg_database_size` — nem na hora, nem depois. O
+// autovacuum marca o espaço das linhas mortas para REUSO pelas próximas
+// inserções, mas não devolve o arquivo ao disco; só `VACUUM FULL <tabela>`
+// (que trava a tabela enquanto reescreve) faz o tamanho medido cair. A métrica
+// continua sendo `pg_database_size` porque é ela que o Supabase usa para pôr o
+// banco em somente-leitura.
+//
+// Consequência: depois de apagar, o tamanho NÃO volta ao orçamento sozinho, e
+// as passadas de pressão abaixo seguem vendo "acima". Por isso são no máximo
+// TRÊS por chamada (180, 120, 60), nunca um laço "até caber" — um laço assim
+// apagaria o só-mundo inteiro sem efeito no número. Devolver o espaço é ato do
+// administrador: ver docs/DEPLOY.md, "Armazenamento".
 // -----------------------------------------------------------------------------
 
 /** Janelas de pressão, da mais folgada à mais apertada, depois da de config. */
