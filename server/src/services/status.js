@@ -2,6 +2,7 @@ import { all, get } from '../db/index.js'
 import config from '../config.js'
 import { estadoDoAgendador } from '../collectors/index.js'
 import { METODO_RELEVANCIA } from '../lib/relevance.js'
+import { tamanhoDoBanco } from '../lib/retencao.js'
 
 /**
  * Onde o banco está, para exibir na tela: host e nome do banco, NUNCA usuário
@@ -110,6 +111,51 @@ async function capacidadeDeColeta({ id, nome, coletor, descricao, evidencia, con
       duracaoMs: execucao?.duration_ms ?? null,
       novosNaUltima: execucao?.items_new ?? null,
       confiabilidade: await confiabilidade(coletor),
+    },
+  }
+}
+
+/** Percentual do orçamento a partir do qual o item de armazenamento avisa. */
+const LIMIAR_AMARELO = 70
+const LIMIAR_VERMELHO = 100
+
+const emMB = (bytes) => `${(bytes / 1024 / 1024).toFixed(1)} MB`
+
+/**
+ * Item "Armazenamento": quanto do orçamento do banco está usado.
+ *
+ * O vocabulário de `estado` só tem operacional/degradado/opcional (o front
+ * traduz para operational/degraded/optional/planned), então o nível pedido
+ * mapeia assim: até 70% = operacional; acima de 70% = degradado (amarelo);
+ * acima de 100% = degradado também, com `metricas.nivel = 'vermelho'` e o texto
+ * dizendo que o orçamento estourou. Não inventei um estado novo para não
+ * quebrar a tradução do front.
+ */
+async function armazenamento() {
+  const { bytes, porTabela } = await tamanhoDoBanco()
+  const orcamento = config.armazenamento.orcamentoBytes
+  const percentual = Math.round((bytes / orcamento) * 100)
+  const maior = porTabela[0] || null
+  const nivel = percentual > LIMIAR_VERMELHO ? 'vermelho' : percentual > LIMIAR_AMARELO ? 'amarelo' : 'verde'
+
+  const sufixo = nivel === 'vermelho' ? ' · orçamento ESTOURADO: a retenção está encurtando o só-mundo'
+    : nivel === 'amarelo' ? ' · perto do orçamento' : ''
+  return {
+    id: 'armazenamento',
+    nome: 'Armazenamento',
+    grupo: 'Processamento',
+    estado: nivel === 'verde' ? 'operacional' : 'degradado',
+    detalhe: `${emMB(bytes)} de ${emMB(orcamento)} (${percentual}%)`
+      + `${maior ? ` · maior tabela: ${maior.tabela} (${emMB(maior.bytes)})` : ''}${sufixo}`,
+    descricao: 'Tamanho do banco contra o orçamento (DB_ORCAMENTO_MB). Amarelo acima de 70%, vermelho '
+      + 'acima de 100%. A retenção por prazo e por pressão roda ao fim de cada ciclo.',
+    fonte: 'server/src/lib/retencao.js',
+    metricas: {
+      bytes,
+      orcamentoBytes: orcamento,
+      percentual,
+      nivel,
+      maiorTabela: maior,
     },
   }
 }
@@ -321,6 +367,7 @@ export async function capacidades() {
       fonte: 'Postgres (Supabase)',
       metricas: { registros: artigos + await contar('SELECT COUNT(*) AS n FROM bills') },
     },
+    await armazenamento(),
 
     // ── ENTREGA ──
     {

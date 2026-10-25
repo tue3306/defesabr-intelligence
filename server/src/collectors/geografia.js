@@ -1,5 +1,5 @@
 import { all, run, agora, transacao } from '../db/index.js'
-import config from '../config.js'
+import { aplicarRetencao } from '../lib/retencao.js'
 import { detectarPaises } from '../lib/geo.js'
 import { avaliarMundo, detectarTeatros, urgenciaMundo } from '../lib/mundo.js'
 import { limparRodape, CARACTERES_CONSIDERADOS } from '../lib/relevance.js'
@@ -29,8 +29,9 @@ import { limparRodape, CARACTERES_CONSIDERADOS } from '../lib/relevance.js'
 //      na coleta.
 //   2. Países e teatros são recalculados do zero para o artigo (apaga e grava),
 //      o que torna o passo idempotente.
-//   3. Retenção: cobertura só internacional mais velha que
-//      `MUNDO_RETENCAO_DIAS` sai do banco.
+//   3. Retenção (lib/retencao.js): cobertura só internacional mais velha que
+//      `MUNDO_RETENCAO_DIAS` sai do banco, e a janela encurta se ele passar do
+//      orçamento.
 //
 // A ORDEM NO CICLO: roda depois de `rss` e `agregadores`, que trazem os
 // artigos, e antes de `correlacoes` — a mesma ideia de dependência expressa
@@ -137,16 +138,11 @@ export async function derivarGeografia() {
 
     // ── RETENÇÃO ──
     //
-    // Só o que é EXCLUSIVAMENTE internacional (`relevant = 0 AND mundo = 1`): o
-    // acervo de defesa do Brasil não tem prazo. E nunca o que está numa pasta —
-    // `bookmarks` tem chave estrangeira com CASCADE, e apagar a matéria
-    // apagaria em silêncio o que alguém guardou de propósito.
-    const removidos = Number((await run(
-      `DELETE FROM articles
-        WHERE relevant = 0 AND mundo = 1
-          AND published_at < iso_agora('-${config.mundo.retencaoDias} days')
-          AND id NOT IN (SELECT article_id FROM bookmarks)`
-    )).changes || 0)
+    // Por prazo e por pressão contra o teto do banco; poupa `relevant = 1` e o
+    // que está numa pasta. Ver lib/retencao.js. `removidos` segue sendo o
+    // número de matérias só-mundo apagadas, como o histórico de execuções espera.
+    const retencao = await aplicarRetencao()
+    const removidos = retencao.removidos.mundo
 
     return {
       ok: true,

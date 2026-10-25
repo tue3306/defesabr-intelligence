@@ -198,6 +198,18 @@ export const config = {
     retencaoDias: num(process.env.MUNDO_RETENCAO_DIAS, 180),
   },
 
+  // Teto de armazenamento. O Supabase Free para de aceitar escrita em 500 MB;
+  // 400 deixa folga para o que o VACUUM ainda não devolveu. Acima dele, a
+  // retenção do só-mundo encurta (lib/retencao.js) e o painel de status avisa.
+  armazenamento: {
+    orcamentoBytes: num(process.env.DB_ORCAMENTO_MB, 400) * 1024 * 1024,
+  },
+
+  // O audit_log é só histórico de leitura: depois deste prazo sai do banco.
+  auditoria: {
+    retencaoDias: num(process.env.AUDITORIA_RETENCAO_DIAS, 365),
+  },
+
   versao: process.env.npm_package_version || '2.0.0',
 
   // ───────────────────────────────────────────────────────────────────────────
