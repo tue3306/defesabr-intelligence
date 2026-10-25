@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { bancoLimpo } from './ajuda.js'
 
 const { default: express } = await import('express')
-const { run, fecharBanco } = await import('../src/db/index.js')
+const { run, get, fecharBanco } = await import('../src/db/index.js')
 const { resolverSegredo } = await import('../src/lib/segredo.js')
 const { limitar, apagarJanelasVencidas } = await import('../src/lib/limite.js')
 const { emitirToken, lerConta } = await import('../src/lib/auth.js')
@@ -27,6 +27,7 @@ before(async () => {
   app.get('/forjado', limitar({ max: 10, janelaMs: 60_000, soFalhas: true }), (_req, res) => {
     res.status(401).json({ ok: false })
   })
+  app.get('/semeada', limitar({ max: 5, janelaMs: 60_000 }), (_req, res) => res.json({ ok: true }))
   app.get('/janela', limitar({ max: 2, janelaMs: 60_000 }), (_req, res) => res.json({ ok: true }))
   await new Promise((ok) => { servidor = app.listen(0, ok) })
   base = `http://127.0.0.1:${servidor.address().port}`
@@ -52,6 +53,27 @@ test('limitar admite só max em rajada concorrente', async () => {
   assert.equal(codigos.filter((c) => c === 429).length, 20)
   const barrada = respostas.find((r) => r.status === 429)
   assert.ok(Number(barrada.headers.get('retry-after')) > 0)
+
+  // O contador está NO BANCO: 10 admitidas ficam contadas e as 20 barradas
+  // devolveram a vaga que reservaram (contagem não passa de max).
+  const linha = await get("SELECT contagem FROM limite_tentativas WHERE chave LIKE '%:/rajada'")
+  assert.equal(linha.contagem, 10)
+})
+
+test('o teto lê o que está gravado em limite_tentativas', async () => {
+  // Linha semeada direto no banco, na chave que o middleware montaria para este
+  // IP (XFF com um único salto = o que o proxy viu). Com um Map em memória a
+  // primeira requisição seria admitida; só um contador no banco a barra.
+  const expira = Date.now() + 60_000
+  await run(
+    'INSERT INTO limite_tentativas (chave, contagem, expira) VALUES (?, 5, ?)',
+    ['203.0.113.50:/semeada', expira],
+  )
+  const r = await fetch(`${base}/semeada`, { headers: { 'X-Forwarded-For': '203.0.113.50' } })
+  assert.equal(r.status, 429)
+  const retry = Number(r.headers.get('retry-after'))
+  assert.ok(Math.abs(retry - Math.ceil((expira - Date.now()) / 1000)) <= 2)
+  assert.equal((await r.json()).code, 'LIMITE_EXCEDIDO')
 })
 
 test('sucesso estorna a cota', async () => {
