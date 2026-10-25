@@ -21,9 +21,9 @@ import { all, run, agora } from '../db/index.js'
  * @param {import('express').Request} req  requisição autenticada
  * @param {{ acao: string, alvo: string, nivel?: 'info'|'warn'|'error' }} evento
  */
-export function registrarAuditoria(req, { acao, alvo, nivel = 'info' }) {
+export async function registrarAuditoria(req, { acao, alvo, nivel = 'info' }) {
   try {
-    run(
+    await run(
       `INSERT INTO audit_log (created_at, actor_id, actor_name, action, target, level)
        VALUES (?, ?, ?, ?, ?, ?)`,
       [agora(), req.conta?.sub ?? null, req.conta?.name || null, acao, alvo, nivel]
@@ -37,12 +37,12 @@ export function registrarAuditoria(req, { acao, alvo, nivel = 'info' }) {
  * Atos de governança e execuções de coleta numa lista só, do mais recente ao
  * mais antigo. `tipo` separa os dois para quem precisar filtrar.
  */
-export function trilhaDeAuditoria(limite = 60) {
-  const governanca = all(
+export async function trilhaDeAuditoria(limite = 60) {
+  const governanca = (await all(
     `SELECT id, created_at, actor_name, action, target, level
      FROM audit_log ORDER BY created_at DESC, id DESC LIMIT ?`,
     [limite]
-  ).map((e) => ({
+  )).map((e) => ({
     id: `g${e.id}`,
     tipo: 'governanca',
     quando: e.created_at,
@@ -52,11 +52,11 @@ export function trilhaDeAuditoria(limite = 60) {
     nivel: e.level,
   }))
 
-  const coleta = all(
+  const coleta = (await all(
     `SELECT id, collector, started_at, duration_ms, ok, items_found, items_new, error, trigger
      FROM collector_runs ORDER BY started_at DESC LIMIT ?`,
     [limite]
-  ).map((r) => ({
+  )).map((r) => ({
     id: `c${r.id}`,
     tipo: 'coleta',
     quando: r.started_at,

@@ -1,4 +1,4 @@
-import { get, run } from '../db/index.js'
+import { get, run, insert } from '../db/index.js'
 import { hashSenha, senhaConfere } from './auth.js'
 
 // -----------------------------------------------------------------------------
@@ -8,9 +8,9 @@ import { hashSenha, senhaConfere } from './auth.js'
 // `ADMIN_PASSWORD` no ambiente. Num deploy onde essas variáveis não chegaram, a
 // plataforma sobe **sem ninguém que a administre** — e a tela de entrada
 // responde "usuário ou senha incorretos" a quem tenta, porque a conta de fato
-// não existe. Foi o que aconteceu num deploy real: o disco do Railway é
-// efêmero, cada publicação recria o banco vazio, e sem as variáveis nenhuma
-// conta de administrador voltava.
+// não existe. Foi o que aconteceu num deploy real: o banco
+// era recriado vazio a cada publicação, e sem as variáveis nenhuma conta de
+// administrador voltava.
 //
 // A ADOÇÃO É A SAÍDA, e ela só existe enquanto o problema existe:
 //
@@ -38,12 +38,12 @@ const CODIGO_HASH = 'f44e35602fde24013dae31747c31a7efc817e47f68d459ab3194f2adf53
 
 const desligada = () => process.env.ADMIN_CLAIM_DISABLED === '1'
 
-const administradoresAtivos = () =>
-  get("SELECT COUNT(*) AS n FROM users WHERE role = 'admin' AND COALESCE(status, 'ativo') = 'ativo'")?.n ?? 0
+const administradoresAtivos = async () =>
+  (await get("SELECT COUNT(*) AS n FROM users WHERE role = 'admin' AND COALESCE(status, 'ativo') = 'ativo'"))?.n ?? 0
 
 /** A instalação está sem dono e aceita ser adotada? */
-export function adocaoDisponivel() {
-  return !desligada() && administradoresAtivos() === 0
+export async function adocaoDisponivel() {
+  return !desligada() && (await administradoresAtivos()) === 0
 }
 
 /** O código confere? Comparação em tempo constante, como a de senha. */
@@ -60,10 +60,10 @@ export const codigoConfere = (codigo) =>
  */
 export async function adotarInstalacao({ username, password, emailDerivado }) {
   const { sal, hash } = await hashSenha(password)
-  const existente = get('SELECT id FROM users WHERE username = ?', [username])
+  const existente = await get('SELECT id FROM users WHERE username = ?', [username])
 
   if (existente) {
-    run(
+    await run(
       `UPDATE users SET password_hash = ?, password_salt = ?, role = 'admin', status = 'ativo',
          sessoes_desde = ? WHERE id = ?`,
       [hash, sal, Date.now(), existente.id],
@@ -71,12 +71,12 @@ export async function adotarInstalacao({ username, password, emailDerivado }) {
     return get('SELECT * FROM users WHERE id = ?', [existente.id])
   }
 
-  const info = run(
+  return insert(
     `INSERT INTO users (name, username, email, password_hash, password_salt, role, plan, auth_provider)
      VALUES ('Administrador', ?, ?, ?, ?, 'admin', 'institucional', 'local')`,
     [username, emailDerivado(username), hash, sal],
+    'users',
   )
-  return get('SELECT * FROM users WHERE id = ?', [info.lastInsertRowid])
 }
 
 export default { adocaoDisponivel, codigoConfere, adotarInstalacao }

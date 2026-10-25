@@ -16,19 +16,19 @@ import { nomeDaVitima } from './vitima.js'
 // -----------------------------------------------------------------------------
 
 /** @returns {{ total: number, itens: object[], disponivel: boolean }} */
-export function ransomwareDoPais(iso, limite = 15) {
+export async function ransomwareDoPais(iso, limite = 15) {
   if (!iso) return { total: 0, itens: [], disponivel: false }
-  const itens = all(
+  const itens = (await all(
     `SELECT victim, website, "group", sector, discovered_at, criticality, nature
        FROM ransomware_victims WHERE country = ? ORDER BY discovered_at DESC LIMIT ?`,
     [iso, limite]
-  ).map((v) => {
+  )).map((v) => {
     // Ver `lib/vitima.js`: o campo da fonte é o título do post do criminoso.
     const { nome, bruto, limpo } = nomeDaVitima(v.victim, v.website)
     return { ...v, victim: nome, victimBruto: limpo ? bruto : null }
   })
   return {
-    total: get('SELECT COUNT(*) AS n FROM ransomware_victims WHERE country = ?', [iso])?.n ?? 0,
+    total: (await get('SELECT COUNT(*) AS n FROM ransomware_victims WHERE country = ?', [iso]))?.n ?? 0,
     itens,
     disponivel: true,
   }

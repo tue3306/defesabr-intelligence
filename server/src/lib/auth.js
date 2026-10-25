@@ -18,8 +18,9 @@ import { get } from '../db/index.js'
 //   senha    scrypt com sal por conta (node:crypto)
 //   sessão   token assinado com HMAC-SHA256, contendo id, papel e validade
 //
-// Por que token assinado e não sessão em memória: o Railway reinicia o
-// contêiner a cada deploy, e sessão em memória some junto. Um token assinado é
+// Por que token assinado e não sessão em memória: cada deploy troca a
+// instância (e no serverless cada invocação pode cair numa diferente), e sessão
+// em memória some junto. Um token assinado é
 // verificável sem estado — o servidor confere a assinatura e a validade.
 //
 // O QUE ISTO NÃO É: não há recuperação de senha nem verificação de e-mail —
@@ -33,8 +34,8 @@ const ALGORITMO_SCRYPT = { N: 16384, r: 8, p: 1, keylen: 64 }
 // uma tabela de senhas inviável de atacar. O problema não era o custo, era a
 // versão: `scryptSync` gasta esses 26 ms DENTRO do event loop, e o Node tem um
 // só. Cerca de 39 logins por segundo bastavam para o servidor parar de
-// responder a tudo — inclusive a `/api/health`, o que faz o Railway concluir
-// que a aplicação morreu e reiniciar o contêiner. Derrubar a plataforma não
+// responder a tudo — inclusive a `/api/health`, o que faz a plataforma concluir
+// que a aplicação morreu e reiniciar a instância. Derrubar a plataforma não
 // exigia exploit nenhum, só um laço de shell.
 //
 // A versão assíncrona faz a mesma conta no pool de threads do libuv. O event
@@ -67,17 +68,28 @@ export async function senhaConfere(senha, sal, hashEsperado) {
 const base64url = (buf) => Buffer.from(buf).toString('base64url')
 
 // O segredo e resolvido UMA VEZ, na primeira assinatura, e nao na carga do
-// modulo: `resolverSegredo()` toca o banco, e o banco so existe depois de
-// `migrate()`. Resolver no topo do arquivo criaria uma ordem de importacao
+// modulo: `resolverSegredo()` toca o banco, que e assincrono e so existe depois
+// das migracoes. Resolver no topo do arquivo criaria uma ordem de importacao
 // fragil — o tipo de dependencia implicita que este projeto ja pagou caro.
+//
+// Guarda-se a PROMESSA, nao o resultado: duas requisicoes simultaneas na
+// primeira assinatura esperam a mesma resolucao em vez de gerar dois segredos
+// e assinar com um que o outro processo nunca mais enxerga.
 let cache = null
 export function segredoDaSessao() {
-  if (!cache) cache = resolverSegredo()
+  if (!cache) {
+    cache = resolverSegredo().catch((err) => {
+      // Uma falha nao pode ficar gravada: a proxima chamada tenta de novo.
+      cache = null
+      throw err
+    })
+  }
   return cache
 }
 
-function assinar(payloadB64) {
-  return createHmac('sha256', segredoDaSessao().segredo).update(payloadB64).digest('base64url')
+async function assinar(payloadB64) {
+  const { segredo } = await segredoDaSessao()
+  return createHmac('sha256', segredo).update(payloadB64).digest('base64url')
 }
 
 /**
@@ -88,7 +100,7 @@ function assinar(payloadB64) {
  * vencimento. O que impede forjar um papel de administrador é a assinatura,
  * que exige o segredo do servidor.
  */
-export function emitirToken(conta) {
+export async function emitirToken(conta) {
   const payload = {
     sub: conta.id,
     name: conta.name,
@@ -99,7 +111,7 @@ export function emitirToken(conta) {
     exp: Date.now() + config.auth.duracaoHoras * 3600_000,
   }
   const corpo = base64url(JSON.stringify(payload))
-  return `${corpo}.${assinar(corpo)}`
+  return `${corpo}.${await assinar(corpo)}`
 }
 
 /**
@@ -109,12 +121,12 @@ export function emitirToken(conta) {
  * chama não precisa saber qual dos três foi, e dizer isso a um cliente não
  * autenticado só ajuda quem está tentando adivinhar.
  */
-export function lerToken(token) {
+export async function lerToken(token) {
   if (typeof token !== 'string' || !token.includes('.')) return null
   const [corpo, assinatura] = token.split('.')
   if (!corpo || !assinatura) return null
 
-  const esperada = assinar(corpo)
+  const esperada = await assinar(corpo)
   const a = Buffer.from(assinatura)
   const b = Buffer.from(esperada)
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null
@@ -145,10 +157,10 @@ const HIERARQUIA = { user: 1, admin: 2 }
  * Não bloqueia — rotas públicas continuam públicas. Quem exige papel usa
  * `exigirPapel` abaixo.
  */
-export function lerConta(req, _res, next) {
+export async function lerConta(req, _res, next) {
   const cabecalho = req.headers.authorization || ''
   const token = cabecalho.startsWith('Bearer ') ? cabecalho.slice(7) : null
-  const payload = token ? lerToken(token) : null
+  const payload = token ? await lerToken(token) : null
 
   // ───────────────────────────────────────────────────────────────────────────
   // O TOKEN PROVA QUEM É. O BANCO DIZ O QUE ESSA PESSOA PODE AGORA.
@@ -163,7 +175,7 @@ export function lerConta(req, _res, next) {
   // abrindo todas as rotas que abria antes.
   //
   // Agora o token identifica, e o banco autoriza. Uma leitura por chave
-  // primária no SQLite por requisição, que é o preço de uma revogação que
+  // primária no Postgres por requisição, que é o preço de uma revogação que
   // funciona. Conta inexistente ou suspensa vira ausência de sessão: 401, e o
   // navegador desconecta.
   // ───────────────────────────────────────────────────────────────────────────
@@ -174,7 +186,7 @@ export function lerConta(req, _res, next) {
 
   let atual = null
   try {
-    atual = get('SELECT name, role, status, sessoes_desde FROM users WHERE id = ?', [payload.sub])
+    atual = await get('SELECT name, role, status, sessoes_desde FROM users WHERE id = ?', [payload.sub])
   } catch {
     atual = null
   }

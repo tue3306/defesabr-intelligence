@@ -136,7 +136,7 @@ function mesmoNome(vitima, entidadeNome) {
  * A mais forte de todas: liga uma matéria a um incidente concreto contra a
  * MESMA organização. Casa por domínio (fato contra fato) ou por nome idêntico.
  */
-function regraOrganizacaoVitima(artigo, entidades) {
+async function regraOrganizacaoVitima(artigo, entidades) {
   const alvos = entidades.filter((e) => e.tipo === 'orgao' || e.tipo === 'empresa')
   if (!alvos.length) return []
 
@@ -146,7 +146,7 @@ function regraOrganizacaoVitima(artigo, entidades) {
     let vitimas = []
 
     if (raiz) {
-      vitimas = all(
+      vitimas = await all(
         `SELECT victim, "group", sector, discovered_at, website, criticality, nature
            FROM ransomware_victims
           WHERE country = 'BR' AND (website = ? OR website = ?)
@@ -157,7 +157,7 @@ function regraOrganizacaoVitima(artigo, entidades) {
 
     if (!vitimas.length) {
       // Sem domínio conhecido, tenta o nome — mas só igualdade exata.
-      const candidatas = all(
+      const candidatas = await all(
         `SELECT victim, "group", sector, discovered_at, website, criticality, nature
            FROM ransomware_victims WHERE country = 'BR' ORDER BY discovered_at DESC`
       )
@@ -281,15 +281,19 @@ const RX_CONTEXTO_CIBER = new RegExp(
   'u'
 )
 
-function regraGrupo(artigo) {
+async function regraGrupo(artigo) {
   const palheiro = normalizar(`${artigo.title} ${artigo.summary || ''}`)
 
   // Sem contexto cibernetico no texto, nenhum nome de grupo conta. E a guarda
   // que impede coincidencia de vocabulario de virar correlacao.
   if (!RX_CONTEXTO_CIBER.test(palheiro)) return []
 
-  const grupos = all(
-    `SELECT "group" AS nome, COUNT(*) AS total, MAX(discovered_at) AS ultima
+  // O nome vem da linha mais recente do grupo: o SQLite devolvia a coluna nua
+  // da linha do MAX(), e o Postgres exige dizer isso (o grupo é agrupado por
+  // LOWER, então grafias diferentes do mesmo grupo caem na mesma linha).
+  const grupos = await all(
+    `SELECT (ARRAY_AGG("group" ORDER BY discovered_at DESC NULLS LAST))[1] AS nome,
+            COUNT(*) AS total, MAX(discovered_at) AS ultima
        FROM ransomware_victims
       WHERE country = 'BR' AND "group" IS NOT NULL AND LENGTH("group") >= 5
       GROUP BY LOWER("group")`
@@ -328,26 +332,26 @@ function regraGrupo(artigo) {
  * quem lê uma matéria sobre um estado, quantos órgãos daquele estado já
  * apareceram em site de extorsão.
  */
-function regraUf(artigo, entidades) {
+async function regraUf(artigo, entidades) {
   const ufs = entidades.filter((e) => e.tipo === 'uf')
   if (!ufs.length) return []
 
   const out = []
   for (const u of ufs) {
     const sufixo = `%.${u.id.toLowerCase()}.gov.br`
-    const linhas = all(
+    const linhas = await all(
       `SELECT victim, "group", website, discovered_at
          FROM ransomware_victims
-        WHERE country = 'BR' AND website LIKE ?
+        WHERE country = 'BR' AND website ILIKE ?
         ORDER BY discovered_at DESC LIMIT 5`,
       [sufixo]
     )
     if (!linhas.length) continue
 
-    const total = get(
-      "SELECT COUNT(*) AS n FROM ransomware_victims WHERE country = 'BR' AND website LIKE ?",
+    const total = (await get(
+      "SELECT COUNT(*) AS n FROM ransomware_victims WHERE country = 'BR' AND website ILIKE ?",
       [sufixo]
-    )?.n ?? 0
+    ))?.n ?? 0
 
     out.push({
       regra: 'uf-orgaos-atacados',
@@ -375,7 +379,7 @@ function regraUf(artigo, entidades) {
  * leitura — "você está lendo sobre o setor elétrico; neste setor, N
  * distribuidoras brasileiras tiveram vazamento nos últimos seis meses".
  */
-function regraSetor(artigo, entidades) {
+async function regraSetor(artigo, entidades) {
   const setores = entidades.filter((e) => e.tipo === 'setor')
   if (!setores.length) return []
 
@@ -385,22 +389,22 @@ function regraSetor(artigo, entidades) {
     if (!cat?.equivalentes?.length) continue
 
     const marcadores = cat.equivalentes.map(() => '?').join(', ')
-    const linhas = all(
+    const linhas = await all(
       `SELECT victim, "group", sector, discovered_at, criticality
          FROM ransomware_victims
         WHERE country = 'BR' AND sector IN (${marcadores})
-          AND discovered_at >= strftime('%Y-%m-%dT%H:%M:%SZ','now', '-${JANELA_DIAS} days')
+          AND discovered_at >= iso_agora('-${JANELA_DIAS} days')
         ORDER BY discovered_at DESC LIMIT 5`,
       cat.equivalentes
     )
     if (!linhas.length) continue
 
-    const total = get(
+    const total = (await get(
       `SELECT COUNT(*) AS n FROM ransomware_victims
         WHERE country = 'BR' AND sector IN (${marcadores})
-          AND discovered_at >= strftime('%Y-%m-%dT%H:%M:%SZ','now', '-${JANELA_DIAS} days')`,
+          AND discovered_at >= iso_agora('-${JANELA_DIAS} days')`,
       cat.equivalentes
-    )?.n ?? 0
+    ))?.n ?? 0
 
     out.push({
       regra: 'setor-sob-pressao',
@@ -492,14 +496,14 @@ const ROTULO_DE_FUNCAO = new Set([
  *   alcancar as compostas. Cidade de nome composto simplesmente nao e
  *   detectada, e isso e uma perda declarada.
  */
-function regraMunicipio(artigo) {
+async function regraMunicipio(artigo) {
   const palheiro = normalizar(`${artigo.title} ${artigo.summary || ''}`)
   if (!palheiro.trim()) return []
 
-  const linhas = all(
+  const linhas = await all(
     `SELECT victim, "group", website, discovered_at, sector, nature
        FROM ransomware_victims
-      WHERE country = 'BR' AND website LIKE '%.gov.br'
+      WHERE country = 'BR' AND website ILIKE '%.gov.br'
       ORDER BY discovered_at DESC`
   )
 
@@ -560,16 +564,16 @@ const REGRAS = [
  * Correlaciona um artigo com tudo o que a plataforma sabe do Brasil.
  *
  * @param {object} artigo  { id, title, summary, category, urgency, published_at }
- * @returns {{ entidades, correlacoes, brScore, brMotivo }}
+ * @returns {Promise<{ entidades, correlacoes, brScore, brMotivo }>}
  */
-export function correlacionar(artigo) {
+export async function correlacionar(artigo) {
   const texto = `${artigo.title || ''} ${artigo.summary || ''}`
   const entidades = detectarEntidades(texto)
 
   const correlacoes = []
   for (const regra of REGRAS) {
     try {
-      correlacoes.push(...regra(artigo, entidades))
+      correlacoes.push(...await regra(artigo, entidades))
     } catch {
       // Uma regra que falha não pode derrubar as outras nem a coleta: o
       // artigo entra com as correlações que deram certo.
