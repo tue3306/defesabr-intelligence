@@ -28,11 +28,18 @@ export const pool = new pg.Pool({
 })
 
 // Um erro em conexão ociosa (o servidor derrubou o socket) emitido sem ouvinte
-// derrubaria o processo inteiro.
-pool.on('error', () => {})
+// derrubaria o processo inteiro. Registrar evita o crash sem esconder a queda,
+// que no Supabase/serverless é justamente o sinal que se quer ver.
+pool.on('error', (err) => {
+  console.error('[banco] erro em conexão ociosa:', err.message)
+})
 
 // Guarda o cliente da transação em curso, por cadeia assíncrona: chamadas feitas
 // dentro de `transacao` o usam sem que o chamador precise passá-lo adiante.
+// O valor é `{ cliente, ativo }`: o contexto sobrevive a toda continuação
+// assíncrona iniciada dentro de `fn`, inclusive trabalho sem await que termina
+// depois do COMMIT. `ativo` vira false ao fim da transação para que esse
+// trabalho não use um cliente já devolvido ao pool.
 const contexto = new AsyncLocalStorage()
 
 /**
@@ -53,8 +60,15 @@ export function traduzir(sql) {
   return saida
 }
 
-/** Cliente da transação corrente, ou o pool quando não há uma. */
-const executor = () => contexto.getStore() ?? pool
+/**
+ * Cliente da transação corrente, ou o pool quando não há uma — ou quando ela já
+ * terminou. Cair no pool (em vez de lançar) deixa uma gravação de auditoria
+ * disparada sem await dentro da transação ainda chegar ao banco, fora dela.
+ */
+function executor() {
+  const atual = contexto.getStore()
+  return atual?.ativo ? atual.cliente : pool
+}
 
 const consultar = (sql, params) => executor().query(traduzir(sql), params)
 
@@ -81,11 +95,12 @@ export async function insert(sql, params, tabela) {
  * a transação externa (sem savepoints) — quem falha por dentro desfaz tudo.
  */
 export async function transacao(fn) {
-  if (contexto.getStore()) return fn()
+  if (contexto.getStore()?.ativo) return fn()
   const cliente = await pool.connect()
+  const atual = { cliente, ativo: true }
   try {
     await cliente.query('BEGIN')
-    const resultado = await contexto.run(cliente, fn)
+    const resultado = await contexto.run(atual, fn)
     await cliente.query('COMMIT')
     return resultado
   } catch (err) {
@@ -96,6 +111,7 @@ export async function transacao(fn) {
     }
     throw err
   } finally {
+    atual.ativo = false
     cliente.release()
   }
 }

@@ -103,6 +103,34 @@ test('transacao aninhada reaproveita a externa', async () => {
   assert.equal(linha.n, 0)
 })
 
+test('trabalho iniciado na transação mas executado depois dela usa o pool', async () => {
+  await run('DELETE FROM app_config')
+  let atrasado
+  await transacao(async () => {
+    // Sem await: só dispara depois do COMMIT, quando o cliente já foi devolvido.
+    atrasado = new Promise((resolve) => setTimeout(resolve, 50))
+      .then(() => run('INSERT INTO app_config (chave, valor) VALUES (?, ?)', ['tarde', '1']))
+  })
+  assert.deepEqual(await atrasado, { changes: 1 })
+  assert.ok(await get('SELECT 1 AS ok FROM app_config WHERE chave = ?', ['tarde']))
+})
+
+test('transações concorrentes enxergam só as próprias linhas não confirmadas', async () => {
+  await run('DELETE FROM app_config')
+  const pausa = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+  const tentar = (chave, outra) => transacao(async () => {
+    await run('INSERT INTO app_config (chave, valor) VALUES (?, ?)', [chave, '1'])
+    await pausa(50) // garante que as duas estejam abertas ao mesmo tempo
+    return {
+      propria: Boolean(await get('SELECT 1 AS ok FROM app_config WHERE chave = ?', [chave])),
+      alheia: Boolean(await get('SELECT 1 AS ok FROM app_config WHERE chave = ?', [outra])),
+    }
+  })
+  const [a, b] = await Promise.all([tentar('a', 'b'), tentar('b', 'a')])
+  assert.deepEqual(a, { propria: true, alheia: false })
+  assert.deepEqual(b, { propria: true, alheia: false })
+})
+
 test('agora tem o formato YYYY-MM-DDTHH:MM:SSZ', () => {
   assert.match(agora(), /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/)
 })
