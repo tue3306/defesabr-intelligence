@@ -11,7 +11,7 @@ usando `pg_net`.
 
 ## Antes de começar
 
-- Node 20+ e o repositório clonado na sua máquina (`npm install` feito).
+- Node 24+ (o `engines` do `package.json` exige) e o repositório clonado na sua máquina (`npm install` feito).
 - Contas na Vercel e no Supabase, e o repositório no GitHub.
 - Um arquivo `.env` local **não versionado** (o `.gitignore` já o exclui) ou
   variáveis exportadas no terminal. Os exemplos abaixo usam placeholders
@@ -36,7 +36,11 @@ rota de cron responde 503).
 | Ciclo de coleta | medido entre 25 e 59 s; um único job a cada 15 min basta |
 
 O app controla o tamanho do banco: `DB_ORCAMENTO_MB` (padrão 400) faz a
-retenção encurtar antes de chegar aos 500 MB.
+retenção encurtar antes de chegar aos 500 MB. Mas apagar linhas **não encolhe
+o arquivo**: só `VACUUM FULL` devolve espaço. Ver a seção 9 (Armazenamento).
+
+> **Atenção: o merge deste branch é a virada.** O Railway está ligado ao `main`.
+> Leia a seção 2.4 antes de fazer merge ou deploy de produção.
 
 ---
 
@@ -65,6 +69,32 @@ Em **Connect** (ou *Project Settings → Database*), copie:
 > A conexão direta do Supabase é IPv6; se a sua rede não tiver IPv6, use a
 > string do pooler em modo sessão.
 
+### 1.2.1 TLS: baixar a CA e exigir SSL
+
+As strings do Supabase não trazem `sslmode`, e o app **não** depende dele: o
+TLS é decidido em `server/src/db/conexao.js` (e qualquer `sslmode` na URL é
+ignorado). Para um host remoto:
+
+- com `DATABASE_CA_CERT` definida → TLS **verificado** contra a CA do Supabase;
+- sem ela → TLS **cifrado sem verificação** do servidor (protege de quem só
+  escuta a rede, não de quem se põe no meio) e o log de cada instância avisa
+  `[banco] TLS sem verificação do servidor`. O painel de status (item
+  *Persistência*) mostra o modo atual: `TLS verificado`, `TLS cifrado sem
+  verificação` ou `local, sem TLS`.
+
+Passos:
+
+1. Em *Project Settings → Database → SSL Configuration*, clique em
+   **Download certificate** (arquivo `.crt`, PEM).
+2. Ainda nessa tela, ligue **Enforce SSL on incoming connections**: o banco
+   passa a recusar conexão em texto puro.
+3. Guarde o conteúdo do `.crt` para a variável `DATABASE_CA_CERT` (passo 2.3).
+   O painel da Vercel aceita o PEM com quebras de linha; se precisar colar numa
+   linha só, use `\n` literais — o app os converte.
+4. Para os comandos rodados da sua máquina (`npm run migrate`), exporte a mesma
+   variável, por exemplo no Git Bash:
+   `export DATABASE_CA_CERT="$(cat ~/Downloads/prod-ca-2021.crt)"`.
+
 ### 1.3 Habilitar as extensões (no painel, antes de migrar)
 
 Em **Database → Extensions**, habilite:
@@ -83,7 +113,8 @@ Use `npm run migrate`. **Não use `supabase db push`**: os arquivos em
 `supabase/migrations/` não têm prefixo de timestamp e o controle de quais já
 foram aplicadas fica na nossa tabela `schema_migrations`, não na da CLI.
 
-O migrador executa `0001_esquema.sql`, `0002_rls.sql` e, porque o `pg_cron` está
+O migrador executa `0001_esquema.sql`, `0002_rls.sql`,
+`0003_revoke_iso_agora.sql` e, porque o `pg_cron` está
 disponível no Supabase, também `0100_cron.sql`. Depois semeia as fontes e cria
 a conta de administrador a partir de `ADMIN_USERNAME` / `ADMIN_PASSWORD`.
 
@@ -105,7 +136,7 @@ $env:ADMIN_PASSWORD = '<senha-forte-do-admin>'
 npm run migrate
 ```
 
-Saída esperada: `Aplicadas: 0001_esquema.sql, 0002_rls.sql, 0100_cron.sql`,
+Saída esperada: `Aplicadas: 0001_esquema.sql, 0002_rls.sql, 0003_revoke_iso_agora.sql, 0100_cron.sql`,
 seguida das linhas de semeadura (fontes cadastradas e administrador criado).
 Rodar de novo imprime `Banco já está em dia.`.
 
@@ -124,6 +155,33 @@ e reative no passo 3 com `active := true`.
 Se `0100_cron.sql` falhar por permissão de extensão, a migração faz rollback
 só dela e as anteriores permanecem; habilite as extensões pelo painel (1.3) e
 rode `npm run migrate` de novo.
+
+### 1.5 Higiene do Supabase
+
+**Desligar a Data API (PostgREST).** O app nunca a usa: o servidor fala com o
+Postgres direto. Em *Project Settings → Data API*, desligue a API **ou**
+remova `public` de *Exposed schemas*. O RLS sem políticas (`0002_rls.sql`) já
+fecha as tabelas para `anon`/`authenticated`, e `0003_revoke_iso_agora.sql`
+revoga o `EXECUTE` da única função do schema; desligar a API remove a
+superfície inteira. Para conferir (ou aplicar à mão, se precisar):
+
+```sql
+REVOKE EXECUTE ON FUNCTION public.iso_agora(text) FROM anon, authenticated;
+```
+
+**Limpar o histórico do pg_cron.** `cron.job_run_details` ganha uma linha a
+cada execução (96 por dia só do ciclo) e nunca é podado sozinho; ele conta no
+orçamento de 500 MB. Agende uma limpeza semanal:
+
+```sql
+select cron.schedule(
+  'defesabr-limpa-cron',
+  '0 4 * * 0',
+  $$delete from cron.job_run_details where end_time < now() - interval '7 days'$$
+);
+```
+
+Remova com `select cron.unschedule('defesabr-limpa-cron');`.
 
 ---
 
@@ -147,8 +205,12 @@ cortado se o limite efetivo for menor.
 
 ### 2.3 Variáveis de ambiente
 
-Em *Project Settings → Environment Variables* (ambiente **Production**).
-Todas existem em `server/src/config.js` e/ou `.env.example`.
+Em *Project Settings → Environment Variables*, marque os ambientes
+**Production e Preview**. Um Preview tem `VERCEL_ENV=preview`, e o app trata
+isso como produção (é URL pública): sem `DATABASE_URL` ele recusa subir, sem
+`AUTH_SECRET` as sessões dependem do banco. A seção 2.4 testa um Preview antes
+do merge, então ele precisa das mesmas variáveis. Todas existem em
+`server/src/config.js` e/ou `.env.example`.
 
 **Obrigatórias**
 
@@ -159,7 +221,10 @@ Todas existem em `server/src/config.js` e/ou `.env.example`.
 | `CRON_SECRET` | outro segredo gerado (>= 16 caracteres); o mesmo valor vai ao Vault no passo 3 |
 | `ADMIN_USERNAME` | usuário do administrador |
 | `ADMIN_PASSWORD` | senha do administrador (marque como *Sensitive*) |
-| `NODE_ENV` | `production` |
+| `DATABASE_CA_CERT` | conteúdo PEM do certificado baixado em 1.2.1 (sem ela o TLS não verifica o servidor e o log avisa) |
+
+`NODE_ENV` não precisa ser definido: `VERCEL_ENV` (production ou preview) já
+liga o modo produção. Se definir, use `production`.
 
 **Opcionais** (têm padrão)
 
@@ -177,11 +242,34 @@ Todas existem em `server/src/config.js` e/ou `.env.example`.
 
 Não defina `VITE_API_BASE_URL`: deixe vazio para o front usar `/api` relativo.
 
-### 2.4 Deploy
+### 2.4 A virada: o merge é o cutover
 
-Clique em **Deploy** (ou dê push no branch de produção). Anote a URL pública,
-por exemplo `https://<seu-projeto>.vercel.app`. Se for usar domínio próprio, use
-esse domínio no passo 3.
+**Leia antes de qualquer merge.** O Railway está ligado ao `main` com deploy
+automático. Assim que este branch entrar no `main`, o Railway tenta subir a
+nova versão — que exige `DATABASE_URL` (Postgres) e não tem mais SQLite — e o
+serviço de lá **cai**. A ordem abaixo evita ficar sem nenhum dos dois no ar:
+
+1. **Preview primeiro.** Com Supabase (seção 1) e Vercel (2.1 a 2.3, variáveis
+   marcadas também para *Preview*) prontos, faça deploy do **branch** na
+   Vercel (todo push num branch que não é o de produção gera um Preview).
+   Anote a URL do Preview e rode **toda a seção 4** contra ela. Para o 4.4,
+   cadastre provisoriamente a URL do Preview no Vault (`defesabr_url`, passo
+   3) — e troque pela de produção no item 3 desta lista. Se o Preview tiver
+   *Deployment Protection* (padrão da Vercel), o `pg_cron` e o `curl` recebem
+   `401` da própria Vercel: use um *Protection Bypass* ou teste o cron só na
+   produção.
+2. **Desligar o Railway antes do merge.** No painel do Railway, desative o
+   deploy automático do serviço (*Settings → Source*: desconecte o repositório
+   ou desligue o deploy automático). O deploy que já está no ar continua
+   servindo.
+3. **Merge → produção na Vercel.** Faça o merge no `main`; a Vercel publica em
+   produção. Anote a URL pública (por exemplo `https://<seu-projeto>.vercel.app`
+   ou o seu domínio), atualize `defesabr_url` no Vault (passo 3, com
+   `vault.update_secret`) e repita a seção 4 contra ela.
+4. **Rollback.** Se a produção da Vercel falhar, volte o tráfego ao Railway:
+   reconecte o repositório e faça *Redeploy* do último deploy bom (anterior ao
+   merge) pelo painel do Railway. Os dados de lá são efêmeros (SQLite sem
+   volume), então não há o que migrar de volta.
 
 ---
 
@@ -301,6 +389,17 @@ curl -i -X POST -H "Authorization: Bearer <CRON_SECRET>" https://<sua-url>/api/c
 Depois, em alguns minutos, a tela de status/fontes do app deve mostrar coleta
 recente e novas notícias.
 
+**Duração do ciclo.** Depois do primeiro ciclo completo, confira quanto cada
+coletor levou:
+
+```sql
+select collector, duration_ms from collector_runs order by id desc limit 15;
+```
+
+Se a soma se aproximar de **240 s** (80% do `maxDuration` de 300 s), divida o
+ciclo em jobs com `?coletor=` (seção 5) antes que a função comece a ser
+cortada.
+
 ### 4.5 Limite de login atrás do proxy da Vercel (`trust proxy`)
 
 O servidor usa `trust proxy = 1`, o que pressupõe que a Vercel **sobrescreve**
@@ -372,10 +471,63 @@ o projeto ativo (a regra de inatividade pode mudar).
 
 ## 8. Depois que estiver no ar
 
-Só **depois que você confirmar** que o deploy da Vercel funciona (seções 4.1 a
+O deploy automático do Railway já foi desligado antes do merge (2.4). Só
+**depois que você confirmar** que a produção da Vercel funciona (seções 4.1 a
 4.5 verdes e pelo menos um ciclo de cron com `202`), a Fase 6 de limpeza:
 
 - Remover `railway.json` e `nixpacks.toml` (permanecem até lá, de propósito).
 - Atualizar `README.md` (seção "Deploy no Railway", link "ver ao vivo",
   menções ao volume e ao SQLite), `docs/ARCHITECTURE.md` e `ROADMAP.md`.
 - Desligar o serviço no Railway somente depois dessa confirmação.
+
+## 9. Armazenamento: quando o painel ficar amarelo ou vermelho
+
+O item **Armazenamento** do painel de status mede `pg_database_size` — a mesma
+métrica que o Supabase usa para pôr o banco em **somente leitura ao passar de
+500 MB** no plano Free. Amarelo acima de 70% de `DB_ORCAMENTO_MB`, vermelho
+acima de 100%.
+
+A retenção apaga o que pode a cada ciclo, mas **`DELETE` e autovacuum não
+encolhem o arquivo**: o espaço das linhas apagadas fica reservado para reuso
+interno e o número do painel não cai. Só `VACUUM FULL` devolve espaço ao disco.
+Ele reescreve a tabela e a **trava** (nem leitura passa) enquanto roda: faça em
+horário de pouco uso.
+
+1. Veja as maiores tabelas (SQL Editor, ou conexão de sessão/direta):
+
+   ```sql
+   select c.relname as tabela, pg_size_pretty(pg_total_relation_size(c.oid)) as tamanho
+     from pg_class c join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public' and c.relkind = 'r'
+    order by pg_total_relation_size(c.oid) desc limit 10;
+   ```
+
+2. Rode `VACUUM FULL` nas maiores, uma de cada vez (não use o pooler em modo
+   transação, ver seção 7):
+
+   ```sql
+   VACUUM FULL articles;
+   -- e as outras grandes da lista, por exemplo:
+   VACUUM FULL article_entities;
+   ```
+
+3. Confira o resultado:
+
+   ```sql
+   select pg_size_pretty(pg_database_size(current_database()));
+   ```
+
+   e recarregue o painel de status.
+
+Se continuar acima do orçamento, a retenção por pressão já encurtou o só-mundo
+para 60 dias e não apaga mais nada: a decisão é sua (reduzir
+`MUNDO_RETENCAO_DIAS`, rodar `VACUUM FULL` de novo depois do próximo ciclo, ou
+passar ao plano Pro).
+
+**Se o Supabase já tiver posto o banco em somente leitura** (escritas falham e
+o painel do projeto avisa do uso de disco): numa sessão do SQL Editor, libere
+a escrita só para a manutenção com `SET default_transaction_read_only = off;`,
+rode `VACUUM FULL` nas maiores tabelas e confirme que o tamanho voltou abaixo
+de 500 MB; o painel do Supabase também oferece a saída do modo pelo aviso de
+uso de disco. Confira a documentação atual do Supabase sobre *read-only mode*,
+que pode mudar.
