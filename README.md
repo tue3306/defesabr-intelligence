@@ -792,3 +792,5 @@ Ver [ROADMAP.md](ROADMAP.md) para o detalhe de cada um e onde encaixa.
 MIT. Ver [LICENSE](LICENSE).
 
 Projeto de código aberto. Agrega fonte pública e cita a origem — confira sempre o original.
+
+
