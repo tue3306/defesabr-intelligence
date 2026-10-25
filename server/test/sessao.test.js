@@ -10,6 +10,8 @@ const { emitirToken, lerConta } = await import('../src/lib/auth.js')
 
 let servidor
 let base
+// Promessas de estorno entregues ao `emSegundoPlano` da rota /plano.
+const estornos = []
 
 // Rotas de teste atrás de limitar(); cada teste usa a sua, porque a chave do
 // limite inclui o caminho e os testes não podem dividir cota.
@@ -26,6 +28,9 @@ before(async () => {
   })
   app.get('/forjado', limitar({ max: 10, janelaMs: 60_000, soFalhas: true }), (_req, res) => {
     res.status(401).json({ ok: false })
+  })
+  app.get('/plano', limitar({ max: 10, janelaMs: 60_000, soFalhas: true, emSegundoPlano: (p) => estornos.push(p) }), (_req, res) => {
+    res.json({ ok: true })
   })
   app.get('/semeada', limitar({ max: 5, janelaMs: 60_000 }), (_req, res) => res.json({ ok: true }))
   app.get('/janela', limitar({ max: 2, janelaMs: 60_000 }), (_req, res) => res.json({ ok: true }))
@@ -84,6 +89,18 @@ test('sucesso estorna a cota', async () => {
     // o estorno roda em `finish`, depois da resposta; dá tempo ao banco
     await new Promise((ok) => setTimeout(ok, 30))
   }
+})
+
+test('o estorno do sucesso é entregue ao waitUntil, para sobreviver ao congelamento', async () => {
+  const r = await fetch(`${base}/plano`)
+  assert.equal(r.status, 200)
+  await r.text()
+  await new Promise((ok) => setTimeout(ok, 30))
+  assert.equal(estornos.length, 1)
+  assert.equal(typeof estornos[0].then, 'function')
+  await estornos[0]
+  const linha = await get("SELECT contagem FROM limite_tentativas WHERE chave LIKE '%/plano'")
+  assert.equal(linha.contagem, 0)
 })
 
 test('X-Forwarded-For forjado não muda a chave', async () => {

@@ -30,6 +30,7 @@
 // ferramenta do ataque.
 // -----------------------------------------------------------------------------
 
+import { waitUntil } from '@vercel/functions'
 import { get, run } from '../db/index.js'
 
 /**
@@ -86,8 +87,13 @@ function chave(req, porConta) {
  *                                   IP quando não há. Para rota autenticada
  *                                   cujo custo é da própria pessoa — ver a nota
  *                                   acima de `chave()`.
+ * @param {(p: Promise<void>) => void} opcoes.emSegundoPlano  recebe o estorno
+ *                                   feito depois da resposta. Padrão: o
+ *                                   `waitUntil` da Vercel — ver o `finish` abaixo.
  */
-export function limitar({ max = 20, janelaMs = 60_000, soFalhas = false, porConta = false } = {}) {
+export function limitar({
+  max = 20, janelaMs = 60_000, soFalhas = false, porConta = false, emSegundoPlano = waitUntil,
+} = {}) {
   return async (req, res, next) => {
     const k = `${chave(req, porConta)}:${req.baseUrl}${req.path}`
     const agora = Date.now()
@@ -133,7 +139,12 @@ export function limitar({ max = 20, janelaMs = 60_000, soFalhas = false, porCont
     // Um desfecho bom devolve a vaga: login correto não consome cota. Atrelado à
     // MESMA janela (`expira`) para não estornar numa janela que já foi reaberta.
     if (soFalhas) {
-      res.on('finish', () => { if (res.statusCode < 400) estornar(k, expira) })
+      // O `finish` dispara DEPOIS da resposta sair, e na Vercel a função pode
+      // ser congelada logo em seguida, com o UPDATE ainda no ar: a vaga ficaria
+      // consumida. Entregar a promessa ao `waitUntil` mantém a função viva até
+      // ele terminar. Fora da Vercel o `waitUntil` não faz nada e a promessa
+      // segue sozinha; `estornar` já captura o próprio erro.
+      res.on('finish', () => { if (res.statusCode < 400) emSegundoPlano(estornar(k, expira)) })
     }
 
     next()
