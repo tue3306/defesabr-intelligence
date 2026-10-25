@@ -7,7 +7,7 @@
 //
 // Aceita `--simular`: relata o que mudaria sem gravar. Reclassificar o acervo
 // inteiro é irreversível, e conferir a lista antes custa um segundo.
-import { all, run, migrate, transacao } from '../src/db/index.js'
+import { all, run, transacao, fecharBanco } from '../src/db/index.js'
 import { avaliarRelevancia, classificar, limparRodape } from '../src/lib/relevance.js'
 import { urgenciaMundo } from '../src/lib/mundo.js'
 import { urgenciaParaOBrasil } from '../src/lib/ancora.js'
@@ -16,11 +16,10 @@ import { urlSegura, dominioSeguro } from '../src/lib/saneamento.js'
 import { derivarGeografia } from '../src/collectors/geografia.js'
 import { calcularCorrelacoes } from '../src/collectors/correlacoes.js'
 
-migrate()
 
 const simular = process.argv.includes('--simular')
 
-const artigos = all('SELECT id, title, url, summary, relevant, mundo, category, urgency, urgency_mundo FROM articles')
+const artigos = await all('SELECT id, title, url, summary, relevant, mundo, category, urgency, urgency_mundo FROM articles')
 
 let resumosLimpos = 0
 let reclassificados = 0
@@ -29,14 +28,14 @@ let deixaramDeSer = 0
 const descartados = []
 const entraram = []
 
-transacao(() => {
+await transacao(async () => {
   for (const a of artigos) {
     // Item que o coletor de hoje nem guardaria não deve seguir no acervo:
     // anexo, agenda de autoridade, título que é só código. Entraram quando os
     // portais gov.br foram cadastrados e o coletor ainda não os reconhecia.
     if (ehNaoNoticia({ titulo: a.title, url: a.url, resumo: a.summary })) {
       descartados.push(a.title)
-      if (!simular) run('DELETE FROM articles WHERE id = ?', [a.id])
+      if (!simular) await run('DELETE FROM articles WHERE id = ?', [a.id])
       continue
     }
 
@@ -45,7 +44,7 @@ transacao(() => {
     // faz o cartão descrever a notícia errada.
     const resumo = limparRodape(a.summary) || null
     if (resumo !== a.summary) {
-      if (!simular) run('UPDATE articles SET summary = ? WHERE id = ?', [resumo, a.id])
+      if (!simular) await run('UPDATE articles SET summary = ? WHERE id = ?', [resumo, a.id])
       resumosLimpos += 1
     }
 
@@ -66,7 +65,7 @@ transacao(() => {
     if (!!a.relevant !== r.relevante || a.category !== categoria || a.urgency !== urgencia
       || (a.urgency_mundo ?? null) !== noMundo) {
       if (!simular) {
-        run(
+        await run(
           `UPDATE articles SET relevant = ?, category = ?, urgency = ?, urgency_mundo = ?,
              relevance_score = ?, matched_terms = ? WHERE id = ?`,
           [r.relevante ? 1 : 0, categoria, urgencia, noMundo, r.pontos, r.termos.slice(0, 8).join(', ') || null, a.id]
@@ -87,10 +86,8 @@ transacao(() => {
 // linhas já gravadas continuam como vieram, e a interface as renderiza como
 // `href` do mesmo jeito.
 //
-// No Railway o disco é efêmero e o acervo renasce a cada deploy, então lá o
-// problema se resolve sozinho. Num volume montado — que é a configuração que o
-// README recomenda para o acervo persistir — ele NÃO se resolve, e é
-// exatamente onde ninguém iria procurar.
+// O banco persiste entre deploys, então o problema NÃO se resolve sozinho com
+// o tempo: a linha gravada antes da validação fica lá até alguém a sanear.
 //
 // O caso encontrado no acervo real não era exótico: o ransomware.live devolve
 // a string literal `"null"` quando não tem o endereço do vazamento, e
@@ -98,23 +95,23 @@ transacao(() => {
 // parece funcionar e navega para dentro da própria plataforma.
 let urlsLimpas = 0
 
-transacao(() => {
-  for (const a of all('SELECT id, url FROM articles WHERE url IS NOT NULL')) {
+await transacao(async () => {
+  for (const a of await all('SELECT id, url FROM articles WHERE url IS NOT NULL')) {
     const limpa = urlSegura(a.url)
     if (limpa === a.url) continue
     urlsLimpas += 1
-    if (!simular) run('UPDATE articles SET url = ? WHERE id = ?', [limpa, a.id])
+    if (!simular) await run('UPDATE articles SET url = ? WHERE id = ?', [limpa, a.id])
   }
 
   // `post_url` é endereço e `website` é domínio: formatos diferentes, funções
   // diferentes. Tratar os dois como URL apagaria o domínio de 624 vítimas.
-  for (const v of all('SELECT id, post_url, website FROM ransomware_victims')) {
+  for (const v of await all('SELECT id, post_url, website FROM ransomware_victims')) {
     const post = urlSegura(v.post_url)
     const site = dominioSeguro(v.website)
     if (post === v.post_url && site === v.website) continue
     urlsLimpas += 1
     if (!simular) {
-      run('UPDATE ransomware_victims SET post_url = ?, website = ? WHERE id = ?', [post, site, v.id])
+      await run('UPDATE ransomware_victims SET post_url = ?, website = ? WHERE id = ?', [post, site, v.id])
     }
   }
 })
@@ -130,7 +127,7 @@ transacao(() => {
 // ─────────────────────────────────────────────────────────────────────────────
 let geografia = null
 if (!simular) {
-  run('UPDATE articles SET geo_at = NULL, mundo_score = NULL')
+  await run('UPDATE articles SET geo_at = NULL, mundo_score = NULL')
   geografia = { avaliados: 0, paises: 0, teatros: 0, removidos: 0, ciclos: 0 }
   for (;;) {
     const r = await derivarGeografia()
@@ -148,7 +145,7 @@ if (!simular) {
 let correlacoes = null
 if (!simular) correlacoes = await calcularCorrelacoes({ janelaDias: 3650, teto: 100_000 })
 
-const relevantes = all('SELECT COUNT(*) AS n FROM articles WHERE relevant = 1')[0].n
+const relevantes = (await all('SELECT COUNT(*) AS n FROM articles WHERE relevant = 1'))[0].n
 
 console.log(simular ? 'Simulação (nada foi gravado)' : 'Reclassificação concluída')
 console.log(`  artigos analisados    : ${artigos.length}`)
@@ -160,7 +157,7 @@ console.log(`  passaram a relevante  : ${viraramRelevantes}`)
 console.log(`  deixaram de ser       : ${deixaramDeSer}`)
 console.log(`  relevantes agora      : ${relevantes} de ${artigos.length - descartados.length}`)
 if (geografia) {
-  const mundo = all('SELECT COUNT(*) AS n FROM articles WHERE mundo = 1')[0].n
+  const mundo = (await all('SELECT COUNT(*) AS n FROM articles WHERE mundo = 1'))[0].n
   console.log(`  lente mundial         : ${mundo} artigo(s) com mundo = 1 (${geografia.avaliados} reavaliados)`)
   console.log(`  países / teatros      : ${geografia.paises} / ${geografia.teatros} vínculo(s) derivados`)
   console.log(`  retenção internacional: ${geografia.removidos} removido(s)`)
@@ -171,4 +168,5 @@ if (correlacoes) console.log(`  correlações refeitas  : ${correlacoes.correlac
 for (const t of entraram.slice(0, 10)) console.log(`    + ${t.slice(0, 92)}`)
 for (const t of descartados.slice(0, 10)) console.log(`    − ${String(t).slice(0, 92)}`)
 if (simular) console.log('\n  Rode sem --simular para efetivar.')
+await fecharBanco()
 process.exit(0)

@@ -82,7 +82,7 @@ import { detectarPaises, neutralizar } from './geo.js'
 
 /**
  * Versão do vocabulário. SOBE sempre que termo, teatro ou regra mudarem: na
- * subida, `migrate()` compara com `app_config.lente_mundo_versao` e, se
+ * semeadura (`semearTudo`, em db/semear.js) compara com `app_config.lente_mundo_versao` e, se
  * diferente, marca o acervo inteiro para ser reavaliado pela derivação. Sem
  * isso, matéria antiga ficaria julgada pela regra velha e a tela misturaria os
  * dois critérios sem que ninguém percebesse.

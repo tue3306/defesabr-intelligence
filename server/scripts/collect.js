@@ -1,11 +1,13 @@
 // Dispara uma coleta completa pela linha de comando, sem subir o servidor.
 // Útil para popular o banco logo depois de clonar, e para ver o que cada
 // fonte respondeu sem precisar abrir o painel.
-import { migrate } from '../src/db/index.js'
+//
+// O esquema vem de `npm run migrate`; aqui só se garante que as fontes padrão
+// existem, para a coleta ter o que buscar num banco recém-migrado.
+import { fecharBanco } from '../src/db/index.js'
 import { semearFontes, coletarTudo } from '../src/collectors/index.js'
 
-migrate()
-const criadas = semearFontes()
+const criadas = await semearFontes()
 if (criadas) console.log(`${criadas} fonte(s) cadastradas.\n`)
 
 console.log('Coletando…\n')
@@ -27,4 +29,7 @@ console.log(`  [${marca(r.cambio.ok)}] câmbio       ${r.cambio.gravados ?? 0} c
 console.log(`  [${marca(r.geografia?.ok)}] geografia    ${r.geografia?.encontrados ?? 0} artigo(s) derivados, ${r.geografia?.removidos ?? 0} removido(s) pela retenção`)
 
 console.log(`\nConcluído em ${(r.duracaoMs / 1000).toFixed(1)}s.`)
+// Encerra o pool antes de sair: é o que devolve as conexões ao Postgres em
+// vez de deixá-las caírem por timeout do lado do servidor.
+await fecharBanco()
 process.exit(0)

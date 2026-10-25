@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import { dirname, join, isAbsolute } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 // -----------------------------------------------------------------------------
@@ -93,43 +93,6 @@ export const config = {
     // Cada função serverless abre o próprio pool; poucas conexões por instância
     // para não estourar o limite do pooler do Supabase.
     poolMax: num(process.env.DB_POOL_MAX, 3),
-  },
-
-  // O banco fica em server/data/ por padrão. No Railway, apontar DB_PATH para
-  // um volume montado é o que dá persistência entre deploys — sem volume, o
-  // disco é efêmero e o acervo é recoletado a cada reinício.
-  // ───────────────────────────────────────────────────────────────────────────
-  // ONDE O BANCO MORA, E POR QUE O VOLUME É DETECTADO SOZINHO
-  //
-  // No Railway, o disco do contêiner é EFÊMERO: cada publicação sobe um
-  // contêiner novo e o banco nasce vazio. O acervo se recoleta em segundos, mas
-  // as CONTAS não voltam — quem tinha conta some, e a instalação fica sem
-  // administrador. Foi o que aconteceu neste projeto, deploy após deploy.
-  //
-  // A solução é montar um volume. O que se pedia era montar o volume E definir
-  // `DB_PATH` apontando para ele — duas ações, e esquecer a segunda deixa tudo
-  // exatamente como estava, sem erro nenhum na tela.
-  //
-  // O Railway injeta `RAILWAY_VOLUME_MOUNT_PATH` em todo serviço com volume
-  // montado. Lendo essa variável, montar o volume BASTA: o banco passa a viver
-  // nele sozinho. `DB_PATH` continua tendo precedência, para quem quiser
-  // escolher o caminho.
-  // ───────────────────────────────────────────────────────────────────────────
-  dbPath: (() => {
-    const p = process.env.DB_PATH
-    if (p) return isAbsolute(p) ? p : join(process.cwd(), p)
-    const volume = process.env.RAILWAY_VOLUME_MOUNT_PATH
-    if (volume) return join(volume, 'defesabr.db')
-    return join(raiz, 'data', 'defesabr.db')
-  })(),
-
-  // O banco sobrevive à próxima publicação?
-  //
-  // `efemero` é só para produção: na máquina de quem desenvolve, `server/data`
-  // persiste e não há nada a avisar.
-  armazenamento: {
-    volume: process.env.RAILWAY_VOLUME_MOUNT_PATH || null,
-    caminhoEscolhido: Boolean(process.env.DB_PATH),
   },
 
   // Em produção o próprio servidor entrega o front compilado, então não há
@@ -265,10 +228,5 @@ export const config = {
     }
   })(),
 }
-
-// Produção sem volume e sem caminho escolhido = banco recriado a cada deploy.
-config.armazenamento.efemero = config.ambiente === 'production'
-  && !config.armazenamento.volume
-  && !config.armazenamento.caminhoEscolhido
 
 export default config
