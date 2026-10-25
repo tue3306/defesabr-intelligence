@@ -23,6 +23,7 @@
     "prebuild": "eslint src server scripts --quiet",
     "check:auth": "npm --prefix server run check:auth",
     "db:up": "docker compose up -d --wait",
+    "migrate": "node --env-file-if-exists=.env server/scripts/migrate.js",
     "test:server": "npm --prefix server test"
   },
   "dependencies": {
