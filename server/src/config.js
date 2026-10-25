@@ -38,6 +38,16 @@ const numOuZero = (valor, padrao) => {
   return Number.isFinite(n) && n >= 0 ? n : padrao
 }
 
+// Mesma regra de `config.ambiente`, calculada antes porque `banco` precisa dela
+// durante a construção do objeto.
+const ambienteAtual = process.env.NODE_ENV
+  || (process.env.RAILWAY_ENVIRONMENT
+    || process.env.RAILWAY_ENVIRONMENT_NAME
+    || process.env.RAILWAY_PROJECT_ID
+    || process.env.RAILWAY_SERVICE_ID
+    ? 'production'
+    : 'development')
+
 export const config = {
   // O Railway injeta PORT; localmente cai em 3001.
   port: num(process.env.PORT, 3001),
@@ -71,6 +81,25 @@ export const config = {
       || process.env.RAILWAY_SERVICE_ID
       ? 'production'
       : 'development'),
+
+  // POSTGRES (Supabase em produção, Docker em desenvolvimento).
+  //
+  // Em produção não há padrão: um servidor que subisse apontando para o
+  // Postgres local falharia só na primeira consulta, longe da causa. Melhor
+  // recusar o boot com a mensagem certa.
+  banco: {
+    url: (() => {
+      const url = process.env.DATABASE_URL
+      if (url) return url
+      if (ambienteAtual === 'production') {
+        throw new Error('DATABASE_URL não definida: em produção a conexão com o Postgres (Supabase) é obrigatória.')
+      }
+      return 'postgres://defesabr:defesabr@localhost:54329/defesabr'
+    })(),
+    // Cada função serverless abre o próprio pool; poucas conexões por instância
+    // para não estourar o limite do pooler do Supabase.
+    poolMax: num(process.env.DB_POOL_MAX, 3),
+  },
 
   // O banco fica em server/data/ por padrão. No Railway, apontar DB_PATH para
   // um volume montado é o que dá persistência entre deploys — sem volume, o

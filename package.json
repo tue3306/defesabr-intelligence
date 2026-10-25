@@ -21,12 +21,15 @@
     "postinstall": "npm --prefix server install",
     "lint": "eslint src server scripts",
     "prebuild": "eslint src server scripts --quiet",
-    "check:auth": "npm --prefix server run check:auth"
+    "check:auth": "npm --prefix server run check:auth",
+    "db:up": "docker compose up -d --wait",
+    "test:server": "npm --prefix server test"
   },
   "dependencies": {
     "framer-motion": "^11.3.24",
     "jspdf": "^4.2.1",
     "lucide-react": "^0.427.0",
+    "pg": "^8.23.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hot-toast": "^2.4.1",

@@ -14,11 +14,13 @@
     "reclassify": "node scripts/reclassify.js",
     "reset": "node scripts/reset.js",
     "check": "node scripts/check.js",
-    "check:auth": "node scripts/check-auth.js"
+    "check:auth": "node scripts/check-auth.js",
+    "test": "node --test --test-concurrency=1 \"test/**/*.test.js\""
   },
   "dependencies": {
     "cors": "^2.8.5",
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "pg": "^8.23.1"
   },
   "overrides": {
     "qs": "^6.16.0"
