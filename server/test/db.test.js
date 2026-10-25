@@ -105,13 +105,26 @@ test('transacao aninhada reaproveita a externa', async () => {
 
 test('trabalho iniciado na transação mas executado depois dela usa o pool', async () => {
   await run('DELETE FROM app_config')
-  let atrasado
-  await transacao(async () => {
-    // Sem await: só dispara depois do COMMIT, quando o cliente já foi devolvido.
-    atrasado = new Promise((resolve) => setTimeout(resolve, 50))
-      .then(() => run('INSERT INTO app_config (chave, valor) VALUES (?, ?)', ['tarde', '1']))
-  })
-  assert.deepEqual(await atrasado, { changes: 1 })
+  // Espiona pool.query: o cliente devolvido ainda aceita consultas, então só a
+  // chamada passar pelo pool prova que o contexto inativo foi ignorado.
+  const original = pool.query.bind(pool)
+  const chamadas = []
+  pool.query = (texto, ...resto) => {
+    chamadas.push(texto)
+    return original(texto, ...resto)
+  }
+  try {
+    let atrasado
+    await transacao(async () => {
+      // Sem await: só dispara depois do COMMIT, quando o cliente já foi devolvido.
+      atrasado = new Promise((resolve) => setTimeout(resolve, 50))
+        .then(() => run('INSERT INTO app_config (chave, valor) VALUES (?, ?)', ['tarde', '1']))
+    })
+    assert.deepEqual(await atrasado, { changes: 1 })
+    assert.ok(chamadas.some((t) => t.includes("INSERT INTO app_config")), 'o INSERT tardio deveria passar pelo pool')
+  } finally {
+    pool.query = original
+  }
   assert.ok(await get('SELECT 1 AS ok FROM app_config WHERE chave = ?', ['tarde']))
 })
 
