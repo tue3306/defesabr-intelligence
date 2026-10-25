@@ -38,8 +38,26 @@ const numOuZero = (valor, padrao) => {
   return Number.isFinite(n) && n >= 0 ? n : padrao
 }
 
-// Mesma regra de `config.ambiente`, calculada antes porque `banco` precisa dela
-// durante a construção do objeto.
+// AMBIENTE — e por que ele não é só `process.env.NODE_ENV`.
+//
+// O Railway não define NODE_ENV por conta própria. O deploy subia, portanto,
+// com `ambiente: 'development'`, e três comportamentos de desenvolvimento
+// ficavam ativos num serviço público:
+//
+//   • o tratador de erros anexava `detalhe` com a mensagem crua da exceção,
+//     expondo estrutura interna a quem conseguisse provocar um 500;
+//   • o CORS liberava QUALQUER origem localhost — conferido no ar, a
+//     produção respondia `access-control-allow-origin: http://localhost:9999`;
+//   • o log despejava o stack de cada erro.
+//
+// Depender de alguém lembrar de definir a variável no painel é depender de
+// memória para uma decisão de segurança. O Railway injeta as suas próprias
+// variáveis em todo deploy; a presença delas é sinal suficiente.
+//
+// NODE_ENV explícito continua tendo a palavra final — quem quiser depurar em
+// produção define `NODE_ENV=development` e assume a escolha.
+// Definido fora do objeto porque `banco` também precisa dele durante a
+// construção; `config.ambiente` apenas o expõe, para haver uma só definição.
 const ambienteAtual = process.env.NODE_ENV
   || (process.env.RAILWAY_ENVIRONMENT
     || process.env.RAILWAY_ENVIRONMENT_NAME
@@ -56,31 +74,7 @@ export const config = {
   // servidor subir e ficar inalcançável de fora do contêiner.
   host: process.env.HOST || '0.0.0.0',
 
-  // AMBIENTE — e por que ele não é só `process.env.NODE_ENV`.
-  //
-  // O Railway não define NODE_ENV por conta própria. O deploy subia, portanto,
-  // com `ambiente: 'development'`, e três comportamentos de desenvolvimento
-  // ficavam ativos num serviço público:
-  //
-  //   • o tratador de erros anexava `detalhe` com a mensagem crua da exceção,
-  //     expondo estrutura interna a quem conseguisse provocar um 500;
-  //   • o CORS liberava QUALQUER origem localhost — conferido no ar, a
-  //     produção respondia `access-control-allow-origin: http://localhost:9999`;
-  //   • o log despejava o stack de cada erro.
-  //
-  // Depender de alguém lembrar de definir a variável no painel é depender de
-  // memória para uma decisão de segurança. O Railway injeta as suas próprias
-  // variáveis em todo deploy; a presença delas é sinal suficiente.
-  //
-  // NODE_ENV explícito continua tendo a palavra final — quem quiser depurar em
-  // produção define `NODE_ENV=development` e assume a escolha.
-  ambiente: process.env.NODE_ENV
-    || (process.env.RAILWAY_ENVIRONMENT
-      || process.env.RAILWAY_ENVIRONMENT_NAME
-      || process.env.RAILWAY_PROJECT_ID
-      || process.env.RAILWAY_SERVICE_ID
-      ? 'production'
-      : 'development'),
+  ambiente: ambienteAtual,
 
   // POSTGRES (Supabase em produção, Docker em desenvolvimento).
   //
