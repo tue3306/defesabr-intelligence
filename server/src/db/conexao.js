@@ -78,6 +78,20 @@ export function opcoesDoPool({ url, poolMax, env }) {
   }
 }
 
+/**
+ * Opções de um `pg.Client` avulso (scripts de migração e reset), com o mesmo
+ * TLS e o mesmo timeout do pool: `npm run migrate` contra o Supabase também
+ * atravessa a rede, e não pode ir em texto puro.
+ * @param {{ url: string, env: Record<string, string | undefined> }} entrada
+ */
+export function opcoesDoCliente({ url, env }) {
+  return {
+    connectionString: semParametrosSsl(url),
+    ssl: opcoesSsl(url, env).ssl,
+    connectionTimeoutMillis: TIMEOUT_CONEXAO_MS,
+  }
+}
+
 /** Texto curto do modo de TLS, para o painel de status. */
 export const descricaoTls = (modo) => ({
   local: 'local, sem TLS',

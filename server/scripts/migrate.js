@@ -1,6 +1,7 @@
 import pg from 'pg'
 import config from '../src/config.js'
 import { aplicarMigracoes } from '../src/db/migracoes.js'
+import { opcoesDoCliente } from '../src/db/conexao.js'
 
 // Aplica as migrações de supabase/migrations no banco de DATABASE_URL e, em
 // seguida, a semeadura (fontes padrão, conta de administrador, versão da lente
@@ -9,7 +10,8 @@ import { aplicarMigracoes } from '../src/db/migracoes.js'
 // As migrações usam um `pg.Client` próprio, e não o pool do adaptador: assim o
 // esquema existe antes de qualquer módulo que consulta o banco ser carregado.
 // A semeadura entra por import dinâmico DEPOIS, pelo mesmo motivo.
-const cliente = new pg.Client({ connectionString: config.banco.url })
+// Mesmo TLS do pool (db/conexao.js): contra o Supabase a conexão é remota.
+const cliente = new pg.Client(opcoesDoCliente({ url: config.banco.url, env: process.env }))
 
 try {
   await cliente.connect()

@@ -16,6 +16,7 @@ import { createInterface } from 'node:readline/promises'
 import { stdin, stdout } from 'node:process'
 import config from '../src/config.js'
 import { aplicarMigracoes } from '../src/db/migracoes.js'
+import { opcoesDoCliente } from '../src/db/conexao.js'
 
 const HOSTS_LOCAIS = new Set(['localhost', '127.0.0.1', '::1', '[::1]'])
 
@@ -54,7 +55,8 @@ if (!forcar) {
   }
 }
 
-const cliente = new pg.Client({ connectionString: config.banco.url })
+// Mesmo TLS do pool (db/conexao.js): contra o Supabase a conexão é remota.
+const cliente = new pg.Client(opcoesDoCliente({ url: config.banco.url, env: process.env }))
 try {
   await cliente.connect()
   await cliente.query('DROP SCHEMA public CASCADE; CREATE SCHEMA public;')

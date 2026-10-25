@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
 // Funções puras: não tocam config nem banco, então o import estático é seguro.
-const { opcoesSsl, opcoesDoPool } = await import('../src/db/conexao.js')
+const { opcoesSsl, opcoesDoPool, opcoesDoCliente } = await import('../src/db/conexao.js')
 
 const SUPABASE = 'postgres://postgres.abc:segredo@aws-0-sa-east-1.pooler.supabase.com:6543/postgres'
 const CA = '-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----'
@@ -55,6 +55,14 @@ test('o pool não espera conexão para sempre e solta ociosas cedo (Fluid comput
   assert.equal(o.idleTimeoutMillis, 5000)
   assert.equal(o.max, 3)
   assert.deepEqual(o.ssl, { rejectUnauthorized: false })
+})
+
+test('o pg.Client dos scripts (migrate, reset) usa o mesmo TLS e timeout', () => {
+  const o = opcoesDoCliente({ url: `${SUPABASE}?sslmode=require`, env: { DATABASE_CA_CERT: CA } })
+  assert.deepEqual(o.ssl, { ca: CA, rejectUnauthorized: true })
+  assert.equal(o.connectionTimeoutMillis, 5000)
+  assert.equal(new URL(o.connectionString).searchParams.get('sslmode'), null)
+  assert.equal(o.max, undefined)
 })
 
 test('conexão para endereço que não responde falha em ~5 s em vez de pendurar', async () => {
