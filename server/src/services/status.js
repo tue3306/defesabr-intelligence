@@ -43,7 +43,7 @@ function enderecoDoBanco() {
 // que impede a plataforma de prometer o que não entrega.
 // -----------------------------------------------------------------------------
 
-const contar = (sql, params = []) => get(sql, params)?.n ?? 0
+const contar = async (sql, params = []) => (await get(sql, params))?.n ?? 0
 
 /** Última execução registrada de um coletor. */
 async function ultimaExecucao(coletor) {

@@ -80,13 +80,17 @@ export async function gerarNotificacoes(resultados = {}) {
 
   // `discovered_at` chega da fonte em formatos diferentes ("2026-09-15 10:00:00"
   // e ISO com "T"); comparar como texto com um só formato erraria no mesmo dia.
-  // O cast para timestamptz normaliza os dois lados.
+  // O cast para timestamptz normaliza os dois lados. A fonte manda texto livre:
+  // o CASE faz a linha sem data reconhecível virar NULL (e ficar de fora) em vez
+  // de o cast derrubar a consulta inteira — AND não garante a ordem no Postgres.
   const incidentes = await all(
     `SELECT external_id, victim, website, "group", discovered_at, criticality_reason, nature
        FROM ransomware_victims
       WHERE country = 'BR' AND criticality = 'CRITICO'
-        AND discovered_at::timestamptz >= (now() + ?::interval)
-      ORDER BY discovered_at::timestamptz DESC LIMIT 20`,
+        AND CASE WHEN discovered_at ~ '^\\d{4}-\\d{2}-\\d{2}' THEN discovered_at::timestamptz END
+              >= (now() + ?::interval)
+      ORDER BY CASE WHEN discovered_at ~ '^\\d{4}-\\d{2}-\\d{2}' THEN discovered_at::timestamptz END DESC
+      LIMIT 20`,
     [corte],
   )
   for (const v of incidentes) {

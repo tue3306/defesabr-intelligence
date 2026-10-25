@@ -1,4 +1,3 @@
-import './ajuda.js'
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { bancoLimpo } from './ajuda.js'
@@ -10,6 +9,7 @@ import { registrarAuditoria, trilhaDeAuditoria } from '../src/lib/auditoria.js'
 import { gerarNotificacoes, listarNotificacoes, marcarTodasLidas } from '../src/lib/notificacoes.js'
 import { correlacionar } from '../src/lib/correlacao.js'
 import { ransomwareDoPais } from '../src/lib/ransomwarePais.js'
+import { panorama } from '../src/services/status.js'
 
 before(async () => {
   delete process.env.AUTH_SECRET
@@ -110,4 +110,36 @@ test('correlação por UF, grupo e vítimas do país roda sobre o Postgres', asy
   const pais = await ransomwareDoPais('BR')
   assert.equal(pais.total, 2)
   assert.equal(pais.itens.length, 2)
+})
+
+test('correlação por UF (ILIKE no domínio) e por município', async () => {
+  const r = await correlacionar({
+    title: 'Prefeitura de Teste sofre ataque e órgãos do Rio de Janeiro também são alvo',
+    summary: 'vazamento de dados no estado do RJ',
+  })
+  const regras = r.correlacoes.map((c) => c.regra)
+  assert.ok(regras.includes('uf-orgaos-atacados'), regras.join(','))
+  assert.ok(regras.includes('municipio-orgao-atacado'), regras.join(','))
+})
+
+test('notificações: data ilegível na vítima é ignorada e formatos variados contam', async () => {
+  await run(
+    `INSERT INTO ransomware_victims (external_id, victim, website, country, discovered_at, criticality, nature)
+     VALUES ('d-ruim', 'Ruim', 'ruim.com.br', 'BR', 'not a date', 'CRITICO', 'privado'),
+            ('d-espaco', 'Espaco', 'espaco.com.br', 'BR', to_char(now() - interval '1 hour', 'YYYY-MM-DD HH24:MI:SS'), 'CRITICO', 'privado'),
+            ('d-ms', 'Milis', 'milis.com.br', 'BR', to_char(now() - interval '1 hour', 'YYYY-MM-DD"T"HH24:MI:SS".123Z"'), 'CRITICO', 'privado')`,
+  )
+  const r = await gerarNotificacoes({})
+  assert.equal(r.criadas, 2)
+  const refs = (await all("SELECT ref_key FROM notifications WHERE ref_key LIKE 'vitima:d-%'")).map((x) => x.ref_key).sort()
+  assert.deepEqual(refs, ['vitima:d-espaco', 'vitima:d-ms'])
+})
+
+test('status: as contagens do painel vêm do banco, não zero', async () => {
+  const p = await panorama()
+  assert.ok(p.acervo.artigos > 0)
+  assert.ok(p.acervo.artigosRelevantes > 0)
+  assert.ok(p.acervo.favoritos === 0)
+  assert.match(p.ambiente.banco, /^localhost:54329\/defesabr_test$/)
+  assert.ok(!p.ambiente.banco.includes('@'))
 })
