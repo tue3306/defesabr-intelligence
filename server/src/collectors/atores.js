@@ -65,18 +65,18 @@ const POR_CICLO_PARTIDA_FRIA = 120
  * Na partida a frio — tabela vazia, o que acontece a cada deploy no Railway —
  * o lote e maior, para a tela nao ficar duas horas e meia sem perfil.
  */
-function aRenovar() {
-  const jaTem = get('SELECT COUNT(*) AS n FROM threat_actors')?.n ?? 0
+async function aRenovar() {
+  const jaTem = (await get('SELECT COUNT(*) AS n FROM threat_actors'))?.n ?? 0
   const lote = jaTem === 0 ? POR_CICLO_PARTIDA_FRIA : POR_CICLO
 
-  return all(
+  return await all(
     `SELECT v.nome, a.fetched_at
        FROM (SELECT DISTINCT "group" AS nome, LOWER("group") AS chave
                FROM ransomware_victims
               WHERE country = 'BR' AND "group" IS NOT NULL AND "group" != '') v
        LEFT JOIN threat_actors a ON a.name_key = v.chave
       WHERE a.fetched_at IS NULL
-         OR a.fetched_at < strftime('%Y-%m-%dT%H:%M:%SZ','now', ?)
+         OR a.fetched_at < iso_agora(?)
       ORDER BY a.fetched_at IS NOT NULL, a.fetched_at
       LIMIT ?`,
     [`-${IDADE_MAXIMA_HORAS} hours`, lote]
@@ -104,7 +104,7 @@ export async function coletarAtores() {
     return { ok: true, ignorado: true, gravados: 0, motivo: 'Sem chave de API.', duracaoMs: Date.now() - inicio }
   }
 
-  const pendentes = aRenovar()
+  const pendentes = await aRenovar()
   if (!pendentes.length) {
     return { ok: true, gravados: 0, pendentes: 0, nota: 'Todos os perfis atualizados.', duracaoMs: Date.now() - inicio }
   }
@@ -125,12 +125,12 @@ export async function coletarAtores() {
       })
       if (!d?.group) { falhas += 1; motivos.add('resposta sem grupo'); continue }
 
-      run(
+      await run(
         `INSERT INTO threat_actors
            (name, name_key, description, victims_total, first_seen, last_seen,
             ttps_json, tools_json, locations_json,
             negotiation_count, has_ransomnote, fetched_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, iso_agora())
          ON CONFLICT (name_key) DO UPDATE SET
            description = excluded.description,
            victims_total = excluded.victims_total,
@@ -190,18 +190,18 @@ function ler(json, padrao) {
  * vem da fonte e é o mundo inteiro. São números diferentes de propósito, e a
  * interface precisa dizer qual é qual.
  */
-export function atoresContraBrasil({ limite = 20 } = {}) {
-  const linhas = all(
-    `SELECT v."group" AS nome, COUNT(*) AS vitimasBr,
-            MAX(v.discovered_at) AS ultimaBr,
-            SUM(CASE WHEN v.nature = 'estado' THEN 1 ELSE 0 END) AS contraEstado,
+export async function atoresContraBrasil({ limite = 20 } = {}) {
+  const linhas = await all(
+    `SELECT v."group" AS nome, COUNT(*) AS "vitimasBr",
+            MAX(v.discovered_at) AS "ultimaBr",
+            SUM(CASE WHEN v.nature = 'estado' THEN 1 ELSE 0 END) AS "contraEstado",
             a.description, a.victims_total, a.first_seen, a.last_seen,
             a.ttps_json, a.tools_json, a.negotiation_count, a.fetched_at
        FROM ransomware_victims v
        LEFT JOIN threat_actors a ON a.name_key = LOWER(v."group")
       WHERE v.country = 'BR' AND v."group" IS NOT NULL AND v."group" != ''
-      GROUP BY v."group"
-      ORDER BY vitimasBr DESC, ultimaBr DESC
+      GROUP BY v."group", a.id
+      ORDER BY "vitimasBr" DESC, "ultimaBr" DESC
       LIMIT ?`,
     [limite]
   )
@@ -230,18 +230,18 @@ export function atoresContraBrasil({ limite = 20 } = {}) {
 }
 
 /** Perfil completo de um ator. */
-export function ator(nome) {
-  const a = get('SELECT * FROM threat_actors WHERE name_key = LOWER(?)', [nome])
+export async function ator(nome) {
+  const a = await get('SELECT * FROM threat_actors WHERE name_key = LOWER(?)', [nome])
   // `victim` é o título do post do grupo, não a razão social — ver
   // `lib/vitima.js`. O original viaja em `victimBruto` quando a limpeza mexeu
   // em algo, para que o nome exibido continue conferível contra a fonte.
-  const brasileiras = all(
+  const brasileiras = (await all(
     `SELECT victim, website, sector, discovered_at, criticality, criticality_reason, post_url
        FROM ransomware_victims
       WHERE country = 'BR' AND "group" = ?
       ORDER BY discovered_at DESC LIMIT 30`,
     [nome]
-  ).map((v) => {
+  )).map((v) => {
     const exibicao = nomeDaVitima(v.victim, v.website)
     return { ...v, victim: exibicao.nome, victimBruto: exibicao.limpo ? exibicao.bruto : null }
   })

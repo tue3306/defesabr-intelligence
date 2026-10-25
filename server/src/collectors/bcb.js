@@ -105,17 +105,17 @@ export async function coletarBcb() {
       // vigente. Gravar isso faria "o último valor" ser uma data do futuro.
       const hoje = new Date().toISOString().slice(0, 10)
 
-      transacao(() => {
+      await transacao(async () => {
         for (const l of linhas) {
           const valor = Number(String(l.valor).replace(',', '.'))
           if (!Number.isFinite(valor)) continue
           if (paraIso(l.data) > hoje) continue
-          run(
+          await run(
             `INSERT INTO indicators (provider, code, country, period, value, unit)
              VALUES ('bcb', ?, 'BRA', ?, ?, ?)
              ON CONFLICT (provider, code, country, period)
              DO UPDATE SET value = excluded.value,
-                           fetched_at = strftime('%Y-%m-%dT%H:%M:%SZ','now')`,
+                           fetched_at = iso_agora()`,
             [s.id, paraIso(l.data), valor, s.unidade]
           )
           gravados += 1

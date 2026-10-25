@@ -475,11 +475,11 @@ export function limparAgregador(item) {
 
 
 /** Cadastra as fontes padrão que ainda não existem. Não sobrescreve ajustes. */
-export function semearFontes() {
+export async function semearFontes() {
   let criadas = 0
   for (const f of FONTES_PADRAO) {
-    if (get('SELECT id FROM sources WHERE slug = ?', [f.slug])) continue
-    run(
+    if (await get('SELECT id FROM sources WHERE slug = ?', [f.slug])) continue
+    await run(
       `INSERT INTO sources (slug, name, url, site_url, kind, category, somente_relevantes, idioma)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [f.slug, f.name, f.url, f.site_url, 'rss', f.category, f.somenteRelevantes ? 1 : 0, f.idioma || 'pt']
@@ -507,7 +507,7 @@ export async function coletarFonte(fonte) {
     // ver `limparAgregador()`. As demais passam direto.
     const ehAgregador = fonte.category === 'Agregador'
 
-    transacao(() => {
+    await transacao(async () => {
       for (const bruto of itens) {
         // Notícia velha demais para um produto de acompanhamento corrente.
         //
@@ -595,12 +595,12 @@ export async function coletarFonte(fonte) {
         }
 
         // guid único: a coleta roda a cada ciclo e não pode reinserir.
-        if (get('SELECT id FROM articles WHERE guid = ?', [item.guid])) continue
+        if (await get('SELECT id FROM articles WHERE guid = ?', [item.guid])) continue
 
         // Mesma matéria vinda de OUTRA fonte — ou da mesma com guid novo, que
         // é o que o Google Notícias faz. Ver `chaveDeTitulo`.
         const chave = chaveDeTitulo(item.titulo)
-        const existente = chave ? get('SELECT id, relevant FROM articles WHERE title_key = ?', [chave]) : null
+        const existente = chave ? await get('SELECT id, relevant FROM articles WHERE title_key = ?', [chave]) : null
         if (existente) {
           // A MESMA MANCHETE, AGORA RELEVANTE PARA O BRASIL.
           //
@@ -611,7 +611,7 @@ export async function coletarFonte(fonte) {
           // A cópia gravada é promovida em vez de a nova ser perdida.
           if (r.relevante && !existente.relevant) {
             const c = classificar(palheiro, item.titulo)
-            run(
+            await run(
               `UPDATE articles SET relevant = 1, relevance_score = ?, matched_terms = ?,
                       category = ?, urgency = ?
                 WHERE id = ?`,
@@ -623,7 +623,7 @@ export async function coletarFonte(fonte) {
           continue
         }
 
-        run(
+        await run(
           `INSERT INTO articles
              (source_id, guid, title, title_key, search_key, url, summary, author, published_at,
               category, urgency, relevant, relevance_score, matched_terms,
@@ -637,7 +637,7 @@ export async function coletarFonte(fonte) {
             item.veiculo || item.autor,
             // SEM DATA NO FEED, A DATA É A DA COLETA — e não NULL.
             //
-            // Toda janela do produto é `published_at >= strftime(...)`, e uma
+            // Toda janela do produto é `published_at >= iso_agora(...)`, e uma
             // comparação com NULL não dá falso: dá NULO. O efeito é que a
             // matéria some de TUDO o que tem recorte de tempo — feed, clipping,
             // gráficos, nível de alerta, mapa de países — inclusive pedindo
@@ -667,7 +667,7 @@ export async function coletarFonte(fonte) {
         else if (m.mundo) internacionais += 1
       }
 
-      run(
+      await run(
         `UPDATE sources SET
            last_fetch_at = ?, last_status = 'ok', last_error = NULL,
            last_count = ?, last_duration = ?,
@@ -688,7 +688,7 @@ export async function coletarFonte(fonte) {
     }
   } catch (err) {
     const mensagem = String(err?.message || err).slice(0, 200)
-    run(
+    await run(
       `UPDATE sources SET
          last_fetch_at = ?, last_status = 'erro', last_error = ?,
          last_count = 0, last_duration = ?,
@@ -711,7 +711,7 @@ export async function coletarFonte(fonte) {
  * pior caso é o timeout de uma só.
  */
 export async function coletarTodas() {
-  const fontes = all("SELECT * FROM sources WHERE enabled = 1 AND kind = 'rss'")
+  const fontes = await all("SELECT * FROM sources WHERE enabled = 1 AND kind = 'rss'")
   const resultados = await Promise.all(fontes.map((f) => coletarFonte(f)))
   const falharam = resultados.filter((r) => !r.ok)
 

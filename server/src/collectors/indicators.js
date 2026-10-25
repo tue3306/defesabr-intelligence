@@ -63,15 +63,15 @@ export async function coletarWorldBank() {
       // indicador existe mas não tem série para esses países.
       const linhas = Array.isArray(resposta) && Array.isArray(resposta[1]) ? resposta[1] : []
 
-      transacao(() => {
+      await transacao(async () => {
         for (const l of linhas) {
           if (l?.value == null) continue   // ano sem dado publicado: não inventa
-          run(
+          await run(
             `INSERT INTO indicators (provider, code, country, period, value, unit)
              VALUES ('worldbank', ?, ?, ?, ?, ?)
              ON CONFLICT (provider, code, country, period)
              DO UPDATE SET value = excluded.value,
-                           fetched_at = strftime('%Y-%m-%dT%H:%M:%SZ','now')`,
+                           fetched_at = iso_agora()`,
             [ind.code, l.countryiso3code || l.country?.id, String(l.date), Number(l.value), ind.unit]
           )
           gravados += 1
@@ -129,13 +129,14 @@ export const ultimoValor = (code, pais = 'BRA') => get(
  * qualquer forma. Manter as duas era pagar uma requisição a mais por ciclo
  * para receber o mesmo número de um lugar menos oficial.
  */
-export function ultimoCambio() {
+export async function ultimoCambio() {
   const pegar = (code) => get(
     `SELECT value, period, fetched_at FROM indicators
      WHERE provider = 'bcb' AND code = ? ORDER BY period DESC LIMIT 1`,
     [code]
   )
-  return { usd: pegar('usd') || null, eur: pegar('eur') || null }
+  const [usd, eur] = await Promise.all([pegar('usd'), pegar('eur')])
+  return { usd: usd || null, eur: eur || null }
 }
 
 export default { coletarWorldBank, serie, ultimoValor, ultimoCambio }

@@ -51,12 +51,12 @@ export const CADENCIA_MINUTOS = {
 const GATILHOS_SEM_CADENCIA = new Set(['manual', 'primeira-execucao', 'cli'])
 
 /** A última execução bem-sucedida deste coletor é recente demais? */
-function cedoDemais(nome, gatilho) {
+export async function cedoDemais(nome, gatilho) {
   const minutos = CADENCIA_MINUTOS[nome] || 0
   if (!minutos || GATILHOS_SEM_CADENCIA.has(gatilho)) return false
-  const ultima = get(
+  const ultima = await get(
     `SELECT finished_at FROM collector_runs
-      WHERE collector = ? AND ok = 1 AND finished_at >= strftime('%Y-%m-%dT%H:%M:%SZ', 'now', ?)
+      WHERE collector = ? AND ok = 1 AND finished_at >= iso_agora(?)
       ORDER BY id DESC LIMIT 1`,
     // 1 minuto de folga: um ciclo de 15 que terminou em 29:40 não deve pular o de 30.
     [nome, `-${minutos - 1} minutes`],
@@ -65,8 +65,8 @@ function cedoDemais(nome, gatilho) {
 }
 
 /** Envolve um coletor para que o resultado vire linha no histórico. */
-async function registrar(nome, fn, gatilho = 'agendado') {
-  if (cedoDemais(nome, gatilho)) {
+export async function registrar(nome, fn, gatilho = 'agendado') {
+  if (await cedoDemais(nome, gatilho)) {
     return { coletor: nome, ok: true, pulado: true, motivo: `cadência de ${CADENCIA_MINUTOS[nome]} min` }
   }
   const inicio = Date.now()
@@ -88,7 +88,7 @@ async function registrar(nome, fn, gatilho = 'agendado') {
   // execuções que não aconteceram.
   if (resultado?.ignorado) return { coletor: nome, duracaoMs: duracao, ...resultado }
 
-  run(
+  await run(
     `INSERT INTO collector_runs
        (collector, started_at, finished_at, duration_ms, ok, items_found, items_new, error, trigger)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -107,7 +107,7 @@ async function registrar(nome, fn, gatilho = 'agendado') {
       gatilho,
     ]
   )
-  aparar(nome)
+  await aparar(nome)
 
   return { coletor: nome, duracaoMs: duracao, ...resultado }
 }
@@ -122,8 +122,8 @@ async function registrar(nome, fn, gatilho = 'agendado') {
 const EXECUCOES_POR_COLETOR = 700
 
 /** Apara o histórico, preservando as execuções recentes de cada coletor. */
-function aparar(nome) {
-  run(
+async function aparar(nome) {
+  await run(
     `DELETE FROM collector_runs
       WHERE collector = ?
         AND id NOT IN (
@@ -134,9 +134,20 @@ function aparar(nome) {
   )
 }
 
-/** Ciclo completo. Devolve o que cada coletor fez. */
-export async function coletarTudo(gatilho = 'agendado') {
+/**
+ * Ciclo completo. Devolve o que cada coletor fez.
+ *
+ * `somente` restringe o ciclo a um grupo de coletores (pelos nomes de
+ * `CADENCIA_MINUTOS`): quem está fora da lista devolve `pulado` e NÃO entra no
+ * histórico de execuções — não rodou, então não há o que registrar. A ordem de
+ * dependência abaixo é a mesma com ou sem filtro.
+ */
+export async function coletarTudo(gatilho = 'agendado', { somente } = {}) {
   const inicio = Date.now()
+  const grupo = Array.isArray(somente) ? new Set(somente) : null
+  const rodar = (nome, fn) => (grupo && !grupo.has(nome)
+    ? Promise.resolve({ coletor: nome, ok: true, pulado: true, motivo: 'fora do grupo' })
+    : registrar(nome, fn, gatilho))
 
   // Em paralelo porque são serviços independentes: uma API lenta não deve
   // atrasar as outras.
@@ -151,13 +162,13 @@ export async function coletarTudo(gatilho = 'agendado') {
   //
   // Cada um busca de um servico diferente e nao depende de nenhum outro.
   const [noticias, legislativo, indicadores, comex, bcb, agregadores, ransomware] = await Promise.all([
-    registrar('rss', coletarTodas, gatilho),
-    registrar('camara', coletarCamara, gatilho),
-    registrar('worldbank', coletarWorldBank, gatilho),
-    registrar('comex', coletarComex, gatilho),
-    registrar('bcb', coletarBcb, gatilho),
-    registrar('agregadores', coletarAgregadores, gatilho),
-    registrar('ransomware', coletarRansomware, gatilho),
+    rodar('rss', coletarTodas),
+    rodar('camara', coletarCamara),
+    rodar('worldbank', coletarWorldBank),
+    rodar('comex', coletarComex),
+    rodar('bcb', coletarBcb),
+    rodar('agregadores', coletarAgregadores),
+    rodar('ransomware', coletarRansomware),
   ])
 
   // ── DEPOIS, O QUE DEPENDE DO QUE ACABOU DE ENTRAR ──
@@ -174,7 +185,7 @@ export async function coletarTudo(gatilho = 'agendado') {
   // A dependencia agora esta expressa na estrutura: quem depende de dado
   // recem-inserido roda depois de quem o insere. Custa alguns segundos a mais
   // de coleta e elimina a corrida.
-  const atores = await registrar('atores', coletarAtores, gatilho)
+  const atores = await rodar('atores', coletarAtores)
 
   // ── PAÍSES E TEATROS DO QUE ACABOU DE ENTRAR ──
   //
@@ -184,7 +195,7 @@ export async function coletarTudo(gatilho = 'agendado') {
   // matéria mais recente seria justamente a que não aparece. Roda antes de
   // `correlacoes` para o ciclo terminar com as duas derivações sobre o mesmo
   // acervo.
-  const geografia = await registrar('geografia', derivarGeografia, gatilho)
+  const geografia = await rodar('geografia', derivarGeografia)
 
   // ── POR ULTIMO, O QUE DEPENDE DE TODOS ──
   //
@@ -195,7 +206,7 @@ export async function coletarTudo(gatilho = 'agendado') {
   // Nao busca nada fora: e derivacao pura sobre o que acabou de entrar. Por
   // isso nao tem tratamento de rede nem retentativa, e por isso e barato o
   // suficiente para rodar a cada ciclo.
-  const correlacoes = await registrar('correlacoes', calcularCorrelacoes, gatilho)
+  const correlacoes = await rodar('correlacoes', calcularCorrelacoes)
 
   // Depois, e só se a Câmara respondeu: enriquecer exige uma requisição por
   // proposição, então roda em lote pequeno e fora do caminho crítico.
@@ -210,7 +221,7 @@ export async function coletarTudo(gatilho = 'agendado') {
   // de entrar. Falha aqui não pode derrubar o resultado da coleta.
   let notificacoes = { criadas: 0 }
   try {
-    notificacoes = gerarNotificacoes({ noticias, legislativo, indicadores, comex, bcb, agregadores, ransomware, atores, geografia, correlacoes })
+    notificacoes = await gerarNotificacoes({ noticias, legislativo, indicadores, comex, bcb, agregadores, ransomware, atores, geografia, correlacoes })
   } catch (err) {
     console.error('[coleta] notificações falharam:', err?.message || err)
   }
