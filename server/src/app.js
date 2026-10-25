@@ -15,6 +15,7 @@ import mundo from './routes/mundo.js'
 import { lerConta } from './lib/auth.js'
 import { waitUntil } from '@vercel/functions'
 import { criarRotaCron } from './routes/cron.js'
+import { CABECALHOS_SEGURANCA, CABECALHOS_SO_PRODUCAO } from './lib/cabecalhos.js'
 
 // -----------------------------------------------------------------------------
 // APLICAÇÃO EXPRESS
@@ -41,47 +42,17 @@ export function criarApp() {
 
   // ── Cabeçalhos de segurança ──
   //
-  // Nenhuma dependência. A CSP lista exatamente o que a interface carrega de
-  // fora — as fontes do Google e o atlas de países do jsDelivr, que o mapa
-  // busca por `fetch` — e mais nada: nenhum script de terceiro roda nesta
-  // origem, que é onde mora o token de sessão. `'unsafe-inline'` vale só para
-  // ESTILO: os gráficos e as animações escrevem `style=` no elemento.
-  //
-  // Só em produção: o Vite de desenvolvimento injeta script inline para o
-  // recarregamento a quente, e a política o bloquearia. Conferida servindo o
-  // `dist/` com NODE_ENV=production — mapa, fontes, gráficos e exportação CSV.
-  const CSP = [
-    "default-src 'self'",
-    "script-src 'self'",
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "font-src 'self' https://fonts.gstatic.com data:",
-    "img-src 'self' data: blob: https:",
-    "connect-src 'self' https://cdn.jsdelivr.net",
-    "object-src 'none'",
-    "base-uri 'self'",
-    "form-action 'self'",
-    "frame-ancestors 'none'",
-  ].join('; ')
+  // Valores em `lib/cabecalhos.js`, a fonte única (o vercel.json os repete e um
+  // teste guarda a igualdade). CSP e HSTS só em produção: o Vite de
+  // desenvolvimento injeta script inline para o recarregamento a quente, e a
+  // política o bloquearia. Conferida servindo o `dist/` com NODE_ENV=production.
   const producao = config.ambiente === 'production'
+  const aplicaveis = CABECALHOS_SEGURANCA.filter(
+    ({ key }) => producao || !CABECALHOS_SO_PRODUCAO.includes(key),
+  )
 
   app.use((req, res, next) => {
-    if (producao) {
-      res.setHeader('Content-Security-Policy', CSP)
-      // O Railway só serve HTTPS; isto impede o navegador de tentar HTTP de
-      // novo (e ser interceptado) nos próximos 180 dias.
-      res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains')
-    }
-    // Impede o navegador de "adivinhar" o tipo de um arquivo servido — é o que
-    // transforma um upload de texto em script executável.
-    res.setHeader('X-Content-Type-Options', 'nosniff')
-    // Sem isto a plataforma pode ser embutida num iframe de terceiro e ter os
-    // cliques sequestrados por uma camada invisível por cima.
-    res.setHeader('X-Frame-Options', 'DENY')
-    // Não vaza o caminho interno visitado para sites externos ao clicar num link.
-    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
-    // Nada aqui usa câmera, microfone ou localização; declarar isso fecha a
-    // porta para qualquer script de terceiro que tente pedi-los.
-    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+    for (const { key, value } of aplicaveis) res.setHeader(key, value)
     next()
   })
 

@@ -79,7 +79,7 @@ export default [
 
   // ── Servidor (Node) ──
   {
-    files: ['server/**/*.js', 'scripts/**/*.mjs', '*.config.js'],
+    files: ['server/**/*.js', 'api/**/*.js', 'scripts/**/*.mjs', '*.config.js'],
     languageOptions: {
       ecmaVersion: 2023,
       sourceType: 'module',
