@@ -78,7 +78,9 @@ test('colunas finais existem', async () => {
 
 test('bancoLimpo recusa um banco que não termina em _test', async () => {
   const original = process.env.DATABASE_URL
-  process.env.DATABASE_URL = 'postgres://defesabr:defesabr@localhost:54329/defesabr'
+  const alvo = new URL(original)
+  alvo.pathname = '/defesabr'
+  process.env.DATABASE_URL = alvo.toString()
   try {
     await assert.rejects(() => bancoLimpo(), /_test/)
   } finally {

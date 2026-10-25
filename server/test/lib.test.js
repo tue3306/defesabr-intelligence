@@ -140,6 +140,8 @@ test('status: as contagens do painel vêm do banco, não zero', async () => {
   assert.ok(p.acervo.artigos > 0)
   assert.ok(p.acervo.artigosRelevantes > 0)
   assert.ok(p.acervo.favoritos === 0)
-  assert.match(p.ambiente.banco, /^localhost:54329\/defesabr_test$/)
+  // host:porta/banco derivado do ambiente (local usa 54329, o CI usa 5432).
+  const alvo = new URL(process.env.DATABASE_URL)
+  assert.equal(p.ambiente.banco, `${alvo.hostname}${alvo.port ? `:${alvo.port}` : ''}${alvo.pathname}`)
   assert.ok(!p.ambiente.banco.includes('@'))
 })
