@@ -146,7 +146,11 @@ export function criarApp() {
 
   // Lê a sessão ANTES das rotas: quem exige papel encontra `req.conta` pronto,
   // e quem não exige simplesmente ignora. Não bloqueia nada por si só.
-  app.use('/api', lerConta)
+  //
+  // `lerConta` é assíncrona (assinatura e conta vêm do banco). O Express 4 não
+  // olha a promessa: sem o `.catch(next)`, uma falha ao resolver o segredo
+  // deixaria a requisição pendurada em vez de virar 500 JSON.
+  app.use('/api', (req, res, next) => lerConta(req, res, next).catch(next))
 
   app.use('/api', autenticacao)
   app.use('/api', noticias)

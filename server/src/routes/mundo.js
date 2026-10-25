@@ -1,4 +1,4 @@
-import { Router } from 'express'
+import { roteador } from '../lib/roteador.js'
 import { all, get } from '../db/index.js'
 import { exigirPapel } from '../lib/auth.js'
 import { dias, inteiro } from '../lib/parametros.js'
@@ -28,8 +28,8 @@ import { ransomwareDoPais } from '../lib/ransomwarePais.js'
 // em clipping, alerta, estatísticas ou notificações.
 //
 // TODA CONTAGEM POR PAÍS OU TEATRO É JOIN nas tabelas derivadas
-// (collectors/geografia.js), nunca regex por requisição: `node:sqlite` é
-// síncrono, e milhares de regex por chamada seriam o servidor parado.
+// (collectors/geografia.js), nunca regex por requisição: milhares de regex
+// por chamada parariam o event loop do processo inteiro.
 //
 // COBERTURA NÃO É RISCO. Um teatro aparece com mais matérias porque a imprensa
 // escreveu mais sobre ele, e cada resposta carrega essa ressalva no corpo —
@@ -39,7 +39,7 @@ import { ransomwareDoPais } from '../lib/ransomwarePais.js'
 // parte da vitrine pública.
 // -----------------------------------------------------------------------------
 
-const router = Router()
+const router = roteador()
 
 const POR_PAGINA = 20
 const URGENCIAS = ['CRITICO', 'ALTO', 'MEDIO', 'BAIXO']
@@ -69,7 +69,7 @@ const NOTA = 'Contagem de MATÉRIAS coletadas que citam cada país ou teatro —
   + 'no acervo.'
 
 /** Limite de data de N dias atrás, como expressão SQL. `d` já vem preso por `dias()`. */
-const desde = (d) => `strftime('%Y-%m-%dT%H:%M:%SZ','now', '-${d} days')`
+const desde = (d) => `iso_agora('-${d} days')`
 
 /** Recortes do período e do período anterior de mesma duração. */
 const janelas = (d) => ({
@@ -91,8 +91,8 @@ const variacao = (total, anterior) => (anterior > 0 ? Math.round(((total - anter
  * mostravam o número cru. Sem base comparável, a variação é `null` em TODAS
  * as rotas, e `comparacaoIncompleta` diz por quê.
  */
-function comparacaoIncompleta(days) {
-  const lenteDesde = get("SELECT valor FROM app_config WHERE chave = 'lente_mundo_desde'")?.valor || null
+async function comparacaoIncompleta(days) {
+  const lenteDesde = (await get("SELECT valor FROM app_config WHERE chave = 'lente_mundo_desde'"))?.valor || null
   if (!lenteDesde) return false
   return new Date(Date.now() - days * 2 * 86400000).toISOString() < lenteDesde
 }
@@ -158,17 +158,17 @@ const SELECT_NOTICIA = `
  * Converte linhas de artigo em NOTÍCIA, com países e teatros de cada uma
  * buscados em lote — duas consultas para a página inteira, não duas por item.
  */
-function noticias(linhas) {
+async function noticias(linhas) {
   if (!linhas.length) return []
   const ids = linhas.map((l) => l.id)
   const marcas = ids.map(() => '?').join(',')
   const paises = new Map()
   const teatros = new Map()
-  for (const r of all(`SELECT article_id, pais FROM article_paises WHERE article_id IN (${marcas}) ORDER BY pais`, ids)) {
+  for (const r of await all(`SELECT article_id, pais FROM article_paises WHERE article_id IN (${marcas}) ORDER BY pais`, ids)) {
     if (!paises.has(r.article_id)) paises.set(r.article_id, [])
     paises.get(r.article_id).push(r.pais)
   }
-  for (const r of all(`SELECT article_id, teatro FROM article_teatros WHERE article_id IN (${marcas}) ORDER BY teatro`, ids)) {
+  for (const r of await all(`SELECT article_id, teatro FROM article_teatros WHERE article_id IN (${marcas}) ORDER BY teatro`, ids)) {
     if (!teatros.has(r.article_id)) teatros.set(r.article_id, [])
     teatros.get(r.article_id).push(r.teatro)
   }
@@ -249,7 +249,7 @@ function clausulas(filtros) {
   if (filtros.teatro) { onde.push('EXISTS (SELECT 1 FROM article_teatros ft WHERE ft.article_id = a.id AND ft.teatro = ?)'); params.push(filtros.teatro) }
   if (filtros.idioma) { onde.push('a.idioma = ?'); params.push(filtros.idioma) }
   if (filtros.urgencia) { onde.push(`COALESCE(${URGENCIA}, 'BAIXO') = ?`); params.push(filtros.urgencia) }
-  if (filtros.q) { onde.push("a.search_key LIKE ? ESCAPE '\\'"); params.push(filtros.q) }
+  if (filtros.q) { onde.push("a.search_key ILIKE ? ESCAPE '\\'"); params.push(filtros.q) }
   return { sql: onde.length ? ` AND ${onde.join(' AND ')}` : '', params }
 }
 
@@ -260,15 +260,15 @@ function clausulas(filtros) {
  * número de páginas que existe — pedir a página 400 de um feed de 3 devolve a
  * 3, não uma lista vazia que parece "sem notícias".
  */
-function paginaDeNoticias({ base, params, page }) {
-  const total = get(`SELECT COUNT(*) AS n FROM articles a WHERE ${base}`, params)?.n ?? 0
+async function paginaDeNoticias({ base, params, page }) {
+  const total = (await get(`SELECT COUNT(*) AS n FROM articles a WHERE ${base}`, params))?.n ?? 0
   const pagina = Math.min(page, paginas(total))
-  const linhas = all(
+  const linhas = await all(
     `${SELECT_NOTICIA} WHERE ${base}
-     ORDER BY a.published_at DESC, a.id DESC LIMIT ${POR_PAGINA} OFFSET ${(pagina - 1) * POR_PAGINA}`,
+     ORDER BY a.published_at DESC NULLS LAST, a.id DESC LIMIT ${POR_PAGINA} OFFSET ${(pagina - 1) * POR_PAGINA}`,
     params
   )
-  return { itens: noticias(linhas), pagina, porPagina: POR_PAGINA, total, paginas: paginas(total) }
+  return { itens: await noticias(linhas), pagina, porPagina: POR_PAGINA, total, paginas: paginas(total) }
 }
 
 const lerPagina = (req) => inteiro(req.query.page, { padrao: 1, min: 1, max: 10000 })
@@ -277,35 +277,35 @@ const lerPagina = (req) => inteiro(req.query.page, { padrao: 1, min: 1, max: 100
  * Cobertura de um recorte (um país ou um teatro): total, anterior, variação e
  * as distribuições. `junta` é o JOIN que restringe os artigos ao recorte.
  */
-function cobertura({ junta, params, days }) {
+async function cobertura({ junta, params, days }) {
   const j = janelas(days)
   const base = `${ESCOPO} AND ${j.atual}`
-  const total = get(`SELECT COUNT(DISTINCT a.id) AS n FROM articles a ${junta} WHERE ${base}`, params)?.n ?? 0
-  const anterior = get(`SELECT COUNT(DISTINCT a.id) AS n FROM articles a ${junta} WHERE ${ESCOPO} AND ${j.anterior}`, params)?.n ?? 0
-  const incompleta = comparacaoIncompleta(days)
+  const total = (await get(`SELECT COUNT(DISTINCT a.id) AS n FROM articles a ${junta} WHERE ${base}`, params))?.n ?? 0
+  const anterior = (await get(`SELECT COUNT(DISTINCT a.id) AS n FROM articles a ${junta} WHERE ${ESCOPO} AND ${j.anterior}`, params))?.n ?? 0
+  const incompleta = await comparacaoIncompleta(days)
   return {
     total,
     periodoAnterior: anterior,
     variacao: incompleta ? null : variacao(total, anterior),
     comparacaoIncompleta: incompleta,
-    porDia: preencherDias(all(
+    porDia: preencherDias(await all(
       `SELECT substr(a.published_at, 1, 10) AS dia, COUNT(DISTINCT a.id) AS total
          FROM articles a ${junta} WHERE ${base}
         GROUP BY dia ORDER BY dia ASC`,
       params
     ), days),
-    porFonte: all(
+    porFonte: await all(
       `SELECT COALESCE(s.name, 'Fonte desconhecida') AS nome, COUNT(DISTINCT a.id) AS total
          FROM articles a ${junta} LEFT JOIN sources s ON s.id = a.source_id
         WHERE ${base}
-        GROUP BY a.source_id ORDER BY total DESC, nome LIMIT 8`,
+        GROUP BY a.source_id, s.name ORDER BY total DESC, nome LIMIT 8`,
       params
     ),
-    porIdioma: porIdioma(all(
+    porIdioma: porIdioma(await all(
       `SELECT a.idioma, COUNT(DISTINCT a.id) AS total FROM articles a ${junta} WHERE ${base} GROUP BY a.idioma`,
       params
     )),
-    porUrgencia: porUrgencia(all(
+    porUrgencia: porUrgencia(await all(
       `SELECT ${URGENCIA} AS urgency, COUNT(DISTINCT a.id) AS total FROM articles a ${junta} WHERE ${base} GROUP BY 1`,
       params
     )),
@@ -315,7 +315,7 @@ function cobertura({ junta, params, days }) {
 // ═════════════════════════════════════════════════════════════════════════════
 // GET /api/mundo/panorama?days=
 // ═════════════════════════════════════════════════════════════════════════════
-// O PANORAMA É A CONSULTA MAIS CARA DA ÁREA, e `node:sqlite` é síncrono.
+// O PANORAMA É A CONSULTA MAIS CARA DA ÁREA.
 //
 // A revisão mediu numa cópia com o volume que a retenção de 180 dias vai
 // acumular (~40 mil matérias): 0,6 a 1 s por chamada, com o event loop parado
@@ -325,7 +325,7 @@ function cobertura({ junta, params, days }) {
 const PANORAMA_TTL_MS = 60_000
 const memoriaPanorama = new Map()
 
-router.get('/mundo/panorama', exigirPapel('user'), (req, res) => {
+router.get('/mundo/panorama', exigirPapel('user'), async (req, res) => {
   const days = dias(req.query.days, 30)
   const guardado = memoriaPanorama.get(days)
   if (guardado && Date.now() - guardado.em < PANORAMA_TTL_MS) return res.json(guardado.corpo)
@@ -335,53 +335,53 @@ router.get('/mundo/panorama', exigirPapel('user'), (req, res) => {
     return enviar(corpo)
   }
 
-  const incompleta = comparacaoIncompleta(days)
+  const incompleta = await comparacaoIncompleta(days)
   const variacaoComBase = (total, anterior) => (incompleta ? null : variacao(total, anterior))
   const j = janelas(days)
   const base = `${ESCOPO} AND ${j.atual}`
 
   // ── TEATROS: todos os do catálogo, inclusive os sem cobertura ──
-  const atuais = new Map(all(
+  const atuais = new Map((await all(
     `SELECT t.teatro, COUNT(*) AS total, MAX(a.published_at) AS ultima
        FROM article_teatros t JOIN articles a ON a.id = t.article_id
       WHERE ${base} GROUP BY t.teatro`
-  ).map((l) => [l.teatro, l]))
-  const anteriores = new Map(all(
+  )).map((l) => [l.teatro, l]))
+  const anteriores = new Map((await all(
     `SELECT t.teatro, COUNT(*) AS total
        FROM article_teatros t JOIN articles a ON a.id = t.article_id
       WHERE ${ESCOPO} AND ${j.anterior} GROUP BY t.teatro`
-  ).map((l) => [l.teatro, l.total]))
-  const urgencias = all(
+  )).map((l) => [l.teatro, l.total]))
+  const urgencias = await all(
     `SELECT t.teatro, ${URGENCIA} AS urgency, COUNT(*) AS total
        FROM article_teatros t JOIN articles a ON a.id = t.article_id
       WHERE ${base} GROUP BY t.teatro, 2`
   )
-  const manchetes = all(
+  const manchetes = await all(
     `SELECT * FROM (
        SELECT t.teatro AS chave, a.id,
-              ROW_NUMBER() OVER (PARTITION BY t.teatro ORDER BY a.published_at DESC, a.id DESC) AS ordem
+              ROW_NUMBER() OVER (PARTITION BY t.teatro ORDER BY a.published_at DESC NULLS LAST, a.id DESC) AS ordem
          FROM article_teatros t JOIN articles a ON a.id = t.article_id
         WHERE ${base}
      ) WHERE ordem <= 3`
   )
 
   // ── PAÍSES: contagem de todos, para a lista e para os destaques ──
-  const paisesAtuais = all(
+  const paisesAtuais = await all(
     `SELECT p.pais, COUNT(*) AS total
        FROM article_paises p JOIN articles a ON a.id = p.article_id
       WHERE ${base} GROUP BY p.pais ORDER BY total DESC, p.pais`
   )
-  const paisesAnteriores = new Map(all(
+  const paisesAnteriores = new Map((await all(
     `SELECT p.pais, COUNT(*) AS total
        FROM article_paises p JOIN articles a ON a.id = p.article_id
       WHERE ${ESCOPO} AND ${j.anterior} GROUP BY p.pais`
-  ).map((l) => [l.pais, l.total]))
+  )).map((l) => [l.pais, l.total]))
   const totalDoPais = new Map(paisesAtuais.map((l) => [l.pais, l.total]))
   const marcasDestaques = DESTAQUES.map(() => '?').join(',')
-  const manchetesDestaques = all(
+  const manchetesDestaques = await all(
     `SELECT * FROM (
        SELECT p.pais AS chave, a.id,
-              ROW_NUMBER() OVER (PARTITION BY p.pais ORDER BY a.published_at DESC, a.id DESC) AS ordem
+              ROW_NUMBER() OVER (PARTITION BY p.pais ORDER BY a.published_at DESC NULLS LAST, a.id DESC) AS ordem
          FROM article_paises p JOIN articles a ON a.id = p.article_id
         WHERE ${base} AND p.pais IN (${marcasDestaques})
      ) WHERE ordem = 1`,
@@ -392,11 +392,11 @@ router.get('/mundo/panorama', exigirPapel('user'), (req, res) => {
   const idsManchetes = [...new Set([...manchetes, ...manchetesDestaques].map((m) => m.id))]
   const porId = new Map()
   if (idsManchetes.length) {
-    const linhas = all(
+    const linhas = await all(
       `${SELECT_NOTICIA} WHERE a.id IN (${idsManchetes.map(() => '?').join(',')})`,
       idsManchetes
     )
-    for (const n of noticias(linhas)) porId.set(n.id, n)
+    for (const n of await noticias(linhas)) porId.set(n.id, n)
   }
   const manchetesDe = (lista, chave) => lista
     .filter((m) => m.chave === chave)
@@ -427,18 +427,18 @@ router.get('/mundo/panorama', exigirPapel('user'), (req, res) => {
   teatros.sort((x, y) => y.total - x.total || ordemCatalogo.get(x.id) - ordemCatalogo.get(y.id))
 
   const totais = {
-    materias: get(`SELECT COUNT(*) AS n FROM articles a WHERE ${base}`)?.n ?? 0,
+    materias: (await get(`SELECT COUNT(*) AS n FROM articles a WHERE ${base}`))?.n ?? 0,
     paises: paisesAtuais.filter((l) => l.pais !== 'Brazil').length,
     teatrosComCobertura: teatros.filter((t) => t.total > 0).length,
-    fontes: get(`SELECT COUNT(DISTINCT a.source_id) AS n FROM articles a WHERE ${base}`)?.n ?? 0,
-    porIdioma: porIdioma(all(`SELECT a.idioma, COUNT(*) AS total FROM articles a WHERE ${base} GROUP BY a.idioma`)),
+    fontes: (await get(`SELECT COUNT(DISTINCT a.source_id) AS n FROM articles a WHERE ${base}`))?.n ?? 0,
+    porIdioma: porIdioma(await all(`SELECT a.idioma, COUNT(*) AS total FROM articles a WHERE ${base} GROUP BY a.idioma`)),
   }
 
   // A cobertura internacional só começou a ser gravada quando a lente entrou.
   // Se o período anterior começa antes disso, a "variação" compara coleta com
   // falta de coleta — e a nota diz isso em vez de deixar +1.000% parecer
   // escalada.
-  const lenteDesde = get("SELECT valor FROM app_config WHERE chave = 'lente_mundo_desde'")?.valor || null
+  const lenteDesde = (await get("SELECT valor FROM app_config WHERE chave = 'lente_mundo_desde'"))?.valor || null
 
   res.json({
     periodoDias: days,
@@ -480,7 +480,7 @@ router.get('/mundo/panorama', exigirPapel('user'), (req, res) => {
 // gráfico, o total do cabeçalho mudaria junto, e o leitor não teria mais como
 // saber de quanto a seleção é parte.
 // ═════════════════════════════════════════════════════════════════════════════
-router.get('/mundo/pais/:nome', exigirPapel('user'), (req, res) => {
+router.get('/mundo/pais/:nome', exigirPapel('user'), async (req, res) => {
   const pedido = String(req.params.nome).slice(0, 60)
   const pais = resolverPais(pedido)
   if (!pais) return res.status(404).json({ error: 'País fora do catálogo acompanhado pela plataforma.', pais: pedido })
@@ -495,38 +495,38 @@ router.get('/mundo/pais/:nome', exigirPapel('user'), (req, res) => {
   const base = `${ESCOPO} AND ${j.atual}`
 
   const f = clausulas(filtros)
-  const lista = paginaDeNoticias({
+  const lista = await paginaDeNoticias({
     base: `${base} AND EXISTS (SELECT 1 FROM article_paises xp WHERE xp.article_id = a.id AND xp.pais = ?)${f.sql}`,
     params: [nome, ...f.params],
     page: lerPagina(req),
   })
 
-  const teatros = all(
+  const teatros = (await all(
     `SELECT t.teatro, COUNT(*) AS total
        FROM article_teatros t JOIN articles a ON a.id = t.article_id ${junta}
       WHERE ${base} GROUP BY t.teatro ORDER BY total DESC`,
     [nome]
-  ).filter((l) => TEATRO_POR_ID.has(l.teatro))
+  )).filter((l) => TEATRO_POR_ID.has(l.teatro))
     .map((l) => ({ id: l.teatro, nome: TEATRO_POR_ID.get(l.teatro).nome, total: l.total }))
 
-  const coMencionados = all(
+  const coMencionados = (await all(
     `SELECT o.pais, COUNT(*) AS total
        FROM article_paises o JOIN articles a ON a.id = o.article_id ${junta}
       WHERE ${base} AND o.pais <> ?
       GROUP BY o.pais ORDER BY total DESC, o.pais LIMIT 10`,
     [nome, nome]
-  ).map((l) => ({ ...descreverPais(l.pais), total: l.total }))
+  )).map((l) => ({ ...descreverPais(l.pais), total: l.total }))
 
   res.json({
     pais: nome,
     pt: pais.pt,
     iso: pais.iso || null,
     periodoDias: days,
-    cobertura: cobertura({ junta, params: [nome], days }),
+    cobertura: await cobertura({ junta, params: [nome], days }),
     teatros,
     coMencionados,
     noticias: lista,
-    ransomware: ransomwareDoPais(pais.iso || null),
+    ransomware: await ransomwareDoPais(pais.iso || null),
     nota: 'Um país só aparece ligado a uma notícia quando o detector encontrou um termo dele no texto — '
       + `nome, gentílico ou capital, em português ou inglês. ${NOTA}`,
   })
@@ -535,7 +535,7 @@ router.get('/mundo/pais/:nome', exigirPapel('user'), (req, res) => {
 // ═════════════════════════════════════════════════════════════════════════════
 // GET /api/mundo/teatro/:id?days=&page=&pais=&idioma=
 // ═════════════════════════════════════════════════════════════════════════════
-router.get('/mundo/teatro/:id', exigirPapel('user'), (req, res) => {
+router.get('/mundo/teatro/:id', exigirPapel('user'), async (req, res) => {
   const id = String(req.params.id).slice(0, 60)
   const teatro = TEATRO_POR_ID.get(id)
   if (!teatro) return res.status(404).json({ error: 'Teatro desconhecido.', teatro: id })
@@ -549,19 +549,19 @@ router.get('/mundo/teatro/:id', exigirPapel('user'), (req, res) => {
   const base = `${ESCOPO} AND ${j.atual}`
 
   const f = clausulas(filtros)
-  const lista = paginaDeNoticias({
+  const lista = await paginaDeNoticias({
     base: `${base} AND EXISTS (SELECT 1 FROM article_teatros xt WHERE xt.article_id = a.id AND xt.teatro = ?)${f.sql}`,
     params: [id, ...f.params],
     page: lerPagina(req),
   })
 
-  const paises = all(
+  const paises = (await all(
     `SELECT p.pais, COUNT(*) AS total
        FROM article_paises p JOIN articles a ON a.id = p.article_id ${junta}
       WHERE ${base}
       GROUP BY p.pais ORDER BY total DESC, p.pais LIMIT 15`,
     [id]
-  ).map((l) => ({ ...descreverPais(l.pais), total: l.total }))
+  )).map((l) => ({ ...descreverPais(l.pais), total: l.total }))
 
   res.json({
     teatro: {
@@ -580,7 +580,7 @@ router.get('/mundo/teatro/:id', exigirPapel('user'), (req, res) => {
       regras: teatro.regras,
     },
     periodoDias: days,
-    cobertura: cobertura({ junta, params: [id], days }),
+    cobertura: await cobertura({ junta, params: [id], days }),
     paises,
     noticias: lista,
     nota: NOTA,
@@ -590,7 +590,7 @@ router.get('/mundo/teatro/:id', exigirPapel('user'), (req, res) => {
 // ═════════════════════════════════════════════════════════════════════════════
 // GET /api/mundo/feed?days=&page=&pais=&teatro=&idioma=&urgencia=&q=
 // ═════════════════════════════════════════════════════════════════════════════
-router.get('/mundo/feed', exigirPapel('user'), (req, res) => {
+router.get('/mundo/feed', exigirPapel('user'), async (req, res) => {
   const { filtros, erro } = lerFiltros(req.query, ['pais', 'teatro', 'idioma', 'urgencia', 'q'])
   if (erro) return res.status(erro.status).json(erro.corpo)
 
@@ -598,14 +598,14 @@ router.get('/mundo/feed', exigirPapel('user'), (req, res) => {
   const f = clausulas(filtros)
   res.json({
     periodoDias: days,
-    ...paginaDeNoticias({ base: `${ESCOPO} AND ${janelas(days).atual}${f.sql}`, params: f.params, page: lerPagina(req) }),
+    ...(await paginaDeNoticias({ base: `${ESCOPO} AND ${janelas(days).atual}${f.sql}`, params: f.params, page: lerPagina(req) })),
   })
 })
 
 // ═════════════════════════════════════════════════════════════════════════════
 // GET /api/mundo/metodo — como a lente decide, e de onde vem a cobertura
 // ═════════════════════════════════════════════════════════════════════════════
-router.get('/mundo/metodo', exigirPapel('user'), (req, res) => {
+router.get('/mundo/metodo', exigirPapel('user'), async (req, res) => {
   const { versao, regra, etapas, termosFortes, termosFracos, exclusoes, nota } = METODO_MUNDO
   res.json({
     versao,
@@ -615,11 +615,11 @@ router.get('/mundo/metodo', exigirPapel('user'), (req, res) => {
     termosFracos,
     exclusoes,
     teatros: TEATROS.map((t) => ({ id: t.id, nome: t.nome, regras: t.regras })),
-    fontes: all(
+    fontes: (await all(
       `SELECT name, idioma, category FROM sources
         WHERE category = 'Internacional' OR idioma = 'en'
-        ORDER BY idioma DESC, name`
-    ).map((s) => ({ nome: s.name, idioma: s.idioma, categoria: s.category })),
+        ORDER BY idioma DESC NULLS LAST, name`
+    )).map((s) => ({ nome: s.name, idioma: s.idioma, categoria: s.category })),
     nota,
   })
 })

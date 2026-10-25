@@ -51,4 +51,19 @@ export const limite = (valor, padrao = 20, max = 60) =>
 export const termoLike = (q, max = 120) =>
   `%${String(q ?? '').trim().slice(0, max).replace(/[\\%_]/g, (c) => `\\${c}`)}%`
 
-export default { inteiro, dias, limite, termoLike }
+/**
+ * Id de linha vindo da URL, ou `null` se não for um inteiro positivo.
+ *
+ * As chaves são BIGINT no Postgres, e comparar com texto ('abc', '1.5') é erro
+ * de tipo — a consulta inteira falha e a rota responderia 500. O SQLite só não
+ * achava a linha. Quem chama trata `null` como "não encontrado", que é o que o
+ * pedido de fato significa.
+ */
+export function idNumerico(valor) {
+  const texto = String(valor ?? '')
+  if (!/^\d{1,15}$/.test(texto)) return null
+  const n = Number(texto)
+  return n > 0 ? n : null
+}
+
+export default { inteiro, dias, limite, termoLike, idNumerico }

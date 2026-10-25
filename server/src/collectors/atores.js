@@ -201,7 +201,7 @@ export async function atoresContraBrasil({ limite = 20 } = {}) {
        LEFT JOIN threat_actors a ON a.name_key = LOWER(v."group")
       WHERE v.country = 'BR' AND v."group" IS NOT NULL AND v."group" != ''
       GROUP BY v."group", a.id
-      ORDER BY "vitimasBr" DESC, "ultimaBr" DESC
+      ORDER BY "vitimasBr" DESC, "ultimaBr" DESC NULLS LAST
       LIMIT ?`,
     [limite]
   )
@@ -239,7 +239,7 @@ export async function ator(nome) {
     `SELECT victim, website, sector, discovered_at, criticality, criticality_reason, post_url
        FROM ransomware_victims
       WHERE country = 'BR' AND "group" = ?
-      ORDER BY discovered_at DESC LIMIT 30`,
+      ORDER BY discovered_at DESC NULLS LAST LIMIT 30`,
     [nome]
   )).map((v) => {
     const exibicao = nomeDaVitima(v.victim, v.website)

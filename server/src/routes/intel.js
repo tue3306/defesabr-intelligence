@@ -1,4 +1,4 @@
-import { Router } from 'express'
+import { roteador } from '../lib/roteador.js'
 import { resumoCurto } from '../lib/saneamento.js'
 import { all } from '../db/index.js'
 import { nomeDaVitima } from '../lib/vitima.js'
@@ -8,7 +8,7 @@ import { METODO_CORRELACAO } from '../lib/correlacao.js'
 import { CATALOGO_RESUMO, SETORES, ORGAOS, EMPRESAS, INFRAESTRUTURAS, entidade } from '../lib/entidades.js'
 import { panoramaCorrelacao } from '../collectors/correlacoes.js'
 
-const router = Router()
+const router = roteador()
 
 // -----------------------------------------------------------------------------
 // INTELIGÊNCIA CORRELACIONADA — o Brasil no centro
@@ -60,7 +60,7 @@ const SELECT_CORR = `
     LEFT JOIN sources s ON s.id = a.source_id`
 
 // GET /api/intel/correlacoes — as ligações encontradas, mais fortes primeiro
-router.get('/intel/correlacoes', exigirPapel('user'), (req, res) => {
+router.get('/intel/correlacoes', exigirPapel('user'), async (req, res) => {
   const janela = dias(req.query.days, 60)
   const forcaMinima = Math.min(Math.max(parseInt(req.query.minForca, 10) || 1, 1), 5)
   const regra = String(req.query.regra || '').trim()
@@ -69,23 +69,23 @@ router.get('/intel/correlacoes', exigirPapel('user'), (req, res) => {
   const params = [forcaMinima]
   let onde = `WHERE c.forca >= ?
       AND (a.published_at IS NULL
-           OR a.published_at >= strftime('%Y-%m-%dT%H:%M:%SZ','now', '-${janela} days'))`
+           OR a.published_at >= iso_agora('-${janela} days'))`
   if (regra) { onde += ' AND c.regra = ?'; params.push(regra) }
   if (alvoTipo) { onde += ' AND c.alvo_tipo = ?'; params.push(alvoTipo) }
 
-  const itens = all(
+  const itens = (await all(
     `${SELECT_CORR} ${onde}
       ORDER BY c.forca DESC, a.published_at DESC NULLS LAST, c.id DESC
       LIMIT ?`,
     [...params, limite(req.query.limit, 60, 200)]
-  ).map(mapear)
+  )).map(mapear)
 
   res.json({
     periodoDias: janela,
     items: itens,
     total: itens.length,
     // O resumo segue a MESMA janela da lista — ver `panoramaCorrelacao`.
-    resumo: panoramaCorrelacao(janela),
+    resumo: await panoramaCorrelacao(janela),
     metodo: METODO_CORRELACAO,
   })
 })
@@ -95,9 +95,9 @@ router.get('/intel/correlacoes', exigirPapel('user'), (req, res) => {
 // Responde "o que está acontecendo COM O BRASIL", cruzando o que a coleta
 // trouxe com o que já estava registrado. Nada aqui é estimado: toda contagem
 // sai de uma consulta, e a nota diz o que cada uma mede.
-router.get('/intel/brasil', exigirPapel('user'), (req, res) => {
+router.get('/intel/brasil', exigirPapel('user'), async (req, res) => {
   const janela = dias(req.query.days, 60)
-  const corte = `strftime('%Y-%m-%dT%H:%M:%SZ','now', '-${janela} days')`
+  const corte = `iso_agora('-${janela} days')`
 
   res.json({
     periodoDias: janela,
@@ -122,8 +122,8 @@ router.get('/intel/brasil', exigirPapel('user'), (req, res) => {
     //
     // Setores saem daqui e ficam só no painel deles.
     // ─────────────────────────────────────────────────────────────────────
-    entidades: all(
-      `SELECT e.tipo, e.entidade_id, e.nome, COUNT(DISTINCT e.article_id) AS mencoes
+    entidades: await all(
+      `SELECT e.tipo, e.entidade_id, MAX(e.nome) AS nome, COUNT(DISTINCT e.article_id) AS mencoes
          FROM article_entities e
          JOIN articles a ON a.id = e.article_id
         WHERE a.published_at >= ${corte}
@@ -135,8 +135,8 @@ router.get('/intel/brasil', exigirPapel('user'), (req, res) => {
     // Setores com cobertura noticiosa E incidente registrado. A interseção é o
     // que interessa: um setor que aparece nos dois lados está sob pressão em
     // duas dimensões diferentes.
-    setoresSobPressao: all(
-      `SELECT c.alvo_id AS setor, c.alvo_rotulo AS nome,
+    setoresSobPressao: await all(
+      `SELECT c.alvo_id AS setor, MAX(c.alvo_rotulo) AS nome,
               COUNT(DISTINCT c.article_id) AS materias, MAX(c.contexto_br) AS contexto
          FROM correlations c
          JOIN articles a ON a.id = c.article_id
@@ -145,8 +145,8 @@ router.get('/intel/brasil', exigirPapel('user'), (req, res) => {
     ),
 
     // Unidades da federação citadas que TAMBÉM têm órgão com vazamento.
-    estados: all(
-      `SELECT c.alvo_id AS uf, c.alvo_rotulo AS nome,
+    estados: await all(
+      `SELECT c.alvo_id AS uf, MAX(c.alvo_rotulo) AS nome,
               COUNT(DISTINCT c.article_id) AS materias, MAX(c.evidencia) AS evidencia
          FROM correlations c
          JOIN articles a ON a.id = c.article_id
@@ -156,23 +156,23 @@ router.get('/intel/brasil', exigirPapel('user'), (req, res) => {
 
     // As ligações mais fortes do período — as que apontam para um incidente
     // concreto contra a organização citada.
-    ligacoesFortes: all(
+    ligacoesFortes: (await all(
       `${SELECT_CORR}
         WHERE c.forca >= 4 AND a.published_at >= ${corte}
-        ORDER BY c.forca DESC, a.published_at DESC LIMIT 12`
-    ).map(mapear),
+        ORDER BY c.forca DESC, a.published_at DESC NULLS LAST LIMIT 12`
+    )).map(mapear),
 
     // As matérias com maior vínculo com o país, pelo índice de relevância.
-    maisBrasileiras: all(
+    maisBrasileiras: await all(
       `SELECT a.id, a.title, a.url, a.category, a.urgency, a.published_at,
               a.br_score, a.br_motivo, s.name AS fonte
          FROM articles a LEFT JOIN sources s ON s.id = a.source_id
         WHERE a.relevant = 1 AND a.br_score IS NOT NULL AND a.br_score > 0
           AND a.published_at >= ${corte}
-        ORDER BY a.br_score DESC, a.published_at DESC LIMIT 12`
+        ORDER BY a.br_score DESC NULLS LAST, a.published_at DESC NULLS LAST LIMIT 12`
     ),
 
-    cobertura: panoramaCorrelacao(),
+    cobertura: await panoramaCorrelacao(),
     catalogo: CATALOGO_RESUMO,
     nota: 'Contagens de MENÇÃO e de LIGAÇÃO, não de risco. Uma entidade aparece mais porque foi '
       + 'citada mais vezes no período; um setor aparece sob pressão porque há cobertura noticiosa '
@@ -185,7 +185,7 @@ router.get('/intel/brasil', exigirPapel('user'), (req, res) => {
 // Reúne, para uma organização, setor, instalação ou UF, tudo o que a plataforma
 // tem: as matérias que a citam, as correlações que ela produziu e — quando é
 // organização com domínio conhecido — os vazamentos registrados contra ela.
-router.get('/intel/entidade/:tipo/:id', exigirPapel('user'), (req, res) => {
+router.get('/intel/entidade/:tipo/:id', exigirPapel('user'), async (req, res) => {
   const tipo = String(req.params.tipo).slice(0, 20)
   const id = String(req.params.id).slice(0, 60)
   const janela = dias(req.query.days, 180)
@@ -193,36 +193,36 @@ router.get('/intel/entidade/:tipo/:id', exigirPapel('user'), (req, res) => {
   const cat = entidade(tipo, id)
   if (!cat) return res.status(404).json({ error: 'Entidade não consta no catálogo.' })
 
-  const materias = all(
+  const materias = await all(
     `SELECT a.id, a.title, a.summary, a.url, a.category, a.urgency, a.published_at,
             a.br_score, e.termo, s.name AS fonte
        FROM article_entities e
        JOIN articles a ON a.id = e.article_id
        LEFT JOIN sources s ON s.id = a.source_id
       WHERE e.tipo = ? AND e.entidade_id = ?
-        AND a.published_at >= strftime('%Y-%m-%dT%H:%M:%SZ','now', '-${janela} days')
-      ORDER BY a.published_at DESC LIMIT 30`,
+        AND a.published_at >= iso_agora('-${janela} days')
+      ORDER BY a.published_at DESC NULLS LAST LIMIT 30`,
     [tipo, id]
   )
 
-  const correlacoes = all(
+  const correlacoes = (await all(
     `${SELECT_CORR}
       WHERE c.alvo_tipo = ? AND c.alvo_id = ?
-      ORDER BY c.forca DESC, a.published_at DESC LIMIT 20`,
+      ORDER BY c.forca DESC, a.published_at DESC NULLS LAST LIMIT 20`,
     [tipo === 'uf' ? 'uf' : tipo, id]
-  ).map(mapear)
+  )).map(mapear)
 
   // Vazamentos contra a organização, quando ela tem domínio próprio no
   // catálogo. Sem domínio não há como cruzar sem inferir — e a resposta
   // distingue "nenhum vazamento" de "não dá para saber".
   const dominio = cat.dominio && !cat.dominio.includes('/') ? cat.dominio : null
   const vazamentos = dominio
-    ? all(
+    ? (await all(
       `SELECT victim, website, "group", sector, discovered_at, criticality, nature
          FROM ransomware_victims WHERE country = 'BR' AND (website = ? OR website = ?)
-        ORDER BY discovered_at DESC LIMIT 10`,
+        ORDER BY discovered_at DESC NULLS LAST LIMIT 10`,
       [dominio, `www.${dominio}`]
-    ).map((v) => {
+    )).map((v) => {
       // Ver `lib/vitima.js`: o campo da fonte é o título do post do criminoso.
       const { nome, bruto, limpo } = nomeDaVitima(v.victim, v.website)
       return { ...v, victim: nome, victimBruto: limpo ? bruto : null }
@@ -257,7 +257,7 @@ router.get('/intel/entidade/:tipo/:id', exigirPapel('user'), (req, res) => {
 //
 // O equivalente, para a correlação, do que `/system/method` é para o filtro de
 // relevância: a régua publicada, para que a decisão possa ser contestada.
-router.get('/intel/metodo', (req, res) => {
+router.get('/intel/metodo', async (req, res) => {
   res.json({
     ...METODO_CORRELACAO,
     catalogo: {
@@ -267,7 +267,7 @@ router.get('/intel/metodo', (req, res) => {
       empresas: EMPRESAS.map((e) => ({ id: e.id, nome: e.nome, controle: e.controle, setor: e.setor })),
       infraestruturas: INFRAESTRUTURAS.map((i) => ({ id: i.id, nome: i.nome, setor: i.setor, uf: i.uf })),
     },
-    cobertura: panoramaCorrelacao(),
+    cobertura: await panoramaCorrelacao(),
   })
 })
 

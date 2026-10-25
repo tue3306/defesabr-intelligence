@@ -1,4 +1,4 @@
-import { Router } from 'express'
+import { roteador } from '../lib/roteador.js'
 import { get } from '../db/index.js'
 import config from '../config.js'
 import { METODO_RELEVANCIA, METODO_URGENCIA } from '../lib/relevance.js'
@@ -29,12 +29,12 @@ import { CADENCIA_MINUTOS } from '../collectors/index.js'
 // criar conta.
 // -----------------------------------------------------------------------------
 
-const router = Router()
+const router = roteador()
 
-router.get('/metodo', (_req, res) => {
-  const fontes = get(
+router.get('/metodo', async (_req, res) => {
+  const fontes = await get(
     `SELECT COUNT(*) AS total,
-            SUM(CASE WHEN idioma = 'en' THEN 1 ELSE 0 END) AS ingles
+            SUM(CASE WHEN idioma = 'en' THEN 1 ELSE 0 END)::int AS ingles
        FROM sources WHERE enabled = 1`
   ) || { total: 0, ingles: 0 }
 

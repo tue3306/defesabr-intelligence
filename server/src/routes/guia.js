@@ -1,4 +1,4 @@
-import { Router } from 'express'
+import { roteador } from '../lib/roteador.js'
 import { exigirPapel } from '../lib/auth.js'
 import { TELAS, NIVEIS, CONCEITOS, NAO_FAZ, PRIMEIROS_PASSOS } from '../lib/guia.js'
 
@@ -9,7 +9,7 @@ import { TELAS, NIVEIS, CONCEITOS, NAO_FAZ, PRIMEIROS_PASSOS } from '../lib/guia
 // aparece para quem entrou; não há nada nele que precise ser escondido.
 // -----------------------------------------------------------------------------
 
-const router = Router()
+const router = roteador()
 
 router.get('/guia', exigirPapel('user'), (_req, res) => {
   res.json({

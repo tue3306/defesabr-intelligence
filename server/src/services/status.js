@@ -12,7 +12,7 @@ import { METODO_RELEVANCIA } from '../lib/relevance.js'
  * inteira nunca entra aqui: só o que ajuda a saber "estou olhando para qual
  * banco?". URL ilegível vira um texto neutro em vez de vazar pedaço dela.
  */
-function enderecoDoBanco() {
+export function enderecoDoBanco() {
   try {
     const { hostname, port, pathname } = new URL(config.banco.url)
     const nome = decodeURIComponent(pathname.replace(/^\//, '')) || 'postgres'
