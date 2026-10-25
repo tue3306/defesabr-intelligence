@@ -1,4 +1,5 @@
-import { all, get } from '../db/index.js'
+import { all, get, modoTls } from '../db/index.js'
+import { descricaoTls } from '../db/conexao.js'
 import config from '../config.js'
 import { estadoDoAgendador } from '../collectors/index.js'
 import { METODO_RELEVANCIA } from '../lib/relevance.js'
@@ -359,13 +360,13 @@ export async function capacidades() {
       grupo: 'Processamento',
       estado: 'operacional',
       // Só host e nome do banco: a URL de conexão carrega usuário e senha.
-      detalhe: `${(await all("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")).length} tabelas · ${enderecoDoBanco()}`,
+      detalhe: `${(await all("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")).length} tabelas · ${enderecoDoBanco()} · ${descricaoTls(modoTls)}`,
       descricao: 'Postgres gerenciado (Supabase), fora da instância que atende a API: o acervo e as '
         + 'contas sobrevivem a deploys e a instâncias novas. O esquema vem das migrações em '
         + '`supabase/migrations/`.',
       pendente: null,
       fonte: 'Postgres (Supabase)',
-      metricas: { registros: artigos + await contar('SELECT COUNT(*) AS n FROM bills') },
+      metricas: { registros: artigos + await contar('SELECT COUNT(*) AS n FROM bills'), tls: modoTls },
     },
     await armazenamento(),
 

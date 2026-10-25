@@ -1,6 +1,8 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
 import pg from 'pg'
+import { attachDatabasePool } from '@vercel/functions'
 import config from '../config.js'
+import { opcoesDoPool, opcoesSsl } from './conexao.js'
 
 // -----------------------------------------------------------------------------
 // BANCO — Postgres (Supabase) pelo driver `pg`.
@@ -22,10 +24,34 @@ import config from '../config.js'
 pg.types.setTypeParser(20, Number)
 pg.types.setTypeParser(1700, Number)
 
-export const pool = new pg.Pool({
-  connectionString: config.banco.url,
-  max: config.banco.poolMax,
-})
+// TLS, timeouts e a limpeza de `sslmode` da URL: ver db/conexao.js.
+export const pool = new pg.Pool(opcoesDoPool({
+  url: config.banco.url,
+  poolMax: config.banco.poolMax,
+  env: process.env,
+}))
+
+/** Como a conexão está protegida: 'local' | 'verificado' | 'sem-verificacao'. */
+export const modoTls = opcoesSsl(config.banco.url, process.env).modo
+
+// Cifrado sem verificar o servidor é melhor que texto puro, mas não é o fim da
+// linha: avisa uma vez por instância, para o log de produção mostrar a lacuna.
+if (modoTls === 'sem-verificacao') {
+  console.warn('[banco] TLS sem verificação do servidor: defina DATABASE_CA_CERT com a CA do Supabase '
+    + '(Database settings → SSL) para verificar o certificado. Ver docs/DEPLOY.md.')
+}
+
+// Na Vercel (Fluid compute) a instância congela entre requisições. O
+// attachDatabasePool mantém a função viva até as conexões ociosas saírem do
+// pool, em vez de congelá-las abertas. Fora da Vercel ele só registra um
+// ouvinte de `release` que retorna cedo (não há VERCEL_URL/VERCEL_REGION); o
+// try/catch cobre uma versão futura que recuse o pool — perder a otimização
+// não pode derrubar o boot.
+try {
+  attachDatabasePool(pool)
+} catch (err) {
+  console.warn('[banco] attachDatabasePool indisponível:', err?.message || err)
+}
 
 // Um erro em conexão ociosa (o servidor derrubou o socket) emitido sem ouvinte
 // derrubaria o processo inteiro. Registrar evita o crash sem esconder a queda,
