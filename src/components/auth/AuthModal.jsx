@@ -217,8 +217,8 @@ export default function AuthModal({ open, onClose, abaInicial = 'entrar' }) {
 
         {aba === 'cadastrar' && (
           <p className="text-center text-xs muted">
-            A conta criada aqui acessa a plataforma por completo: clipping, correlações, mapa
-            estratégico, incidentes, notificações e busca no acervo.
+            Gratuita. A conta criada aqui acessa a plataforma por completo: notícias do dia,
+            correlações, mapa estratégico, incidentes, notificações e busca no acervo.
           </p>
         )}
         {aba === 'adotar' && (

@@ -230,8 +230,8 @@ export default function Landing() {
           <div className="mt-6 rounded-xl bg-gray-500/5 p-4 dark:bg-white/5">
             <p className="text-sm font-bold">Como usar, em três passos</p>
             <ol className="mt-2 space-y-1.5 text-sm text-gray-700 dark:text-gray-300">
-              <li><strong>1.</strong> Abra o <Link to="/clipping" className="font-semibold text-brand-600 hover:underline dark:text-brand-300">Clipping</Link> e veja o que foi publicado hoje, já separado por assunto.</li>
-              <li><strong>2.</strong> Crie uma conta (só usuário e senha) para salvar matérias e escolher os assuntos que te interessam.</li>
+              <li><strong>1.</strong> Crie uma conta gratuita — só usuário e senha, sem e-mail, em menos de um minuto.</li>
+              <li><strong>2.</strong> Abra as <Link to="/clipping" className="font-semibold text-brand-600 hover:underline dark:text-brand-300">Notícias do dia</Link> e veja o que foi publicado hoje, já separado por assunto. Salve o que quiser reler.</li>
               <li><strong>3.</strong> Se algo grave aparecer, a plataforma te avisa na tela — e explica por que aquilo é grave.</li>
             </ol>
           </div>
@@ -388,7 +388,7 @@ export default function Landing() {
       <Section className="card p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-bold tracking-tight">O que já está monitorado agora</h2>
-          <Badge type={v.aoVivo ? 'live' : 'sem-dado'} />
+          <Badge type={v.aoVivo ? 'live' : v.carregando ? 'carregando' : 'sem-dado'} />
         </div>
         <p className="mt-1 text-sm muted">
           Contagens lidas do acervo neste instante — o que a coleta trouxe, não texto de vitrine.
@@ -428,7 +428,7 @@ export default function Landing() {
       <Section className="card p-5 sm:p-6">
         <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-bold tracking-tight">Cobertura por país</h2>
-          <Badge type={v.aoVivo ? 'live' : 'sem-dado'} />
+          <Badge type={v.aoVivo ? 'live' : v.carregando ? 'carregando' : 'sem-dado'} />
         </div>
         {/* "Panorama global de risco" prometia uma medida de risco que ninguém
             faz. O mapa conta menções em notícia coletada — que é útil, e é

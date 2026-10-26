@@ -68,7 +68,7 @@ function PageLoader() {
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3" role="status" aria-live="polite">
       <Loader2 className="animate-spin text-gold-500" size={32} />
-      <span className="text-sm muted">Carregando módulo…</span>
+      <span className="text-sm muted">Carregando a página…</span>
     </div>
   )
 }
@@ -171,7 +171,7 @@ export default function App() {
           {/* ── USUÁRIO — leitura e acompanhamento ── */}
           <Route path="/painel" element={<Guarded scope="Painel"><Home /></Guarded>} />
           <Route path="/busca" element={<Guarded scope="Busca global"><Search /></Guarded>} />
-          <Route path="/clipping" element={<Guarded scope="Clipping Diário"><DailyClipping /></Guarded>} />
+          <Route path="/clipping" element={<Guarded scope="Notícias do dia"><DailyClipping /></Guarded>} />
           <Route path="/correlacoes" element={<Guarded scope="Correlações"><Correlations /></Guarded>} />
           <Route path="/mapa" element={<Guarded scope="Mapa estratégico"><StrategicMap /></Guarded>} />
           <Route path="/mundo" element={<Guarded scope="Mundo & Conflitos"><World /></Guarded>} />
@@ -185,7 +185,7 @@ export default function App() {
           <Route path="/configuracoes" element={<Guarded scope="Configurações"><Settings /></Guarded>} />
 
           {/* ── Brasil Estratégico ── */}
-          <Route path="/industria" element={<Guarded scope="Base Industrial"><DefenseIndustry /></Guarded>} />
+          <Route path="/industria" element={<Guarded scope="Indústria de defesa"><DefenseIndustry /></Guarded>} />
 
           {/* ── Inteligência & Análise ── */}
           <Route

@@ -521,7 +521,7 @@ export default function Methodology() {
               icon={Layers}
               titulo="Por que a mesma notícia aparece uma vez só"
               simples="Cinco jornais cobrem o mesmo fato com títulos diferentes. A plataforma junta os cinco num evento só e mostra quantos veículos cobriram — porque isso é informação, e cinco linhas parecidas são ruído."
-              onde="Clipping Diário, na visão por eventos."
+              onde="Notícias do dia, na visão por eventos."
             >
               <Regra texto={m.eventos?.regra} />
             </Secao>

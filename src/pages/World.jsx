@@ -99,7 +99,7 @@ export default function World() {
         icon={Swords}
         title="Mundo & Conflitos"
         description="O que o acervo registra sobre outros países — Estados Unidos à frente — e sobre as guerras e teatros de conflito em curso, inclusive o que não toca a defesa do Brasil."
-        breadcrumb={[{ label: 'Estratégico' }, { label: 'Mundo' }]}
+        breadcrumb={[{ label: 'Quadro do país' }, { label: 'Mundo' }]}
         meta={[
           { label: 'Matérias', value: fmt(totais?.materias) },
           { label: 'Países', value: fmt(totais?.paises) },

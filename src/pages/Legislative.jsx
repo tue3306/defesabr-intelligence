@@ -142,7 +142,7 @@ export default function Legislative() {
         title="Radar Legislativo"
         description="Proposições da Câmara dos Deputados sobre defesa, Forças Armadas e segurança, com a situação oficial de tramitação."
         help={`As proposições vêm da API de Dados Abertos da Câmara, buscadas por ${data?.keywords?.length || 13} palavras-chave. A busca da Câmara casa a palavra em qualquer sentido — "inteligência" traz projetos de inteligência artificial — então só fica no Radar a proposição cuja ementa contém um termo inequívoco de defesa; os termos encontrados aparecem em cada cartão. O estágio é derivado do texto oficial de situação, consultado em lotes a cada coleta.`}
-        breadcrumb={[{ label: 'Estratégico' }, { label: 'Radar Legislativo' }]}
+        breadcrumb={[{ label: 'Quadro do país' }, { label: 'Radar Legislativo' }]}
         badges={<Badge type={meta?.source === 'live' ? 'live' : 'sem-dado'} />}
         actions={
           <Can do="reports.export">

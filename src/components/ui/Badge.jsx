@@ -105,6 +105,16 @@ export default function Badge({ type = 'plain', value, children, className = '',
   //
   // O nome agora diz o que o selo significa: a fonte nao respondeu, e o painel
   // mostra ausencia em vez de um numero plausivel.
+  // Enquanto a resposta não chega, "Sem dado" afirmava uma ausência que ainda
+  // não se sabe — na primeira visita, com a função acordando a frio, a home
+  // abria com selos de "sem dado" sobre números que chegavam segundos depois.
+  if (type === 'carregando') {
+    return (
+      <Pill className={`border-gray-400/50 bg-gray-500/10 text-gray-600 dark:text-gray-400 ${className}`}>
+        Carregando…
+      </Pill>
+    )
+  }
   if (type === 'sem-dado') {
     return (
       <Pill className={`border-gray-400/50 bg-gray-500/10 text-gray-700 dark:text-gray-300 ${className}`}>

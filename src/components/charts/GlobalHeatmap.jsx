@@ -162,7 +162,8 @@ export default function GlobalHeatmap({
     for (const p of cobertura?.items || []) if (p.pt) m[p.nome] = p.pt
     return m
   }, [cobertura])
-  const nomePt = (n) => nomesPt[n] || n
+  // `Brazil` é o país selecionado ao abrir, antes de o catálogo chegar.
+  const nomePt = (n) => nomesPt[n] || (n === 'Brazil' ? 'Brasil' : n)
 
   // Nome do país → contagem e valor normalizado de 0 a 100 pelo mais citado.
   const porPais = useMemo(() => {
@@ -245,7 +246,7 @@ export default function GlobalHeatmap({
                   {' · '}{dadosAtivo?.total ?? 0} menção(ões) no período
                 </span>
               ) : (
-                <span className="muted"> · sem dados do servidor</span>
+                <span className="muted">{carregando ? ' · carregando…' : ' · sem dados do servidor'}</span>
               )}
               {ativo === selecionado && <span className="ml-1.5 text-gold-400">· selecionado</span>}
             </div>

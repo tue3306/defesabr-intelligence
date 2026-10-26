@@ -44,7 +44,7 @@ export default function StrategicMap() {
         icon={Globe2}
         title="Mapa estratégico"
         description="Que países o acervo está mencionando, e o que cada um tem a ver com o Brasil. Cobertura noticiosa cruzada com as vítimas de ransomware do território, pelo código ISO."
-        breadcrumb={[{ label: 'Estratégico' }, { label: 'Mapa' }]}
+        breadcrumb={[{ label: 'Quadro do país' }, { label: 'Mapa' }]}
       />
 
       {/* ── A LEITURA DO NÍVEL ESTRATÉGICO ──

@@ -167,10 +167,10 @@ export default function DailyClipping() {
     <div className="space-y-6">
       <PageHeader
         icon={Newspaper}
-        title="Clipping Diário"
-        description="O que a coleta trouxe em segurança e defesa no período, filtrado por relevância, classificado por categoria e urgência, com o nível de alerta do período."
+        title="Notícias do dia"
+        description="O clipping diário: o que a coleta trouxe em segurança e defesa no período, filtrado por relevância, classificado por categoria e urgência, com o nível de alerta do período."
         help="O nível de alerta é a média ponderada da urgência de todas as matérias relevantes do período (crítico 100, alto 70, médio 40, baixo 15): NORMAL abaixo de 35, ATENÇÃO até 59, ALERTA até 79, CRÍTICO a partir de 80. Sem matérias no período, não há nível."
-        breadcrumb={[{ label: 'Tático' }, { label: 'Clipping Diário' }]}
+        breadcrumb={[{ label: 'Notícias e ligações' }, { label: 'Notícias do dia' }]}
         badges={
           <>
             <Badge type="alert" value={result?.alert_level} />

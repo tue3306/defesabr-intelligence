@@ -23,7 +23,7 @@ import { useTheme } from '../../hooks/useTheme'
 // -----------------------------------------------------------------------------
 const PUBLIC_NAV = [
   { to: '/', label: 'Início', end: true },
-  { to: '/clipping', label: 'Clipping', restrito: true },
+  { to: '/clipping', label: 'Notícias', restrito: true },
   { to: '/correlacoes', label: 'Correlações', restrito: true },
   { to: '/ciberameacas', label: 'Incidentes', restrito: true },
   { to: '/mundo', label: 'Mundo', restrito: true },

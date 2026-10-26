@@ -7,6 +7,27 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Não publicado]
 
+### Painel de saúde sem amarelo falso, e uma plataforma mais fácil de ler
+
+- **Coleta.** O "timeout exceeded when trying to connect" de 11 fontes era o
+  pool do Postgres esgotado, não a fonte: as gravações entram numa fila. O
+  IstoÉ (Brotli sem ser pedido) é lido por um caminho alternativo; timeout
+  passa a valer nova tentativa; o ransomware.live é consultado com pausa e,
+  no limite de taxa, o resto fica para o próximo ciclo. Defesa Aérea & Naval
+  (403 só para datacenter) fica fora da coleta em produção, e o Consultor
+  Jurídico (403 para qualquer cliente) sai. Comex Stat fora do ar vira
+  mensagem clara.
+- **TLS verificado com o Supabase.** `DATABASE_CA_CERT` passa a ter a CA
+  oficial (conferida pela impressão digital contra a cadeia do servidor).
+- **Leitura para quem não é do ramo.** O menu troca "Estratégico / Tático /
+  Operacional" por "O quadro do país / Notícias e ligações / Ataques
+  cibernéticos"; "Clipping Diário" vira "Notícias do dia" e "Base Industrial
+  (BID)" vira "Indústria de defesa". A home diz que a conta é gratuita e põe
+  os passos na ordem em que funcionam (o clipping exige conta). Selos de
+  "sem dado" e o "sem dados do servidor" do mapa não aparecem mais enquanto
+  a resposta ainda está chegando; "Carregando módulo…" virou "Carregando a
+  página…".
+
 ### `admin123` deixa de ser tratado como conta pública antiga
 
 - `semearContas()` suspendia ou apagava `admin123` a cada `npm run migrate`,

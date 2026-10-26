@@ -62,7 +62,7 @@ const NAV_SECTIONS = [
     ],
   },
   {
-    title: 'Estratégico · o quadro do país',
+    title: 'O quadro do país',
     nivel: 'estrategico',
     items: [
       // O MAPA GANHOU PAGINA PROPRIA e abre o nivel estrategico.
@@ -78,22 +78,22 @@ const NAV_SECTIONS = [
       // descartava na entrada e a lente internacional passou a gravar.
       { to: '/mundo', label: 'Mundo & Conflitos', icon: Swords, requiresAuth: true },
       { to: '/economia', label: 'Economia & Defesa', icon: DollarSign, requiresAuth: true },
-      { to: '/industria', label: 'Base Industrial (BID)', icon: Factory, requiresAuth: true },
+      { to: '/industria', label: 'Indústria de defesa', icon: Factory, requiresAuth: true },
       { to: '/legislativo', label: 'Radar Legislativo', icon: Landmark, requiresAuth: true },
       { to: '/dados', label: 'Séries e indicadores', icon: LineChart, requiresAuth: true },
     ],
   },
   {
-    title: 'Tático · notícias do dia e ligações',
+    title: 'Notícias e ligações',
     nivel: 'tatico',
     items: [
-      { to: '/clipping', label: 'Clipping Diário', icon: Newspaper, requiresAuth: true },
+      { to: '/clipping', label: 'Notícias do dia', icon: Newspaper, requiresAuth: true },
       { to: '/correlacoes', label: 'Correlações', icon: Link2, requiresAuth: true },
       { to: '/arquivo', label: 'Arquivo & Pasta', icon: Archive, requiresAuth: true },
     ],
   },
   {
-    title: 'Operacional · ataques cibernéticos',
+    title: 'Ataques cibernéticos',
     nivel: 'operacional',
     items: [
       {

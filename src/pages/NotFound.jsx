@@ -15,7 +15,7 @@ const SHORTCUTS = {
   ],
   user: [
     { to: '/painel', icon: LayoutDashboard, label: 'Painel', hint: 'Situação do dia' },
-    { to: '/clipping', icon: Newspaper, label: 'Clipping Diário', hint: 'Últimas 24 horas' },
+    { to: '/clipping', icon: Newspaper, label: 'Notícias do dia', hint: 'Últimas 24 horas' },
     { to: '/correlacoes', icon: Link2, label: 'Correlações', hint: 'Matérias ligadas ao Brasil' },
   ],
   admin: [

@@ -58,7 +58,7 @@ export default function DefenseIndustry() {
           <span className="inline-flex items-center gap-2 rounded-full bg-brand-500/15 px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-200">
             <Factory size={14} /> Base Industrial de Defesa
           </span>
-          <h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Base Industrial (BID): exportações</h1>
+          <h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Indústria de defesa: exportações</h1>
           <p className="mt-2 max-w-2xl text-gray-300">
             O que o Brasil exportou nos capítulos de aeronaves e de armamento, segundo o
             Comex Stat do Ministério do Desenvolvimento, Indústria e Comércio.
@@ -79,7 +79,7 @@ export default function DefenseIndustry() {
           hint={
             exp.carregando
               ? 'Consultando o acervo do Comex Stat.'
-              : 'O servidor de coleta não respondeu. Os números do Comex Stat aparecem assim que a coleta concluir.'
+              : 'Ainda não há exportações no acervo: a coleta depende da API do Comex Stat, do MDIC, que pode estar fora do ar. A plataforma tenta de novo a cada ciclo, e os números aparecem aqui assim que a fonte responder.'
           }
         />
       ) : (

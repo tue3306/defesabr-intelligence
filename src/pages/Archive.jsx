@@ -142,7 +142,7 @@ export default function Archive() {
         icon={ArchiveIcon}
         title="Arquivo & Minha Pasta"
         description="As edições do clipping que você arquivou neste navegador e as matérias da sua pasta, que acompanha a sua conta."
-        breadcrumb={[{ label: 'Tático' }, { label: 'Arquivo & Pasta' }]}
+        breadcrumb={[{ label: 'Notícias e ligações' }, { label: 'Arquivo & Pasta' }]}
         meta={[
           { label: 'Clippings', value: String(clippings.length) },
           { label: 'Na pasta', value: String(favorites.length) },
@@ -268,10 +268,10 @@ export default function Archive() {
               title={hasFilters ? 'Nenhum clipping corresponde aos filtros' : 'Ainda não há clippings arquivados'}
               hint={hasFilters
                 ? 'Tente limpar a busca, o período ou os filtros de categoria e nível.'
-                : 'Gere um clipping no Clipping Diário e clique em “Salvar no arquivo”.'}
+                : 'Gere um clipping em Notícias do dia e clique em “Salvar no arquivo”.'}
               action={hasFilters
                 ? { label: 'Limpar filtros', onClick: clearFilters, icon: X }
-                : { label: 'Ir ao Clipping Diário', to: '/clipping' }}
+                : { label: 'Ir a Notícias do dia', to: '/clipping' }}
             />
           ) : (
             <div className="space-y-3">
@@ -346,7 +346,7 @@ export default function Archive() {
               <InfoTooltip text="Sua pasta reúne as notícias marcadas com “Salvar”. Fica guardada na sua conta, no servidor: aparece em qualquer navegador em que você entrar." />
             </p>
             {favorites.length > 0 && (
-              <span className="text-xs muted">Salve qualquer notícia clicando em “Salvar” no Clipping Diário.</span>
+              <span className="text-xs muted">Salve qualquer notícia clicando em “Salvar” em Notícias do dia.</span>
             )}
           </div>
 
@@ -354,8 +354,8 @@ export default function Archive() {
             <EmptyState
               icon={Star}
               title="Sua pasta está vazia"
-              hint="Ao ler o Clipping Diário, clique em “Salvar” numa notícia para guardá-la aqui."
-              action={{ label: 'Abrir Clipping Diário', to: '/clipping' }}
+              hint="Ao ler as Notícias do dia, clique em “Salvar” numa notícia para guardá-la aqui."
+              action={{ label: 'Abrir Notícias do dia', to: '/clipping' }}
             />
           ) : (
             <div className="space-y-4">

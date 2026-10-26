@@ -45,7 +45,7 @@ export default function ProtectedRoute({ children, capability }) {
           icon={Lock}
           chip={{ icon: ShieldCheck, text: 'Área restrita · requer login', tone: 'amber' }}
           title="Entre para acessar esta seção"
-          description="Entre com a sua conta ou crie uma — toda conta alcança a plataforma por completo."
+          description="Entre com a sua conta ou crie uma gratuita — só usuário e senha, sem e-mail, em menos de um minuto. Toda conta acessa a plataforma por completo."
           list={BENEFITS}
         >
           <div className="mt-6 flex flex-wrap justify-center gap-2">

@@ -79,7 +79,7 @@ export default function WorldTheater() {
         <PageHeader
           icon={Swords}
           title="Teatro não encontrado"
-          breadcrumb={[{ label: 'Estratégico' }, { label: 'Mundo', to: `/mundo?days=${dias}` }, { label: 'Teatro' }]}
+          breadcrumb={[{ label: 'Quadro do país' }, { label: 'Mundo', to: `/mundo?days=${dias}` }, { label: 'Teatro' }]}
         />
         <ForaDoCatalogo
           dias={dias}
@@ -101,7 +101,7 @@ export default function WorldTheater() {
         icon={Swords}
         title={titulo}
         description={t?.descricao || undefined}
-        breadcrumb={[{ label: 'Estratégico' }, { label: 'Mundo', to: `/mundo?days=${dias}` }, { label: titulo }]}
+        breadcrumb={[{ label: 'Quadro do país' }, { label: 'Mundo', to: `/mundo?days=${dias}` }, { label: titulo }]}
         badges={t?.regiao ? <span className="chip">{t.regiao}</span> : null}
         meta={d ? [
           { label: 'Matérias', value: fmt(c?.total) },

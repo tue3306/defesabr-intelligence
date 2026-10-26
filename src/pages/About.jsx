@@ -25,7 +25,7 @@ const APIS = [
 const INTEL_CYCLE = [
   { title: 'Coleta', icon: Radar, module: 'Grupos contra o Brasil', to: '/atores',
     text: 'Reunir material de fontes públicas — imprensa, órgãos oficiais, dados abertos e sites de extorsão.' },
-  { title: 'Processamento', icon: Cog, module: 'Clipping Diário', to: '/clipping',
+  { title: 'Processamento', icon: Cog, module: 'Notícias do dia', to: '/clipping',
     text: 'Filtrar por relevância, classificar por urgência, agrupar o mesmo fato e correlacionar com o Brasil.' },
   { title: 'Difusão', icon: Share2, module: 'Séries e indicadores', to: '/dados',
     text: 'Entregar em série, mapa e comparativo — com a origem de cada número declarada.' },

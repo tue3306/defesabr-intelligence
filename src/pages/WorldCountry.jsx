@@ -71,7 +71,7 @@ export default function WorldCountry() {
         <PageHeader
           icon={MapPin}
           title={nome || 'País'}
-          breadcrumb={[{ label: 'Estratégico' }, { label: 'Mundo', to: `/mundo?days=${dias}` }, { label: 'País' }]}
+          breadcrumb={[{ label: 'Quadro do país' }, { label: 'Mundo', to: `/mundo?days=${dias}` }, { label: 'País' }]}
         />
         <ForaDoCatalogo
           dias={dias}
@@ -91,7 +91,7 @@ export default function WorldCountry() {
         icon={MapPin}
         title={titulo}
         description="Tudo o que o acervo mundial registra sobre o país no período: cobertura por dia, teatros em que aparece, países citados junto e a lista completa de matérias."
-        breadcrumb={[{ label: 'Estratégico' }, { label: 'Mundo', to: `/mundo?days=${dias}` }, { label: titulo }]}
+        breadcrumb={[{ label: 'Quadro do país' }, { label: 'Mundo', to: `/mundo?days=${dias}` }, { label: titulo }]}
         badges={d?.iso ? <span className="chip font-mono">{d.iso}</span> : null}
         meta={d ? [
           { label: 'Matérias', value: fmt(c?.total) },

@@ -72,7 +72,7 @@ export default function ThreatActors() {
         title="Grupos contra o Brasil"
         description="Quem ataca organizações brasileiras: quantas já expôs, se atingiu o Estado, e como entra — técnicas mapeadas ao MITRE ATT&CK e ferramentas conhecidas."
         help="Os perfis vêm do ransomware.live e cobrem apenas os grupos com vítima brasileira registrada no acervo."
-        breadcrumb={[{ label: 'Operacional' }, { label: 'Grupos contra o Brasil' }]}
+        breadcrumb={[{ label: 'Ataques cibernéticos' }, { label: 'Grupos contra o Brasil' }]}
         badges={<Badge type={lista.length ? 'live' : 'sem-dado'} />}
       />
 

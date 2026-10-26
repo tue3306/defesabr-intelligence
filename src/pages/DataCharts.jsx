@@ -226,7 +226,7 @@ export default function DataCharts() {
         title="Séries e indicadores"
         description="As séries que sustentam a leitura de conjuntura: volume noticioso, gasto militar comparado, cobertura por país e índice de alerta. Cada gráfico declara o que mostra e de onde vem."
         help="Cada painel declara a sua fonte e o que ela mede. Quando o servidor não responde, o painel mostra a ausência — nenhuma série é substituída por valores de exemplo."
-        breadcrumb={[{ label: 'Estratégico' }, { label: 'Séries e indicadores' }]}
+        breadcrumb={[{ label: 'Quadro do país' }, { label: 'Séries e indicadores' }]}
         badges={<Badge type={origem.vivo ? 'live' : 'sem-dado'} />}
         meta={[
           { label: 'Origem desta aba', value: origem.vivo ? origem.texto : `${origem.texto} — indisponível` },
