@@ -8,7 +8,11 @@
 
 O que ameaça o país, antes de virar notícia.
 
-<sub>Dado real, coletado a cada 15 minutos. Hospedado na Vercel, com banco no Supabase.</sub>
+### [→ Ver a plataforma funcionando](https://defesabr-intelligence.vercel.app/)
+
+<sub>No ar, com dado real, coletado a cada 15 minutos. Hospedado na Vercel, com banco no Supabase.</sub>
+
+[![Ver ao vivo](https://img.shields.io/badge/ver%20ao%20vivo-defesabr--intelligence-caa733?style=for-the-badge)](https://defesabr-intelligence.vercel.app/)
 
 [![React 18](https://img.shields.io/badge/React-18-149eca?logo=react&logoColor=white)](https://react.dev/)
 [![Vite 5](https://img.shields.io/badge/Vite-5-646cff?logo=vite&logoColor=white)](https://vitejs.dev/)
