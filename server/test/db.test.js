@@ -130,14 +130,28 @@ test('trabalho iniciado na transação mas executado depois dela usa o pool', as
 
 test('transações concorrentes enxergam só as próprias linhas não confirmadas', async () => {
   await run('DELETE FROM app_config')
-  const pausa = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+  // Barreira, e não pausa: com `setTimeout(50)` o teste supunha que as duas
+  // transações estariam abertas ao mesmo tempo, e no CI a segunda conexão às
+  // vezes demorava mais que isso — a primeira já tinha feito COMMIT, a segunda
+  // via a linha (corretamente) e o teste falhava. Aqui cada uma espera a outra
+  // inserir antes de ler, e nenhuma confirma antes de as duas lerem.
+  const barreira = (n) => {
+    let chegaram = 0
+    let soltar
+    const todas = new Promise((resolve) => { soltar = resolve })
+    return () => { chegaram += 1; if (chegaram === n) soltar(); return todas }
+  }
+  const inseriram = barreira(2)
+  const leram = barreira(2)
   const tentar = (chave, outra) => transacao(async () => {
     await run('INSERT INTO app_config (chave, valor) VALUES (?, ?)', [chave, '1'])
-    await pausa(50) // garante que as duas estejam abertas ao mesmo tempo
-    return {
+    await inseriram()
+    const visto = {
       propria: Boolean(await get('SELECT 1 AS ok FROM app_config WHERE chave = ?', [chave])),
       alheia: Boolean(await get('SELECT 1 AS ok FROM app_config WHERE chave = ?', [outra])),
     }
+    await leram()
+    return visto
   })
   const [a, b] = await Promise.all([tentar('a', 'b'), tentar('b', 'a')])
   assert.deepEqual(a, { propria: true, alheia: false })

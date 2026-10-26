@@ -1,6 +1,6 @@
 # 🤝 Guia de contribuição — DefesaBR Intelligence
 
-Obrigado pelo interesse em contribuir! O projeto tem servidor (Node + SQLite) e interface (React +
+Obrigado pelo interesse em contribuir! O projeto tem servidor (Node + Postgres) e interface (React +
 Vite) no mesmo repositório. Contribuições devem preservar a regra central: nada aparece na tela sem
 ter vindo de uma fonte, e nada escrito por modelo aparece sem marca.
 
@@ -35,13 +35,14 @@ descrevendo o problema que a sugestão resolve e o comportamento desejado.
 
 ## Ambiente de desenvolvimento
 
-Pré-requisito: **Node.js 24+** (o servidor usa `node:sqlite`).
+Pré-requisitos: **Node.js 24+** e **Docker** (`npm run db:up` sobe o Postgres local).
 
 ```bash
 git clone https://github.com/tue3306/defesabr-intelligence.git
 cd defesabr-intelligence
 npm install
-npm run dev      # interface + API
+npm run db:up    # Postgres local (Docker), porta 54329
+npm run dev      # interface + API; aplica as migrações na primeira subida
 ```
 
 Antes de abrir um PR, garanta que compila e que as suítes passam (com a API no ar):

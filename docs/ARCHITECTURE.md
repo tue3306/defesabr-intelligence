@@ -1,7 +1,9 @@
 # 🏗️ Arquitetura — DefesaBR Intelligence
 
-Um processo Node (Express + `node:sqlite`) serve a API em `/api` e a interface compilada
-(React 18 + Vite 5) na mesma porta. O servidor coleta, filtra, correlaciona e guarda; a interface
+A API é um app Express sobre Postgres. Em produção ela roda como uma função da Vercel
+(`api/index.js`), ao lado da interface compilada (React 18 + Vite 5), com o banco no Supabase e a
+coleta disparada pelo `pg_cron` a cada 15 minutos. Localmente, um processo Node serve as duas na
+mesma porta, sobre o Postgres do Docker. O servidor coleta, filtra, correlaciona e guarda; a interface
 lê por uma camada de serviços única e não tem dado local de reserva.
 
 > Este documento descrevia uma SPA estática sem backend, com modo de dados "mock", latência

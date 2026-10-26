@@ -2,7 +2,7 @@
 
 ## Contexto do projeto
 
-O **DefesaBR Intelligence** tem servidor próprio (Node + SQLite) que coleta fontes públicas e guarda
+O **DefesaBR Intelligence** tem servidor próprio (Node + Postgres, hospedado na Vercel e no Supabase) que coleta fontes públicas e guarda
 contas: nome de exibição, nome de usuário, senha como hash scrypt, papel, situação, pasta de
 favoritos, o estado de leitura das notificações e a trilha de atos de administração. Os dados
 coletados são públicos; os de conta, não.
@@ -59,10 +59,11 @@ administradora, recebe a senha da variável e tem as sessões anteriores revogad
 variáveis do serviço é o dono da instalação; um cadastro feito antes não pode trancá-lo do lado de
 fora nem herdar o acesso.
 
-Versões anteriores semeavam `admin123` e `usuario123` com senha igual ao nome de usuário. Ao subir,
-o servidor **remove** essas contas — ou renomeia a de administrador para o `ADMIN_USERNAME`
-configurado, preservando a trilha de auditoria. Instalação antiga com volume montado não fica com a
-porta destrancada depois da atualização.
+Versões anteriores (era SQLite) semeavam `admin123` e `usuario123` com senha igual ao nome de
+usuário. O banco Postgres nasceu vazio, sem essas contas: `usuario123` continua sendo removida se
+aparecer, e os dois nomes seguem reservados no cadastro público. `admin123` deixou de ser tratada
+como conta legada — hoje ela pode ser o administrador real da instalação, criado pelo dono com
+senha própria, e a semeadura não a suspende nem a apaga.
 
 ## Escopo
 

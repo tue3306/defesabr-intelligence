@@ -18,7 +18,8 @@ O que ameaça o país, antes de virar notícia.
 [![Vite 5](https://img.shields.io/badge/Vite-5-646cff?logo=vite&logoColor=white)](https://vitejs.dev/)
 [![Node 24+](https://img.shields.io/badge/Node-24%2B-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![Express](https://img.shields.io/badge/Express-4-000000?logo=express&logoColor=white)](https://expressjs.com/)
-[![SQLite](https://img.shields.io/badge/SQLite-node%3Asqlite-003b57?logo=sqlite&logoColor=white)](https://nodejs.org/api/sqlite.html)
+[![Postgres](https://img.shields.io/badge/Postgres-Supabase-3ecf8e?logo=supabase&logoColor=white)](https://supabase.com/)
+[![Vercel](https://img.shields.io/badge/deploy-Vercel-000000?logo=vercel&logoColor=white)](https://defesabr-intelligence.vercel.app/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-5c616a)](LICENSE)
 
 **[Projeto de pesquisa](docs/projeto-de-pesquisa.md)** ·
@@ -277,12 +278,17 @@ Ver [ROADMAP.md](ROADMAP.md) para o que ainda falta e onde encaixa.
 
 ## Como rodar
 
-Requer **Node 24 ou superior** — o servidor usa o módulo nativo `node:sqlite`,
-o que dispensa compilar dependência nativa.
+Requer **Node 24 ou superior** e **Docker** (para o Postgres local — em
+produção o banco é o Supabase).
 
 ```bash
 npm install
+npm run db:up
 ```
+
+`db:up` sobe um Postgres 17 na porta 54329 (a mesma versão do Supabase) com o
+banco de desenvolvimento e o de testes. Na primeira subida, o servidor aplica
+as migrações de `supabase/migrations/` sozinho.
 
 Crie um arquivo `.env` na raiz (ele é ignorado pelo Git) com a conta de
 administrador da sua instalação — escolha você os valores:
@@ -628,17 +634,19 @@ escala em linguagem acessível, com o que ela **não** significa. **Privacidade 
 ## Arquitetura
 
 ```
-├── server/                     API — Express + node:sqlite
+├── api/index.js                função única da Vercel: o Express inteiro atrás de /api
+├── supabase/migrations/        esquema do Postgres (o mesmo no Supabase, no Docker e no CI)
+├── server/                     API — Express + Postgres (pg)
 │   ├── src/
-│   │   ├── index.js            entrada: esquema → contas → fontes → servidor → coleta
+│   │   ├── index.js            entrada local: migrações → contas → fontes → servidor → coleta
 │   │   ├── app.js              app Express (testável sem abrir porta)
 │   │   ├── config.js           variáveis de ambiente
-│   │   ├── db/                 conexão, esquema e migrações incrementais
+│   │   ├── db/                 pool, TLS, transações e aplicação das migrações
 │   │   ├── lib/                auth · relevance · correlacao · proposicoes · notificacoes · guia · …
 │   │   ├── collectors/         rss · camara · indicators · bcb · comex · ransomware · atores · correlacoes · geografia · newsapi · agendador
 │   │   ├── services/status.js  diagnóstico derivado do banco
 │   │   └── routes/             auth · news · data · intel · metodo · mundo · notificacoes · guia · system
-│   └── scripts/                collect · check · check-auth · reclassify · reset
+│   └── scripts/                migrate · collect · check · check-auth · reclassify · reset
 └── src/                        Interface — React + Vite
     ├── services/
     │   ├── client.js           única porta para dados
