@@ -326,9 +326,12 @@ export function buscarCru(url, { timeoutMs = config.coleta.timeoutMs } = {}, sal
 }
 
 export async function buscarTexto(url, opcoes = {}) {
-  let r
   try {
-    r = await buscar(url, { aceita: 'application/rss+xml, application/xml, text/xml, */*', ...opcoes })
+    const r = await buscar(url, { aceita: 'application/rss+xml, application/xml, text/xml, */*', ...opcoes })
+    // A recusa do Brotli pode estourar aqui, na leitura do corpo, e não no
+    // fetch — foi assim na Vercel. Por isso a leitura fica dentro do `try`.
+    const bytes = new Uint8Array(await r.arrayBuffer())
+    return decodificar(bytes, r.headers.get('content-type'))
   } catch (err) {
     if (!RX_BROTLI_RECUSADO.test(String(err?.message || ''))) throw err
     const libera = await vaga(hostDe(url))
@@ -339,8 +342,6 @@ export async function buscarTexto(url, opcoes = {}) {
       libera()
     }
   }
-  const bytes = new Uint8Array(await r.arrayBuffer())
-  return decodificar(bytes, r.headers.get('content-type'))
 }
 
 export async function buscarJson(url, opcoes = {}) {
