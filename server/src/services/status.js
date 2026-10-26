@@ -170,6 +170,21 @@ async function armazenamento() {
 /** Todas as capacidades da plataforma, com o estado real de cada uma. */
 export async function capacidades() {
   const estadoAgendador = await estadoDoAgendador()
+
+  // Na Vercel não há processo vivo para agendar: quem dispara o ciclo é o
+  // `pg_cron` do Supabase (supabase/migrations/0100_cron.sql). Ler só o
+  // agendador em memória fazia o painel dizer "Desligado" com a coleta
+  // rodando a cada 15 minutos.
+  let pgCron = null
+  if (process.env.VERCEL) {
+    try {
+      const job = await get("SELECT schedule, active FROM cron.job WHERE jobname = 'defesabr-ciclo'")
+      const ultima = await get("SELECT MAX(started_at) AS em FROM collector_runs WHERE \"trigger\" = 'agendado'")
+      pgCron = { ativo: !!job?.active, agenda: job?.schedule || null, ultima: ultima?.em || null }
+    } catch {
+      pgCron = { ativo: false, agenda: null, ultima: null, ilegivel: true }
+    }
+  }
   const artigos = await contar('SELECT COUNT(*) AS n FROM articles')
   const relevantes = await contar('SELECT COUNT(*) AS n FROM articles WHERE relevant = 1')
   // Denominador do filtro do Brasil: sem o que só a lente mundial gravou
@@ -349,6 +364,18 @@ export async function capacidades() {
       grupo: 'Processamento',
       ...(() => {
         const s = estadoAgendador
+        if (pgCron) {
+          const quando = pgCron.ultima ? new Date(pgCron.ultima).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : 'ainda não rodou'
+          return {
+            estado: pgCron.ativo ? 'operacional' : 'degradado',
+            detalhe: pgCron.ilegivel
+              ? 'pg_cron do Supabase: não foi possível ler o job defesabr-ciclo.'
+              : pgCron.ativo
+                ? `pg_cron do Supabase (${pgCron.agenda}) · última execução agendada: ${quando}`
+                : 'Job defesabr-ciclo do pg_cron ausente ou pausado — a coleta não roda sozinha.',
+            metricas: { ultimaExecucao: pgCron.ultima, agenda: pgCron.agenda },
+          }
+        }
         return {
           estado: s.ativo ? 'operacional' : 'opcional',
           detalhe: s.ativo
