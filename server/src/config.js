@@ -86,7 +86,9 @@ export const config = {
   // recusar o boot com a mensagem certa.
   banco: {
     url: (() => {
-      const url = process.env.DATABASE_URL
+      // POSTGRES_URL é o nome que a integração Supabase da Vercel injeta
+      // (pooler em modo transação). DATABASE_URL explícita tem precedência.
+      const url = process.env.DATABASE_URL || process.env.POSTGRES_URL
       if (url) return url
       if (ambienteAtual === 'production') {
         throw new Error('DATABASE_URL não definida: em produção a conexão com o Postgres (Supabase) é obrigatória.')

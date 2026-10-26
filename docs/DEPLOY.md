@@ -213,7 +213,7 @@ mesmas variáveis. Todas existem em
 
 | Variável | Valor |
 |---|---|
-| `DATABASE_URL` | string do **pooler, modo transação (6543)** do passo 1.2 |
+| `DATABASE_URL` | string do **pooler, modo transação (6543)** do passo 1.2. Se o banco foi criado pela integração Supabase da Vercel, ela já injeta `POSTGRES_URL` (o mesmo pooler) e o app a usa sem `DATABASE_URL` |
 | `AUTH_SECRET` | segredo gerado acima (>= 16 caracteres) |
 | `CRON_SECRET` | outro segredo gerado (>= 16 caracteres); o mesmo valor vai ao Vault no passo 3 |
 | `ADMIN_USERNAME` | usuário do administrador |
