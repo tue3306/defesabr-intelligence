@@ -285,7 +285,7 @@ export const FONTES_PADRAO = [
   { slug: 'metropoles', name: 'Metrópoles', url: 'https://www.metropoles.com/feed', site_url: 'https://www.metropoles.com', category: 'Imprensa geral', somenteRelevantes: true },
   { slug: 'gazeta-do-povo', name: 'Gazeta do Povo — República', url: 'https://www.gazetadopovo.com.br/feed/rss/republica.xml', site_url: 'https://www.gazetadopovo.com.br', category: 'Imprensa geral', somenteRelevantes: true },
   { slug: 'veja', name: 'Veja', url: 'https://veja.abril.com.br/feed/', site_url: 'https://veja.abril.com.br', category: 'Imprensa geral', somenteRelevantes: true },
-  { slug: 'istoe', name: 'IstoÉ', url: 'https://istoe.com.br/feed/', site_url: 'https://istoe.com.br', category: 'Imprensa geral', somenteRelevantes: true },
+  { slug: 'istoe', name: 'IstoÉ', url: 'https://istoe.com.br/feed', site_url: 'https://istoe.com.br', category: 'Imprensa geral', somenteRelevantes: true },
   { slug: 'carta-capital', name: 'CartaCapital', url: 'https://www.cartacapital.com.br/feed/', site_url: 'https://www.cartacapital.com.br', category: 'Imprensa geral', somenteRelevantes: true },
   { slug: 'jovem-pan', name: 'Jovem Pan', url: 'https://jovempan.com.br/feed', site_url: 'https://jovempan.com.br', category: 'Imprensa geral', somenteRelevantes: true },
   { slug: 'terra', name: 'Terra', url: 'https://www.terra.com.br/rss/', site_url: 'https://www.terra.com.br', category: 'Imprensa geral', somenteRelevantes: true },
