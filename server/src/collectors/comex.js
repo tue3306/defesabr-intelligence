@@ -132,10 +132,15 @@ export async function coletarComex() {
       duracaoMs: Date.now() - inicio,
     }
   } catch (err) {
+    // 5xx é a API do MDIC fora do ar — em out/2026 ela respondia 503 em todos
+    // os endpoints, inclusive /docs. "HTTP 503" sozinho parecia defeito nosso.
+    const foraDoAr = err?.status >= 500
     return {
       coletor: 'comex',
       ok: false,
-      erro: String(err?.message || err).slice(0, 200),
+      erro: foraDoAr
+        ? `API do Comex Stat (MDIC) fora do ar: HTTP ${err.status}. Nova tentativa no próximo ciclo.`
+        : String(err?.message || err).slice(0, 200),
       duracaoMs: Date.now() - inicio,
     }
   }

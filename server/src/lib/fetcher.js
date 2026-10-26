@@ -106,6 +106,10 @@ async function vaga(host) {
  */
 function valeRepetir(err) {
   if (err?.status) return err.status === 429 || err.status >= 500
+  // Timeout também é transitório. O BCB, consultado no primeiro ciclo junto
+  // com 62 feeds, deixou duas séries sem resposta em 15 s — e a segunda
+  // tentativa, segundos depois, responde em menos de um.
+  if (err?.causa?.name === 'AbortError') return true
   const codigo = err?.causa?.code || err?.causa?.cause?.code || ''
   return /ECONNRESET|ECONNREFUSED|ETIMEDOUT|EAI_AGAIN|ENOTFOUND|EPIPE|UND_ERR/i.test(
     `${codigo} ${err?.message || ''}`
@@ -147,6 +151,10 @@ async function buscarUmaVez(url, {
         'User-Agent': config.coleta.userAgent,
         Accept: aceita,
         'Accept-Language': 'pt-BR,pt;q=0.9',
+        // Explícito: o IstoÉ responde em Brotli mesmo sem ser pedido, e o
+        // runtime recusava a resposta ("the client did not request Br"). O
+        // fetch do Node descomprime os três.
+        'Accept-Encoding': 'gzip, deflate, br',
         ...extras,
       },
     })

@@ -59,6 +59,9 @@ const IDADE_MAXIMA_HORAS = 24
 const POR_CICLO = 25
 const POR_CICLO_PARTIDA_FRIA = 120
 
+/** Pausa entre pedidos ao ransomware.live, para não esbarrar no limite de taxa. */
+const INTERVALO_MS = 400
+
 /**
  * Grupos com vítima brasileira, mais desatualizados primeiro.
  *
@@ -117,7 +120,14 @@ export async function coletarAtores() {
   // diagnóstico.
   const motivos = new Set()
 
-  for (const p of pendentes) {
+  // O ransomware.live limita a taxa por chave. Pedidos em rajada — 120 na
+  // partida a frio — rendiam 62 respostas 429 e um painel amarelo. Espaçar
+  // os pedidos e, se o limite vier mesmo assim, PARAR: o que sobrou continua
+  // sendo o perfil mais desatualizado e entra no ciclo seguinte. Não é falha
+  // da fonte; é o ritmo que ela pede.
+  let adiados = 0
+  for (const [i, p] of pendentes.entries()) {
+    if (i > 0) await new Promise((r) => setTimeout(r, INTERVALO_MS))
     try {
       const d = await buscarJson(`${BASE}/group/${encodeURIComponent(p.nome)}`, {
         headers: { 'X-Api-Key': chave },
@@ -160,6 +170,10 @@ export async function coletarAtores() {
       )
       gravados += 1
     } catch (e) {
+      if (e?.status === 429) {
+        adiados = pendentes.length - i
+        break
+      }
       falhas += 1
       motivos.add(String(e?.message || e).slice(0, 80))
     }
@@ -173,6 +187,9 @@ export async function coletarAtores() {
     // da chave revogada não existia em lugar nenhum.
     erro: falhas ? `${falhas} de ${pendentes.length} perfil(is) falharam: ${[...motivos].slice(0, 3).join(' · ')}` : null,
     pendentes: pendentes.length,
+    // Ficaram para o próximo ciclo por limite de taxa — não contam como falha.
+    adiados,
+    nota: adiados ? `${adiados} perfil(is) ficam para o próximo ciclo (limite de taxa da fonte)` : undefined,
     partidaFria: pendentes.length > POR_CICLO,
     duracaoMs: Date.now() - inicio,
   }

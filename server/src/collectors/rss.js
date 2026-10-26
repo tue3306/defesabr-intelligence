@@ -53,14 +53,16 @@ import { urgenciaParaOBrasil } from '../lib/ancora.js'
  * evasão de detecção e não coleta.
  *
  * O Defesa Aérea & Naval entrou depois e caiu no mesmo caso: HTTP 403 de
- * dentro do datacenter, 200 daqui. São TRÊS fontes com esse comportamento.
+ * dentro do datacenter, 200 daqui. Na Vercel os feeds do Google Notícias
+ * voltaram a responder; o Defesa Aérea & Naval, não.
  *
- * Ficam cadastradas de propósito. Em desenvolvimento contribuem bastante — os
- * agregadores varrem a imprensa inteira em vez de um veículo só, e o Defesa
- * Aérea & Naval é especializado —, e em produção o painel as mostra em
- * vermelho com o código real. Um erro explicado no código é diferente de um
- * erro que ninguém entende: quem abrir o painel e vir 47 de 50 tem, aqui, a
- * resposta do porquê.
+ * Fonte assim leva `bloqueiaServidor: true`: em desenvolvimento ela é coletada
+ * (contribui, e é especializada), em produção fica de fora da coleta. Mantê-la
+ * no ciclo só pintava o painel de amarelo com um erro que ninguém pode
+ * consertar — e erro que não se pode consertar vira erro que se ignora.
+ *
+ * O Consultor Jurídico saiu da lista: o RSS passou a responder 403 a qualquer
+ * cliente que não seja navegador, de qualquer rede.
  *
  * SOBRE O CAMINHO `/RSS` DA RAIZ DO GOV.BR
  *
@@ -244,6 +246,8 @@ export const FONTES_PADRAO = [
     url: 'https://www.defesaaereanaval.com.br/feed',
     site_url: 'https://www.defesaaereanaval.com.br',
     category: 'Imprensa especializada',
+    // 403 para IP de datacenter, 200 de máquina doméstica. Ver o cabeçalho.
+    bloqueiaServidor: true,
   },
 
   // ══════════════════════════════════════════════════════════════════════
@@ -289,7 +293,6 @@ export const FONTES_PADRAO = [
   { slug: 'bbc-brasil', name: 'BBC News Brasil', url: 'https://feeds.bbci.co.uk/portuguese/rss.xml', site_url: 'https://www.bbc.com/portuguese', category: 'Imprensa geral', somenteRelevantes: true },
   { slug: 'exame', name: 'Exame', url: 'https://exame.com/feed/', site_url: 'https://exame.com', category: 'Imprensa geral', somenteRelevantes: true },
   { slug: 'infomoney', name: 'InfoMoney', url: 'https://www.infomoney.com.br/feed/', site_url: 'https://www.infomoney.com.br', category: 'Imprensa geral', somenteRelevantes: true },
-  { slug: 'conjur', name: 'Consultor Jurídico', url: 'https://www.conjur.com.br/rss.xml', site_url: 'https://www.conjur.com.br', category: 'Imprensa geral', somenteRelevantes: true },
   { slug: 'agencia-publica', name: 'Agência Pública', url: 'https://apublica.org/feed/', site_url: 'https://apublica.org', category: 'Imprensa geral', somenteRelevantes: true },
   { slug: 'intercept-brasil', name: 'Intercept Brasil', url: 'https://www.intercept.com.br/feed/', site_url: 'https://www.intercept.com.br', category: 'Imprensa geral', somenteRelevantes: true },
 
@@ -489,6 +492,39 @@ export async function semearFontes() {
   return criadas
 }
 
+// -----------------------------------------------------------------------------
+// FILA DE GRAVAÇÃO
+//
+// A coleta busca as 62 fontes em paralelo, e cada uma grava numa transação
+// própria — que segura uma conexão do pool enquanto insere item por item. Na
+// Vercel o pool tem `DB_POOL_MAX` conexões (3), e quem espera por uma desiste
+// em 5 s: "timeout exceeded when trying to connect". Onze fontes que tinham
+// respondido normalmente apareciam no painel como fora do ar por isso.
+//
+// A busca continua toda em paralelo; só a GRAVAÇÃO entra em fila, com uma
+// conexão a menos que o pool, para sobrar uma às consultas avulsas (estatística
+// da fonte, outros coletores). Esperar aqui não tem prazo — o prazo é o da
+// função inteira.
+// -----------------------------------------------------------------------------
+
+const MAX_GRAVACOES = Math.max(1, config.banco.poolMax - 1)
+let gravando = 0
+const naFila = []
+
+async function naVezDeGravar(fn) {
+  if (gravando >= MAX_GRAVACOES) await new Promise((vez) => naFila.push(vez))
+  else gravando += 1
+  try {
+    return await fn()
+  } finally {
+    // A vaga passa direto a quem espera (mesma lógica do limite por host em
+    // lib/fetcher.js): devolvê-la ao contador abriria uma janela para furar a fila.
+    const proximo = naFila.shift()
+    if (proximo) proximo()
+    else gravando -= 1
+  }
+}
+
 /** Coleta UMA fonte. Nunca lança: o resultado descreve o que aconteceu. */
 export async function coletarFonte(fonte) {
   const inicio = Date.now()
@@ -507,7 +543,7 @@ export async function coletarFonte(fonte) {
     // ver `limparAgregador()`. As demais passam direto.
     const ehAgregador = fonte.category === 'Agregador'
 
-    await transacao(async () => {
+    await naVezDeGravar(() => transacao(async () => {
       for (const bruto of itens) {
         // Notícia velha demais para um produto de acompanhamento corrente.
         //
@@ -675,7 +711,7 @@ export async function coletarFonte(fonte) {
          WHERE id = ?`,
         [agora(), novos, Date.now() - inicio, novos, fonte.id]
       )
-    })
+    }))
 
     return {
       fonte: fonte.name, slug: fonte.slug, ok: true,
@@ -711,7 +747,11 @@ export async function coletarFonte(fonte) {
  * pior caso é o timeout de uma só.
  */
 export async function coletarTodas() {
-  const fontes = await all("SELECT * FROM sources WHERE enabled = 1 AND kind = 'rss'")
+  const bloqueadas = config.ambiente === 'production'
+    ? new Set(FONTES_PADRAO.filter((f) => f.bloqueiaServidor).map((f) => f.slug))
+    : new Set()
+  const fontes = (await all("SELECT * FROM sources WHERE enabled = 1 AND kind = 'rss'"))
+    .filter((f) => !bloqueadas.has(f.slug) && f.slug !== 'conjur')
   const resultados = await Promise.all(fontes.map((f) => coletarFonte(f)))
   const falharam = resultados.filter((r) => !r.ok)
 
