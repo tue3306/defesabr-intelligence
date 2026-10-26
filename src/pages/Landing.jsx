@@ -115,10 +115,10 @@ export default function Landing() {
           </h1>
 
           <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300 sm:text-lg">
-            Um servidor lê fontes oficiais e a imprensa a cada 15 minutos, filtra por uma regra
-            publicada e cruza o resultado com os vazamentos que grupos de extorsão divulgam sobre
-            organizações brasileiras. Você recebe o fato consolidado, com a fonte, o país
-            envolvido e quem está por trás.
+            A cada 15 minutos, a plataforma lê jornais e órgãos oficiais, separa o que importa
+            para a defesa e a segurança do Brasil e avisa quando empresas e órgãos brasileiros
+            aparecem em sites de criminosos que vazam dados. Cada informação vem com a fonte,
+            o país envolvido e quem está por trás.
           </p>
 
           {/* ── A PROVA, EM NÚMEROS MEDIDOS ── */}
@@ -157,7 +157,7 @@ export default function Landing() {
                   * fica honesto e curto. */}
                 <Link to="/correlacoes" className="btn-primary"><Link2 size={16} /> Ver as correlações · exige conta</Link>
                 <Link to="/clipping" className="btn-ghost border-white/30 text-white hover:bg-white/10">
-                  Ver o clipping de hoje · exige conta
+                  Ver as notícias de hoje · exige conta
                 </Link>
               </>
             )}

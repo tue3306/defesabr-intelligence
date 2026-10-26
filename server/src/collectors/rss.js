@@ -747,11 +747,18 @@ export async function coletarFonte(fonte) {
  * pior caso é o timeout de uma só.
  */
 export async function coletarTodas() {
-  const bloqueadas = config.ambiente === 'production'
-    ? new Set(FONTES_PADRAO.filter((f) => f.bloqueiaServidor).map((f) => f.slug))
-    : new Set()
-  const fontes = (await all("SELECT * FROM sources WHERE enabled = 1 AND kind = 'rss'"))
-    .filter((f) => !bloqueadas.has(f.slug) && f.slug !== 'conjur')
+  // Fora da coleta: o ConJur em qualquer ambiente; as `bloqueiaServidor` em
+  // produção. Desativá-las NO BANCO, e não só pular aqui, é o que faz a home,
+  // o painel de fontes e a contagem "N fontes coletadas" dizerem o mesmo
+  // número que a coleta de fato consulta.
+  const foraDaColeta = ['conjur']
+  if (config.ambiente === 'production') {
+    foraDaColeta.push(...FONTES_PADRAO.filter((f) => f.bloqueiaServidor).map((f) => f.slug))
+  }
+  for (const slug of foraDaColeta) {
+    await run('UPDATE sources SET enabled = 0 WHERE slug = ? AND enabled = 1', [slug])
+  }
+  const fontes = await all("SELECT * FROM sources WHERE enabled = 1 AND kind = 'rss'")
   const resultados = await Promise.all(fontes.map((f) => coletarFonte(f)))
   const falharam = resultados.filter((r) => !r.ok)
 
