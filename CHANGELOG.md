@@ -7,6 +7,13 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Não publicado]
 
+### `admin123` deixa de ser tratado como conta pública antiga
+
+- `semearContas()` suspendia ou apagava `admin123` a cada `npm run migrate`,
+  herança da conta de senha publicada da era SQLite. O banco Postgres nasceu
+  sem ela, e o nome hoje pode ser o administrador real da instalação. O nome
+  continua reservado no cadastro.
+
 ### Railway removido
 
 - Saem `railway.json` e `nixpacks.toml`, a detecção de ambiente por

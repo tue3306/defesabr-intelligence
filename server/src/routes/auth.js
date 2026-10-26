@@ -100,7 +100,7 @@ async function removerConta(id) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Contas públicas de versões anteriores, com a senha documentada. */
-const CONTAS_LEGADAS = { admin: 'admin123', usuario: 'usuario123' }
+const CONTAS_LEGADAS = { usuario: 'usuario123' }
 const EMAILS_LEGADOS = ['usuario@defesabr.com', 'analista@defesabr.com', 'admin@defesabr.com']
 
 /**
@@ -109,6 +109,10 @@ const EMAILS_LEGADOS = ['usuario@defesabr.com', 'analista@defesabr.com', 'admin@
  *
  * 1. `usuario123` e as contas do modelo mais antigo são removidas. A senha delas
  *    estava publicada, e o cadastro já dá conta própria a quem quiser entrar.
+ *    `admin123` NÃO entra nessa limpeza: o banco Postgres nasceu vazio, sem a
+ *    conta pública antiga, e o nome hoje pode ser o administrador de verdade
+ *    (criado pelo dono). Tratá-lo como legado suspenderia ou apagaria essa
+ *    conta a cada `npm run migrate`.
  *
  * 2. O administrador vem de `ADMIN_USERNAME` / `ADMIN_PASSWORD`:
  *    • se a conta já existe COMO ADMINISTRADOR, nada muda — a senha trocada
@@ -118,12 +122,9 @@ const EMAILS_LEGADOS = ['usuario@defesabr.com', 'analista@defesabr.com', 'admin@
  *      sessões anteriores revogadas. Quem controla o ambiente é o dono da
  *      instalação, e um cadastro com o nome dele não pode trancá-lo do lado de
  *      fora — nem servir de porta para alguém que o tenha registrado antes;
- *    • se não existe e há a antiga `admin123`, ela é RENOMEADA (mantém a trilha
- *      de auditoria e a pasta) e recebe a senha da variável;
- *    • se não existe nenhuma, é criada.
+ *    • se não existe, é criada.
  *
- * 3. Sem as variáveis, `admin123` não pode continuar com a senha pública: é
- *    suspensa até alguém configurar o administrador, e o boot avisa.
+ * 3. Sem as variáveis, nenhum administrador é criado e o boot avisa.
  *
  * @returns {Promise<{ criadas: number, assumidas: number, removidas: number, avisos: string[] }>}
  */
@@ -141,27 +142,18 @@ export async function semearContas() {
   if (usuarioLegado) { await removerConta(usuarioLegado.id); removidas += 1 }
 
   const { usuario, senha } = config.auth.administrador
-  const adminLegado = await get('SELECT id FROM users WHERE username = ?', [CONTAS_LEGADAS.admin])
 
   if (usuario && senha && RX_USUARIO.test(usuario)) {
     const existente = await get('SELECT id, role, status FROM users WHERE username = ?', [usuario])
 
     if (!existente) {
       const { sal, hash } = await hashSenha(senha)
-      if (adminLegado) {
-        await run(
-          `UPDATE users SET username = ?, email = ?, name = 'Administrador', password_hash = ?, password_salt = ?,
-             role = 'admin', status = 'ativo', sessoes_desde = ? WHERE id = ?`,
-          [usuario, emailDerivado(usuario), hash, sal, Date.now(), adminLegado.id],
-        )
-      } else {
-        await run(
-          `INSERT INTO users (name, username, email, password_hash, password_salt, role, plan, auth_provider)
-           VALUES ('Administrador', ?, ?, ?, ?, 'admin', 'institucional', 'local')`,
-          [usuario, emailDerivado(usuario), hash, sal],
-        )
-        criadas += 1
-      }
+      await run(
+        `INSERT INTO users (name, username, email, password_hash, password_salt, role, plan, auth_provider)
+         VALUES ('Administrador', ?, ?, ?, ?, 'admin', 'institucional', 'local')`,
+        [usuario, emailDerivado(usuario), hash, sal],
+      )
+      criadas += 1
     } else if (existente.role !== 'admin' || (existente.status || 'ativo') !== 'ativo') {
       // A conta existe com o nome configurado, mas não é o administrador: ou
       // alguém a cadastrou pela tela, ou ela foi suspensa. A instalação a
@@ -176,20 +168,11 @@ export async function semearContas() {
       avisos.push(`A conta "${usuario}" existia sem ser administrador e foi assumida por ADMIN_USERNAME/ADMIN_PASSWORD.`)
       assumidas += 1
     }
-
-    if (existente && adminLegado) {
-      await removerConta(adminLegado.id)
-      removidas += 1
-    }
   } else {
     if (usuario && !RX_USUARIO.test(usuario)) {
       avisos.push('ADMIN_USERNAME inválido: use 3 a 32 caracteres entre letras minúsculas, números, ponto, hífen e sublinhado.')
     }
     avisos.push('ADMIN_USERNAME e ADMIN_PASSWORD não definidos — nenhuma conta de administrador foi criada.')
-    if (adminLegado) {
-      await run("UPDATE users SET status = 'suspenso', sessoes_desde = ? WHERE id = ?", [Date.now(), adminLegado.id])
-      avisos.push('A antiga conta admin123 foi suspensa: a senha dela era pública.')
-    }
   }
 
   return { criadas, assumidas, removidas, avisos }
