@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 //
 // Tudo por variável de ambiente, com padrão que funciona sem nenhuma delas —
 // é isso que faz `npm start` funcionar tanto na máquina de quem clona quanto
-// no Railway, sem arquivo de configuração no meio.
+// na Vercel, sem arquivo de configuração no meio.
 //
 // Nenhum caminho absoluto: os que existem são derivados de import.meta.url.
 // -----------------------------------------------------------------------------
@@ -40,9 +40,9 @@ const numOuZero = (valor, padrao) => {
 
 // AMBIENTE — e por que ele não é só `process.env.NODE_ENV`.
 //
-// O Railway não define NODE_ENV por conta própria. O deploy subia, portanto,
-// com `ambiente: 'development'`, e três comportamentos de desenvolvimento
-// ficavam ativos num serviço público:
+// A plataforma de deploy não define NODE_ENV por conta própria. Sem detectar
+// o ambiente, o deploy subiria com `ambiente: 'development'`, e três
+// comportamentos de desenvolvimento ficariam ativos num serviço público:
 //
 //   • o tratador de erros anexava `detalhe` com a mensagem crua da exceção,
 //     expondo estrutura interna a quem conseguisse provocar um 500;
@@ -51,10 +51,9 @@ const numOuZero = (valor, padrao) => {
 //   • o log despejava o stack de cada erro.
 //
 // Depender de alguém lembrar de definir a variável no painel é depender de
-// memória para uma decisão de segurança. O Railway injeta as suas próprias
-// variáveis em todo deploy; a presença delas é sinal suficiente.
+// memória para uma decisão de segurança.
 //
-// A Vercel também não define NODE_ENV na função, mas injeta VERCEL_ENV
+// A Vercel não define NODE_ENV na função, mas injeta VERCEL_ENV
 // ('production', 'preview' ou 'development'). Preview conta como produção de
 // propósito: é uma URL pública, com o mesmo código, e precisa das mesmas
 // defesas — e, por isso, das mesmas variáveis obrigatórias (DATABASE_URL etc.).
@@ -65,17 +64,13 @@ const numOuZero = (valor, padrao) => {
 // Definido fora do objeto porque `banco` também precisa dele durante a
 // construção; `config.ambiente` apenas o expõe, para haver uma só definição.
 const ambienteAtual = process.env.NODE_ENV
-  || (process.env.RAILWAY_ENVIRONMENT
-    || process.env.RAILWAY_ENVIRONMENT_NAME
-    || process.env.RAILWAY_PROJECT_ID
-    || process.env.RAILWAY_SERVICE_ID
-    || process.env.VERCEL_ENV === 'production'
+  || (process.env.VERCEL_ENV === 'production'
     || process.env.VERCEL_ENV === 'preview'
     ? 'production'
     : 'development')
 
 export const config = {
-  // O Railway injeta PORT; localmente cai em 3001.
+  // Usada só por `npm start` (servidor local); na Vercel a API é uma função.
   port: num(process.env.PORT, 3001),
 
   // '0.0.0.0' é obrigatório em contêiner: escutar em 'localhost' faz o
@@ -237,9 +232,9 @@ export const config = {
   // "Está no ar" e "está atualizado" são perguntas diferentes, e uma sonda que
   // só responde a primeira deixa a segunda sem dono.
   //
-  // O Railway (RAILWAY_*) e a Vercel (VERCEL_GIT_*, VERCEL_DEPLOYMENT_ID)
-  // injetam estas variáveis em todo deploy originado do GitHub, sem
-  // configuração nenhuma. As do Railway vêm primeiro enquanto ele existir. Localmente elas não existem e o bloco vira `null` —
+  // A Vercel (VERCEL_GIT_*, VERCEL_DEPLOYMENT_ID) injeta estas variáveis em
+  // todo deploy originado do GitHub, sem configuração nenhuma. Localmente
+  // elas não existem e o bloco vira `null` —
   // que é a resposta correta: `npm start` na máquina de quem clona não é um
   // deploy e não tem commit associado.
   //
@@ -248,9 +243,9 @@ export const config = {
   // que alguém escreveu — não é campo para servir em rota pública.
   // ───────────────────────────────────────────────────────────────────────────
   deploy: (() => {
-    const sha = process.env.RAILWAY_GIT_COMMIT_SHA || process.env.VERCEL_GIT_COMMIT_SHA || ''
-    const branch = process.env.RAILWAY_GIT_BRANCH || process.env.VERCEL_GIT_COMMIT_REF || ''
-    const id = process.env.RAILWAY_DEPLOYMENT_ID || process.env.VERCEL_DEPLOYMENT_ID || ''
+    const sha = process.env.VERCEL_GIT_COMMIT_SHA || ''
+    const branch = process.env.VERCEL_GIT_COMMIT_REF || ''
+    const id = process.env.VERCEL_DEPLOYMENT_ID || ''
     if (!sha && !branch && !id) return null
     return {
       commit: sha ? sha.slice(0, 7) : null,

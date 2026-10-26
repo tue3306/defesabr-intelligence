@@ -23,7 +23,7 @@ import { CABECALHOS_SEGURANCA, CABECALHOS_SO_PRODUCAO } from './lib/cabecalhos.j
 // Separada de `index.js` para poder ser montada em teste sem abrir porta.
 //
 // Em PRODUÇÃO este mesmo processo serve a API e o front compilado. É a escolha
-// certa para o Railway: um serviço, uma URL, e — o que mais economiza tempo —
+// certa para um deploy de origem única: uma URL e — o que mais economiza tempo —
 // nenhuma requisição entre origens, portanto nenhum CORS para depurar.
 // -----------------------------------------------------------------------------
 
@@ -32,7 +32,7 @@ export function criarApp() {
 
   app.disable('x-powered-by')
 
-  // `trust proxy`: o Railway põe um balanceador na frente, e sem isto o IP de
+  // `trust proxy`: a Vercel põe um proxy na frente, e sem isto o IP de
   // TODA requisição chega como o do proxy. O teto por IP de `lib/limite.js`
   // passaria a contar o mundo inteiro num contador só — o primeiro visitante a
   // errar dez senhas trancaria o login para todos.

@@ -47,13 +47,13 @@ import { urgenciaParaOBrasil } from '../lib/ancora.js'
  * DUAS FONTES QUE FUNCIONAM AQUI E NÃO NO SERVIDOR
  *
  * Os dois feeds do Google Notícias respondem normalmente de uma máquina
- * doméstica e devolvem HTTP 503 quando pedidos de dentro do Railway. Não é
+ * doméstica e devolvem HTTP 503 quando pedidos de um datacenter (produção). Não é
  * intermitência: é o Google recusando IP de datacenter, e o mesmo pedido
  * repetido também recebe 503. Contornar exigiria disfarçar a origem, o que é
  * evasão de detecção e não coleta.
  *
  * O Defesa Aérea & Naval entrou depois e caiu no mesmo caso: HTTP 403 de
- * dentro do Railway, 200 daqui. São TRÊS fontes com esse comportamento.
+ * dentro do datacenter, 200 daqui. São TRÊS fontes com esse comportamento.
  *
  * Ficam cadastradas de propósito. Em desenvolvimento contribuem bastante — os
  * agregadores varrem a imprensa inteira em vez de um veículo só, e o Defesa

@@ -10,8 +10,8 @@
 //  2. NEGAÇÃO DE SERVIÇO. `scryptSync` custa 26 ms medidos e é SÍNCRONO: ele
 //     para o event loop inteiro. Cerca de 39 requisições por segundo bastam
 //     para o servidor não responder mais a nada — incluindo `/api/health`, o
-//     que faz o Railway concluir que a aplicação morreu e reiniciar o
-//     contêiner. Um laço de shell derruba a plataforma sem exploit nenhum.
+//     que faz a plataforma concluir que a aplicação morreu e reiniciar o
+//     processo. Um laço de shell derruba a plataforma sem exploit nenhum.
 //
 // O scrypt passou a ser assíncrono (ver `lib/auth.js`), o que resolve o
 // travamento do event loop. Este módulo resolve o resto: um teto por IP, sem

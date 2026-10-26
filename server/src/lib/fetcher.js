@@ -21,7 +21,7 @@ import config from '../config.js'
 // mesmo instante. Oito delas apontam para `www.gov.br` — Defesa, Planalto,
 // Polícia Federal, MJ, GSI, ABIN, Defesa Civil e Itamaraty.
 //
-// Na máquina de desenvolvimento isso passa. Em produção (Railway), sete das
+// Na máquina de desenvolvimento isso passa. Em produção (datacenter), sete das
 // oito falhavam com `fetch failed` e uma passava — sempre. Falhar sete de oito
 // não é indisponibilidade do gov.br, que respondia normalmente ao ser
 // consultado sozinho; é o servidor cortando conexões simultâneas vindas do

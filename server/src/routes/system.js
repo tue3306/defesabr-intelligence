@@ -135,7 +135,7 @@ router.post('/system/method/test', exigirPapel('admin'), (req, res) => {
   })
 })
 
-// GET /api/health — sonda de saúde (Railway)
+// GET /api/health — sonda de saúde
 //
 // `deploy` responde a pergunta que `ok: true` não responde: não se o processo
 // está de pé, mas se é o processo CERTO. Ver a nota em `config.js`.
@@ -159,7 +159,7 @@ router.get('/meta', async (req, res) => {
     deploy: config.deploy,
     agendador: await estadoDoAgendador(),
     // O banco sobrevive à próxima publicação? Era a pergunta que explicava
-    // contas que "somiam sozinhas" no disco efêmero do Railway. Com o Postgres
+    // contas que "somiam sozinhas" num disco efêmero. Com o Postgres
     // gerenciado a resposta é sempre sim; o campo fica para quem já o lê.
     armazenamento: {
       persistente: true,

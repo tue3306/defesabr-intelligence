@@ -90,7 +90,7 @@ recarregamento a quente.
 ## Limite de tentativas e o IP de quem chama
 
 O teto por IP (login, cadastro, favoritos) lê `req.ip`, que o Express calcula
-confiando em **um** salto de proxy (`trust proxy = 1`, o balanceador do Railway).
+confiando em **um** salto de proxy (`trust proxy = 1`, o proxy da Vercel).
 Ele lia o primeiro item de `X-Forwarded-For` — o valor que o próprio cliente
 escreve, porque o proxy acrescenta o endereço real ao fim da cadeia sem apagar o
 começo. Trocar o cabeçalho a cada tentativa bastava para nunca atingir o teto. A

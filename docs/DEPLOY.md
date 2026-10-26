@@ -39,9 +39,6 @@ O app controla o tamanho do banco: `DB_ORCAMENTO_MB` (padrão 400) faz a
 retenção encurtar antes de chegar aos 500 MB. Mas apagar linhas **não encolhe
 o arquivo**: só `VACUUM FULL` devolve espaço. Ver a seção 9 (Armazenamento).
 
-> **Atenção: o merge deste branch é a virada.** O Railway está ligado ao `main`.
-> Leia a seção 2.4 antes de fazer merge ou deploy de produção.
-
 ---
 
 ## 1. Supabase
@@ -208,8 +205,8 @@ cortado se o limite efetivo for menor.
 Em *Project Settings → Environment Variables*, marque os ambientes
 **Production e Preview**. Um Preview tem `VERCEL_ENV=preview`, e o app trata
 isso como produção (é URL pública): sem `DATABASE_URL` ele recusa subir, sem
-`AUTH_SECRET` as sessões dependem do banco. A seção 2.4 testa um Preview antes
-do merge, então ele precisa das mesmas variáveis. Todas existem em
+`AUTH_SECRET` as sessões dependem do banco. Um Preview precisa, portanto, das
+mesmas variáveis. Todas existem em
 `server/src/config.js` e/ou `.env.example`.
 
 **Obrigatórias**
@@ -242,34 +239,23 @@ liga o modo produção. Se definir, use `production`.
 
 Não defina `VITE_API_BASE_URL`: deixe vazio para o front usar `/api` relativo.
 
-### 2.4 A virada: o merge é o cutover
+### 2.4 Primeiro deploy
 
-**Leia antes de qualquer merge.** O Railway está ligado ao `main` com deploy
-automático. Assim que este branch entrar no `main`, o Railway tenta subir a
-nova versão — que exige `DATABASE_URL` (Postgres) e não tem mais SQLite — e o
-serviço de lá **cai**. A ordem abaixo evita ficar sem nenhum dos dois no ar:
+1. Com o Supabase (seção 1) pronto e as variáveis (2.3) cadastradas, clique em
+   **Deploy** (ou faça um push no `main`: a Vercel publica em produção a cada
+   push no branch de produção e gera um *Preview* para os demais branches).
+2. Anote a URL pública (por exemplo `https://<seu-projeto>.vercel.app` ou o
+   seu domínio). Ela vai para o Vault no passo 3 (`defesabr_url`).
+3. Rode a seção 4 contra essa URL.
 
-1. **Preview primeiro.** Com Supabase (seção 1) e Vercel (2.1 a 2.3, variáveis
-   marcadas também para *Preview*) prontos, faça deploy do **branch** na
-   Vercel (todo push num branch que não é o de produção gera um Preview).
-   Anote a URL do Preview e rode **toda a seção 4** contra ela. Para o 4.4,
-   cadastre provisoriamente a URL do Preview no Vault (`defesabr_url`, passo
-   3) — e troque pela de produção no item 3 desta lista. Se o Preview tiver
-   *Deployment Protection* (padrão da Vercel), o `pg_cron` e o `curl` recebem
-   `401` da própria Vercel: use um *Protection Bypass* ou teste o cron só na
-   produção.
-2. **Desligar o Railway antes do merge.** No painel do Railway, desative o
-   deploy automático do serviço (*Settings → Source*: desconecte o repositório
-   ou desligue o deploy automático). O deploy que já está no ar continua
-   servindo.
-3. **Merge → produção na Vercel.** Faça o merge no `main`; a Vercel publica em
-   produção. Anote a URL pública (por exemplo `https://<seu-projeto>.vercel.app`
-   ou o seu domínio), atualize `defesabr_url` no Vault (passo 3, com
-   `vault.update_secret`) e repita a seção 4 contra ela.
-4. **Rollback.** Se a produção da Vercel falhar, volte o tráfego ao Railway:
-   reconecte o repositório e faça *Redeploy* do último deploy bom (anterior ao
-   merge) pelo painel do Railway. Os dados de lá são efêmeros (SQLite sem
-   volume), então não há o que migrar de volta.
+Se quiser testar num *Preview* antes da produção: cadastre provisoriamente a
+URL do Preview em `defesabr_url` e troque pela de produção depois (com
+`vault.update_secret`). Se o Preview tiver *Deployment Protection* (padrão da
+Vercel), o `pg_cron` e o `curl` recebem `401` da própria Vercel: use um
+*Protection Bypass* ou teste o cron só na produção.
+
+**Rollback.** Em *Deployments*, escolha o último deploy bom e use **Promote to
+Production** (ou *Instant Rollback*). O banco não muda com isso.
 
 ---
 
@@ -471,14 +457,9 @@ o projeto ativo (a regra de inatividade pode mudar).
 
 ## 8. Depois que estiver no ar
 
-O deploy automático do Railway já foi desligado antes do merge (2.4). Só
-**depois que você confirmar** que a produção da Vercel funciona (seções 4.1 a
-4.5 verdes e pelo menos um ciclo de cron com `202`), a Fase 6 de limpeza:
-
-- Remover `railway.json` e `nixpacks.toml` (permanecem até lá, de propósito).
-- Atualizar `README.md` (seção "Deploy no Railway", link "ver ao vivo",
-  menções ao volume e ao SQLite), `docs/ARCHITECTURE.md` e `ROADMAP.md`.
-- Desligar o serviço no Railway somente depois dessa confirmação.
+- Atualize o link "ver ao vivo" do `README.md` com a URL pública da Vercel.
+- Confira de tempos em tempos o item **Armazenamento** do painel de status
+  (seção 9) e o histórico do `pg_cron` (seção 4.4).
 
 ## 9. Armazenamento: quando o painel ficar amarelo ou vermelho
 

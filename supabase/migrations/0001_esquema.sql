@@ -418,7 +418,7 @@ CREATE UNIQUE INDEX idx_actor_key ON threat_actors(name_key);
 -- em mil e poucas linhas isso custa dezenas de milissegundos, e daria para
 -- fazer por requisicao. So que `node:sqlite` e SINCRONO: esse tempo nao e
 -- espera, e event loop TRAVADO — enquanto uma tela de correlacoes calcula,
--- o servidor inteiro para, inclusive o healthcheck que o Railway consulta.
+-- o servidor inteiro para, inclusive o healthcheck.
 --
 -- O calculo acontece uma vez por coleta, que e quando o insumo muda.
 -- -----------------------------------------------------------------------------

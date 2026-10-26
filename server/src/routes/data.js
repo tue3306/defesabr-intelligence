@@ -129,7 +129,7 @@ router.get('/economy/indicators', async (req, res) => {
     // A PROCEDÊNCIA TEM DE APONTAR PARA QUEM PRODUZIU O NÚMERO.
     //
     // Dizia `['World Bank Open Data', 'AwesomeAPI']`, e o câmbio deixou de vir
-    // da AwesomeAPI faz tempo — ela recusava o IP do Railway, e o Banco Central
+    // da AwesomeAPI faz tempo — ela recusava IP de datacenter, e o Banco Central
     // passou a entregar dólar e euro pelo SGS. `ultimoCambio()` consulta
     // `provider = 'bcb'` e nada mais; as 22 linhas antigas de `awesomeapi` que
     // sobraram no banco não são lidas por ninguém.

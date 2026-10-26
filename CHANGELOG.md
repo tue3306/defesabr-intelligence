@@ -7,6 +7,13 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Não publicado]
 
+### Railway removido
+
+- Saem `railway.json` e `nixpacks.toml`, a detecção de ambiente por
+  `RAILWAY_*` em `server/src/config.js` e as instruções de Railway do README,
+  do `.env.example` e da documentação. O deploy é só Vercel + Supabase
+  ([`docs/DEPLOY.md`](docs/DEPLOY.md)).
+
 ### Visita guiada pela plataforma
 
 - Botão **"Visita guiada · 2 min"** no cabeçalho do Painel (e atalho no bloco

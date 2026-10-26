@@ -8,11 +8,7 @@
 
 O que ameaça o país, antes de virar notícia.
 
-### [→ Ver a plataforma funcionando](https://defesabr-intelligence-production-a8cb.up.railway.app/)
-
-<sub>No ar, com dado real, coletado a cada 15 minutos.</sub>
-
-[![Ver ao vivo](https://img.shields.io/badge/ver%20ao%20vivo-defesabr--intelligence-caa733?style=for-the-badge)](https://defesabr-intelligence-production-a8cb.up.railway.app/)
+<sub>Dado real, coletado a cada 15 minutos. Hospedado na Vercel, com banco no Supabase.</sub>
 
 [![React 18](https://img.shields.io/badge/React-18-149eca?logo=react&logoColor=white)](https://react.dev/)
 [![Vite 5](https://img.shields.io/badge/Vite-5-646cff?logo=vite&logoColor=white)](https://vitejs.dev/)
@@ -313,7 +309,7 @@ administrador é criada — o servidor avisa no boot, em amarelo:
 Contas        ADMIN_USERNAME e ADMIN_PASSWORD não definidos — nenhuma conta de administrador foi criada.
 ```
 
-Definiu as variáveis depois? Basta reiniciar (no Railway, um *Redeploy*): a
+Definiu as variáveis depois? Basta reiniciar (na Vercel, um *Redeploy*): a
 conta é criada, ou assumida se o nome já estiver em uso.
 
 ### Os perfis
@@ -613,7 +609,7 @@ escala em linguagem acessível, com o que ela **não** significa. **Privacidade 
 | `POST` | `/system/method/test` | `admin` | **Testa a regra num texto qualquer** |
 | `POST` | `/system/collect` | `admin` | Dispara a coleta completa |
 | `POST` | `/system/collect/:sourceId` | `admin` | Coleta uma fonte só (diagnóstico) |
-| `GET` | `/health` | — | Sonda de saúde (usada pelo Railway) |
+| `GET` | `/health` | — | Sonda de saúde |
 | `GET` | `/meta` | — | Identidade, fontes, estado das variáveis de conta e armazenamento |
 
 ### Favoritos
@@ -676,31 +672,34 @@ interface, e a pessoa vê o aviso de que precisa entrar de novo.
 
 ---
 
-## Deploy no Railway
+## Deploy na Vercel + Supabase
 
-> Migração em curso para Vercel + Supabase: veja o roteiro em [`docs/DEPLOY.md`](docs/DEPLOY.md).
+A interface (`dist/`) e a API (`api/index.js`, o Express inteiro numa função)
+sobem juntas na **Vercel**; o banco é Postgres no **Supabase**, e o `pg_cron`
+do Supabase dispara a coleta (`POST /api/cron/ciclo`) a cada 15 minutos. O
+roteiro completo, passo a passo, está em **[`docs/DEPLOY.md`](docs/DEPLOY.md)**.
 
-Esta instância está no ar em
-**[defesabr-intelligence-production-a8cb.up.railway.app](https://defesabr-intelligence-production-a8cb.up.railway.app/)**,
-publicada a cada push na `main`.
+Resumo:
 
-Para subir a sua, basta conectar o repositório:
+1. **Supabase** — criar o projeto, habilitar `pg_cron` e `pg_net` e rodar
+   `npm run migrate` com a string de conexão de sessão/direta.
+2. **Vercel** — importar o repositório (o `vercel.json` já define build,
+   função, rewrites e headers) e cadastrar as variáveis abaixo em
+   *Production* e *Preview*.
+3. **Agendamento** — cadastrar no Vault do Supabase a URL do deploy e o
+   `CRON_SECRET` (`defesabr_url` e `defesabr_cron_secret`).
 
-1. **Build** — `npm install --include=dev && npm run build` (em `railway.json`)
-2. **Start** — `npm start` (serve a API e o `dist/`)
-3. **Healthcheck** — `/api/health`
-4. **Node 24** — fixado em `nixpacks.toml`
-
-### Variáveis do serviço
+### Variáveis na Vercel
 
 | Variável | Para quê |
 |---|---|
-| `ADMIN_USERNAME` e `ADMIN_PASSWORD` | **Obrigatórias para haver administrador.** Criam (ou assumem) a conta na subida; depois a senha é trocada pela plataforma |
-| `AUTH_SECRET` | Assina as sessões. Sem ela, quem estava logado cai a cada deploy |
-| `DB_PATH` | Opcional. Só se você quiser escolher o caminho do banco — com um volume montado, ele é detectado sozinho |
-| `COLLECT_INTERVAL_MINUTES` | Opcional. Padrão 15; `0` desliga o agendador |
+| `DATABASE_URL` | **Obrigatória.** String do pooler do Supabase em modo transação (porta 6543) |
+| `AUTH_SECRET` | **Obrigatória.** Assina as sessões (16+ caracteres) |
+| `CRON_SECRET` | **Obrigatória.** Protege `/api/cron/ciclo`; o mesmo valor vai ao Vault |
+| `ADMIN_USERNAME` e `ADMIN_PASSWORD` | Criam (ou assumem) a conta de administrador; depois a senha é trocada pela plataforma |
+| `DATABASE_CA_CERT` | Recomendada. CA do Supabase (PEM) para o TLS verificar o servidor |
 
-Gerar um `AUTH_SECRET`:
+Gerar um segredo:
 
 ```
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
@@ -709,8 +708,8 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 Nenhum valor real vai para o repositório — ele é público. Todas as variáveis
 disponíveis estão em [`.env.example`](.env.example).
 
-Depois de criar ou mudar uma variável, o Railway precisa **subir de novo** para
-que ela valha — *Deployments → Redeploy*.
+Depois de criar ou mudar uma variável, a Vercel precisa **publicar de novo**
+para que ela valha — *Deployments → Redeploy*.
 
 **Como conferir sem abrir o log:** `GET /api/meta` devolve, em `contas`, se cada
 variável chegou ao serviço e quantos administradores ativos existem. Só
@@ -725,36 +724,15 @@ curl -s https://SEU-DOMINIO/api/meta | grep -o '"contas".*'
             "administradoresAtivos": 1, "total": 1 }
 ```
 
-`ADMIN_USERNAME: false` significa que a variável não chegou àquele serviço — o
+`ADMIN_USERNAME: false` significa que a variável não chegou àquele deploy — o
 nome está errado, foi criada em outro ambiente, ou o deploy ainda é o anterior.
-`administradoresAtivos: 0` com as variáveis `true` significa que o processo
-ainda não subiu depois de criá-las.
-
-### Persistência: monte um volume
-
-O disco do contêiner é **efêmero**. Sem volume, cada publicação sobe um
-contêiner novo e o banco nasce vazio: o acervo se recoleta em segundos, mas as
-**contas somem** — inclusive a de administrador, se ela não vier das variáveis.
-
-No serviço: **Settings → Volumes → Add volume**, ponto de montagem `/data`. Só
-isso. O Railway injeta `RAILWAY_VOLUME_MOUNT_PATH`, o servidor detecta e passa a
-guardar o banco lá — não é preciso definir `DB_PATH`.
-
-Como conferir, em `GET /api/meta`:
-
-```json
-"armazenamento": { "persistente": true, "volumeMontado": true, "caminhoDefinido": false }
-```
-
-Com `persistente: false`, o boot avisa em amarelo e o painel do administrador
-marca a capacidade *Persistência (SQLite)* como **DISCO EFÊMERO**.
 
 ### Qual commit está no ar
 
 `/api/health` responde com a identidade do deploy:
 
 ```bash
-curl -s https://defesabr-intelligence-production-a8cb.up.railway.app/api/health
+curl -s https://SEU-DOMINIO/api/health
 ```
 
 ```json
@@ -764,13 +742,8 @@ curl -s https://defesabr-intelligence-production-a8cb.up.railway.app/api/health
 ```
 
 Compare `deploy.commit` com `git rev-parse --short origin/main`. Iguais, o que
-está no ar é o último push; diferentes, o Railway não rebuildou. Localmente
+está no ar é o último push; diferentes, a Vercel ainda não publicou. Localmente
 `deploy` é `null`.
-
-**Por que `--include=dev` aparece duas vezes** (no `railway.json` e no
-`nixpacks.toml`): o Nixpacks roda a própria instalação antes do `buildCommand`,
-e com `NODE_ENV=production` o npm pula as devDependencies — onde mora o Vite. O
-sintoma é a URL abrir em branco com o healthcheck passando.
 
 ---
 

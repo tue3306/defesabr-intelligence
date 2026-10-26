@@ -116,8 +116,9 @@ a cada hora, Comex a cada 12 h, World Bank a cada 24 h.
 ## 📦 Build & Deploy
 
 `vite build` separa `vendor-react`, `vendor-motion`, `vendor-maps` e `vendor-icons`; `jspdf` e
-`html2canvas` carregam sob demanda. `npm start` serve API e `dist/` num processo só — é o que roda
-no Railway. `AUTH_SECRET` deve estar definido no ambiente para as sessões sobreviverem a deploys.
+`html2canvas` carregam sob demanda. Em produção a Vercel serve o `dist/` e a API como uma função
+(`api/index.js`); o banco é Postgres no Supabase e o `pg_cron` dispara a coleta. `npm start` serve
+API e `dist/` num processo só, para rodar localmente. Roteiro em [`DEPLOY.md`](DEPLOY.md).
 
 ---
 
@@ -128,4 +129,3 @@ no Railway. `AUTH_SECRET` deve estar definido no ambiente para as sessões sobre
 | Recuperação de senha e confirmação de e-mail | não existem — dependem de envio de e-mail |
 | Entrada por provedor externo | não implementada; colunas `username` e `auth_provider` já existem |
 | Avisos fora da plataforma (e-mail, push) | não existem; os avisos ficam na central de notificações |
-| Disco no Railway sem volume | efêmero: o acervo é recoletado a cada deploy |

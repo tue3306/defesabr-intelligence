@@ -94,7 +94,7 @@ export async function coletarWorldBank() {
 }
 
 // Aqui vivia `coletarCambio()`, que buscava USD e EUR na AwesomeAPI. Saiu:
-// respondia 429 de dentro do Railway (IP de datacenter) e entregava, quando
+// respondia 429 a IP de datacenter (produção) e entregava, quando
 // respondia, o mesmo par de números que o coletor do BCB já traz do SGS.
 // Um coletor que falha para sempre num painel de saúde vira erro que ninguém
 // lê — e este falhava a cada 30 minutos sem que faltasse nada por causa dele.
@@ -119,7 +119,7 @@ export const ultimoValor = (code, pais = 'BRA') => get(
  * Última cotação de USD e EUR — do Banco Central.
  *
  * Lia `provider = 'awesomeapi'`. A AwesomeAPI responde normalmente de uma
- * máquina doméstica e devolve HTTP 429 de dentro do Railway: o painel de
+ * máquina doméstica e devolve HTTP 429 a IP de datacenter: o painel de
  * saúde em produção mostrava "Câmbio — última execução falhou: HTTP 429" a
  * cada ciclo, permanentemente.
  *

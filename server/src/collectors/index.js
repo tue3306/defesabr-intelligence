@@ -179,9 +179,8 @@ export async function coletarTudo(gatilho = 'agendado', { somente } = {}) {
   // ANTES de ela ser preenchida — e numa partida a frio, quando o banco nasce
   // vazio, achava zero grupos e terminava em 47ms sem gravar nada.
   //
-  // O efeito em producao: o disco do Railway e efemero, entao toda publicacao
-  // recria o banco; a tela de Grupos ficava sem perfil ate o ciclo seguinte,
-  // meia hora depois. A causa nao era o tamanho do lote — era a ordem.
+  // O efeito em producao: num banco recem-criado, a tela de Grupos ficava sem
+  // perfil ate o ciclo seguinte, meia hora depois. A causa nao era o tamanho do lote — era a ordem.
   //
   // A dependencia agora esta expressa na estrutura: quem depende de dado
   // recem-inserido roda depois de quem o insere. Custa alguns segundos a mais
@@ -234,8 +233,8 @@ export async function coletarTudo(gatilho = 'agendado', { somente } = {}) {
     noticias,
     legislativo: { ...legislativo, situacoesAtualizadas: situacoes.atualizadas },
     indicadores,
-    // `cambio` saiu: o BCB entrega dólar e euro, e a AwesomeAPI recusava o IP
-    // do Railway. A chave permanece no retorno apontando para o BCB, para não
+    // `cambio` saiu: o BCB entrega dólar e euro, e a AwesomeAPI recusava IP
+    // de datacenter. A chave permanece no retorno apontando para o BCB, para não
     // quebrar quem já lia `r.cambio`.
     cambio: bcb,
     comex,

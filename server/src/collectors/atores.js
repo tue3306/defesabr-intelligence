@@ -48,21 +48,21 @@ const IDADE_MAXIMA_HORAS = 24
 // cada 30 minutos, entao a renovacao de 24h se distribui em algumas
 // requisicoes por hora.
 //
-// A partida a frio e outro caso, e ele acontece toda semana. O disco do
-// Railway e efemero: cada deploy recria o banco vazio. Com 25 por ciclo, os
-// perfis levam CINCO CICLOS — duas horas e meia — para existir, e nesse
-// intervalo a tela de Grupos mostra "0 tecnicas" e "0 ferramentas". E justamente a
-// parte mais valiosa da plataforma vazia logo depois de publicar.
+// A partida a frio e outro caso: um banco recem-criado (instalacao nova ou
+// banco recriado) comeca vazio. Com 25 por ciclo, os perfis levam CINCO
+// CICLOS — duas horas e meia — para existir, e nesse intervalo a tela de
+// Grupos mostra "0 tecnicas" e "0 ferramentas". E justamente a parte mais
+// valiosa da plataforma vazia logo depois de publicar.
 //
 // Medido: 110 requisicoes levam ~90 segundos com o limite de duas conexoes
-// por host. Cabe numa coleta, e acontece uma vez por deploy.
+// por host. Cabe numa coleta, e acontece uma vez por banco novo.
 const POR_CICLO = 25
 const POR_CICLO_PARTIDA_FRIA = 120
 
 /**
  * Grupos com vítima brasileira, mais desatualizados primeiro.
  *
- * Na partida a frio — tabela vazia, o que acontece a cada deploy no Railway —
+ * Na partida a frio — tabela vazia, como num banco recem-criado —
  * o lote e maior, para a tela nao ficar duas horas e meia sem perfil.
  */
 async function aRenovar() {

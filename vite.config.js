@@ -21,7 +21,7 @@ export default defineConfig({
     // Proxy de /api para o servidor local. E o que permite ao front usar
     // caminho relativo em desenvolvimento e em producao: mesma origem nos dois,
     // portanto nenhum CORS para depurar e nenhuma variavel de ambiente para
-    // configurar no Railway.
+    // configurar na Vercel.
     proxy: {
       '/api': {
         target: process.env.VITE_API_PROXY || 'http://localhost:3001',

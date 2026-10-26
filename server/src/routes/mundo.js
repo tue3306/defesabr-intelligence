@@ -319,7 +319,7 @@ async function cobertura({ junta, params, days }) {
 //
 // A revisão mediu numa cópia com o volume que a retenção de 180 dias vai
 // acumular (~40 mil matérias): 0,6 a 1 s por chamada, com o event loop parado
-// — inclusive o `/api/health` do Railway. O resultado só muda quando a coleta
+// — inclusive o `/api/health`. O resultado só muda quando a coleta
 // roda, a cada 15 minutos; guardar por um minuto por janela troca uma
 // varredura por requisição por uma varredura por minuto.
 const PANORAMA_TTL_MS = 60_000
