@@ -291,6 +291,14 @@ html .on-dark .btn-ghost.btn-visita:hover {
   background-color: rgba(148, 163, 184, 0.55);
 }
 
+/* Faixas que rolam de lado no celular (chips, indicadores) sem barra visível. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 @layer components {
   /* Cartão base — borda translúcida sutil + sombra suave (estilo moderno) */
   .card {

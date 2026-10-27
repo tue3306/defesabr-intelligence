@@ -1,13 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import {
-  LayoutDashboard, Newspaper, BarChart3, LineChart, Archive, Settings, HelpCircle,
-  Shield, Tv, Lock, GraduationCap, Home, Sparkles, DollarSign, X,
-  Target, Waves, Scale, Factory, Layers, Radio, Landmark, CalendarDays, BadgeCheck,
-  UserCircle, ShieldCheck, ShieldAlert, FileText, ClipboardList, Search, FlaskConical, Crosshair,
-  Link2,
-  Globe2,
-  Swords,
-  Star,
+  LayoutDashboard, Newspaper, LineChart, Archive, Settings, HelpCircle, Tv, Lock, GraduationCap, Home, DollarSign, X, Scale, Factory, Landmark, BadgeCheck, UserCircle, ShieldCheck, ShieldAlert, FlaskConical, Crosshair, Link2, Globe2, Swords, Star,
 } from 'lucide-react'
 import Logo from '../ui/Logo'
 import { useAuthStore } from '../../store/authStore'
@@ -17,52 +10,19 @@ import { useUiStore } from '../../store/uiStore'
 // -----------------------------------------------------------------------------
 // NAVEGAÇÃO DECLARATIVA — cada item pede uma CAPACIDADE (src/auth/permissions.js).
 //
-// Item de administração usa `hideWithout`: ele NEM APARECE para quem não tem o
-// papel. Oferecer o console de governança a quem lê o acervo não informa nada.
-// Seções inteiras também podem exigir capacidade (`sectionCapability`).
+// A ordem segue o uso: notícias primeiro (o que quase todo mundo veio ver),
+// depois ataques, depois o quadro do país. Por dentro, cada seção guarda o
+// `nivel` de inteligência (tático, operacional, estratégico).
+//
+// Itens de administração usam `hideWithout`: nem aparecem para quem não tem o
+// papel. Seções inteiras também podem exigir capacidade (`sectionCapability`).
+// A busca não tem item próprio: fica fixa na barra do topo (e no Ctrl + K).
 // -----------------------------------------------------------------------------
-// ─────────────────────────────────────────────────────────────────────────────
-// OS TRES NIVEIS DE INTELIGENCIA
-//
-// As secoes eram organizadas por TIPO DE ARTEFATO — "Inteligencia & Analise",
-// "Dados & Relatorios", "Brasil Estrategico" — e isso agrupava coisas que nao
-// se parecem em uso. O Clipping Diario e a tela de Ameacas Ciberneticas
-// estavam lado a lado, mas respondem perguntas de altitude completamente
-// diferente: um da o panorama do pais, o outro nomeia uma prefeitura invadida.
-//
-// A doutrina de inteligencia ja separa isso ha decadas, e a separacao e util
-// porque corresponde a QUEM PERGUNTA e a QUE DECISAO a resposta serve:
-//
-//   ESTRATEGICO   O quadro do pais. Horizonte longo, agregado, sem nome
-//                 proprio. Responde "como esta o Brasil" — cobertura por
-//                 pais, gasto de defesa, base industrial, legislacao em
-//                 tramitacao. Serve a quem decide postura, orcamento, politica.
-//
-//   TATICO        Setores e areas. Horizonte medio. Responde "o que esta
-//                 acontecendo NESTE setor, NESTA regiao" — o clipping
-//                 consolidado, as correlacoes, a procedencia das fontes.
-//                 Serve a quem acompanha um recorte.
-//
-//   OPERACIONAL   O incidente. Horizonte curto, com nome proprio e data.
-//                 Responde "o que aconteceu, com quem, quando" — a
-//                 organizacao brasileira invadida, o grupo que reivindicou,
-//                 o orgao do Estado exposto. Serve a quem age hoje.
-//
-// A mesma materia pode aparecer nos tres, em profundidades diferentes. Nao e
-// uma taxonomia de conteudo: e uma escada de altitude.
-//
-// A ORDEM NO MENU, PORÉM, SEGUE O USO, NÃO A ALTITUDE. O estratégico vinha
-// primeiro, e quem entrava achava mapa, séries e legislativo antes das
-// notícias do dia — o que quase todo mundo veio ver. Agora: notícias,
-// ataques, quadro do país. Os nomes das seções dizem o assunto, sem o jargão
-// de doutrina; o `nivel` de cada uma continua valendo por dentro.
-// ─────────────────────────────────────────────────────────────────────────────
 const NAV_SECTIONS = [
   {
     title: 'Visão geral',
     items: [
       { to: '/painel', label: 'Painel', icon: LayoutDashboard, requiresAuth: true },
-      { to: '/busca', label: 'Busca global', icon: Search, requiresAuth: true },
     ],
   },
   {
@@ -78,36 +38,15 @@ const NAV_SECTIONS = [
     title: 'Ataques cibernéticos',
     nivel: 'operacional',
     items: [
-      {
-        // Cibersegurança era a categoria mais magra do acervo — dois artigos —
-        // porque incidente cibernético raramente vira manchete. Esta tela não
-        // depende da imprensa: lê o que os próprios grupos de extorsão publicam.
-        to: '/ciberameacas', label: 'Incidentes no Brasil', icon: ShieldAlert, requiresAuth: true,
-      },
-      {
-        // Era "Atores & Vulnerabilidades", e a metade das vulnerabilidades
-        // dominava a tela com uma lista de identificadores. Ver ThreatActors:
-        // o produto aqui é QUEM ataca o Estado brasileiro, não o catálogo de
-        // falhas técnicas.
-        to: '/atores', label: 'Grupos contra o Brasil', icon: Crosshair, requiresAuth: true,
-      },
+      { to: '/ciberameacas', label: 'Incidentes no Brasil', icon: ShieldAlert, requiresAuth: true },
+      { to: '/atores', label: 'Grupos contra o Brasil', icon: Crosshair, requiresAuth: true },
     ],
   },
   {
     title: 'O quadro do país',
     nivel: 'estrategico',
     items: [
-      // O MAPA GANHOU PAGINA PROPRIA e abre o nivel estrategico.
-      //
-      // Ele vivia dentro de uma aba de "Dados & Graficos", entre um grafico de
-      // barras e um comparativo de PIB — enterrado como se fosse mais um
-      // grafico. E a peca que melhor responde a pergunta estrategica ("o que o
-      // mundo esta dizendo, e o que isso tem a ver com o Brasil"), e a unica
-      // que cruza duas fontes independentes pelo codigo ISO.
       { to: '/mapa', label: 'Mapa estratégico', icon: Globe2, requiresAuth: true },
-      // O MAPA CONTA O RECORTE BRASIL; ESTA ÁREA CONTA O MUNDO. Estados Unidos,
-      // guerras e teatros em curso — o que a lente de defesa do Brasil
-      // descartava na entrada e a lente internacional passou a gravar.
       { to: '/mundo', label: 'Mundo & Conflitos', icon: Swords, requiresAuth: true },
       { to: '/economia', label: 'Economia & Defesa', icon: DollarSign, requiresAuth: true },
       { to: '/industria', label: 'Indústria de defesa', icon: Factory, requiresAuth: true },
@@ -119,12 +58,7 @@ const NAV_SECTIONS = [
     title: 'Recursos',
     items: [
       { to: '/aprender', label: 'Centro Educacional', icon: GraduationCap },
-      // A página pública. Ficava no topo, ao lado de "Painel", e as duas
-      // pareciam a mesma coisa para quem já entrou.
       { to: '/', label: 'Página inicial', icon: Home, end: true },
-      // A régua de cada número fica a um clique de onde o número aparece: sem
-      // isso, "Como a plataforma decide" só existiria para quem chegasse pelo
-      // rodapé.
       { to: '/metodologia', label: 'Como decidimos', icon: Scale },
       { to: '/apresentacao', label: 'Apresentação', icon: Tv, requiresAuth: true },
     ],
@@ -136,9 +70,6 @@ const NAV_SECTIONS = [
     items: [
       { to: '/admin', label: 'Console de Governança', icon: ShieldCheck, requiresAuth: true, capability: 'admin.access', hideWithout: true },
       { to: '/coleta', label: 'Método & Coleta', icon: FlaskConical, requiresAuth: true, capability: 'collection.monitor', hideWithout: true },
-      // Era "Confiabilidade das Fontes" no nível tático. O número exibido é
-      // disponibilidade — quantas vezes a fonte respondeu —, não juízo sobre o
-      // veículo, e a rota por trás exige administrador.
       { to: '/fontes', label: 'Disponibilidade das Fontes', icon: BadgeCheck, requiresAuth: true, capability: 'sources.reliability', hideWithout: true },
     ],
   },
@@ -209,32 +140,42 @@ export default function Sidebar({ open, onClose, collapsed }) {
               </div>
             </div>
           ))}
-        </nav>
 
-        <div className="space-y-1 border-t border-gray-200 p-3 dark:border-white/[0.06]">
-          {isAuthenticated && (
-            <button
-              type="button"
-              onClick={() => { onClose?.(); useUiStore.getState().abrirInteresses() }}
-              title={collapsed ? 'Personalizar interesses' : undefined}
-              aria-label={collapsed ? 'Personalizar interesses' : undefined}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/[0.04] dark:hover:text-gray-100"
-            >
-              <Star size={18} className="shrink-0" />
-              {!collapsed && <span className="flex-1 truncate">Personalizar interesses</span>}
-            </button>
-          )}
-          {BOTTOM_NAV.map((item) => (
-            <Item
-              key={item.to}
-              item={item}
-              collapsed={collapsed}
-              onClick={onClose}
-              locked={item.requiresAuth && !isAuthenticated}
-              restricted={isAuthenticated && item.capability && !can(item.capability)}
-            />
-          ))}
-        </div>
+          {/* Conta e ajuda entram na mesma lista rolável: presas ao pé, elas
+            * escondiam as últimas seções do menu em telas de notebook. */}
+          <div>
+            {!collapsed && (
+              <p className="px-3 pb-1 pt-1 text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                Sua conta
+              </p>
+            )}
+            {collapsed && <div className="mx-3 mb-1 border-t border-gray-200 dark:border-white/[0.06]" />}
+            <div className="space-y-0.5">
+              {isAuthenticated && (
+                <button
+                  type="button"
+                  onClick={() => { onClose?.(); useUiStore.getState().abrirInteresses() }}
+                  title={collapsed ? 'Personalizar interesses' : undefined}
+                  aria-label={collapsed ? 'Personalizar interesses' : undefined}
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/[0.04] dark:hover:text-gray-100"
+                >
+                  <Star size={18} className="shrink-0" />
+                  {!collapsed && <span className="flex-1 truncate">Personalizar interesses</span>}
+                </button>
+              )}
+              {BOTTOM_NAV.map((item) => (
+                <Item
+                  key={item.to}
+                  item={item}
+                  collapsed={collapsed}
+                  onClick={onClose}
+                  locked={item.requiresAuth && !isAuthenticated}
+                  restricted={isAuthenticated && item.capability && !can(item.capability)}
+                />
+              ))}
+            </div>
+          </div>
+        </nav>
       </aside>
     </>
   )

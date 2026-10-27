@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import {
   Menu, Bell, Moon, Sun, LogIn, LogOut, User, PanelLeftClose, PanelLeft,
-  UserCog, Settings as SettingsIcon, ShieldCheck, ClipboardList, Search, Star,
+  UserCog, Settings as SettingsIcon, ShieldCheck, ClipboardList, Search, Star, ChevronDown,
 } from 'lucide-react'
 import SearchBar from '../ui/SearchBar'
 import Badge from '../ui/Badge'
@@ -218,17 +218,19 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
               >
                 {initials || <User size={16} />}
               </span>
-              <span className="hidden text-left md:block">
-                <span className="block text-sm font-medium leading-tight">{user?.name}</span>
-                <span className="block font-mono text-[10px] muted">{user?.username}</span>
+              <span className="hidden max-w-[10rem] truncate text-sm font-medium md:block">
+                {user?.name || user?.username}
               </span>
+              <ChevronDown size={14} className="hidden muted md:block" aria-hidden="true" />
             </button>
 
             {userOpen && (
               <div className="card absolute right-0 z-40 mt-2 w-72 origin-top-right animate-scale-in p-2 shadow-dropdown">
                 <div className="px-2 py-1.5">
                   <p className="text-sm font-semibold">{user?.name}</p>
-                  <p className="truncate font-mono text-xs muted">{user?.username}</p>
+                  {user?.username && user.username !== user.name && (
+                    <p className="truncate font-mono text-xs muted">@{user.username}</p>
+                  )}
                   {can('admin.access') && (
                     <span
                       className="mt-1.5 inline-block rounded px-1.5 py-0.5 text-[10px] font-bold uppercase text-white"

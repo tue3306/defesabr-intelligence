@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  Shield, Newspaper, Link2, ShieldAlert, Bell, LifeBuoy, Command, ArrowRight, ArrowLeft, Check, Star,
+  Shield, Newspaper, LifeBuoy, Compass, ArrowRight, ArrowLeft, Check, Star,
 } from 'lucide-react'
 import Modal from './Modal'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -11,59 +11,33 @@ import { useUiStore } from '../../store/uiStore'
 // -----------------------------------------------------------------------------
 // BOAS-VINDAS — o primeiro contato de uma conta de usuário.
 //
-// O tour anterior apresentava telas que não existem mais — "Programas
-// Estratégicos (PROSUB, Gripen, Tamandaré…)", "balança militar regional",
-// "vídeo-aulas" —, dizia "Nada aqui é resumido por IA" numa plataforma com
-// assistente por IA, e chamava a busca de "Pergunte ao Analista". E abria
-// também para o administrador, que não é o público dele.
-//
-// Cada passo agora descreve uma tela que abre, e o último aponta para o guia,
-// que continua disponível depois que este modal fecha.
+// Quatro passos: o que é, por onde começar, o que personalizar e onde pedir
+// ajuda. Cada tela do menu é apresentada pela visita guiada, oferecida no
+// último passo — aqui não cabe um tour de cada página.
 // -----------------------------------------------------------------------------
 const STEPS = [
   {
     icon: Shield,
     title: 'Bem-vindo ao DefesaBR Intelligence',
-    text: 'Segurança e Defesa do Brasil a partir de fontes públicas: cerca de 60 fontes de notícia do Brasil e do mundo, a Câmara, o Banco Central, o Comex Stat e os sites onde grupos de extorsão divulgam vítimas. Cada número mostra de onde veio.',
+    text: 'Reunimos, num lugar só, o que sai sobre segurança e defesa do Brasil: jornais, órgãos oficiais e os sites onde criminosos divulgam vazamentos. Tudo coletado a cada 15 minutos, sempre com a fonte.',
   },
   {
     icon: Newspaper,
-    title: 'Painel e Notícias do dia',
-    text: 'O painel resume o acervo e o nível de alerta dos últimos 7 dias — a média da urgência das matérias. As Notícias do dia agrupam o mesmo fato coberto por vários veículos e mostram a regra do filtro que aprovou cada um.',
-    link: { to: '/clipping', label: 'Abrir o clipping' },
+    title: 'Comece pelas Notícias do dia',
+    text: 'É o resumo do que saiu hoje, separado por assunto e por urgência. Quando algo é grave, o sino no topo avisa — e o crítico aparece na tela.',
+    link: { to: '/clipping', label: 'Abrir as Notícias do dia' },
   },
-  {
-    icon: Link2,
-    title: 'Correlações',
-    text: 'Cada matéria é cruzada com as organizações brasileiras atacadas e os grupos do acervo, por regras fixas e com a evidência literal à vista. Correlação não é causalidade — e a tela diz isso.',
-    link: { to: '/correlacoes', label: 'Ver as correlações' },
-  },
-  {
-    icon: ShieldAlert,
-    title: 'Ameaças cibernéticas',
-    text: 'Incidentes no Brasil lista as organizações divulgadas por grupos de extorsão; Grupos contra o Brasil mostra quem ataca e como entra, com as técnicas mapeadas.',
-    link: { to: '/ciberameacas', label: 'Ver os incidentes' },
-  },
-  {
-    icon: Bell,
-    title: 'Notificações',
-    text: 'A cada coleta, matéria urgente e ataque a organização brasileira viram aviso. O sino no topo mostra quantos estão por ler, e o que você lê fica marcado na sua conta.',
-    link: { to: '/notificacoes', label: 'Abrir as notificações' },
-  },
-  // O tour apresentava cada tela e não dizia que dá para escolher o que se
-  // vê. É a única decisão que muda o conteúdo — e quem não sabe que existe
-  // recebe a mesma lista de todo mundo para sempre.
   {
     icon: Star,
     title: 'Escolha seus assuntos',
-    text: 'Marque as áreas que você acompanha — Forças Armadas, Cibersegurança, Fronteiras e outras. No painel, as matérias delas sobem para o topo; nas Notícias do dia, um botão mostra só elas. Dá para mudar quando quiser, pelo menu com o seu nome.',
+    text: 'Marque as áreas que você acompanha — Forças Armadas, Cibersegurança, Fronteiras e outras — e as notícias delas aparecem primeiro. Dá para mudar quando quiser.',
     interesses: true,
   },
   {
     icon: LifeBuoy,
     title: 'Ajuda sempre à mão',
-    text: 'O botão de boia, no canto inferior direito, abre o guia da plataforma — por onde começar, o que cada tela faz e o que ela não faz. Ctrl + K abre a busca rápida em qualquer página.',
-    atalho: true,
+    text: 'A visita guiada mostra cada tela em 2 minutos. Depois, o botão de boia no canto inferior direito abre o guia, e Ctrl + K abre a busca rápida em qualquer página.',
+    visita: true,
   },
 ]
 
@@ -126,10 +100,14 @@ export default function OnboardingModal() {
             Escolher agora <ArrowRight size={14} aria-hidden="true" />
           </button>
         )}
-        {s.atalho && (
-          <div className="mx-auto mt-3 inline-flex items-center gap-1.5 rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-semibold dark:bg-white/5">
-            <Command size={13} /> Ctrl + K
-          </div>
+        {s.visita && (
+          <button
+            type="button"
+            onClick={() => { finish(); useUiStore.getState().abrirVisita() }}
+            className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:underline dark:text-brand-300"
+          >
+            <Compass size={14} aria-hidden="true" /> Fazer a visita guiada
+          </button>
         )}
 
         <div className="mt-5 flex items-center justify-center gap-2" aria-hidden="true">
