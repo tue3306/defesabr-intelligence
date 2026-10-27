@@ -478,6 +478,43 @@ router.delete('/auth/me', exigirPapel('user'), limitar({ max: 5, janelaMs: 10 * 
   } catch (err) { next(err) }
 })
 
+// GET /api/auth/me/dados — tudo o que a plataforma guarda sobre a conta
+//
+// Acesso e portabilidade (LGPD, art. 18): o titular baixa os próprios dados em
+// JSON. Hash e sal da senha ficam de fora — não são informação sobre a pessoa e
+// só serviriam a quem quisesse quebrar a senha.
+router.get('/auth/me/dados', exigirPapel('user'), limitar({ max: 10, janelaMs: 10 * 60_000, porConta: true }), async (req, res, next) => {
+  try {
+    const conta = await contaDaSessao(req, res)
+    if (!conta) return
+    const [pasta, avisos, atos] = await Promise.all([
+      all(
+        `SELECT a.title, a.url, b.created_at AS saved_at, b.note
+           FROM bookmarks b JOIN articles a ON a.id = b.article_id
+          WHERE b.client_id = ? ORDER BY b.created_at DESC`,
+        [`conta:${conta.id}`],
+      ),
+      all(
+        `SELECT n.title, n.level, s.read_at, s.dismissed_at
+           FROM notification_state s JOIN notifications n ON n.id = s.notification_id
+          WHERE s.user_id = ? ORDER BY n.id DESC`,
+        [conta.id],
+      ),
+      all('SELECT created_at, action, target FROM audit_log WHERE actor_id = ? ORDER BY id DESC', [conta.id]),
+    ])
+    res.set('Content-Disposition', 'attachment; filename="meus-dados-defesabr.json"')
+    res.set('Cache-Control', 'no-store')
+    res.json({
+      geradoEm: agora(),
+      conta: { ...publico(conta), plan: conta.plan },
+      pasta: pasta.map((p) => ({ titulo: p.title, url: p.url, salvaEm: p.saved_at, nota: p.note })),
+      avisos: avisos.map((n) => ({ titulo: n.title, nivel: n.level, lidoEm: n.read_at, dispensadoEm: n.dismissed_at })),
+      atosRegistradosNaAuditoria: atos.map((a) => ({ em: a.created_at, acao: a.action, alvo: a.target })),
+      observacao: 'Preferências de tela (tema, áreas de interesse) ficam só no seu navegador, não no servidor.',
+    })
+  } catch (err) { next(err) }
+})
+
 // ─────────────────────────────────────────────────────────────────────────────
 // GOVERNANÇA DE CONTAS (administrador)
 //

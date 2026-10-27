@@ -6,7 +6,9 @@ import { coberturaPorPais } from '../../hooks/useVitrineReal'
 import CountryDossier from './CountryDossier'
 import { plural } from '../../utils/textUtils'
 
-const geoUrl = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json'
+// Contornos dos países (world-atlas 2.0.2, dados Natural Earth), servidos pelo
+// próprio site para nenhum terceiro receber o IP de quem abre o mapa.
+const geoUrl = `${import.meta.env.BASE_URL}geo/countries-110m.json`
 
 // Havia aqui um `ACTIVITY_BY_NAME`: catorze países com "intensidade" de 0 a
 // 100 escrita à mão, que pintava o mapa quando a API não respondia — junto com

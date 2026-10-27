@@ -7,6 +7,22 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Não publicado]
 
+### Segurança e LGPD
+
+- **Dependências sem vulnerabilidade conhecida** (`npm audit`: 0 na raiz e no
+  servidor): DOMPurify 3.4.17 (crítica, via jsPDF), proxy-addr 2.0.8 (crítica)
+  e body-parser 1.20.9 (alta) atualizados; `zod` forçado para 4.6.7 dentro do
+  `@vercel/functions`; Vite 5 → 6.4.5 (falhas só do servidor de desenvolvimento).
+- **Nenhum terceiro no navegador**: fonte Inter e atlas do mapa servidos pelo
+  próprio site (antes Google Fonts e jsDelivr recebiam o IP de todo visitante).
+  CSP fechada em `'self'` para estilo, fonte, imagem e `fetch`.
+- **Baixar meus dados** (acesso e portabilidade): `GET /api/auth/me/dados` e
+  botão em Minha conta → Segurança, em JSON, sem hash nem sal da senha.
+- **IP no limite de tentativas** gravado só como resumo SHA-256, não em texto.
+- **Privacidade**: responsável e e-mail para os titulares, operadores (Vercel e
+  Supabase) e possível armazenamento fora do Brasil; texto do IP corrigido.
+- `/.well-known/security.txt` e e-mail de contato no SECURITY.md.
+
 ### Coleta a cada 5 minutos e telas que se atualizam sozinhas
 
 - Ciclo de coleta de **15 para 5 minutos**: padrão de `COLLECT_INTERVAL_MINUTES`

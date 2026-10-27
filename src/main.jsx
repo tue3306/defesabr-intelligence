@@ -3,6 +3,13 @@ import ReactDOM from 'react-dom/client'
 import { HashRouter } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import App from './App.jsx'
+// Fonte servida pelo próprio site: carregar do Google Fonts entregava o IP de
+// todo visitante a um terceiro (ver a página de Privacidade).
+import '@fontsource/inter/latin-400.css'
+import '@fontsource/inter/latin-500.css'
+import '@fontsource/inter/latin-600.css'
+import '@fontsource/inter/latin-700.css'
+import '@fontsource/inter/latin-800.css'
 import './index.css'
 
 // HashRouter e usado para compatibilidade com GitHub Pages (sem servidor

@@ -22,7 +22,7 @@ Relatos responsáveis são bem-vindos.
 
 1. Use o canal privado do GitHub em **Security → Report a vulnerability**
    ([Private Vulnerability Reporting](https://github.com/tue3306/defesabr-intelligence/security/advisories/new)), ou
-2. Entre em contato de forma privada com o mantenedor.
+2. Escreva para o mantenedor em **hoffmann3701@gmail.com**.
 
 Inclua, sempre que possível:
 
@@ -77,8 +77,8 @@ conteúdo coletado de feeds, e dependências vulneráveis.
 Toda resposta sai com `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
 `Referrer-Policy` e `Permissions-Policy`. Em produção, também com:
 
-- **Content-Security-Policy** — só scripts desta origem; estilos e fontes do
-  Google Fonts; `fetch` só para esta origem e para o jsDelivr (o atlas do mapa);
+- **Content-Security-Policy** — scripts, estilos, fontes, imagens e `fetch` só
+  desta origem (a fonte Inter e o atlas do mapa são servidos pelo próprio site);
   `object-src 'none'`, `frame-ancestors 'none'`. Nenhum script de terceiro roda
   onde mora o token de sessão. Conferida servindo o `dist/` com
   `NODE_ENV=production`: mapa, fontes, gráficos e exportação CSV sem nenhuma

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
-import { User, Shield, Check, LogOut, KeyRound, Loader2, Trash2, UserCircle } from 'lucide-react'
+import { User, Shield, Check, LogOut, KeyRound, Loader2, Trash2, UserCircle, Download } from 'lucide-react'
 import { useNavigate, Link } from 'react-router-dom'
 import PageHeader from '../components/ui/PageHeader'
 import { useAuthStore } from '../store/authStore'
 import { ROLE_LABELS } from '../auth/permissions'
 import { formatDateTimeBR } from '../utils/dateUtils'
+import { API_BASE_URL } from '../services/config'
 
 // -----------------------------------------------------------------------------
 // MINHA CONTA — o que muda aqui muda no servidor: nome (`PATCH /api/auth/me`)
@@ -156,6 +157,7 @@ function SecurityTab() {
         </button>
       </Card>
 
+      <BaixarMeusDados />
       <ExcluirConta />
     </div>
   )
@@ -163,6 +165,42 @@ function SecurityTab() {
 
 // EXCLUIR A PRÓPRIA CONTA (direito de eliminação da LGPD), com duas travas
 // contra o clique acidental: a senha e a confirmação digitada.
+// Acesso e portabilidade (LGPD): o arquivo vem do servidor com tudo o que ele guarda da conta.
+function BaixarMeusDados() {
+  const token = useAuthStore((s) => s.token)
+  const [baixando, setBaixando] = useState(false)
+
+  const baixar = async () => {
+    setBaixando(true)
+    try {
+      const r = await fetch(`${API_BASE_URL}/api/auth/me/dados`, { headers: { Authorization: `Bearer ${token}` } })
+      if (!r.ok) throw new Error()
+      const url = URL.createObjectURL(await r.blob())
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'meus-dados-defesabr.json'
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      toast.error('Não foi possível gerar o arquivo. Tente de novo em alguns minutos.')
+    } finally {
+      setBaixando(false)
+    }
+  }
+
+  return (
+    <Card
+      title="Baixar meus dados"
+      desc="Um arquivo com tudo o que o servidor guarda sobre você: conta, pasta e avisos. Formato JSON, que qualquer editor de texto abre."
+    >
+      <button type="button" onClick={baixar} disabled={baixando} className="btn-ghost text-sm">
+        {baixando ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <Download size={15} aria-hidden="true" />}
+        Baixar meus dados
+      </button>
+    </Card>
+  )
+}
+
 function ExcluirConta() {
   const user = useAuthStore((s) => s.user)
   const excluirConta = useAuthStore((s) => s.excluirConta)

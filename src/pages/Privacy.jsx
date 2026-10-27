@@ -5,6 +5,7 @@ import {
   ShieldCheck, Database, Cookie, UserCheck, Globe, Trash2, Mail, Info, Server, HardDrive, Scale,
 } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
+import { RESPONSAVEL } from '../data/responsavel'
 
 // -----------------------------------------------------------------------------
 // PRIVACIDADE E LGPD
@@ -23,10 +24,10 @@ import { useAuthStore } from '../store/authStore'
 //   audit_log         atos de governança, com o nome de quem agiu
 //   localStorage      sessão (defesabr-auth-v5), preferências
 //                     (defesabr-settings-v3) e pasta local (defesabr-news-v2)
-//   memória           IP de quem chama, no teto de tentativas (lib/limite.js),
-//                     apagado quando a janela expira
-//   terceiros         Google Fonts (index.html) e jsDelivr, que serve o mapa
-//                     (GlobalHeatmap.jsx) — os dois recebem o IP do visitante
+//   limite_tentativas resumo SHA-256 do IP no teto de tentativas (lib/limite.js),
+//                     apagado quando a janela vence
+//   operadores        Vercel (hospedagem) e Supabase (banco). Fontes e mapa são
+//                     servidos pelo próprio site: nenhum terceiro no navegador
 //
 // O que NÃO existe, e por isso não aparece: analytics, pixel de rede social,
 // cookie de publicidade, venda de dado, perfilamento e qualquer chamada a
@@ -109,10 +110,10 @@ const ARMAZENADO = [
 ]
 
 const DIREITOS = [
-  { titulo: 'Confirmação e acesso', texto: 'Saber se tratamos dados seus e receber uma cópia deles.' },
+  { titulo: 'Confirmação e acesso', texto: 'Saber se tratamos dados seus e receber uma cópia deles: em Minha conta → Segurança → Baixar meus dados.' },
   { titulo: 'Correção', texto: 'Corrigir dado incompleto ou errado — o nome de exibição você troca sozinho, em Minha conta.' },
   { titulo: 'Eliminação', texto: 'Excluir a conta você mesmo, em Minha conta → Segurança → Excluir conta. Vão junto a pasta e o estado das notificações.' },
-  { titulo: 'Portabilidade', texto: 'Receber seus dados em formato aberto. A plataforma já exporta clipping em PDF e séries em CSV.' },
+  { titulo: 'Portabilidade', texto: 'Receber seus dados em formato aberto: o mesmo arquivo de Baixar meus dados, em JSON.' },
   { titulo: 'Informação sobre compartilhamento', texto: 'Saber com quem os dados são compartilhados — a resposta está na seção de terceiros, abaixo.' },
   { titulo: 'Revogação do consentimento', texto: 'Deixar de usar a plataforma e pedir a exclusão a qualquer momento, sem justificar.' },
 ]
@@ -157,7 +158,7 @@ export default function Privacy() {
         <p className="mt-3 rounded-lg bg-brand-500/10 p-3 text-sm leading-relaxed text-gray-800 dark:text-gray-200">
           <strong>Resumo em três linhas:</strong> esta plataforma coleta o mínimo para você ter uma conta
           e uma pasta de leitura. Não usa rastreadores, não usa cookies de publicidade, não vende nada e
-          não compartilha seus dados com ninguém. Todo o código é aberto, então qualquer afirmação desta
+          não repassa seus dados a ninguém além dos dois prestadores que hospedam o site. Todo o código é aberto, então qualquer afirmação desta
           página pode ser conferida.
         </p>
       </header>
@@ -209,13 +210,17 @@ export default function Privacy() {
 
       <Bloco icon={Globe} titulo="Terceiros que recebem alguma informação">
         <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
-          Duas partes do site carregam arquivos de fora. Como todo carregamento na internet, elas veem o
-          seu endereço IP e o tipo do seu navegador. Nenhuma recebe dados da sua conta:
+          O seu navegador <strong>não carrega nada de terceiros</strong>: a fonte das letras e o desenho
+          do mapa são servidos pelo próprio site. Os dados ficam com dois prestadores, que os guardam em
+          nome da plataforma (operadores, na linguagem da LGPD) e não os usam para nada próprio:
         </p>
         <ul className="mt-2 space-y-1.5 text-sm text-gray-700 dark:text-gray-300">
-          <li>• <strong>Google Fonts</strong> — a fonte tipográfica das telas.</li>
-          <li>• <strong>jsDelivr</strong> — o desenho do mapa-múndi (contornos dos países).</li>
+          <li>• <strong>Vercel</strong> — hospeda o site e o servidor.</li>
+          <li>• <strong>Supabase</strong> — guarda o banco de dados (conta, pasta e avisos).</li>
         </ul>
+        <p className="mt-3 text-sm leading-relaxed text-gray-700 dark:text-gray-300">
+          As duas são empresas estrangeiras, então os dados podem ficar armazenados fora do Brasil.
+        </p>
         <p className="mt-3 text-sm leading-relaxed text-gray-700 dark:text-gray-300">
           As <strong>fontes de notícia</strong> (jornais, órgãos públicos, APIs) são lidas pelo
           <strong> servidor</strong>, nunca pelo seu navegador: os sites de origem não sabem que você
@@ -227,7 +232,7 @@ export default function Privacy() {
       <Bloco icon={Server} titulo="Por quanto tempo, e onde">
         <ul className="space-y-1.5 text-sm text-gray-700 dark:text-gray-300">
           <li>• <strong>Conta, pasta e estado de avisos:</strong> enquanto a conta existir. Excluiu, apagou.</li>
-          <li>• <strong>IP no controle de tentativas:</strong> minutos, só em memória.</li>
+          <li>• <strong>Endereço IP no controle de tentativas:</strong> guardado só como código irreversível (resumo SHA-256), nunca em texto, e apagado quando a janela de bloqueio vence — de minutos.</li>
           <li>• <strong>Trilha de auditoria:</strong> registra atos de administração (criar, suspender, remover conta) com o nome de quem agiu — é o que permite auditar o uso de poder na plataforma.</li>
           <li>• <strong>Acervo de notícias:</strong> não é dado pessoal seu; é conteúdo público coletado das fontes.</li>
         </ul>
@@ -245,11 +250,13 @@ export default function Privacy() {
         <p className="mt-3 flex items-start gap-2 rounded-lg bg-brand-500/10 p-3 text-sm leading-relaxed text-gray-800 dark:text-gray-200">
           <Mail size={16} className="mt-0.5 shrink-0" />
           <span>
-            Excluir a conta você faz sozinho, em{' '}
+            Baixar os seus dados e excluir a conta você faz sozinho, em{' '}
             <Link to="/conta" className="font-semibold text-brand-500 hover:underline dark:text-brand-400">Minha conta</Link>{' '}
-            (aba Segurança). Para os outros direitos, fale com quem opera esta instalação — a página{' '}
-            <Link to="/sobre" className="font-semibold text-brand-500 hover:underline dark:text-brand-400">Sobre</Link>{' '}
-            traz o contato e o repositório.
+            (aba Segurança). Para os outros direitos, ou para qualquer dúvida sobre os seus dados, escreva
+            para o responsável:{' '}
+            <a href={`mailto:${RESPONSAVEL.email}`} className="font-semibold text-brand-500 hover:underline dark:text-brand-400">
+              {RESPONSAVEL.email}
+            </a>.
           </span>
         </p>
       </Bloco>
@@ -262,9 +269,12 @@ export default function Privacy() {
             sistema faz com dados — e cada afirmação pode ser conferida no código. Ela <strong>não é um
             atestado de conformidade integral com a LGPD</strong>: conformidade jurídica depende de
             análise específica do contexto de uso, feita por profissional habilitado. Este é um projeto
-            acadêmico e de código aberto, sem empresa por trás e sem encarregado de dados (DPO)
-            formalmente nomeado; quem for usá-lo em ambiente institucional deve nomear um e revisar
-            este texto.
+            acadêmico e de código aberto, mantido por{' '}
+            <a href={RESPONSAVEL.githubUrl} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline">
+              {RESPONSAVEL.github}
+            </a>
+            , que é o responsável pelo tratamento e atende os titulares pelo e-mail acima. Quem for usá-lo
+            em ambiente institucional deve revisar este texto.
           </span>
         </p>
       </div>

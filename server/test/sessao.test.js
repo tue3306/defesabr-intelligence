@@ -5,7 +5,7 @@ import { bancoLimpo } from './ajuda.js'
 const { default: express } = await import('express')
 const { run, get, fecharBanco } = await import('../src/db/index.js')
 const { resolverSegredo } = await import('../src/lib/segredo.js')
-const { limitar, apagarJanelasVencidas } = await import('../src/lib/limite.js')
+const { limitar, apagarJanelasVencidas, chaveDeIp } = await import('../src/lib/limite.js')
 const { emitirToken, lerConta } = await import('../src/lib/auth.js')
 
 let servidor
@@ -72,7 +72,7 @@ test('o teto lê o que está gravado em limite_tentativas', async () => {
   const expira = Date.now() + 60_000
   await run(
     'INSERT INTO limite_tentativas (chave, contagem, expira) VALUES (?, 5, ?)',
-    ['203.0.113.50:/semeada', expira],
+    [`${chaveDeIp('203.0.113.50')}:/semeada`, expira],
   )
   const r = await fetch(`${base}/semeada`, { headers: { 'X-Forwarded-For': '203.0.113.50' } })
   assert.equal(r.status, 429)

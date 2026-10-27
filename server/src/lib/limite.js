@@ -30,6 +30,7 @@
 // ferramenta do ataque.
 // -----------------------------------------------------------------------------
 
+import { createHash } from 'node:crypto'
 import { waitUntil } from '@vercel/functions'
 import { get, run } from '../db/index.js'
 
@@ -46,6 +47,12 @@ import { get, run } from '../db/index.js'
 function ipDe(req) {
   return req.ip || req.socket?.remoteAddress || 'desconhecido'
 }
+
+/**
+ * O IP entra no banco como resumo SHA-256, não em texto: o contador só precisa
+ * reconhecer o mesmo endereço dentro da janela, não saber qual é (LGPD, art. 6º, III).
+ */
+export const chaveDeIp = (ip) => `ip:${createHash('sha256').update(`defesabr-limite:${ip}`).digest('hex').slice(0, 32)}`
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POR IP OU POR CONTA — E A ESCOLHA DEPENDE DO QUE SE PROTEGE
@@ -66,7 +73,7 @@ function ipDe(req) {
 // ─────────────────────────────────────────────────────────────────────────────
 function chave(req, porConta) {
   if (porConta && req.conta?.sub) return `conta:${req.conta.sub}`
-  return ipDe(req)
+  return chaveDeIp(ipDe(req))
 }
 
 /**
