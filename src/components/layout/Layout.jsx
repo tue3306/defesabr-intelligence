@@ -11,13 +11,11 @@ import CommandPalette from '../ui/CommandPalette'
 import PersonalizarInteresses from '../interesses/PersonalizarInteresses'
 import VisitaGuiada from '../painel/VisitaGuiada'
 import ErrorBoundary from '../system/ErrorBoundary'
-import { useT } from '../../i18n'
 import { useLiveNotifications } from '../../hooks/useLiveNotifications'
 
 const COLLAPSE_KEY = 'defesabr-sidebar-collapsed'
 
 export default function Layout() {
-  const t = useT()
   const [mobileOpen, setMobileOpen] = useState(false)
   // A preferência de menu recolhido acompanha a pessoa entre sessões.
   const [collapsed, setCollapsed] = useState(() => {
@@ -66,7 +64,7 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen">
-      <a href="#conteudo" className="skip-link">{t('Pular para o conteúdo')}</a>
+      <a href="#conteudo" className="skip-link">Pular para o conteúdo</a>
 
       <ErrorBoundary scope="Menu lateral" variant="inline">
         <Sidebar open={mobileOpen} onClose={() => setMobileOpen(false)} collapsed={collapsed} />

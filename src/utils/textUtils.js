@@ -1,4 +1,3 @@
-import { t, num } from '../i18n'
 export function clipboard(text) {
   if (navigator?.clipboard?.writeText) return navigator.clipboard.writeText(text)
   return Promise.reject(new Error('Área de transferência indisponível'))
@@ -125,9 +124,8 @@ export const setorPt = (nome) => (nome && SETORES_PT[nome]) || nome
  * "1 notícia", "3 notícias" — em vez de "3 notícia(s)", que obriga quem lê a
  * fazer a concordância que a tela deveria ter feito.
  */
-// As palavras são passadas em português e traduzidas pelo dicionário.
 export const plural = (n, singular, pluralForm = `${singular}s`) =>
-  `${num(n)} ${n === 1 ? t(singular) : t(pluralForm)}`
+  `${Number(n).toLocaleString('pt-BR')} ${n === 1 ? singular : pluralForm}`
 
 const semAcento = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
   .replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim()

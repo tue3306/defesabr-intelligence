@@ -13,11 +13,8 @@ import { useUiStore } from '../../store/uiStore'
 import { useCan, useProfileMeta } from '../../auth/useCan'
 import { useTheme } from '../../hooks/useTheme'
 import { timeAgo } from '../../utils/dateUtils'
-import SeletorIdioma from '../ui/SeletorIdioma'
-import { useT } from '../../i18n'
 
 export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) {
-  const t = useT()
   const navigate = useNavigate()
   const { isDark, toggleTheme } = useTheme()
   const { user, isAuthenticated, logout } = useAuthStore()
@@ -66,21 +63,21 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
         onClick={onToggleMobile}
         data-tour="menu-botao"
         className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 lg:hidden"
-        aria-label={t('Abrir menu de navegação')}
+        aria-label="Abrir menu de navegação"
       >
         <Menu size={20} />
       </button>
       <button
         onClick={onToggleCollapse}
         className="hidden rounded-lg p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 lg:inline-flex"
-        aria-label={collapsed ? t('Expandir menu lateral') : t('Recolher menu lateral')}
+        aria-label={collapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'}
       >
         {collapsed ? <PanelLeft size={20} /> : <PanelLeftClose size={20} />}
       </button>
 
       <div className="hidden max-w-md flex-1 sm:block">
         <SearchBar
-          placeholder={t('Buscar telas, notícias e projetos (Ctrl + K)')}
+          placeholder="Buscar telas, notícias e projetos (Ctrl + K)"
           onSearch={(q) => navigate(q ? `/busca?q=${encodeURIComponent(q)}` : '/busca')}
         />
       </div>
@@ -89,7 +86,7 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
       <button
         onClick={() => window.dispatchEvent(new Event('defesabr:open-palette'))}
         className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 sm:hidden"
-        aria-label={t('Abrir busca e comandos')}
+        aria-label="Abrir busca e comandos"
       >
         <Search size={20} />
       </button>
@@ -100,8 +97,8 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
           <Link
             to="/coleta"
             className="hidden rounded-lg p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 md:inline-flex"
-            aria-label={t('Método e coleta')}
-            title={t('Método & Coleta')}
+            aria-label="Método e coleta"
+            title="Método & Coleta"
           >
             <ClipboardList size={20} />
           </Link>
@@ -114,7 +111,7 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
               onClick={() => setNotifOpen((o) => !o)}
               data-tour="sino"
               className="relative rounded-lg p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10"
-              aria-label={unread ? t('Notificações ({n} não lidas)', { n: unread }) : t('Notificações')}
+              aria-label={`Notificações${unread ? ` (${unread} não lidas)` : ''}`}
               aria-expanded={notifOpen}
               aria-haspopup="true"
             >
@@ -136,23 +133,23 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
               <div className="card fixed left-3 right-3 top-[4.25rem] z-50 animate-scale-in overflow-hidden p-0 shadow-dropdown sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-80">
                 <div className="flex items-center justify-between border-b border-gray-200 px-3 py-2.5 dark:border-gray-700/40">
                   <span className="flex items-center gap-2 text-sm font-semibold">
-                    {t('Notificações')}
+                    Notificações
                     {unread > 0 && (
                       <span className="rounded-full bg-military-red/20 px-1.5 py-0.5 text-[10px] font-bold text-red-800 dark:text-red-300">
-                        {unread > 1 ? t('{n} novas', { n: unread }) : t('{n} nova', { n: unread })}
+                        {unread} nova{unread > 1 ? 's' : ''}
                       </span>
                     )}
                   </span>
                   {unread > 0 && (
                     <button onClick={markAllRead} className="text-xs font-medium text-brand-500 hover:text-brand-400 dark:text-brand-400">
-                      {t('Marcar lidas')}
+                      Marcar lidas
                     </button>
                   )}
                 </div>
                 {notifications.length === 0 ? (
                   <div className="px-3 py-10 text-center">
                     <Bell size={28} className="mx-auto mb-2 text-gray-500 dark:text-gray-400" />
-                    <p className="text-sm muted">{t('Nenhuma notificação por enquanto')}</p>
+                    <p className="text-sm muted">Nenhuma notificação por enquanto</p>
                   </div>
                 ) : (
                   <>
@@ -188,7 +185,7 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
                       onClick={() => setNotifOpen(false)}
                       className="block border-t border-gray-200 px-3 py-2.5 text-center text-sm font-semibold text-brand-500 hover:bg-gray-100 dark:border-gray-700/40 dark:text-brand-400 dark:hover:bg-white/10"
                     >
-                      {t('Ver todas as notificações')}
+                      Ver todas as notificações
                     </Link>
                   </>
                 )}
@@ -197,13 +194,11 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
           </div>
         )}
 
-        <SeletorIdioma />
-
         {/* Tema */}
         <button
           onClick={toggleTheme}
           className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10"
-          aria-label={isDark ? t('Mudar para tema claro') : t('Mudar para tema escuro')}
+          aria-label={isDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
         >
           {isDark ? <Sun size={20} /> : <Moon size={20} />}
         </button>
@@ -214,7 +209,7 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
             <button
               onClick={() => setUserOpen((o) => !o)}
               className="flex items-center gap-2 rounded-lg p-1.5 pr-3 hover:bg-gray-100 dark:hover:bg-white/10"
-              aria-label={t('Menu da conta')}
+              aria-label="Menu da conta"
               aria-expanded={userOpen}
               aria-haspopup="true"
             >
@@ -242,14 +237,14 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
                       className="mt-1.5 inline-block rounded px-1.5 py-0.5 text-[10px] font-bold uppercase text-white"
                       style={{ background: profileMeta.color }}
                     >
-                      {t('Administrador')}
+                      Administrador
                     </span>
                   )}
                 </div>
 
                 {/* Atalhos de conta */}
                 <div className="mt-1 border-t border-gray-200 pt-1 dark:border-gray-700/40">
-                  <MenuLink to="/conta" icon={UserCog} label={t('Minha conta')} onClick={() => setUserOpen(false)} />
+                  <MenuLink to="/conta" icon={UserCog} label="Minha conta" onClick={() => setUserOpen(false)} />
                   {/* O atalho que faltava: escolher os assuntos que interessam
                       era uma seção escondida dentro de Configurações. */}
                   <button
@@ -257,29 +252,29 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
                     onClick={() => { setUserOpen(false); useUiStore.getState().abrirInteresses() }}
                     className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-white/10"
                   >
-                    <Star size={15} /> {t('Personalizar interesses')}
+                    <Star size={15} /> Personalizar interesses
                   </button>
                   {can('collection.monitor') && (
-                    <MenuLink to="/coleta" icon={ClipboardList} label={t('Método & Coleta')} onClick={() => setUserOpen(false)} />
+                    <MenuLink to="/coleta" icon={ClipboardList} label="Método & Coleta" onClick={() => setUserOpen(false)} />
                   )}
                   {can('admin.access') && (
-                    <MenuLink to="/admin" icon={ShieldCheck} label={t('Console de governança')} onClick={() => setUserOpen(false)} />
+                    <MenuLink to="/admin" icon={ShieldCheck} label="Console de governança" onClick={() => setUserOpen(false)} />
                   )}
-                  <MenuLink to="/configuracoes" icon={SettingsIcon} label={t('Configurações')} onClick={() => setUserOpen(false)} />
+                  <MenuLink to="/configuracoes" icon={SettingsIcon} label="Configurações" onClick={() => setUserOpen(false)} />
                 </div>
 
                 <button
                   onClick={() => { logout(); setUserOpen(false); navigate('/') }}
                   className="mt-2 flex w-full items-center gap-2 rounded-md border-t border-gray-200 px-2 py-2 pt-3 text-sm text-gray-700 hover:bg-gray-100 dark:border-gray-700/40 dark:text-gray-200 dark:hover:bg-white/10"
                 >
-                  <LogOut size={15} /> {t('Sair da conta')}
+                  <LogOut size={15} /> Sair da conta
                 </button>
               </div>
             )}
           </div>
         ) : (
           <button onClick={() => abrirAuth('entrar')} className="btn-primary ml-1 px-3 py-1.5 text-sm">
-            <LogIn size={15} /> {t('Entrar')}
+            <LogIn size={15} /> Entrar
           </button>
         )}
       </div>
