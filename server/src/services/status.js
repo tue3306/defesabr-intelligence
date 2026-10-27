@@ -247,9 +247,10 @@ export async function capacidades() {
       id: 'coleta-comex',
       nome: 'Exportações de defesa',
       coletor: 'comex',
-      descricao: 'Exportações brasileiras por NCM do setor de defesa, pela API pública do Comex Stat.',
-      fonte: 'api-comexstat.mdic.gov.br',
-      contagem: () => contar("SELECT COUNT(*) AS n FROM indicators WHERE provider = 'comexstat'"),
+      descricao: 'Exportações brasileiras por NCM do setor de defesa, pela API pública do Comex Stat; '
+        + 'com o MDIC fora do ar, pela UN Comtrade (anos fechados reportados pelo Brasil à ONU).',
+      fonte: 'api-comexstat.mdic.gov.br · comtradeapi.un.org',
+      contagem: () => contar("SELECT COUNT(*) AS n FROM indicators WHERE provider IN ('comexstat', 'comtrade')"),
       evidencia: (t) => `${t} registro(s) de exportação`,
     }),
     await capacidadeDeColeta({

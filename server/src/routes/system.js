@@ -199,6 +199,7 @@ router.get('/meta', async (req, res) => {
       { nome: 'Dados Abertos da Câmara', tipo: 'API', url: 'https://dadosabertos.camara.leg.br' },
       { nome: 'Banco Central do Brasil — SGS', tipo: 'API', url: 'https://dadosabertos.bcb.gov.br' },
       { nome: 'Comex Stat (MDIC)', tipo: 'API', url: 'https://comexstat.mdic.gov.br' },
+      { nome: 'UN Comtrade (ONU) — reserva das exportações', tipo: 'API', url: 'https://comtradeplus.un.org' },
       { nome: 'World Bank Open Data', tipo: 'API', url: 'https://data.worldbank.org' },
       { nome: 'ransomware.live', tipo: 'API', url: 'https://www.ransomware.live' },
     ],

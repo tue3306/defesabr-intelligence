@@ -61,7 +61,8 @@ export default function DefenseIndustry() {
           <h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Indústria de defesa: exportações</h1>
           <p className="mt-2 max-w-2xl text-gray-300">
             O que o Brasil exportou nos capítulos de aeronaves e de armamento, segundo o
-            Comex Stat do Ministério do Desenvolvimento, Indústria e Comércio.
+            Comex Stat do Ministério do Desenvolvimento, Indústria e Comércio — ou, quando
+            ele está fora do ar, os mesmos totais que o Brasil reporta à ONU (UN Comtrade).
           </p>
           {/* As três siglas da tela, antes de aparecerem nos números. */}
           <dl className="mt-4 grid max-w-3xl grid-cols-1 gap-2 text-xs text-gray-300 sm:grid-cols-3">
@@ -79,7 +80,7 @@ export default function DefenseIndustry() {
           hint={
             exp.carregando
               ? 'Consultando o acervo do Comex Stat.'
-              : 'Ainda não há exportações no acervo: a coleta depende da API do Comex Stat, do MDIC, que pode estar fora do ar. A plataforma tenta de novo a cada ciclo, e os números aparecem aqui assim que a fonte responder.'
+              : 'Ainda não há exportações no acervo. A coleta tenta o Comex Stat (MDIC) e, se ele estiver fora do ar, a UN Comtrade (ONU); os números aparecem aqui na próxima coleta que der certo.'
           }
         />
       ) : (
@@ -94,6 +95,12 @@ export default function DefenseIndustry() {
               </h2>
               <Badge type={exp.aoVivo ? 'live' : 'sem-dado'} />
             </div>
+            {dados.reserva && (
+              <p className="mb-3 rounded-lg border-l-4 border-l-amber-500 bg-amber-500/5 px-3 py-2 text-xs">
+                O Comex Stat (MDIC) está fora do ar. Estes números são os anos fechados que o Brasil
+                reportou à ONU (UN Comtrade) — os mesmos totais, sem o ano corrente.
+              </p>
+            )}
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <MetricCard

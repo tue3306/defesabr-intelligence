@@ -259,18 +259,24 @@ router.get('/economy/bcb', async (req, res) => {
 })
 
 router.get('/economy/exports', async (req, res) => {
-  const linhas = await all(
+  // Comex Stat primeiro (tem o ano corrente, mês a mês); a UN Comtrade é a
+  // reserva para quando o MDIC está fora do ar — ver collectors/comex.js.
+  const ler = (provider) => all(
     `SELECT code, country, period, value
      FROM indicators
-     WHERE provider = 'comexstat'
-     ORDER BY period DESC NULLS LAST, value DESC`
+     WHERE provider = ?
+     ORDER BY period DESC NULLS LAST, value DESC`,
+    [provider],
   )
+  let linhas = await ler('comexstat')
+  const doComex = linhas.length > 0
+  if (!doComex) linhas = await ler('comtrade')
 
   if (!linhas.length) {
     return res.json({
       ano: null, periodos: [], porCapitulo: [], porPais: [], totalUSD: 0,
       provider: 'Comex Stat — MDIC',
-      nota: 'Sem dados do Comex Stat ainda — a coleta ocorre junto das demais.',
+      nota: 'Sem dados de exportação ainda — a coleta ocorre junto das demais.',
     })
   }
 
@@ -308,10 +314,14 @@ router.get('/economy/exports', async (req, res) => {
     porCapitulo,
     porPais: somaPor('country', 'pais').slice(0, 15),
     totalUSD: doAno.reduce((a, l) => a + l.value, 0),
-    provider: 'Comex Stat — MDIC',
+    provider: doComex ? 'Comex Stat — MDIC' : 'UN Comtrade (ONU), dados reportados pelo Brasil',
+    reserva: !doComex,
     nota: 'Valor FOB em dólares correntes. O capítulo 88 (aeronaves) inclui aviação CIVIL: '
-      + 'a maior parte é jato comercial da Embraer, não material militar. O ano corrente está '
-      + 'incompleto, até o último mês publicado pelo MDIC.',
+      + 'a maior parte é jato comercial da Embraer, não material militar. '
+      + (doComex
+        ? 'O ano corrente está incompleto, até o último mês publicado pelo MDIC.'
+        : 'O Comex Stat (MDIC) está fora do ar; estes são os anos fechados que o Brasil reportou '
+          + 'à ONU (UN Comtrade), os mesmos totais, sem o ano corrente.'),
   })
 })
 
