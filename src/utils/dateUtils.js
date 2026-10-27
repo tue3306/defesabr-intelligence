@@ -1,5 +1,3 @@
-import { idiomaAtual, t } from '../i18n'
-
 const MESES = [
   'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
   'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
@@ -30,21 +28,16 @@ function isValid(d) {
   return d instanceof Date && !Number.isNaN(d.getTime())
 }
 
-const ingles = () => idiomaAtual() === 'en'
-
 export function formatFullDate(date = new Date()) {
   const d = parseDate(date)
   if (!isValid(d)) return '—'
-  if (ingles()) return d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
   return `${cap(DIAS[d.getDay()])}, ${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}`
 }
 
 export function formatDateBR(date = new Date()) {
   const d = parseDate(date)
   if (!isValid(d)) return '—'
-  const dia = String(d.getDate()).padStart(2, '0')
-  const mes = String(d.getMonth() + 1).padStart(2, '0')
-  return ingles() ? `${mes}/${dia}/${d.getFullYear()}` : `${dia}/${mes}/${d.getFullYear()}`
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
 }
 
 export function formatTime(date = new Date()) {
@@ -57,7 +50,7 @@ export function formatTime(date = new Date()) {
 export function formatDateTimeBR(date = new Date()) {
   const d = parseDate(date)
   if (!isValid(d)) return '—'
-  return ingles() ? `${formatDateBR(d)} at ${formatTime(d)}` : `${formatDateBR(d)} às ${formatTime(d)}`
+  return `${formatDateBR(d)} às ${formatTime(d)}`
 }
 
 /** Tempo relativo: "há 45 min", "há 2h", "há 3 dias". */
@@ -65,13 +58,12 @@ export function timeAgo(date) {
   const d = parseDate(date)
   if (!isValid(d)) return ''
   const diff = Math.floor((Date.now() - d.getTime()) / 1000)
-  if (diff < 0) return t('agendado')
-  if (diff < 60) return t('agora mesmo')
-  const en = ingles()
-  if (diff < 3600) return en ? `${Math.floor(diff / 60)} min ago` : `há ${Math.floor(diff / 60)} min`
-  if (diff < 86400) return en ? `${Math.floor(diff / 3600)}h ago` : `há ${Math.floor(diff / 3600)}h`
+  if (diff < 0) return 'agendado'
+  if (diff < 60) return 'agora mesmo'
+  if (diff < 3600) return `há ${Math.floor(diff / 60)} min`
+  if (diff < 86400) return `há ${Math.floor(diff / 3600)}h`
   const days = Math.floor(diff / 86400)
-  if (days < 30) return en ? `${days} ${days === 1 ? 'day' : 'days'} ago` : `há ${days} ${days === 1 ? 'dia' : 'dias'}`
+  if (days < 30) return `há ${days} ${days === 1 ? 'dia' : 'dias'}`
   return formatDateBR(d)
 }
 
