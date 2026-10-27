@@ -101,3 +101,70 @@ export function rankItems(query, items, getFields) {
     .filter((r) => r.score > 0)
     .sort((a, b) => b.score - a.score)
 }
+
+// -----------------------------------------------------------------------------
+// BUSCA POR PALAVRAS — telas, comandos e conflitos.
+//
+// A mesma regra da busca do servidor (`/api/search`): cada palavra
+// significativa precisa aparecer, em qualquer ordem (as curtas no começo de
+// uma palavra do texto); sem acento, sem caixa, sem artigos e preposições, e
+// com o plural tolerado ("exportações" acha "exportação", "exporta" acha os
+// dois).
+// -----------------------------------------------------------------------------
+const VAZIAS = new Set([
+  ...STOP, 'das', 'dos', 'nos', 'nas', 'pra', 'por', 'pelo', 'pela', 'pelos',
+  'pelas', 'uns', 'umas', 'ao', 'aos', 'ou', 'se', 'sobre', 'como',
+])
+
+/** Plural e "-ção/-ções" viram a mesma raiz: exportações → exportac. */
+export function raizDaPalavra(p) {
+  if (p.length <= 3 || /^\d+$/.test(p)) return p
+  let r = p
+  if (r.endsWith('coes')) r = r.slice(0, -3)
+  else if (r.endsWith('cao')) r = r.slice(0, -2)
+  else if (r.endsWith('ais')) r = r.slice(0, -2)
+  else if (r.endsWith('s') && r.length > 4) r = r.slice(0, -1)
+  return r.length >= 3 ? r : p
+}
+
+/** Raízes das palavras significativas da consulta, sem repetição (até 8). */
+export function palavrasDaConsulta(q) {
+  const raizes = normalize(q)
+    .split(/[^a-z0-9]+/)
+    .filter((t) => t && !VAZIAS.has(t) && (t.length > 1 || /\d/.test(t)))
+    .map(raizDaPalavra)
+  return [...new Set(raizes)].slice(0, 8)
+}
+
+/** Texto pronto para `casaPalavra`: sem acento e com espaço antes de cada palavra. */
+export function prepararTexto(...partes) {
+  return ` ${normalize(partes.flat().filter(Boolean).join(' ')).replace(/[^a-z0-9]+/g, ' ')}`
+}
+
+/**
+ * A raiz está no texto preparado? Curta (até 4 letras) só no começo de uma
+ * palavra — "lei" não acha "eleição"; longa em qualquer ponto — "ataque" acha
+ * "ciberataque". É a mesma regra do servidor.
+ */
+export const casaPalavra = (textoPreparado, raiz) =>
+  textoPreparado.includes(raiz.length >= 5 ? raiz : ` ${raiz}`)
+
+const GENERICAS = new Set(['defesa', 'brasil', 'brasileiro', 'brasileira', 'militar', 'seguranca', 'tela', 'pagina'])
+
+/**
+ * Quantas palavras da consulta o item tem, e se tem todas.
+ *
+ * `genericas` são palavras que quase toda tela poderia ter ("defesa",
+ * "brasil"): se faltarem, não eliminam o item — "projeto de lei defesa" ainda
+ * leva a Projetos de lei. Se a consulta só tiver genéricas, todas valem.
+ */
+export function avaliarPalavras(raizes, textoPreparado, genericas = GENERICAS) {
+  const presentes = raizes.filter((r) => casaPalavra(textoPreparado, r))
+  const obrigatorias = raizes.filter((r) => !genericas.has(r))
+  const exigidas = obrigatorias.length ? obrigatorias : raizes
+  return {
+    acertos: presentes.length,
+    todas: raizes.length > 0 && exigidas.every((r) => presentes.includes(r)),
+  }
+}
+

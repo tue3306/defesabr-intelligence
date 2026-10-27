@@ -30,11 +30,13 @@ import {
   Link2,
   Crosshair,
   Swords,
+  Scale,
 } from 'lucide-react'
 import { useTheme } from '../../hooks/useTheme'
 import { useAuthStore } from '../../store/authStore'
 import { useCan } from '../../auth/useCan'
-import { normalize } from '../../utils/semanticSearch'
+import { palavrasDaConsulta, prepararTexto, avaliarPalavras } from '../../utils/semanticSearch'
+import { TELAS, catalogoDeConflitos, buscarConflitos } from '../../services/searchService'
 
 // -----------------------------------------------------------------------------
 // PALETA DE COMANDOS (Ctrl/Cmd + K) — navegação e ações rápidas.
@@ -45,18 +47,27 @@ import { normalize } from '../../utils/semanticSearch'
 // -----------------------------------------------------------------------------
 
 // ─────────────────────────────────────────────────────────────────────────────
-// OS GRUPOS SÃO OS TRÊS NÍVEIS, NA ORDEM DA ESCADA
+// OS GRUPOS SÃO AS SEÇÕES DO MENU, NA MESMA ORDEM
 //
-// Eram "Inteligência" e "Brasil Estratégico" — dois rótulos que não existem em
-// lugar nenhum do menu, herdados da organização por tipo de artefato. Pior: a
-// paleta é o caminho mais rápido para qualquer tela e NÃO ALCANÇAVA quatro
-// delas — o Mapa estratégico (que é o centro do produto), as Correlações, os
-// Incidentes no Brasil e os Grupos contra o Brasil. Quem usasse Ctrl+K para
-// navegar concluiria que não existem.
+// A paleta é o caminho mais rápido para qualquer tela, e por isso alcança
+// todas as do menu. A lista abaixo usava nomes antigos ("Estratégico",
+// "Tático") que nenhum comando tinha mais: as seções do menu iam para o fim,
+// depois de "Ações".
 //
-// A ordem é a da altitude: do quadro do país ao incidente com nome e data.
+// Cada tela também responde às palavras de `TELAS` (searchService): "exporta"
+// acha a Indústria de defesa, "tema escuro" acha Configurações.
 // ─────────────────────────────────────────────────────────────────────────────
-const GROUPS = ['Navegação', 'Estratégico', 'Tático', 'Operacional', 'Conta', 'Administração', 'Ações']
+const GROUPS = ['Navegação', 'Notícias', 'Ataques cibernéticos', 'Mundo', 'Conflitos', 'Brasil em dados', 'Ajuda e método', 'Conta', 'Administração', 'Ações']
+
+const PALAVRAS_DA_TELA = Object.fromEntries(TELAS.map((t) => [t.id, t.palavras]))
+const PALAVRAS_EXTRAS = {
+  inicio: ['página inicial', 'apresentação do projeto'],
+  busca: ['procurar', 'pesquisar', 'pesquisa'],
+  sobre: ['quem somos', 'projeto', 'contato'],
+  apresentacao: ['TV', 'telão', 'tela cheia', 'reunião'],
+  tema: ['tema escuro', 'modo escuro', 'tema claro', 'modo claro', 'modo noturno', 'dark', 'aparência'],
+  tour: ['tutorial', 'ajuda', 'boas-vindas', 'primeiros passos'],
+}
 
 export default function CommandPalette() {
   const navigate = useNavigate()
@@ -76,8 +87,9 @@ export default function CommandPalette() {
       { id: 'inicio', group: 'Navegação', label: 'Ir para o Início', icon: Home, run: go('/') },
       { id: 'painel', group: 'Navegação', label: 'Abrir Painel', icon: LayoutDashboard, run: go('/painel'), auth: true },
       { id: 'busca', group: 'Navegação', label: 'Abrir Busca global', icon: Search, run: go('/busca'), auth: true },
-      { id: 'aprender', group: 'Navegação', label: 'Abrir Centro Educacional', icon: GraduationCap, run: go('/aprender') },
-      { id: 'sobre', group: 'Navegação', label: 'Sobre o projeto', icon: HelpCircle, run: go('/sobre') },
+      { id: 'aprender', group: 'Ajuda e método', label: 'Abrir Centro Educacional', icon: GraduationCap, run: go('/aprender') },
+      { id: 'metodologia', group: 'Ajuda e método', label: 'Abrir Metodologia', icon: Scale, run: go('/metodologia') },
+      { id: 'sobre', group: 'Ajuda e método', label: 'Sobre o projeto', icon: HelpCircle, run: go('/sobre') },
 
       // Estratégico — o quadro do país. O mapa vem primeiro porque é o centro.
       { id: 'mapa', group: 'Mundo', label: 'Abrir Mapa estratégico', icon: Globe2, run: go('/mapa'), auth: true },
@@ -118,8 +130,26 @@ export default function CommandPalette() {
       .filter((c) => !c.auth || isAuthenticated)
       // As boas-vindas são de conta de usuário; o administrador não as recebe.
       .filter((c) => !c.soUsuario || !can('admin.access'))
-      .map((c) => ({ ...c, locked: c.cap ? !can(c.cap) : false }))
+      .map((c) => {
+        const palavras = [...(PALAVRAS_DA_TELA[c.id] || []), ...(PALAVRAS_EXTRAS[c.id] || [])]
+        return {
+          ...c,
+          locked: c.cap ? !can(c.cap) : false,
+          palavras,
+          textoNome: prepararTexto(c.label),
+          textoTudo: prepararTexto(c.label, palavras),
+        }
+      })
   }, [navigate, isDark, toggleTheme, isAuthenticated, can])
+
+  // Conflitos de Mundo & Conflitos, pelo nome — o mesmo catálogo da tela.
+  const [conflitos, setConflitos] = useState([])
+  useEffect(() => {
+    if (!open || !isAuthenticated) return
+    let vivo = true
+    catalogoDeConflitos().then((lista) => { if (vivo) setConflitos(lista) })
+    return () => { vivo = false }
+  }, [open, isAuthenticated])
 
   // Atalho global de abertura + Escape para fechar + evento externo (Navbar mobile).
   useEffect(() => {
@@ -151,11 +181,33 @@ export default function CommandPalette() {
   }, [open])
 
   const results = useMemo(() => {
-    const needle = normalize(query)
-    const list = commands.filter((c) => !needle || normalize(c.label).includes(needle))
+    const raizes = palavrasDaConsulta(query)
+    if (!query.trim()) return commands
+    // Por palavras, em qualquer ordem e sem acento; o nome da tela pesa mais
+    // que as palavras associadas a ela.
+    const list = raizes.length
+      ? commands
+        .map((c) => {
+          const r = avaliarPalavras(raizes, c.textoTudo)
+          const noNome = avaliarPalavras(raizes, c.textoNome)
+          const motivo = noNome.todas
+            ? null
+            : c.palavras.find((p) => avaliarPalavras(raizes, prepararTexto(p)).acertos > 0) || null
+          return { ...c, motivo, ok: r.todas, pontos: r.acertos * 2 + noNome.acertos * 3 }
+        })
+        .filter((c) => c.ok)
+        .sort((a, b) => b.pontos - a.pontos)
+      : []
+    buscarConflitos(query, conflitos).forEach((t) => list.push({
+      id: `conflito-${t.id}`,
+      group: 'Conflitos',
+      label: t.nome,
+      icon: Swords,
+      run: () => navigate(`/mundo/teatro/${encodeURIComponent(t.id)}`),
+    }))
     if (query.trim()) {
       list.push({
-        id: 'busca',
+        id: 'buscar-tudo',
         group: 'Ações',
         label: `Buscar "${query.trim()}" em todos os módulos`,
         icon: Search,
@@ -163,7 +215,7 @@ export default function CommandPalette() {
       })
     }
     return list
-  }, [commands, query, navigate])
+  }, [commands, query, navigate, conflitos])
 
   // Agrupa preservando a ordem canônica dos grupos.
   //
@@ -279,7 +331,10 @@ export default function CommandPalette() {
                         }`}
                       >
                         <Icon size={17} className={isActive ? 'text-gold-600 dark:text-gold-400' : 'text-gray-400'} />
-                        <span className="flex-1 truncate">{cmd.label}</span>
+                        <span className="min-w-0 flex-1 truncate">
+                          {cmd.label}
+                          {cmd.motivo && <span className="ml-2 text-xs muted">· {cmd.motivo}</span>}
+                        </span>
                         {cmd.locked && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-gold-500/15 px-1.5 py-0.5 text-[9px] font-bold text-gold-600 dark:text-gold-400">
                             <Lock size={9} /> PRO

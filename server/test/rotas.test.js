@@ -54,6 +54,46 @@ test('busca encontra sem diferenciar caixa', async () => {
   assert.ok(marinha.items.some((i) => i.title === 'MARINHA amplia frota'), JSON.stringify(marinha))
 })
 
+test('busca por palavras: qualquer ordem, sem acento, todas obrigatórias', async () => {
+  const titulo = 'Órgãos públicos de três estados sofrem ataque hacker'
+  await run(
+    `INSERT INTO articles (guid, title, url, published_at, relevant, urgency, search_key)
+     VALUES ('g-palavras', ?, 'https://exemplo.invalid/3', iso_agora(), 1, 'ALTO', ?)`,
+    [titulo, chaveDeBusca(titulo)]
+  )
+  await run(
+    `INSERT INTO articles (guid, title, url, published_at, relevant, urgency, search_key)
+     VALUES ('g-eleicao', 'Eleição na Câmara', 'https://exemplo.invalid/4', iso_agora(), 1, 'MEDIO', ?)`,
+    [chaveDeBusca('Eleição na Câmara')]
+  )
+  const buscar = async (q) => (await (await fetch(`${base}/api/search?q=${encodeURIComponent(q)}`)).json())
+  const achou = (r) => r.items.some((i) => i.title === titulo)
+
+  // Fora de ordem, sem acento, com preposição e no plural/singular trocado.
+  assert.ok(achou(await buscar('ataque aos órgãos públicos')))
+  assert.ok(achou(await buscar('publico orgaos hacker')))
+  assert.ok(achou(await buscar('HACKERS de Orgão')))
+  // Palavra longa casa dentro de outra: "ataque" acha "ciberataque".
+  await run(
+    `INSERT INTO articles (guid, title, url, published_at, relevant, urgency, search_key)
+     VALUES ('g-ciber', 'Ciberataque atinge prefeitura', 'https://exemplo.invalid/5', iso_agora(), 1, 'ALTO', ?)`,
+    [chaveDeBusca('Ciberataque atinge prefeitura')]
+  )
+  assert.ok((await buscar('prefeitura ataque')).items.some((i) => i.title === 'Ciberataque atinge prefeitura'))
+  // Todas as palavras são obrigatórias.
+  assert.ok(!achou(await buscar('órgãos públicos submarino')))
+  // A palavra casa no começo de uma palavra do texto: "lei" não acha "eleição".
+  assert.ok(!(await buscar('lei')).items.some((i) => i.title === 'Eleição na Câmara'))
+  // Só pontuação ou só preposição: nada a procurar, e não o acervo inteiro.
+  for (const q of ['%', '_', 'de da do']) assert.equal((await buscar(q)).total, 0, q)
+  // A consulta vai como parâmetro: texto com cara de SQL é só texto.
+  assert.equal((await fetch(`${base}/api/search?q=${encodeURIComponent("'; DROP TABLE articles; --")}`)).status, 200)
+  assert.ok(achou(await buscar('ataque hacker')))
+  // Muitas palavras: só as primeiras contam, sem erro.
+  const longa = await fetch(`${base}/api/search?q=${encodeURIComponent('ataque '.repeat(60))}`)
+  assert.equal(longa.status, 200)
+})
+
 test('rota assíncrona que rejeita chega ao tratador de erros', { timeout: 15_000 }, async () => {
   const express = (await import('express')).default
   const { roteador } = await import('../src/lib/roteador.js')

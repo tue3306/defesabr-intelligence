@@ -523,6 +523,86 @@ router.patch('/sources/:id', exigirPapel('admin'), async (req, res) => {
 
 // ═══════════════════════════ BUSCA ═══════════════════════════
 
+// A busca é POR PALAVRAS, não pelo trecho exato.
+//
+// Procurar a frase inteira devolvia "nada encontrado" para quase toda consulta
+// de mais de uma palavra: "exportação armas" não casava "exportou armas e
+// munições", e "órgãos públicos atacados" não casava nada. Agora cada palavra
+// significativa precisa aparecer (E lógico), em qualquer ordem — as curtas no
+// começo de uma palavra do texto (ver `padraoDaPalavra`). Artigos e
+// preposições ("de", "da", "para"…) não contam, e o plural é tolerado:
+// "exportações" encontra "exportação".
+//
+// Segurança: cada palavra vai como PARÂMETRO, nunca concatenada no SQL, e só
+// sobra letra e número depois da separação — a expressão regular montada com
+// ela não tem metacaractere. No máximo `MAX_PALAVRAS` palavras de até
+// `MAX_LETRAS` letras cada.
+const MAX_PALAVRAS = 6
+const MAX_LETRAS = 40
+const PALAVRAS_VAZIAS = new Set([
+  'a', 'o', 'as', 'os', 'e', 'de', 'da', 'do', 'das', 'dos', 'em', 'no', 'na',
+  'nos', 'nas', 'para', 'pra', 'por', 'pelo', 'pela', 'pelos', 'pelas', 'com',
+  'um', 'uma', 'uns', 'umas', 'ao', 'aos', 'que', 'ou', 'se', 'sobre', 'como',
+])
+// Nomes do TIPO de documento: a ementa de uma proposição não diz "projeto de
+// lei", então essas palavras não filtram proposições (continuam filtrando
+// notícias, onde aparecem no texto).
+const TIPO_PROPOSICAO = new Set(['projeto', 'proposta', 'proposic'])
+
+/** Plural e "-ção/-ções" viram a mesma raiz: exportações → exportac. */
+export function raizDaPalavra(p) {
+  if (p.length <= 3 || /^\d+$/.test(p)) return p
+  let r = p
+  if (r.endsWith('coes')) r = r.slice(0, -3)
+  else if (r.endsWith('cao')) r = r.slice(0, -2)
+  else if (r.endsWith('ais')) r = r.slice(0, -2)
+  else if (r.endsWith('s') && r.length > 4) r = r.slice(0, -1)
+  return r.length >= 3 ? r : p
+}
+
+/**
+ * Palavras significativas da consulta: `{ raiz, original }`, sem repetição.
+ * `raiz` é sem acento (compara com `search_key`); `original` mantém o acento
+ * (compara com título e resumo das linhas ainda sem chave).
+ */
+export function palavrasDaBusca(q) {
+  const vistas = new Set()
+  const palavras = []
+  for (const original of String(q || '').toLowerCase().split(/[^\p{L}\p{N}]+/u)) {
+    const sem = normalizar(original).replace(/[^a-z0-9]/g, '')
+    if (!sem || PALAVRAS_VAZIAS.has(sem)) continue
+    if (sem.length < 2 && !/^\d$/.test(sem)) continue
+    const raiz = raizDaPalavra(sem.slice(0, MAX_LETRAS))
+    if (vistas.has(raiz)) continue
+    vistas.add(raiz)
+    palavras.push({ raiz, original: original.slice(0, MAX_LETRAS) })
+    if (palavras.length >= MAX_PALAVRAS) break
+  }
+  return palavras
+}
+
+/**
+ * Palavra curta (até 4 letras) só casa no COMEÇO de uma palavra do texto —
+ * senão "lei" acharia "eleição" e "alto", "planalto". A partir de 5 letras
+ * casa em qualquer ponto, para "ataque" achar "ciberataque".
+ */
+export const padraoDaPalavra = (raiz) => (raiz.length >= 5 ? raiz : `\\m${raiz}`)
+
+/**
+ * Condição "todas as palavras" para uma tabela, já com os parâmetros.
+ * `chave` é a coluna sem acento; `textos`, as colunas originais (ILIKE), que
+ * só valem para a linha ainda sem chave — senão "lei" casaria "eleição".
+ */
+function todasAsPalavras(palavras, chave, textos) {
+  const partes = []
+  const params = []
+  for (const p of palavras) {
+    partes.push(`(${chave} ~ ? OR (COALESCE(${chave}, '') = '' AND (${textos.map((c) => `${c} ILIKE ? ESCAPE '\\'`).join(' OR ')})))`)
+    params.push(padraoDaPalavra(p.raiz), ...textos.map(() => termoLike(p.original, MAX_LETRAS)))
+  }
+  return { sql: partes.join(' AND '), params }
+}
+
 // GET /api/search — busca no acervo, no legislativo e nas fontes
 //
 // A comparacao e feita sobre a forma SEM ACENTO do texto, guardada em
@@ -533,29 +613,25 @@ router.patch('/sources/:id', exigirPapel('admin'), async (req, res) => {
 // o caso comum, nao a excecao.
 //
 // `search_key` cobre as linhas coletadas depois da mudanca e as retroagidas
-// pelo script de reclassificacao; o LIKE sobre o texto original permanece como
+// pelo script de reclassificacao; o ILIKE sobre o texto original permanece como
 // segunda chance, para nao perder linha ainda sem chave.
-//
-// ILIKE, e nao LIKE: o LIKE do SQLite ignorava a caixa do ASCII e o do Postgres
-// diferencia. `search_key` ja vem em minusculas, mas titulo e ementa nao — sem
-// o ILIKE, "exercito" deixaria de achar "EXERCITO" escrito em caixa alta.
 router.get('/search', async (req, res) => {
   const q = (req.query.q || '').trim().slice(0, 120)
   if (!q) return res.json({ items: [], total: 0, groups: [], query: '' })
-  const like = termoLike(q)
-  // `normalizar` apaga pontuação: "%" ou "?" viravam texto vazio, e `LIKE '%%'`
-  // casava o acervo inteiro. Sem letra nem número, a forma normalizada não
-  // entra — e o termo original, escapado, não casa `search_key`, que não tem
-  // pontuação.
-  const likeSemAcento = termoLike(normalizar(q) || q)
+  const palavras = palavrasDaBusca(q)
+  // Consulta só de pontuação ou só de "de", "a"…: nada a procurar. Antes,
+  // "%" virava `LIKE '%%'` e casava o acervo inteiro.
+  if (!palavras.length) return res.json({ items: [], total: 0, groups: [], query: q, palavras: [] })
 
+  // A frase inteira, quando aparece, vem antes das que só têm as palavras soltas.
+  const frase = termoLike(normalizar(q))
+  const condNoticia = todasAsPalavras(palavras, 'a.search_key', ['a.title', 'a.summary'])
   const noticias = (await all(
     `SELECT a.id, a.title, a.summary, a.category, a.urgency, a.published_at, a.url, s.name AS fonte
      FROM articles a LEFT JOIN sources s ON s.id = a.source_id
-     WHERE a.relevant = 1
-       AND (a.search_key ILIKE ? ESCAPE '\\' OR a.title ILIKE ? ESCAPE '\\' OR a.summary ILIKE ? ESCAPE '\\')
-     ORDER BY a.published_at DESC NULLS LAST LIMIT 20`,
-    [likeSemAcento, like, like]
+     WHERE a.relevant = 1 AND ${condNoticia.sql}
+     ORDER BY (a.search_key LIKE ? ESCAPE '\\') DESC, a.published_at DESC NULLS LAST LIMIT 20`,
+    [...condNoticia.params, frase]
   )).map((a) => ({
     id: `noticia-${a.id}`,
     type: 'noticia',
@@ -573,11 +649,15 @@ router.get('/search', async (req, res) => {
 
   // Só as de defesa: a busca devolvia também as que a Câmara achou por
   // "inteligência" artificial ou "fronteira" no nome de uma universidade.
+  const palavrasProposicao = palavras.filter((p) => !TIPO_PROPOSICAO.has(p.raiz))
+  const condProposicao = todasAsPalavras(
+    palavrasProposicao.length ? palavrasProposicao : palavras, 'search_key', ['code', 'summary'],
+  )
   const proposicoes = (await all(
     `SELECT * FROM bills
-     WHERE search_key ILIKE ? ESCAPE '\\' OR code ILIKE ? ESCAPE '\\' OR summary ILIKE ? ESCAPE '\\'
+     WHERE ${condProposicao.sql}
      ORDER BY external_id DESC NULLS LAST LIMIT 60`,
-    [likeSemAcento, like, like]
+    condProposicao.params
   )).filter((b) => avaliarProposicao(b.summary).relevante).slice(0, 20).map((b) => ({
     id: `bill-${b.id}`,
     type: 'proposicao',
@@ -592,9 +672,10 @@ router.get('/search', async (req, res) => {
   }))
 
   // As fontes sao ~50 linhas: normalizar em JS custa menos que uma coluna.
-  const fontes = (await all('SELECT * FROM sources')).filter(
-    (f) => normalizar(f.name).includes(normalizar(q))
-  ).slice(0, 8).map((s) => ({
+  const fontes = (await all('SELECT * FROM sources')).filter((f) => {
+    const nome = ` ${normalizar(f.name).replace(/[^a-z0-9]+/g, ' ')}`
+    return palavras.every((p) => nome.includes(p.raiz.length >= 5 ? p.raiz : ` ${p.raiz}`))
+  }).slice(0, 8).map((s) => ({
     id: `fonte-${s.id}`,
     type: 'fonte',
     typeLabel: 'Fontes',
@@ -612,7 +693,7 @@ router.get('/search', async (req, res) => {
     id, count, label: itens.find((i) => i.type === id).typeLabel,
   }))
 
-  res.json({ items: itens, total: itens.length, groups: grupos, query: q })
+  res.json({ items: itens, total: itens.length, groups: grupos, query: q, palavras: palavras.map((p) => p.raiz) })
 })
 
 export default router

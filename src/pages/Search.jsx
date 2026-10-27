@@ -3,7 +3,9 @@ import { Link, useSearchParams } from 'react-router-dom'
 import {
   Search as SearchIcon, Newspaper, Layers, ShieldAlert, Target, Radio,
   BadgeCheck, CalendarDays, Landmark, Archive, BookOpen, Compass,
-  X, Sparkles, Database, ChevronRight, ExternalLink,
+  X, Sparkles, Database, ChevronRight, ExternalLink, Swords, LayoutDashboard,
+  Link2, Crosshair, Globe2, DollarSign, Factory, LineChart, GraduationCap, Scale,
+  Settings, UserCircle, Bell,
 } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
@@ -13,39 +15,46 @@ import { SkeletonCard } from '../components/ui/Skeleton'
 import { useCan } from '../auth/useCan'
 import { useResource } from '../hooks/useResource'
 import { searchService } from '../services'
-import { SEARCH_TYPES } from '../services/searchService'
+import { SEARCH_TYPES, SUGESTOES, sugestoesSemResultado } from '../services/searchService'
+import { normalize, palavrasDaConsulta } from '../utils/semanticSearch'
 import { plural, urgencyMeta } from '../utils/textUtils'
 
 // Os tipos declaram o ícone por nome (dado puro); aqui ligamos ao componente.
 const TYPE_ICONS = {
   Newspaper, Layers, ShieldAlert, Target, Radio, BadgeCheck,
-  CalendarDays, Landmark, Archive, BookOpen, Compass,
+  CalendarDays, Landmark, Archive, BookOpen, Compass, Swords, LayoutDashboard,
+  Link2, Crosshair, Globe2, DollarSign, Factory, LineChart, GraduationCap, Scale,
+  Settings, UserCircle, Bell,
 }
 
 const TYPE_COLOR = {
+  tela: '#2f6fb3',
+  conflito: '#b4532a',
   noticia: '#2e7d46',
   proposicao: '#c0392b',
   termo: '#8b5cf6',
   fonte: '#caa733',
 }
 
-/** Realça as ocorrências da consulta dentro de um trecho de texto. */
+/**
+ * Realça as palavras do texto que começam por uma palavra da consulta — a
+ * mesma regra da busca: sem acento, sem caixa, em qualquer ordem.
+ */
 function Highlight({ text = '', query = '' }) {
-  const terms = query.trim().split(/\s+/).filter((t) => t.length > 2)
-  if (!terms.length) return text
-  // Escapa metacaracteres para que a consulta do usuário não vire regex.
-  const pattern = new RegExp(`(${terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi')
-  const parts = String(text).split(pattern)
-  return parts.map((part, i) =>
-    pattern.test(part) && terms.some((t) => part.toLowerCase() === t.toLowerCase())
-      ? <mark key={i} className="rounded bg-gold-500/25 px-0.5 text-inherit">{part}</mark>
-      : <span key={i}>{part}</span>
-  )
+  const raizes = palavrasDaConsulta(query).filter((r) => r.length > 2)
+  if (!raizes.length) return text
+  return String(text).split(/([\p{L}\p{N}]+)/u).map((parte, i) => {
+    const forma = normalize(parte)
+    return forma && raizes.some((r) => forma.startsWith(r))
+      ? <mark key={i} className="rounded bg-gold-500/25 px-0.5 text-inherit">{parte}</mark>
+      : <span key={i}>{parte}</span>
+  })
 }
 
 // -----------------------------------------------------------------------------
-// BUSCA GLOBAL — notícias, proposições, glossário e (para quem administra)
-// fontes, numa consulta só. Resultado que a conta não pode abrir não aparece.
+// BUSCA GLOBAL — telas, conflitos, notícias, proposições, glossário e (para
+// quem administra) fontes, numa consulta só. Resultado que a conta não pode
+// abrir não aparece.
 // -----------------------------------------------------------------------------
 export default function Search() {
   const [params, setParams] = useSearchParams()
@@ -127,8 +136,8 @@ export default function Search() {
       <PageHeader
         icon={SearchIcon}
         title="Busca global"
-        description="Procure de uma vez nas notícias, nas propostas de lei em andamento e no glossário."
-        help="A busca encontra o trecho digitado no título ou no resumo, sem diferenciar acento nem maiúscula. Não usa sinônimos: “submarino” só encontra PROSUB se a palavra estiver no texto."
+        description="Procure de uma vez nas telas da plataforma, nos conflitos, nas notícias, nas propostas de lei e no glossário."
+        help="A busca procura TODAS as palavras digitadas, em qualquer ordem, sem diferenciar acento nem maiúscula; “de”, “para” e parecidas não contam, e o plural vale (“exportações” acha “exportação”). Nas notícias não há sinônimos: “submarino” só encontra PROSUB se a palavra estiver no texto. As telas também respondem a palavras comuns, como “tema escuro” ou “exportação de armas”."
         breadcrumb={[{ label: 'Busca' }]}
       >
         <form onSubmit={submit} className="flex flex-col gap-2 sm:flex-row">
@@ -142,7 +151,7 @@ export default function Search() {
               enterKeyHint="search"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ex.: submarino, fronteira, Marinha, ciberataque…"
+              placeholder="Ex.: exportação de armas, Ucrânia, tema escuro, ransomware…"
               className="input pl-10 pr-10 [&::-webkit-search-cancel-button]:appearance-none"
               autoComplete="off"
               autoFocus
@@ -191,7 +200,7 @@ export default function Search() {
               <Database size={14} aria-hidden="true" /> Onde a busca procura
             </h3>
             <ul className="mt-2 flex flex-wrap gap-2">
-              {SEARCH_TYPES.filter((t) => !t.capability || can(t.capability)).map((t) => {
+              {SEARCH_TYPES.filter((t) => t.to && (!t.capability || can(t.capability))).map((t) => {
                 const Icon = TYPE_ICONS[t.icon] || Compass
                 return (
                   <li key={t.id}>
@@ -253,17 +262,12 @@ export default function Search() {
           <DataState
             loading={loading && !data}
             error={error}
-            empty={items.length === 0}
             onRetry={refetch}
             skeleton={<div className="space-y-3">{Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}</div>}
-            emptyProps={{
-              icon: SearchIcon,
-              tone: 'filter',
-              title: `Nada encontrado para “${query}”`,
-              hint: 'Tente um trecho mais curto ou outra grafia. A busca procura o texto exato, sem sinônimos.',
-              action: { label: 'Limpar busca', onClick: clear, icon: X },
-            }}
           >
+            {items.length === 0 ? (
+              <NadaEncontrado query={query} can={can} onSuggestion={runSuggestion} onClear={clear} />
+            ) : (
             <div className={`space-y-6 transition-opacity ${loading ? 'opacity-60' : ''}`}>
               <p className="text-sm muted" role="status">
                 {plural(items.length, 'resultado')} para <strong className="text-gray-800 dark:text-gray-200">“{query}”</strong>
@@ -290,6 +294,7 @@ export default function Search() {
                 )
               })}
             </div>
+            )}
           </DataState>
         </>
       )}
@@ -297,9 +302,72 @@ export default function Search() {
   )
 }
 
+// ── Nada encontrado: telas próximas e termos que dão resultado ───────────────
+function NadaEncontrado({ query, can, onSuggestion, onClear }) {
+  const telas = sugestoesSemResultado(query).filter((t) => !t.capability || can(t.capability))
+  const termos = SUGESTOES.filter((s) => normalize(s) !== normalize(query)).slice(0, 6)
+  return (
+    <section className="card p-5" aria-labelledby="nada-encontrado" role="status">
+      <h2 id="nada-encontrado" className="flex items-center gap-2 text-base font-bold tracking-tight">
+        <SearchIcon size={17} className="text-gray-400" aria-hidden="true" />
+        <span className="min-w-0 break-words">Nada encontrado para “{query}”</span>
+      </h2>
+      <p className="mt-1 text-sm muted">
+        A busca procura todas as palavras digitadas. Confira a grafia, tire uma palavra ou use um termo mais geral.
+      </p>
+
+      {telas.length > 0 && (
+        <div className="mt-4">
+          <h3 className="text-xs font-semibold uppercase tracking-wide muted">Telas que podem ter o que você procura</h3>
+          <ul className="mt-2 grid gap-2 sm:grid-cols-2">
+            {telas.map((t) => {
+              const Icon = TYPE_ICONS[t.icon] || Compass
+              return (
+                <li key={t.id}>
+                  <Link
+                    to={t.to}
+                    className="flex min-h-[44px] items-start gap-2 rounded-lg bg-gray-500/5 px-3 py-2 text-sm transition-colors hover:bg-gray-100 dark:bg-white/5 dark:hover:bg-white/10"
+                  >
+                    <Icon size={16} className="mt-0.5 shrink-0" style={{ color: TYPE_COLOR.tela }} aria-hidden="true" />
+                    <span className="min-w-0">
+                      <span className="block font-semibold">{t.label}</span>
+                      <span className="block text-xs muted">{t.descricao}</span>
+                    </span>
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
+
+      <div className="mt-4">
+        <h3 className="text-xs font-semibold uppercase tracking-wide muted">Ou tente um destes termos</h3>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {termos.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => onSuggestion(s)}
+              className="min-h-[36px] rounded-full border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:border-gold-500/50 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-white/10 dark:text-gray-300 dark:hover:bg-white/5"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <button type="button" onClick={onClear} className="btn-ghost mt-4 inline-flex items-center gap-1.5">
+        <X size={15} aria-hidden="true" /> Limpar busca
+      </button>
+    </section>
+  )
+}
+
 // ── Um resultado ─────────────────────────────────────────────────────────────
 function ResultRow({ item, query }) {
   const color = TYPE_COLOR[item.type] || '#5c616a'
+  const IconeDaTela = item.icon ? TYPE_ICONS[item.icon] : null
   // Notícia abre no veículo que a publicou; o resto, na tela que a mostra.
   const externo = !!item.href
   const Raiz = externo ? 'a' : Link
@@ -312,7 +380,9 @@ function ResultRow({ item, query }) {
       {...destino}
       className="card flex items-start gap-3 p-4 transition-colors hover:border-gold-500/40"
     >
-      <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: color }} aria-hidden="true" />
+      {IconeDaTela
+        ? <IconeDaTela size={17} className="mt-0.5 shrink-0" style={{ color }} aria-hidden="true" />
+        : <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: color }} aria-hidden="true" />}
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
