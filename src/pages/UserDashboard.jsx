@@ -16,7 +16,6 @@ import {
   Star,
   FileText,
   Radar,
-  Tv,
   Link2,
   Flame,
   SlidersHorizontal,
@@ -44,7 +43,7 @@ import { useSettingsStore } from '../store/settingsStore'
 import { useUiStore } from '../store/uiStore'
 import { useResource } from '../hooks/useResource'
 import { request } from '../services/client'
-import { alertMeta, categoryColor , corDoNivel } from '../utils/textUtils'
+import { alertMeta, categoryColor, corDoNivel, plural } from '../utils/textUtils'
 import { CATEGORIES } from '../data/mockData'
 import { formatTime, timeAgo } from '../utils/dateUtils'
 
@@ -120,7 +119,8 @@ export default function UserDashboard() {
   let execLine = 'O servidor de coleta não respondeu.'
   if (loading) execLine = 'Consultando o acervo…'
   else if (meta?.totalRelevant != null) {
-    execLine = `${meta.totalRelevant} matéria(s) aprovada(s) pelo filtro de relevância no acervo`
+    const n = meta.totalRelevant
+    execLine = `${n.toLocaleString('pt-BR')} ${n === 1 ? 'notícia relevante' : 'notícias relevantes'} no acervo`
       + (meta.lastFetchAt ? ` · última coleta ${timeAgo(meta.lastFetchAt)}.` : '.')
   }
 
@@ -190,9 +190,6 @@ export default function UserDashboard() {
                 </Link>
                 <Link to="/correlacoes" className="btn-ghost border-white/20 text-white hover:bg-white/10">
                   <Link2 size={16} /> Correlações
-                </Link>
-                <Link to="/apresentacao" className="btn-ghost border-white/20 text-white hover:bg-white/10">
-                  <Tv size={16} /> Modo apresentação
                 </Link>
                 <button
                   type="button"
@@ -436,7 +433,7 @@ export default function UserDashboard() {
             </div>
             <p className="mt-1.5 text-[11px] muted">
               {interestAreas.length
-                ? `${interestAreas.length} área(s) — as matérias delas sobem para o topo da lista abaixo.`
+                ? `${plural(interestAreas.length, 'área')} — as matérias delas sobem para o topo da lista abaixo.`
                 : 'Nenhuma escolhida: as notícias aparecem por data.'}{' '}
             </p>
             <button

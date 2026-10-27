@@ -5,7 +5,7 @@ import InfoTooltip from '../ui/InfoTooltip'
 import { useResource } from '../../hooks/useResource'
 import { request } from '../../services/client'
 import { formatDateTimeBR } from '../../utils/dateUtils'
-import { categoryColor, urgencyMeta } from '../../utils/textUtils'
+import { categoryColor, plural, urgencyMeta } from '../../utils/textUtils'
 
 // -----------------------------------------------------------------------------
 // EVENTOS CONSOLIDADOS
@@ -117,7 +117,7 @@ export default function EventosConsolidados() {
                   ativa ? 'text-white' : 'bg-gray-100 muted hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10'
                 }`}
                 style={ativa ? { backgroundColor: categoryColor(cat.nome) } : undefined}
-                title={ativa ? 'Clique para ver todas' : `${cat.materias} matéria(s) no período`}
+                title={ativa ? 'Clique para ver todas' : `${plural(cat.materias, 'matéria')} no período`}
               >
                 {cat.nome}
                 <span className={`font-mono text-[10px] ${ativa ? 'opacity-90' : 'opacity-70'}`}>{cat.materias}</span>

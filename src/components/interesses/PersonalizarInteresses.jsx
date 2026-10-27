@@ -6,7 +6,7 @@ import Modal from '../ui/Modal'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useUiStore } from '../../store/uiStore'
 import { CATEGORIES } from '../../data/mockData'
-import { categoryColor } from '../../utils/textUtils'
+import { categoryColor, plural } from '../../utils/textUtils'
 
 // -----------------------------------------------------------------------------
 // PERSONALIZAR INTERESSES — um lugar só, alcançável de qualquer tela
@@ -63,7 +63,7 @@ export default function PersonalizarInteresses() {
     setInterestAreas(lista)
     toast.success(
       lista.length
-        ? `Interesses salvos: ${lista.length} área(s). As notícias delas passam a aparecer primeiro.`
+        ? `Interesses salvos: ${plural(lista.length, 'área')}. As notícias delas passam a aparecer primeiro.`
         : 'Interesses removidos. As notícias voltam a aparecer só por data.',
       { id: 'interesses-salvos' },
     )
@@ -125,7 +125,7 @@ export default function PersonalizarInteresses() {
           </button>
         )}
         <span className="ml-auto muted" aria-live="polite">
-          {rascunho.length ? `${rascunho.length} de ${CATEGORIES.length} marcada(s)` : 'nenhuma marcada'}
+          {rascunho.length ? `${rascunho.length} de ${CATEGORIES.length} ${rascunho.length === 1 ? 'marcada' : 'marcadas'}` : 'nenhuma marcada'}
           {mudou ? ' · não salvo' : ''}
         </span>
       </div>

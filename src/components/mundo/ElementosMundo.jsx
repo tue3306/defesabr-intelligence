@@ -316,7 +316,7 @@ export function CoberturaPorDia({ porDia, altura = 200 }) {
             {...tooltipStyle}
             cursor={{ fill: 'rgba(148,163,184,0.12)' }}
             labelFormatter={(d) => formatDateBR(d)}
-            formatter={(v) => [`${fmt(v)} matéria(s)`, 'Cobertura']}
+            formatter={(v) => [`${fmt(v)} ${v === 1 ? 'matéria' : 'matérias'}`, 'Cobertura']}
           />
           <Bar dataKey="total" fill={CHART_GREEN} radius={[3, 3, 0, 0]} />
         </BarChart>

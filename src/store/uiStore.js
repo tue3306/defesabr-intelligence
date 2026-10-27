@@ -19,6 +19,11 @@ export const useUiStore = create((set) => ({
   visitaAberta: false,
   abrirVisita: () => set({ visitaAberta: true }),
   fecharVisita: () => set({ visitaAberta: false }),
+  // Entrar / Criar conta: o cabeçalho público e as chamadas da página inicial
+  // abrem o mesmo modal, montado uma vez no PublicLayout.
+  authAba: null,
+  abrirAuth: (aba = 'entrar') => set({ authAba: aba }),
+  fecharAuth: () => set({ authAba: null }),
 }))
 
 export default useUiStore

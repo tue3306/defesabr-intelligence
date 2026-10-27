@@ -14,7 +14,7 @@ import { useCan } from '../auth/useCan'
 import { useResource } from '../hooks/useResource'
 import { searchService } from '../services'
 import { SEARCH_TYPES } from '../services/searchService'
-import { urgencyMeta } from '../utils/textUtils'
+import { plural, urgencyMeta } from '../utils/textUtils'
 
 // Os tipos declaram o ícone por nome (dado puro); aqui ligamos ao componente.
 const TYPE_ICONS = {
@@ -270,7 +270,7 @@ export default function Search() {
           >
             <div className={`space-y-6 transition-opacity ${loading ? 'opacity-60' : ''}`}>
               <p className="text-sm muted">
-                {items.length} resultado(s) para <strong className="text-gray-800 dark:text-gray-200">“{query}”</strong>
+                {plural(items.length, 'resultado')} para <strong className="text-gray-800 dark:text-gray-200">“{query}”</strong>
               </p>
 
               {grouped.map(({ meta, items: list }) => {

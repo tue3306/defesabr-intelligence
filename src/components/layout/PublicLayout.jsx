@@ -6,6 +6,7 @@ import Logo from '../ui/Logo'
 import AuthModal from '../auth/AuthModal'
 import ErrorBoundary from '../system/ErrorBoundary'
 import { useTheme } from '../../hooks/useTheme'
+import { useUiStore } from '../../store/uiStore'
 
 // -----------------------------------------------------------------------------
 // LAYOUT PÚBLICO — o que aparece fora do painel: página inicial, centro
@@ -37,9 +38,9 @@ export default function PublicLayout() {
   // `aba` decide se o modal abre em Entrar ou em Criar conta. Antes havia
   // DOIS botões idênticos aqui, ambos escritos 'Entrar' — um deles atalho
   // para uma persona, o outro o modal. Agora um é Cadastro.
-  const [authAberto, setAuthAberto] = useState(false)
-  const [authAba, setAuthAba] = useState('entrar')
-  const abrirAuth = (aba) => { setAuthAba(aba); setAuthAberto(true) }
+  const authAba = useUiStore((s) => s.authAba)
+  const abrirAuth = useUiStore((s) => s.abrirAuth)
+  const fecharAuth = useUiStore((s) => s.fecharAuth)
   const [menuOpen, setMenuOpen] = useState(false)
   const { isDark, toggleTheme } = useTheme()
   const { pathname } = useLocation()
@@ -164,7 +165,7 @@ export default function PublicLayout() {
       </main>
 
       <Footer />
-      <AuthModal open={authAberto} onClose={() => setAuthAberto(false)} abaInicial={authAba} />
+      <AuthModal open={!!authAba} onClose={fecharAuth} abaInicial={authAba || 'entrar'} />
     </div>
   )
 }

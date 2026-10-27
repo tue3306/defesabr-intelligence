@@ -201,10 +201,6 @@ export default function DailyClipping() {
                 aria-label="Carregar clipping arquivado por data"
               />
             </label>
-
-            {/* A edição desta tela é montada pelo SERVIDOR, a partir do que os
-                coletores trouxeram e o filtro aprovou. */}
-            <PublishedNote at={publishedAt} />
           </>
         }
       >
@@ -228,12 +224,14 @@ export default function DailyClipping() {
           <button onClick={() => window.print()} className="btn-ghost">
             <Printer size={16} /> Imprimir
           </button>
-          {result?.source === 'live' && (
-            <span className="text-xs muted">
-              Edição montada pelo servidor a partir de {result.total_collected ?? 0} item(ns)
-              coletados · {result.relevant_total ?? 0} aprovados pelo filtro de relevância.
-            </span>
-          )}
+          {/* A edição desta tela é montada pelo SERVIDOR, a partir do que os
+              coletores trouxeram e o filtro aprovou. */}
+          <PublishedNote
+            at={publishedAt}
+            detalhe={result?.source === 'live'
+              ? `${result.relevant_total ?? 0} de ${result.total_collected ?? 0} itens coletados passaram pelo filtro de relevância`
+              : undefined}
+          />
         </div>
       </PageHeader>
 
@@ -407,9 +405,9 @@ export default function DailyClipping() {
 }
 
 // Crédito discreto para quem só LÊ a edição (sem capacidade de gerar).
-function PublishedNote({ at }) {
+function PublishedNote({ at, detalhe }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-2 text-xs muted">
+    <span title={detalhe} className="inline-flex items-center gap-1.5 text-xs muted sm:ml-auto">
       <ShieldCheck size={14} className="text-emerald-500 dark:text-emerald-400" />
       Gerado pela {EDITORIAL_DESK}
       {at && <span className="font-mono">· {formatDateTimeBR(at)}</span>}

@@ -74,9 +74,9 @@ export default function PageHeader({
       )}
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="flex min-w-0 items-start gap-3">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
           {Icon && (
-            <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${accentClass}`}>
+            <span className={`hidden h-11 w-11 shrink-0 sm:flex items-center justify-center rounded-xl ${accentClass}`}>
               <Icon size={22} />
             </span>
           )}
@@ -102,7 +102,7 @@ export default function PageHeader({
           </div>
         </div>
 
-        {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
+        {actions && <div className="flex flex-wrap items-center gap-2 lg:max-w-md lg:justify-end">{actions}</div>}
       </div>
 
       {children && <div className="mt-5">{children}</div>}

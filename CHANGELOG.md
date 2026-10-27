@@ -7,6 +7,29 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Não publicado]
 
+### Interface mais limpa, comparada às páginas de produto do mesmo ramo
+
+- **Página inicial.** De onze blocos para oito, na ordem de uma boa página de
+  produto: o que é → como funciona → notícias ao vivo → o que não está no
+  noticiário → mapa → dados → dúvidas → chamada final. Saíram o painel que
+  repetia os números do topo, as duas explicações de "primeira vez" que
+  diziam a mesma coisa e o glossário (que mora no Centro Educacional).
+- **Uma ação principal.** "Criar conta grátis" abre o cadastro direto, no
+  lugar de dois botões "· exige conta" que levavam a uma tela de bloqueio;
+  "Como funciona" rola até os três passos.
+- **Perguntas frequentes** sem assunto de desenvolvedor (servidor e banco) e
+  sem jargão ("leitor de RSS").
+- **Painel.** O topo tem três ações em vez de quatro (o modo apresentação
+  segue no menu lateral e na paleta de comandos) e diz "133 notícias
+  relevantes" em vez de "133 matéria(s) aprovada(s)".
+- **Menu lateral.** O cartão "Conectado como" repetia o nome do canto
+  superior e escondia os últimos itens do menu em telas de notebook.
+- **Cabeçalho das páginas.** Título e descrição usam a largura toda; as
+  ações deixaram de espremer o texto numa coluna estreita, e o ícone some no
+  celular para sobrar espaço. Em Notícias do dia, a data de geração e a
+  contagem do filtro viraram uma linha só.
+- **Plurais reais** (`plural()` em `textUtils`) nas telas de leitura.
+
 ### Revisão como iniciante, numa cópia local logada
 
 - **Filtros.** "Limpar filtros" deixava a palavra na caixa de busca; a lista

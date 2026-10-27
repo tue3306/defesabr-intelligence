@@ -152,9 +152,7 @@ const BOTTOM_NAV = [
 
 export default function Sidebar({ open, onClose, collapsed }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  const user = useAuthStore((s) => s.user)
   const can = useCan()
-  const isAdmin = can('admin.access')
 
   // Monta a navegação efetiva do perfil: remove seções e itens que não fazem
   // sentido oferecer, mantendo os que valem como upsell.
@@ -212,19 +210,6 @@ export default function Sidebar({ open, onClose, collapsed }) {
             </div>
           ))}
         </nav>
-
-        {/* QUEM ESTÁ CONECTADO — o nome, e não um "perfil ativo". Quem lê o
-          * acervo não precisa do organograma de permissões; só o administrador
-          * vê a marca do papel, porque para ele a diferença importa. */}
-        {isAuthenticated && !collapsed && (
-          <div className="mx-3 mb-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-white/[0.06] dark:bg-white/[0.03]">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Conectado como</p>
-            <p className="mt-0.5 truncate text-sm font-bold tracking-tight">{user?.name || '—'}</p>
-            <p className="truncate font-mono text-[11px] muted">
-              {user?.username || '—'}{isAdmin ? ' · administrador' : ''}
-            </p>
-          </div>
-        )}
 
         <div className="space-y-1 border-t border-gray-200 p-3 dark:border-white/[0.06]">
           {isAuthenticated && (

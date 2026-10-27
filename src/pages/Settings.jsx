@@ -5,7 +5,7 @@ import { useUiStore } from '../store/uiStore'
 import { useCan } from '../auth/useCan'
 import { useTheme } from '../hooks/useTheme'
 import { CATEGORIES } from '../data/mockData'
-import { categoryColor } from '../utils/textUtils'
+import { categoryColor, plural } from '../utils/textUtils'
 
 // -----------------------------------------------------------------------------
 // CONFIGURAÇÕES — preferências deste navegador.
@@ -178,7 +178,7 @@ function InterestAreasSection() {
         })}
       </div>
       <p className="mt-3 text-xs muted">
-        {interestAreas.length ? `${interestAreas.length} área(s) selecionada(s) — salvas automaticamente neste navegador.` : 'Nenhuma área selecionada: o painel mostra as matérias por data.'}
+        {interestAreas.length ? `${plural(interestAreas.length, 'área selecionada', 'áreas selecionadas')} — salvas automaticamente neste navegador.` : 'Nenhuma área selecionada: o painel mostra as matérias por data.'}
       </p>
       <button type="button" onClick={() => useUiStore.getState().abrirInteresses()} className="btn-ghost mt-3 px-3 py-1.5 text-sm">
         <SlidersHorizontal size={15} aria-hidden="true" /> Personalizar interesses, com a descrição de cada área

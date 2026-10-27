@@ -5,6 +5,7 @@ import { Activity, X, ArrowRight } from 'lucide-react'
 import { useCan } from '../../auth/useCan'
 import { APP_VERSION } from '../../services/config'
 import { formatTime } from '../../utils/dateUtils'
+import { plural } from '../../utils/textUtils'
 import { useResource } from '../../hooks/useResource'
 import { adminService } from '../../services'
 
@@ -71,7 +72,7 @@ export default function StatusFAB() {
     {
       name: 'Alertas de segurança',
       ok: !saude.error && alertas === 0,
-      note: alertas ? `${alertas} pendente(s)` : 'nenhum',
+      note: alertas ? plural(alertas, 'pendente') : 'nenhum',
     },
   ]
 

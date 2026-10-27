@@ -119,3 +119,10 @@ const SETORES_PT = {
 }
 
 export const setorPt = (nome) => (nome && SETORES_PT[nome]) || nome
+
+/**
+ * "1 notícia", "3 notícias" — em vez de "3 notícia(s)", que obriga quem lê a
+ * fazer a concordância que a tela deveria ter feito.
+ */
+export const plural = (n, singular, pluralForm = `${singular}s`) =>
+  `${Number(n).toLocaleString('pt-BR')} ${n === 1 ? singular : pluralForm}`

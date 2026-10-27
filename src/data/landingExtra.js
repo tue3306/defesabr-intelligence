@@ -38,12 +38,8 @@ export const FAQ = [
     a: 'Sim. As notícias vêm de cerca de 60 fontes RSS — órgãos oficiais, agências públicas e imprensa do Brasil e do exterior; as proposições, da API de Dados Abertos da Câmara; os indicadores, do Banco Central e do World Bank; as exportações, do Comex Stat do MDIC; e as organizações brasileiras com vazamento divulgado, do ransomware.live. Cada tela declara a origem, e o que não tem fonte não é exibido.',
   },
   {
-    q: 'A plataforma precisa de servidor ou banco de dados?',
-    a: 'Sim, e é isso que a torna real. Um servidor (na Vercel, com banco Postgres no Supabase) coleta as notícias a cada 15 minutos e guarda tudo no banco. Sem o servidor no ar, as telas mostram erro — não há dado local de reserva.',
-  },
-  {
     q: 'Como entro na plataforma?',
-    a: 'Crie uma conta com usuário e senha na tela de entrada. Toda conta nova tem o perfil de Usuário e alcança o acervo por completo; a administração da instalação (fontes, contas e auditoria) é do perfil Administrador.',
+    a: 'Clique em "Criar conta grátis", escolha um usuário e uma senha e pronto — não há e-mail a informar nem confirmação a esperar. Toda conta nova acessa o acervo completo.',
   },
   {
     q: 'É um sistema oficial de algum órgão público?',
@@ -51,11 +47,11 @@ export const FAQ = [
   },
   {
     q: 'O que a plataforma NÃO faz?',
-    a: 'Não produz avaliação de risco nem dossiê assinado por analista — isso é juízo humano, e as telas que fingiam fazê-lo foram removidas. Não recupera senha por e-mail e não tem entrada por provedor externo.',
+    a: 'Não produz previsão nem avaliação de risco assinada por analista — isso é juízo humano. Também não recupera senha por e-mail (a conta não tem e-mail) e não tem entrada com Google ou outro provedor.',
   },
   {
-    q: 'O que a plataforma faz que um leitor de RSS não faz?',
-    a: 'Correlaciona. Cada matéria é cruzada com as organizações brasileiras que tiveram vazamento divulgado e com os grupos que as atacaram. São sete regras determinísticas, e cada ligação mostra o motivo e a evidência literal que a sustenta — nada nasce de semelhança semântica ou de estimativa.',
+    q: 'O que ela faz que um site de notícias não faz?',
+    a: 'Liga os pontos. Cada notícia é cruzada com as organizações brasileiras que tiveram dados vazados e com os grupos que as atacaram. São sete regras fixas e públicas, e cada ligação mostra o motivo e o trecho que a sustenta — nada é palpite.',
   },
   {
     q: 'Quanto custa?',
