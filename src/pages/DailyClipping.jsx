@@ -143,7 +143,7 @@ export default function DailyClipping() {
       clearFilters()
       toast.success(`Edição de ${formatDateBR(found.date)} carregada`)
     } else {
-      toast(`Nenhuma edição arquivada em ${formatDateBR(iso)}. Veja as datas salvas em Arquivo & Pasta.`, { icon: '📭' })
+      toast(`Nenhuma edição arquivada em ${formatDateBR(iso)}. Veja as datas salvas em Minha pasta e arquivo.`, { icon: '📭' })
     }
   }
 
@@ -158,7 +158,7 @@ export default function DailyClipping() {
         title="Notícias do dia"
         description="As notícias de segurança e defesa selecionadas automaticamente na edição de hoje. Filtre por assunto ou urgência e abra a fonte original."
         help="O nível de alerta é a média ponderada da urgência de todas as notícias relevantes do período (crítico 100, alto 70, médio 40, baixo 15): NORMAL abaixo de 35, ATENÇÃO até 59, ALERTA até 79, CRÍTICO a partir de 80. Sem notícias no período, não há nível."
-        breadcrumb={[{ label: 'Notícias e ligações' }, { label: 'Notícias do dia' }]}
+        breadcrumb={[{ label: 'Notícias' }, { label: 'Notícias do dia' }]}
         badges={
           <>
             <Badge type="alert" value={result?.alert_level} />

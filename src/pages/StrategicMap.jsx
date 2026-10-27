@@ -22,7 +22,7 @@ export default function StrategicMap() {
         title="Mapa estratégico"
         description="Quais países aparecem nas notícias coletadas e o que cada um tem a ver com o Brasil. Clique num país para ver as notícias e os ataques cibernéticos ligados a ele."
         help="A cor mede quantas notícias citam o país, não o risco. Um país aparece mais porque a imprensa escreveu mais sobre ele — não porque é mais perigoso."
-        breadcrumb={[{ label: 'Quadro do país' }, { label: 'Mapa' }]}
+        breadcrumb={[{ label: 'Mundo' }, { label: 'Mapa estratégico' }]}
       />
 
       <section className="card p-5">

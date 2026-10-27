@@ -72,7 +72,7 @@ export default function Correlations() {
         title="Correlações"
         description="Notícias que podem ter ligação com ataques, grupos, estados ou infraestrutura do Brasil já registrados na plataforma. Cada cartão mostra o motivo e a evidência."
         help="A ligação nasce de uma coincidência literal — um domínio igual a outro, um nome de grupo que consta no acervo, a sigla de um estado (UF) dentro de um endereço de site. Ela não afirma que a notícia fala do ataque nem que um fato causou o outro."
-        breadcrumb={[{ label: 'Notícias e ligações' }, { label: 'Correlações' }]}
+        breadcrumb={[{ label: 'Notícias' }, { label: 'Correlações' }]}
       />
 
       {/* ── FILTROS + RESSALVA ── */}

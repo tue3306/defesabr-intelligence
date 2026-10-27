@@ -96,7 +96,7 @@ export default function Economy() {
         title="Economia & Defesa"
         description="Câmbio, juros, inflação e reservas do Banco Central, e o gasto em defesa comparado entre países pelo World Bank. Cada número diz de quando é."
         help="Orçamento de defesa é decisão política, mas sua execução real depende de câmbio, inflação e espaço fiscal — por isso estes indicadores aparecem aqui."
-        breadcrumb={[{ label: 'Quadro do país' }, { label: 'Economia & Defesa' }]}
+        breadcrumb={[{ label: 'Brasil em dados' }, { label: 'Economia & Defesa' }]}
         badges={<Badge type={series ? 'live' : 'sem-dado'} cadencia={series ? 'atualização automática' : undefined} />}
       />
 

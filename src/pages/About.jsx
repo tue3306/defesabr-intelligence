@@ -149,7 +149,7 @@ export default function About() {
             correlações seguem sete regras determinísticas, cada uma com a evidência literal à vista.
           </p>
           <Link to="/metodologia" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:underline dark:text-brand-300">
-            Ver todas as regras em Como decidimos <span aria-hidden="true">→</span>
+            Ver todas as regras na Metodologia <span aria-hidden="true">→</span>
           </Link>
         </Card>
         <Card icon={Bell} title="Notificações">

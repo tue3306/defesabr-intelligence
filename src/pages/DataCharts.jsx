@@ -203,7 +203,7 @@ export default function DataCharts() {
         title="Séries e indicadores"
         description="Os gráficos da plataforma, organizados por tema: volume de notícias, gasto militar, comparação entre países e cobertura por país. Cada gráfico diz o que mostra e de onde vem o dado."
         help="Cada painel declara a sua fonte e o que ela mede. Quando o servidor não responde, o painel mostra a ausência — nenhuma série é substituída por valores de exemplo."
-        breadcrumb={[{ label: 'Quadro do país' }, { label: 'Séries e indicadores' }]}
+        breadcrumb={[{ label: 'Brasil em dados' }, { label: 'Séries e indicadores' }]}
         badges={<Badge type={origem.vivo ? 'live' : origem.carregando ? 'carregando' : 'sem-dado'} />}
         meta={[
           { label: 'Fonte', value: origem.vivo || origem.carregando ? origem.texto : `${origem.texto} — indisponível` },

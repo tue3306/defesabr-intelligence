@@ -80,17 +80,17 @@ export default function CommandPalette() {
       { id: 'sobre', group: 'Navegação', label: 'Sobre o projeto', icon: HelpCircle, run: go('/sobre') },
 
       // Estratégico — o quadro do país. O mapa vem primeiro porque é o centro.
-      { id: 'mapa', group: 'Quadro do país', label: 'Abrir Mapa estratégico', icon: Globe2, run: go('/mapa'), auth: true },
-      { id: 'mundo', group: 'Quadro do país', label: 'Abrir Mundo & Conflitos', icon: Swords, run: go('/mundo'), auth: true },
-      { id: 'economia', group: 'Quadro do país', label: 'Abrir Economia & Defesa', icon: DollarSign, run: go('/economia'), auth: true },
-      { id: 'industria', group: 'Quadro do país', label: 'Abrir Indústria de defesa', icon: Factory, run: go('/industria'), auth: true },
-      { id: 'legislativo', group: 'Quadro do país', label: 'Abrir Radar Legislativo', icon: Landmark, run: go('/legislativo'), auth: true },
-      { id: 'dados', group: 'Quadro do país', label: 'Abrir Séries e indicadores', icon: LineChart, run: go('/dados'), auth: true },
+      { id: 'mapa', group: 'Mundo', label: 'Abrir Mapa estratégico', icon: Globe2, run: go('/mapa'), auth: true },
+      { id: 'mundo', group: 'Mundo', label: 'Abrir Mundo & Conflitos', icon: Swords, run: go('/mundo'), auth: true },
+      { id: 'economia', group: 'Brasil em dados', label: 'Abrir Economia & Defesa', icon: DollarSign, run: go('/economia'), auth: true },
+      { id: 'industria', group: 'Brasil em dados', label: 'Abrir Indústria de defesa', icon: Factory, run: go('/industria'), auth: true },
+      { id: 'legislativo', group: 'Brasil em dados', label: 'Abrir Projetos de lei', icon: Landmark, run: go('/legislativo'), auth: true },
+      { id: 'dados', group: 'Brasil em dados', label: 'Abrir Séries e indicadores', icon: LineChart, run: go('/dados'), auth: true },
 
       // Tático — setores e correlação.
-      { id: 'clipping', group: 'Notícias e ligações', label: 'Abrir Notícias do dia', icon: Newspaper, run: go('/clipping'), auth: true },
-      { id: 'correlacoes', group: 'Notícias e ligações', label: 'Abrir Correlações', icon: Link2, run: go('/correlacoes'), auth: true },
-      { id: 'arquivo', group: 'Notícias e ligações', label: 'Abrir Arquivo & Pasta', icon: ArchiveIcon, run: go('/arquivo'), auth: true },
+      { id: 'clipping', group: 'Notícias', label: 'Abrir Notícias do dia', icon: Newspaper, run: go('/clipping'), auth: true },
+      { id: 'correlacoes', group: 'Notícias', label: 'Abrir Correlações', icon: Link2, run: go('/correlacoes'), auth: true },
+      { id: 'arquivo', group: 'Notícias', label: 'Abrir Minha pasta e arquivo', icon: ArchiveIcon, run: go('/arquivo'), auth: true },
 
       // Operacional — o incidente, com nome e data.
       { id: 'ciberameacas', group: 'Ataques cibernéticos', label: 'Abrir Incidentes no Brasil', icon: ShieldAlert, run: go('/ciberameacas'), auth: true },

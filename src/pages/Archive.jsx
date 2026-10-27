@@ -110,7 +110,7 @@ export default function Archive() {
 
   const removeSelected = () => {
     selected.forEach((id) => deleteClipping(id))
-    toast.success(selected.length === 1 ? '1 clipping removido' : `${selected.length} clippings removidos`)
+    toast.success(selected.length === 1 ? '1 edição removida' : `${selected.length} edições removidas`)
     setSelected([])
   }
 
@@ -141,13 +141,13 @@ export default function Archive() {
     <div className="space-y-6">
       <PageHeader
         icon={ArchiveIcon}
-        title="Arquivo & Minha Pasta"
-        description="Tudo o que você guardou: as notícias salvas na sua pasta e as edições do clipping que você arquivou."
-        breadcrumb={[{ label: 'Notícias e ligações' }, { label: 'Arquivo & Pasta' }]}
+        title="Minha pasta e arquivo"
+        description="Tudo o que você guardou: as notícias salvas na sua pasta e as edições das Notícias do dia que você arquivou."
+        breadcrumb={[{ label: 'Notícias' }, { label: 'Minha pasta e arquivo' }]}
       >
         <div className="flex gap-2 overflow-x-auto overflow-y-hidden border-b border-gray-200 dark:border-white/10" role="tablist" aria-label="O que mostrar">
           <TabBtn active={tab === 'pasta'} onClick={() => setTab('pasta')} icon={Star} label="Minha pasta" count={favorites.length} />
-          <TabBtn active={tab === 'clippings'} onClick={() => setTab('clippings')} icon={Newspaper} label={<>Clippings<span className="hidden sm:inline"> arquivados</span></>} count={clippings.length} />
+          <TabBtn active={tab === 'clippings'} onClick={() => setTab('clippings')} icon={Newspaper} label={<>Edições<span className="hidden sm:inline"> arquivadas</span></>} count={clippings.length} />
         </div>
       </PageHeader>
 
@@ -218,7 +218,7 @@ export default function Archive() {
           {clippings.length > 0 && (
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm muted" role="status">
-              {filtered.length === 1 ? '1 clipping encontrado' : `${filtered.length} clippings encontrados`}
+              {filtered.length === 1 ? '1 edição encontrada' : `${filtered.length} edições encontradas`}
               {query.trim() && <span className="text-gold-600 dark:text-gold-400"> · do mais parecido para o menos</span>}
             </p>
             <div className="flex flex-wrap items-center gap-2">
@@ -266,7 +266,7 @@ export default function Archive() {
             <EmptyState
               icon={Newspaper}
               tone={hasFilters ? 'filter' : 'neutral'}
-              title={hasFilters ? 'Nenhum clipping corresponde aos filtros' : 'Ainda não há clippings arquivados'}
+              title={hasFilters ? 'Nenhuma edição corresponde aos filtros' : 'Ainda não há edições arquivadas'}
               hint={hasFilters
                 ? 'Tente limpar a busca, o período, os assuntos ou o nível.'
                 : 'Em Notícias do dia, use “Salvar no arquivo” para guardar a edição do dia aqui. O arquivo fica neste navegador.'}
@@ -334,7 +334,7 @@ export default function Archive() {
                 )
               })}
 
-              <Pagination page={current} pages={pages} onChange={setPage} total={filtered.length} label="clippings" />
+              <Pagination page={current} pages={pages} onChange={setPage} total={filtered.length} label="edições" />
             </div>
           )}
         </>
@@ -400,9 +400,9 @@ export default function Archive() {
         open={!!confirm}
         onClose={() => setConfirm(null)}
         onConfirm={() => (confirm?.bulk ? removeSelected() : removeOne(confirm))}
-        title={confirm?.bulk ? 'Excluir clippings selecionados' : 'Remover clipping do arquivo'}
+        title={confirm?.bulk ? 'Excluir edições selecionadas' : 'Remover edição do arquivo'}
         description={confirm?.bulk
-          ? `${selected.length === 1 ? '1 clipping será removido' : `${selected.length} clippings serão removidos`} do seu arquivo. Esta ação não pode ser desfeita.`
+          ? `${selected.length === 1 ? '1 edição será removida' : `${selected.length} edições serão removidas`} do seu arquivo. Esta ação não pode ser desfeita.`
           : confirm ? `“${confirm.title}” será removido do arquivo. Esta ação não pode ser desfeita.` : ''}
         confirmLabel="Excluir"
       />

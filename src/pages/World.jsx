@@ -80,7 +80,7 @@ export default function World() {
         icon={Swords}
         title="Mundo & Conflitos"
         description="Notícias sobre outros países e sobre as guerras e crises em curso — inclusive o que não envolve a defesa do Brasil. Clique num país ou conflito para ver tudo sobre ele."
-        breadcrumb={[{ label: 'Quadro do país' }, { label: 'Mundo' }]}
+        breadcrumb={[{ label: 'Mundo' }, { label: 'Mundo & Conflitos' }]}
         meta={[
           { label: 'Matérias', value: fmt(totais?.materias) },
           { label: 'Países', value: fmt(totais?.paises) },

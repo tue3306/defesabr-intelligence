@@ -129,7 +129,7 @@ export default function Learn() {
         icon={GraduationCap}
         title="Centro Educacional"
         description="Comece do zero: trilhas de estudo, conceitos-chave, um glossário de termos e siglas, documentos oficiais e um quiz para testar o que aprendeu."
-        breadcrumb={[{ label: 'Recursos' }, { label: 'Centro Educacional' }]}
+        breadcrumb={[{ label: 'Ajuda e método' }, { label: 'Centro Educacional' }]}
       >
         <nav aria-label="Nesta página" className="flex flex-wrap gap-2">
           {SECOES.map((sec) => (

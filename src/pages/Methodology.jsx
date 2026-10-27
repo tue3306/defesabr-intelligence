@@ -151,7 +151,7 @@ export default function Methodology() {
         icon={Scale}
         title="Como a plataforma decide"
         description="O que cada rótulo da tela quer dizer, como é calculado e o que ele não quer dizer."
-        breadcrumb={[{ label: 'Recursos' }, { label: 'Como decidimos' }]}
+        breadcrumb={[{ label: 'Ajuda e método' }, { label: 'Metodologia' }]}
       >
         <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
           A plataforma lê notícias e dados públicos e coloca rótulos neles: <strong>urgência</strong> de

@@ -50,7 +50,7 @@ export default function DefenseIndustry() {
         icon={Factory}
         title="Indústria de defesa"
         description="Quanto o Brasil exportou em aeronaves e em armas e munições, para quais países, e quem são as principais empresas do setor."
-        breadcrumb={[{ label: 'Quadro do país' }, { label: 'Indústria de defesa' }]}
+        breadcrumb={[{ label: 'Brasil em dados' }, { label: 'Indústria de defesa' }]}
         badges={<Badge type={exp.aoVivo ? 'live' : 'sem-dado'} />}
       >
         <dl className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-3">

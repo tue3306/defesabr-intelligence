@@ -179,7 +179,7 @@ export default function App() {
           <Route path="/mundo/teatro/:id" element={<Guarded scope="Teatro de conflito"><WorldTheater /></Guarded>} />
           <Route path="/dados" element={<Guarded scope="Séries e indicadores"><DataCharts /></Guarded>} />
           <Route path="/economia" element={<Guarded scope="Economia & Defesa"><Economy /></Guarded>} />
-          <Route path="/arquivo" element={<Guarded scope="Arquivo & Pasta"><Archive /></Guarded>} />
+          <Route path="/arquivo" element={<Guarded scope="Minha pasta e arquivo"><Archive /></Guarded>} />
           <Route path="/notificacoes" element={<Guarded scope="Notificações"><Notifications /></Guarded>} />
           <Route path="/conta" element={<Guarded scope="Minha conta"><Account /></Guarded>} />
           <Route path="/configuracoes" element={<Guarded scope="Configurações"><Settings /></Guarded>} />
@@ -190,7 +190,7 @@ export default function App() {
           {/* ── Inteligência & Análise ── */}
           <Route
             path="/legislativo"
-            element={<Guarded capability="legislative.access" scope="Radar Legislativo"><Legislative /></Guarded>}
+            element={<Guarded capability="legislative.access" scope="Projetos de lei"><Legislative /></Guarded>}
           />
           <Route
             path="/fontes"

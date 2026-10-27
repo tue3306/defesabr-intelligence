@@ -206,10 +206,10 @@ export default function Legislative() {
     <div className="space-y-6">
       <PageHeader
         icon={Landmark}
-        title="Radar Legislativo"
+        title="Projetos de lei"
         description="Projetos de lei e outras propostas em análise na Câmara dos Deputados que tratam de defesa, Forças Armadas e segurança. Veja em que etapa cada um está e abra o cartão para os detalhes."
         help={`As proposições vêm da API de Dados Abertos da Câmara, buscadas por ${data?.keywords?.length || 13} palavras-chave. A busca da Câmara casa a palavra em qualquer sentido — "inteligência" traz projetos de inteligência artificial — então só fica no Radar a proposição cuja ementa contém um termo inequívoco de defesa; os termos encontrados aparecem em cada cartão. O estágio é derivado do texto oficial de situação, consultado em lotes a cada coleta.`}
-        breadcrumb={[{ label: 'Quadro do país' }, { label: 'Radar Legislativo' }]}
+        breadcrumb={[{ label: 'Brasil em dados' }, { label: 'Projetos de lei' }]}
         badges={<Badge type={meta?.source === 'live' ? 'live' : 'sem-dado'} />}
         actions={
           <Can do="reports.export">

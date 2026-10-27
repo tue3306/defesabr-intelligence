@@ -26,12 +26,12 @@ const NAV_SECTIONS = [
     ],
   },
   {
-    title: 'Notícias e ligações',
+    title: 'Notícias',
     nivel: 'tatico',
     items: [
       { to: '/clipping', label: 'Notícias do dia', icon: Newspaper, requiresAuth: true },
       { to: '/correlacoes', label: 'Correlações', icon: Link2, requiresAuth: true },
-      { to: '/arquivo', label: 'Arquivo & Pasta', icon: Archive, requiresAuth: true },
+      { to: '/arquivo', label: 'Minha pasta e arquivo', icon: Archive, requiresAuth: true },
     ],
   },
   {
@@ -43,24 +43,30 @@ const NAV_SECTIONS = [
     ],
   },
   {
-    title: 'O quadro do país',
+    title: 'Mundo',
     nivel: 'estrategico',
     items: [
       { to: '/mapa', label: 'Mapa estratégico', icon: Globe2, requiresAuth: true },
       { to: '/mundo', label: 'Mundo & Conflitos', icon: Swords, requiresAuth: true },
+    ],
+  },
+  {
+    title: 'Brasil em dados',
+    nivel: 'estrategico',
+    items: [
       { to: '/economia', label: 'Economia & Defesa', icon: DollarSign, requiresAuth: true },
       { to: '/industria', label: 'Indústria de defesa', icon: Factory, requiresAuth: true },
-      { to: '/legislativo', label: 'Radar Legislativo', icon: Landmark, requiresAuth: true },
+      { to: '/legislativo', label: 'Projetos de lei', icon: Landmark, requiresAuth: true },
       { to: '/dados', label: 'Séries e indicadores', icon: LineChart, requiresAuth: true },
     ],
   },
   {
-    title: 'Recursos',
+    title: 'Ajuda e método',
     items: [
       { to: '/aprender', label: 'Centro Educacional', icon: GraduationCap },
       { to: '/', label: 'Página inicial', icon: Home, end: true },
-      { to: '/metodologia', label: 'Como decidimos', icon: Scale },
-      { to: '/apresentacao', label: 'Apresentação', icon: Tv, requiresAuth: true },
+      { to: '/metodologia', label: 'Metodologia', icon: Scale },
+      { to: '/apresentacao', label: 'Modo apresentação (TV)', icon: Tv, requiresAuth: true },
     ],
   },
   {

@@ -68,7 +68,7 @@ export default function WorldTheater() {
         <PageHeader
           icon={Swords}
           title="Teatro não encontrado"
-          breadcrumb={[{ label: 'Quadro do país' }, { label: 'Mundo', to: `/mundo?days=${dias}` }, { label: 'Teatro' }]}
+          breadcrumb={[{ label: 'Mundo' }, { label: 'Mundo & Conflitos', to: `/mundo?days=${dias}` }, { label: 'Teatro' }]}
         />
         <ForaDoCatalogo
           dias={dias}
@@ -91,7 +91,7 @@ export default function WorldTheater() {
         title={titulo}
         description={t?.descricao || undefined}
         help="Teatro de conflito é a região onde uma guerra ou crise acontece. Aqui, cada teatro reúne as notícias que citam os termos dele — a lista de termos está no fim da página."
-        breadcrumb={[{ label: 'Quadro do país' }, { label: 'Mundo', to: `/mundo?days=${dias}` }, { label: titulo }]}
+        breadcrumb={[{ label: 'Mundo' }, { label: 'Mundo & Conflitos', to: `/mundo?days=${dias}` }, { label: titulo }]}
         badges={t?.regiao ? <span className="chip">{t.regiao}</span> : null}
         meta={d ? [
           { label: 'Matérias', value: fmt(c?.total) },

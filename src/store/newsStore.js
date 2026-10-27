@@ -46,7 +46,7 @@ export const useNewsStore = create(
         const entry = {
           id,
           date: clipping.date?.split('/').reverse().join('-') || new Date().toISOString().slice(0, 10),
-          title: `Clipping Diário — ${clipping.date}`,
+          title: `Notícias do dia — ${clipping.date}`,
           newsCount: clipping.news?.length || 0,
           // Nem nível inventado, nem prévia inventada.
           //

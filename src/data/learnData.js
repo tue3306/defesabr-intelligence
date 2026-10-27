@@ -943,7 +943,7 @@ export const quizQuestions = [
   {
     category: 'Legislativo',
     level: 'Intermediário',
-    q: 'No Radar Legislativo da plataforma, uma proposição só entra quando:',
+    q: 'Na tela Projetos de lei da plataforma, uma proposição só entra quando:',
     options: [
       'Foi aprovada em alguma comissão',
       'A ementa contém termo inequívoco de defesa',
@@ -1217,7 +1217,7 @@ export const quizQuestions = [
       'No Ministério da Defesa',
     ],
     answer: 0,
-    explain: 'O Radar Legislativo da plataforma acompanha as proposições da Câmara ligadas a defesa e segurança.',
+    explain: 'A tela Projetos de lei da plataforma acompanha as proposições da Câmara ligadas a defesa e segurança.',
   },
   {
     category: 'Proteção Civil',
