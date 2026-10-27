@@ -35,9 +35,13 @@ export function useNews(autoLoad = true, opcoes = {}) {
   const [meta, setMeta] = useState(null)
   const [erro, setErro] = useState(null)
 
-  const load = useCallback(async (forcar = false) => {
-    setLoading(true)
-    setErro(null)
+  // `silencioso`: releitura periódica — sem estado de carregamento e, se
+  // falhar, mantém a lista em tela.
+  const load = useCallback(async (forcar = false, silencioso = false) => {
+    if (!silencioso) {
+      setLoading(true)
+      setErro(null)
+    }
     // Uma coleta manual acabou de rodar? A sonda em cache diria que a API
     // continua como estava. Invalidar força a releitura.
     if (forcar) invalidarSonda()
@@ -60,6 +64,7 @@ export function useNews(autoLoad = true, opcoes = {}) {
       // no período. Não é erro, e a tela distingue os dois casos.
       return { data: itens, source: 'live', meta: d }
     } catch (e) {
+      if (silencioso) return { data: [], source: null, erro: e }
       setNews([])
       setSource(null)
       setMeta(null)

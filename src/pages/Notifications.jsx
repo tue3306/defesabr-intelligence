@@ -33,7 +33,7 @@ const COMO_FUNCIONA = [
   {
     id: 'acervo',
     nome: 'Notícia de nível alto ou crítico',
-    detalhe: 'A cada coleta (de 15 em 15 minutos), toda notícia de defesa aprovada com nível alto ou crítico, publicada nas últimas 48 horas, vira um aviso.',
+    detalhe: 'A cada coleta (de 5 em 5 minutos), toda notícia de defesa aprovada com nível alto ou crítico, publicada nas últimas 48 horas, vira um aviso.',
   },
   {
     id: 'ciber',

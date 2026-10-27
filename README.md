@@ -10,7 +10,7 @@ O que ameaça o país, antes de virar notícia.
 
 ### [→ Ver a plataforma funcionando](https://defesabr-intelligence.vercel.app/)
 
-<sub>No ar, com dado real, coletado a cada 15 minutos. Hospedado na Vercel, com banco no Supabase.</sub>
+<sub>No ar, com dado real, coletado a cada 5 minutos. Hospedado na Vercel, com banco no Supabase.</sub>
 
 [![Ver ao vivo](https://img.shields.io/badge/ver%20ao%20vivo-defesabr--intelligence-caa733?style=for-the-badge)](https://defesabr-intelligence.vercel.app/)
 
@@ -442,9 +442,9 @@ do ambiente; a conta de usuário é criada pela própria suíte e removida no fi
 
 São **cerca de 60 feeds RSS** — do Brasil e, na área Mundo & Conflitos, do exterior — mais as APIs acima.
 
-### O ciclo de coleta: 15 minutos, com cadência por fonte
+### O ciclo de coleta: 5 minutos, com cadência por fonte
 
-O agendador roda um ciclo a cada **15 minutos** (`COLLECT_INTERVAL_MINUTES`). O
+O agendador roda um ciclo a cada **5 minutos** (`COLLECT_INTERVAL_MINUTES`). O
 próximo ciclo é agendado quando o anterior **termina**, então dois ciclos nunca
 se sobrepõem, e uma coleta disparada à mão durante um ciclo é recusada com aviso.
 
@@ -454,7 +454,7 @@ ciclo curto não multiplicar chamadas a serviços que não têm nada novo:
 
 | Coletor | Espaçamento mínimo |
 |---|---|
-| Feeds RSS e correlações | a cada ciclo (15 min) |
+| Feeds RSS e correlações | a cada ciclo (5 min) |
 | ransomware.live e perfis de grupos | 30 min |
 | Câmara, Banco Central, agregadores com chave | 60 min |
 | Catálogo de vulnerabilidades da CISA | 6 h |
@@ -713,7 +713,7 @@ interface, e a pessoa vê o aviso de que precisa entrar de novo.
 
 A interface (`dist/`) e a API (`api/index.js`, o Express inteiro numa função)
 sobem juntas na **Vercel**; o banco é Postgres no **Supabase**, e o `pg_cron`
-do Supabase dispara a coleta (`POST /api/cron/ciclo`) a cada 15 minutos. O
+do Supabase dispara a coleta (`POST /api/cron/ciclo`) a cada 5 minutos. O
 roteiro completo, passo a passo, está em **[`docs/DEPLOY.md`](docs/DEPLOY.md)**.
 
 Resumo:

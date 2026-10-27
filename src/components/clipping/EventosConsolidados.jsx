@@ -126,7 +126,7 @@ export default function EventosConsolidados() {
         emptyProps={{
           icon: Layers,
           title: categoria ? `Nenhum evento de ${categoria} no período` : 'Nenhum evento no período',
-          hint: categoria ? 'Amplie a janela ou veja todas as categorias.' : 'Amplie a janela: a coleta de notícias roda a cada 15 minutos.',
+          hint: categoria ? 'Amplie a janela ou veja todas as categorias.' : 'Amplie a janela: a coleta de notícias roda a cada 5 minutos.',
           action: categoria ? { label: 'Ver todas as categorias', onClick: () => setCategoria('') } : undefined,
           compact: true,
         }}

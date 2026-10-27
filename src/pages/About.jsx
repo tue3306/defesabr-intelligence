@@ -82,7 +82,7 @@ export default function About() {
       >
         <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
           O DefesaBR Intelligence coleta, filtra e organiza informação pública sobre Segurança e
-          Defesa do Brasil. Um servidor lê cerca de 60 fontes RSS a cada 15 minutos e as APIs listadas
+          Defesa do Brasil. Um servidor lê cerca de 60 fontes RSS a cada 5 minutos e as APIs listadas
           em <em>Fontes de dados</em>, aplica um filtro de relevância auditável, correlaciona as matérias
           com incidentes contra organizações brasileiras e guarda tudo com a procedência de cada item.
           Nada nas telas é dado de exemplo.
@@ -220,7 +220,7 @@ export default function About() {
         </h2>
         <p className="mt-1 max-w-2xl text-sm leading-relaxed muted">
           A API (Express) roda como função na Vercel, ao lado da interface; o banco é Postgres no
-          Supabase, e o agendador do próprio banco dispara a coleta a cada 15 minutos. A interface
+          Supabase, e o agendador do próprio banco dispara a coleta a cada 5 minutos. A interface
           fala com uma origem só.
         </p>
         <div className="mt-4 space-y-2">

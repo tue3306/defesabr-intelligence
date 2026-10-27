@@ -49,7 +49,7 @@ export function criarRotaCron({ emSegundoPlano, ...opcoes }) {
     }
 
     // Gatilho 'agendado' (e não um próprio): é ele que respeita a cadência por
-    // coletor — o cron roda a cada 15 min, a Câmara e o World Bank não.
+    // coletor — o cron roda a cada 5 min, a Câmara e o World Bank não.
     const coleta = await iniciarColeta('agendado', somente.length ? { somente } : {})
     if (!coleta) return res.status(409).json({ error: 'Já existe uma coleta em andamento.' })
 

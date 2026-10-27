@@ -11,7 +11,7 @@ import { timeAgo, formatDateTimeBR } from '../../utils/dateUtils'
 // atestar que as notícias eram de agora.
 //
 // Este indicador diz o que se sabe de fato: quando foi a última coleta.
-//   · até 1 hora     → coleta ativa (o agendador roda a cada 15 minutos);
+//   · até 1 hora     → coleta ativa (o agendador roda a cada 5 minutos);
 //   · até 6 horas    → neutro, com a hora;
 //   · mais que isso  → aviso de que o acervo pode estar desatualizado.
 // -----------------------------------------------------------------------------
@@ -41,7 +41,7 @@ export default function Atualizacao({ ultimaColeta, escuro = false }) {
   if (idade <= HORA) {
     return (
       <span
-        title={`Última coleta em ${exato}. As fontes são lidas automaticamente a cada 15 minutos.`}
+        title={`Última coleta em ${exato}. As fontes são lidas automaticamente a cada 5 minutos.`}
         className={`inline-flex items-center gap-1.5 rounded-full border border-emerald-600/40 bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-semibold ${escuro ? 'text-emerald-300' : 'text-emerald-800 dark:text-emerald-300'}`}
       >
         <span aria-hidden="true" className="inline-block h-1.5 w-1.5 animate-pulse-dot rounded-full bg-emerald-400" />

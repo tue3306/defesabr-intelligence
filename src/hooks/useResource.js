@@ -53,6 +53,24 @@ export function useResource(fetcher, deps = [], options = {}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, keepPreviousData, ...deps])
 
+  // Releitura sem estado de carregamento: a tela continua mostrando o dado
+  // atual e só troca quando o novo chega. Falha mantém o que está em tela.
+  const atualizar = useCallback(async () => {
+    if (!enabled) return
+    const id = ++requestId.current
+    try {
+      const result = await fetcherRef.current()
+      if (id !== requestId.current) return
+      const { data, meta } = result && typeof result === 'object' && 'data' in result
+        ? result
+        : { data: result, meta: null }
+      setState({ data, meta, loading: false, error: null })
+    } catch {
+      /* mantém o dado em tela */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, ...deps])
+
   useEffect(() => {
     run()
     // A REGRA `exhaustive-deps` ESTÁ ERRADA AQUI, e o silêncio é deliberado.
@@ -70,8 +88,8 @@ export function useResource(fetcher, deps = [], options = {}) {
   }, [run])
 
   return useMemo(
-    () => ({ ...state, refetch: run, source: state.meta?.source || null }),
-    [state, run]
+    () => ({ ...state, refetch: run, atualizar, source: state.meta?.source || null }),
+    [state, run, atualizar]
   )
 }
 

@@ -49,7 +49,7 @@ import { viaPonte, apiOnline } from '../services/apiBridge'
 /**
  * Memória curta compartilhada entre componentes.
  *
- * 60 segundos: a coleta roda a cada 15 minutos, então nada aqui muda dentro de
+ * 60 segundos: a coleta roda a cada 5 minutos, então nada aqui muda dentro de
  * um minuto — e é tempo suficiente para que tudo o que monta na mesma pintura
  * divida uma requisição em vez de abrir a sua.
  */

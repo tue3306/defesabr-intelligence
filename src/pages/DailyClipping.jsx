@@ -37,6 +37,7 @@ import { newsService } from '../services/newsService'
 import { useFontesReais } from '../hooks/useFontesReais'
 import EventosConsolidados from '../components/clipping/EventosConsolidados'
 import { useNewsStore } from '../store/newsStore'
+import { useAoVivo } from '../hooks/useAoVivo'
 import { useSettingsStore } from '../store/settingsStore'
 import { useUiStore } from '../store/uiStore'
 import { URGENCY_LEVELS } from '../data/mockData'
@@ -70,6 +71,8 @@ export default function DailyClipping() {
       /* mantém a edição em tela */
     }
   }, [])
+
+  useAoVivo(recarregarEdicao)
 
   useEffect(() => {
     let vivo = true
@@ -163,7 +166,7 @@ export default function DailyClipping() {
           <>
             <Badge type="alert" value={result?.alert_level} />
             {/* O selo segue a ORIGEM da edição em tela. */}
-            <Badge type={result?.source === 'live' ? 'live' : 'sem-dado'} cadencia={result?.source === 'live' ? 'a cada 15 min' : undefined} />
+            <Badge type={result?.source === 'live' ? 'live' : 'sem-dado'} cadencia={result?.source === 'live' ? 'a cada 5 min' : undefined} />
           </>
         }
         meta={[

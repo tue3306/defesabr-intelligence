@@ -174,7 +174,7 @@ export async function capacidades() {
   // Na Vercel não há processo vivo para agendar: quem dispara o ciclo é o
   // `pg_cron` do Supabase (supabase/migrations/0100_cron.sql). Ler só o
   // agendador em memória fazia o painel dizer "Desligado" com a coleta
-  // rodando a cada 15 minutos.
+  // rodando a cada 5 minutos.
   let pgCron = null
   if (process.env.VERCEL) {
     try {

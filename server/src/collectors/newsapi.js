@@ -24,7 +24,7 @@ import config from '../config.js'
 // (GNews: 100 requisições/dia; NewsData: 200 créditos/dia). Por isso este
 // coletor tem cadência própria de 60 minutos (ver CADENCIA_MINUTOS em
 // collectors/index.js): 24 execuções diárias, com folga, mesmo com o ciclo de
-// notícias a cada 15 minutos.
+// notícias a cada 5 minutos.
 //
 // A NewsAPI.org ficou de fora: o plano gratuito é explicitamente "somente
 // desenvolvimento" e recusa requisições de domínio em produção. Cadastrá-la

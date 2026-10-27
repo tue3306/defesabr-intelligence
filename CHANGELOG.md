@@ -7,6 +7,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Não publicado]
 
+### Coleta a cada 5 minutos e telas que se atualizam sozinhas
+
+- Ciclo de coleta de **15 para 5 minutos**: padrão de `COLLECT_INTERVAL_MINUTES`
+  e migração `0101_cron_5min.sql`, que muda o job `defesabr-ciclo` do pg_cron.
+  As fontes lentas ou com cota (Câmara, Banco Central, agregadores,
+  ransomware.live, CISA, World Bank, Comex) mantêm a cadência própria.
+- Painel e Notícias do dia se releem a cada 5 minutos, sem tela de
+  carregamento e só com a aba visível (`useAoVivo`).
+- Histórico de execuções por coletor de 700 para 2.100 (continua ~7 dias).
+
 ### Vulnerabilidades exploradas, limites medidos e responsável
 
 - **Nova coleta: catálogo KEV da CISA** — falhas de software com exploração

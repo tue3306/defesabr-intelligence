@@ -6,7 +6,7 @@ documento não contém nenhum segredo e **nenhum valor real deve ser commitado**
 
 Resumo da arquitetura: a Vercel serve o front (`dist/`) e a API como uma única
 função (`api/index.js`, Express). Como não há processo vivo para agendar a
-coleta, o `pg_cron` do Supabase chama `POST /api/cron/ciclo` a cada 15 minutos
+coleta, o `pg_cron` do Supabase chama `POST /api/cron/ciclo` a cada 5 minutos
 usando `pg_net`.
 
 ## Antes de começar
@@ -33,7 +33,7 @@ rota de cron responde 503).
 |---|---|
 | Supabase Free | 500 MB de banco (escrita é bloqueada acima); projeto inativo por cerca de 1 semana é pausado |
 | Vercel Hobby | função com `maxDuration` de até 300 s (exige Fluid compute); cron nativo da Vercel só 1x/dia, por isso usamos `pg_cron` |
-| Ciclo de coleta | medido entre 25 e 59 s; um único job a cada 15 min basta |
+| Ciclo de coleta | medido entre 25 e 59 s; um único job a cada 5 min basta |
 
 O app controla o tamanho do banco: `DB_ORCAMENTO_MB` (padrão 400) faz a
 retenção encurtar antes de chegar aos 500 MB. Mas apagar linhas **não encolhe
@@ -133,7 +133,7 @@ $env:ADMIN_PASSWORD = '<senha-forte-do-admin>'
 npm run migrate
 ```
 
-Saída esperada: `Aplicadas: 0001_esquema.sql, 0002_rls.sql, 0003_revoke_iso_agora.sql, 0100_cron.sql`,
+Saída esperada: `Aplicadas: 0001_esquema.sql, 0002_rls.sql, 0003_revoke_iso_agora.sql, 0004_vulnerabilidades.sql, 0100_cron.sql, 0101_cron_5min.sql`,
 seguida das linhas de semeadura (fontes cadastradas e administrador criado).
 Rodar de novo imprime `Banco já está em dia.`.
 
@@ -344,7 +344,7 @@ antes de rodar os dois comandos.
 
 ### 4.4 Cron funcionando
 
-Aguarde até 15 minutos (ou dispare manualmente, veja abaixo) e consulte no SQL Editor:
+Aguarde até 5 minutos (ou dispare manualmente, veja abaixo) e consulte no SQL Editor:
 
 ```sql
 select status, return_message, start_time
@@ -413,7 +413,7 @@ antes de testar o login real, pois o seu IP ficou limitado.
 ## 5. Se o ciclo ficar longo demais
 
 O ciclo medido leva de 25 a 59 s e cabe com folga em `maxDuration: 300`. Um
-único job a cada 15 min é suficiente. Só se isso mudar, a rota aceita
+único job a cada 5 min é suficiente. Só se isso mudar, a rota aceita
 `?coletor=a,b` para rodar um subconjunto de coletores; nesse caso crie um job
 por grupo no Vault/`pg_cron` com a lista na query string, escalonados no tempo
 para não competirem (um ciclo em andamento responde `409`).
@@ -421,7 +421,7 @@ para não competirem (um ciclo em andamento responde `409`).
 ## 6. Pausa por inatividade do plano Free
 
 O Supabase pausa projetos Free sem atividade por cerca de 1 semana. O job de
-15 min mantém o banco ativo, então a pausa não deve ocorrer enquanto o cron
+5 min mantém o banco ativo, então a pausa não deve ocorrer enquanto o cron
 estiver funcionando. Para conferir: no painel, o projeto deve aparecer como
 *Active*; se aparecer *Paused*, use **Restore project**.
 

@@ -42,6 +42,7 @@ import { coberturaPorPais } from '../hooks/useVitrineReal'
 import { useSettingsStore } from '../store/settingsStore'
 import { useUiStore } from '../store/uiStore'
 import { useResource } from '../hooks/useResource'
+import { useAoVivo } from '../hooks/useAoVivo'
 import { request } from '../services/client'
 import { worldService } from '../services/worldService'
 import { intelligenceService } from '../services/intelligenceService'
@@ -74,7 +75,7 @@ const linkSecao = 'inline-flex items-center gap-1 text-xs font-semibold text-bra
 // Cada número vem da API; sem resposta, o bloco diz isso.
 // -----------------------------------------------------------------------------
 export default function UserDashboard() {
-  const { news, source, loading, meta } = useNews()
+  const { news, source, loading, meta, reload } = useNews()
   const bcb = useIndicadoresBcb()
   const indice = useIndiceDeAlerta(7)
   const user = useAuthStore((s) => s.user)
@@ -96,6 +97,11 @@ export default function UserDashboard() {
     () => request('GET /news/clipping', { params: { days: 2, limit: 12 } }),
     [],
   )
+  // Notícias e destaques se renovam sozinhos no ritmo da coleta.
+  useAoVivo(() => {
+    reload(false, true)
+    destaque.atualizar()
+  })
   const emDestaque = (destaque.data?.news || [])
     .filter((n) => n.urgency === 'CRITICO' || n.urgency === 'ALTO')
     .slice(0, 4)
@@ -237,7 +243,7 @@ export default function UserDashboard() {
             <p>
               Um painel que reúne, num lugar só, o que sai sobre segurança e defesa do Brasil: mais de 60
               jornais e órgãos públicos, a Câmara dos Deputados, o Banco Central e os sites onde
-              criminosos divulgam organizações atacadas. A coleta é automática, a cada 15 minutos.
+              criminosos divulgam organizações atacadas. A coleta é automática, a cada 5 minutos.
             </p>
           </div>
           <div>
@@ -328,7 +334,7 @@ export default function UserDashboard() {
             <h2 id="noticias-recentes" className="flex items-center gap-2 text-lg font-bold tracking-tight">
               <Newspaper size={18} className="text-brand-400 dark:text-brand-300" aria-hidden="true" /> Notícias recentes
             </h2>
-            <Badge type={source === 'live' ? 'live' : 'sem-dado'} cadencia={source === 'live' ? 'a cada 15 min' : undefined} />
+            <Badge type={source === 'live' ? 'live' : 'sem-dado'} cadencia={source === 'live' ? 'a cada 5 min' : undefined} />
           </div>
           <p className="mb-3 text-sm muted">
             {interestAreas.length

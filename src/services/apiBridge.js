@@ -593,7 +593,7 @@ function paraFonte(s) {
     enabled: s.enabled,
     status,
     collecting: !!s.enabled,
-    cadence: 'A cada 15 min',
+    cadence: 'A cada 5 min',
 
     // `reliability` no acervo local era um juízo editorial de 0 a 100 sobre a
     // qualidade da fonte. Aqui é DISPONIBILIDADE: quantas vezes ela respondeu

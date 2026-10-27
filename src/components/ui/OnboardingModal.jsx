@@ -19,7 +19,7 @@ const STEPS = [
   {
     icon: Shield,
     title: 'Bem-vindo ao DefesaBR Intelligence',
-    text: 'Reunimos, num lugar só, o que sai sobre segurança e defesa do Brasil: jornais, órgãos oficiais e os sites onde criminosos divulgam vazamentos. Tudo coletado a cada 15 minutos, sempre com a fonte.',
+    text: 'Reunimos, num lugar só, o que sai sobre segurança e defesa do Brasil: jornais, órgãos oficiais e os sites onde criminosos divulgam vazamentos. Tudo coletado a cada 5 minutos, sempre com a fonte.',
   },
   {
     icon: Newspaper,

@@ -26,9 +26,9 @@ import { tomarArrendamento, liberarArrendamento, arrendamentoTomado } from '../l
 // ─────────────────────────────────────────────────────────────────────────────
 // CADÊNCIA POR COLETOR
 //
-// O ciclo roda a cada `COLLECT_INTERVAL_MINUTES` (15 por padrão), que é a
+// O ciclo roda a cada `COLLECT_INTERVAL_MINUTES` (5 por padrão), que é a
 // frequência certa para notícia. Não é para o resto: a Câmara não muda de
-// quarto em quarto de hora, o Banco Central publica série diária e o World
+// cinco em cinco minutos, o Banco Central publica série diária e o World
 // Bank, anual. Rodar todos a cada ciclo só multiplicaria chamadas a serviços
 // públicos que não têm nada novo — e cotas gratuitas (GNews: 100/dia) acabariam.
 //
@@ -120,9 +120,9 @@ export async function registrar(nome, fn, gatilho = 'agendado') {
 // Sem teto, `collector_runs` cresce para sempre. O painel de auditoria mostra
 // as últimas dezenas; o resto é peso.
 //
-// 700 por coletor cobrem ~7 dias do coletor mais frequente (a cada 15 min),
+// 2.100 por coletor cobrem ~7 dias do coletor mais frequente (a cada 5 min),
 // folga suficiente para investigar uma falha depois do fim de semana.
-const EXECUCOES_POR_COLETOR = 700
+const EXECUCOES_POR_COLETOR = 2100
 
 /** Apara o histórico, preservando as execuções recentes de cada coletor. */
 async function aparar(nome) {

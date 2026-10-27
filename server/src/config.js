@@ -186,11 +186,11 @@ export const config = {
   coleta: {
     // Intervalo do ciclo de coleta. 0 desliga — útil em teste automatizado.
     //
-    // 15 minutos vale para as notícias. Fontes que mudam devagar (Câmara,
+    // 5 minutos vale para as notícias. Fontes que mudam devagar (Câmara,
     // Banco Central, World Bank, Comex Stat) têm espaçamento mínimo próprio em
     // `CADENCIA` (collectors/index.js), para o ciclo mais curto não multiplicar
-    // chamadas a APIs que não têm nada novo a cada quarto de hora.
-    intervaloMinutos: numOuZero(process.env.COLLECT_INTERVAL_MINUTES, 15),
+    // chamadas a APIs que não têm nada novo a cada 5 minutos.
+    intervaloMinutos: numOuZero(process.env.COLLECT_INTERVAL_MINUTES, 5),
     // Coletar assim que o servidor sobe, se o acervo estiver vazio.
     naSubida: process.env.COLLECT_ON_BOOT !== '0',
     timeoutMs: num(process.env.COLLECT_TIMEOUT_MS, 15000),

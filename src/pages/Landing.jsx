@@ -91,7 +91,7 @@ export default function Landing() {
 
           <p className="mt-4 max-w-2xl text-base leading-relaxed text-gray-300 sm:text-lg">
             Lemos jornais, órgãos oficiais e os sites onde criminosos divulgam vazamentos — a cada
-            15 minutos — e mostramos, numa tela só, o que importa para a segurança do país. Sempre
+            5 minutos — e mostramos, numa tela só, o que importa para a segurança do país. Sempre
             com a fonte.
           </p>
 
@@ -234,7 +234,7 @@ export default function Landing() {
             titulo="O fato, não a repetição"
             texto="Dezenas de veículos publicam a mesma coisa. Agrupamos o que é o mesmo evento e mostramos quantos o cobriram."
             numero={v.fontes}
-            unidade="fontes lidas a cada 15 min"
+            unidade="fontes lidas a cada 5 min"
             para="/clipping"
           />
         </div>
