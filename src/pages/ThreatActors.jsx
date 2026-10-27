@@ -36,16 +36,21 @@ export default function ThreatActors() {
         badges={<Badge type={lista.length ? 'live' : 'sem-dado'} />}
       />
 
-      {/* Três cartões, todos sobre o Brasil. */}
+      {/* Três cartões, todos sobre os grupos LISTADOS (os que mais fizeram
+        * vítimas aqui), em todo o histórico — não sobre todos os grupos. */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <MetricCard icon={Crosshair} label="Grupos contra o Brasil" value={lista.length || '—'}
-          hint={`${comPerfil} com perfil detalhado`} accent="amber" />
-        <MetricCard icon={Landmark} label="Atacaram órgãos públicos"
+        <MetricCard icon={Crosshair} label="Grupos listados" value={lista.length || '—'}
+          hint={`os que mais fizeram vítimas no Brasil desde 2017; ${comPerfil} com perfil detalhado`} accent="amber" />
+        <MetricCard icon={Landmark} label="Destes, atacaram órgãos públicos"
           value={contraEstado || '—'}
-          hint="pelo endereço do site: .gov.br, .jus.br, .mil.br" accent="red" />
-        <MetricCard icon={ShieldAlert} label="Organizações expostas" value={totalVitimas || '—'}
-          hint="no Brasil, somando todos estes grupos" accent="red" />
+          hint="desde 2017, pelo endereço do site: .gov.br, .jus.br, .mil.br, .leg.br" accent="red" />
+        <MetricCard icon={ShieldAlert} label="Vítimas brasileiras destes grupos" value={totalVitimas || '—'}
+          hint="organizações divulgadas desde 2017, somando os grupos listados" accent="red" />
       </div>
+      <p className="-mt-2 text-xs muted">
+        Estes números cobrem todo o histórico. Em Incidentes no Brasil, os totais seguem o período
+        escolhido na página (12 meses, de início), por isso são diferentes.
+      </p>
 
       {/* Glossário recolhido: quem já sabe não precisa rolar por ele. */}
       <details className="card group p-0">
@@ -61,7 +66,7 @@ export default function ThreatActors() {
           </Termo>
           <Termo nome="Selo vermelho de órgãos públicos">
             Quantas vítimas do grupo têm site de governo, judiciário ou forças armadas
-            (.gov.br, .jus.br, .mil.br). Dá para conferir no próprio endereço.
+            (.gov.br, .jus.br, .mil.br, .leg.br). Dá para conferir no próprio endereço.
           </Termo>
           <Termo nome="Táticas e técnicas (MITRE ATT&CK)">
             O MITRE ATT&amp;CK é um catálogo público que dá um código a cada forma de ataque — como
@@ -81,8 +86,8 @@ export default function ThreatActors() {
           Perfis dos grupos
         </h2>
         <p className="mt-1 text-sm muted">
-          Do que mais atacou o Brasil para o que menos. Abra um grupo para ver como ele opera e quem
-          ele já atingiu aqui.
+          Do que mais atacou o Brasil para o que menos, contando todas as vítimas brasileiras desde
+          2017. Abra um grupo para ver como ele opera e quem ele já atingiu aqui.
         </p>
 
         <DataState
@@ -210,7 +215,10 @@ function Ator({ a, aberto, onToggle }) {
           {d?.vitimasBrasileiras?.length > 0 && (
             <div>
               <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wider muted">
-                Vítimas brasileiras ({d.vitimasBrasileiras.length})
+                Vítimas brasileiras mais recentes
+                <span className="font-normal normal-case tracking-normal">
+                  {' '}(mostrando {Math.min(8, d.vitimasBrasileiras.length)} de {a.vitimasBr})
+                </span>
               </p>
               <ul className="space-y-1">
                 {d.vitimasBrasileiras.slice(0, 8).map((v) => (

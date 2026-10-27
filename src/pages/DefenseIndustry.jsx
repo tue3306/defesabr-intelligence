@@ -131,7 +131,9 @@ export default function DefenseIndustry() {
               </Can>
             </div>
             <p className="mb-4 text-xs muted">
-              Para onde foram as exportações dos capítulos 88 e 93, por país, em milhões de dólares (US$ mi).
+              Para onde foram as exportações, por país, em milhões de dólares (US$ mi). Cada valor{' '}
+              <strong>soma aeronaves e armas</strong> (capítulos 88 e 93): a fonte coletada não separa os
+              destinos por capítulo, então cada barra pode incluir aviação civil (jatos comerciais da Embraer).
             </p>
 
             <ul className="space-y-3 sm:space-y-2.5">

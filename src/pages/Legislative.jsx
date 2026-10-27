@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import {
   Landmark, Building, FileText, Filter, X, Download, ChevronRight, ExternalLink,
   Gavel, CircleDot, CircleDashed, CheckCircle2, Archive as ArchiveIcon,
-  FilePlus, RefreshCw, Tags,
+  FilePlus, RefreshCw, Tags, List, LayoutGrid,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import PageHeader from '../components/ui/PageHeader'
@@ -11,6 +11,7 @@ import DataState from '../components/ui/DataState'
 import Badge from '../components/ui/Badge'
 import Modal from '../components/ui/Modal'
 import SearchBar from '../components/ui/SearchBar'
+import Pagination from '../components/ui/Pagination'
 import Can from '../auth/Can'
 import { useResource } from '../hooks/useResource'
 import { intelligenceService } from '../services'
@@ -115,6 +116,13 @@ const FONTES_RITO = [
   { label: 'Constituição Federal, arts. 59 a 69', url: 'https://www.planalto.gov.br/ccivil_03/constituicao/constituicao.htm#art59' },
 ]
 
+// Lista compacta por padrão: 46 cartões altos passavam de 11 mil px.
+const VISOES = [
+  { id: 'lista', label: 'Lista', icon: List },
+  { id: 'cartoes', label: 'Cartões', icon: LayoutGrid },
+]
+const POR_PAGINA = { lista: 20, cartoes: 10 }
+
 /** "PL 1234/2026" → "2026", para quando a data de apresentação ainda não foi consultada. */
 const anoDoCodigo = (code) => /\/(\d{4})\s*$/.exec(code || '')?.[1] || null
 
@@ -144,6 +152,11 @@ export default function Legislative() {
   // Guarda o id, não o objeto: depois de consultar a Câmara, o detalhe aberto
   // passa a mostrar a situação nova assim que a lista recarrega.
   const [openId, setOpenId] = useState(null)
+  const [visao, setVisao] = useState('lista')
+  // A página volta para a 1 quando qualquer filtro muda, sem efeito colateral:
+  // ela só vale para a combinação de filtros em que foi escolhida.
+  const chaveFiltros = `${query}|${house}|${stage}|${sort}|${todas}|${visao}`
+  const [paginacao, setPaginacao] = useState({ chave: chaveFiltros, pagina: 1 })
 
   // Memoizado porque esta lista entra nas dependências dos `useMemo` abaixo.
   const items = useMemo(() => data?.items || [], [data])
@@ -181,6 +194,15 @@ export default function Legislative() {
     approved: items.filter((i) => i.stage === 'aprovado').length,
   }), [items])
 
+  const porPagina = POR_PAGINA[visao]
+  const paginas = Math.max(1, Math.ceil(filtered.length / porPagina))
+  const pagina = paginacao.chave === chaveFiltros ? Math.min(paginacao.pagina, paginas) : 1
+  const visiveis = filtered.slice((pagina - 1) * porPagina, pagina * porPagina)
+  const irPara = (p) => {
+    setPaginacao({ chave: chaveFiltros, pagina: p })
+    document.getElementById('lista-proposicoes')?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+  }
+
   const hasFilters = !!(query || house !== 'Todas' || stage)
   const clearFilters = () => { setQuery(''); setHouse('Todas'); setStage('') }
 
@@ -190,7 +212,7 @@ export default function Legislative() {
         Identificador: i.code,
         Casa: i.house,
         Ementa: i.summary,
-        'Situação na Câmara': i.statusText || 'não consultada',
+        'Situação na Câmara': i.statusText || 'etapa ainda não verificada',
         Estágio: LEG_STAGE[i.stage]?.label || i.stage,
         'Apresentada em': i.presented_at ? formatDateBR(i.presented_at) : '',
         'Termos de defesa na ementa': (i.termos || []).join('; '),
@@ -207,7 +229,7 @@ export default function Legislative() {
       <PageHeader
         icon={Landmark}
         title="Projetos de lei"
-        description="Projetos de lei e outras propostas em análise na Câmara dos Deputados que tratam de defesa, Forças Armadas e segurança. Veja em que etapa cada um está e abra o cartão para os detalhes."
+        description="Projetos de lei e outras propostas que tratam de defesa, Forças Armadas e segurança, com a etapa em que cada um está. A lista cobre só a Câmara dos Deputados: o Senado não é acompanhado aqui."
         help={`As proposições vêm da API de Dados Abertos da Câmara, buscadas por ${data?.keywords?.length || 13} palavras-chave. A busca da Câmara casa a palavra em qualquer sentido — "inteligência" traz projetos de inteligência artificial — então só fica no Radar a proposição cuja ementa contém um termo inequívoco de defesa; os termos encontrados aparecem em cada cartão. O estágio é derivado do texto oficial de situação, consultado em lotes a cada coleta.`}
         breadcrumb={[{ label: 'Brasil em dados' }, { label: 'Projetos de lei' }]}
         badges={<Badge type={meta?.source === 'live' ? 'live' : 'sem-dado'} />}
@@ -229,9 +251,9 @@ export default function Legislative() {
             dica={data && !todas ? `de ${data.coletadas ?? stats.total} encontradas por palavra-chave` : 'todas as encontradas por palavra-chave'}
           />
           <Indicador
-            rotulo="Situação consultada"
+            rotulo="Etapa verificada"
             valor={data ? stats.consultadas : '—'}
-            dica={stats.total - stats.consultadas > 0 ? `${stats.total - stats.consultadas} aguardam a próxima coleta` : 'todas já consultadas'}
+            dica={stats.total - stats.consultadas > 0 ? `${stats.total - stats.consultadas} ainda não verificadas; a coleta lê em lotes` : 'todas já verificadas na Câmara'}
           />
           <Indicador rotulo="Em tramitação avançada" valor={data ? stats.advanced : '—'} dica="plenário, sanção ou norma" />
           <Indicador rotulo="Viraram norma" valor={data ? stats.approved : '—'} dica="transformadas em norma jurídica" />
@@ -268,7 +290,7 @@ export default function Legislative() {
                 !stage ? 'border-gold-500 bg-gold-500 text-military-darker' : 'border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-white/15 dark:text-gray-300 dark:hover:bg-white/10'
               }`}
             >
-              Todas <span className="tabular-nums opacity-70">{items.length}</span>
+              Todas <span className="font-normal tabular-nums">{items.length}</span>
             </button>
             {/* Só as etapas presentes, com a contagem; a escolhida fica visível para ser desmarcada. */}
             {Object.entries(LEG_STAGE)
@@ -287,7 +309,7 @@ export default function Legislative() {
                     }`}
                   >
                     <Icon size={12} aria-hidden="true" /> {info.label}
-                    <span className="tabular-nums opacity-70">{contagemPorEstagio[id] || 0}</span>
+                    <span className="font-normal tabular-nums">{contagemPorEstagio[id] || 0}</span>
                     {ativo && <X size={11} aria-hidden="true" />}
                   </button>
                 )
@@ -347,11 +369,28 @@ export default function Legislative() {
               ? <><strong className="text-gray-700 dark:text-gray-200">{filtered.length}</strong> de {items.length} {items.length === 1 ? 'proposição' : 'proposições'}</>
               : <><strong className="text-gray-700 dark:text-gray-200">{items.length}</strong> {items.length === 1 ? 'proposição' : 'proposições'}</>}
           </p>
-          {hasFilters && (
-            <button onClick={clearFilters} className="btn-ghost px-2.5 py-1 text-xs">
-              <X size={13} aria-hidden="true" /> Limpar filtros
-            </button>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {hasFilters && (
+              <button onClick={clearFilters} className="btn-ghost px-2.5 py-1 text-xs">
+                <X size={13} aria-hidden="true" /> Limpar filtros
+              </button>
+            )}
+            <div role="group" aria-label="Modo de exibição" className="flex gap-1 rounded-lg border border-gray-300 p-0.5 dark:border-white/15">
+              {VISOES.map((v) => (
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => setVisao(v.id)}
+                  aria-pressed={visao === v.id}
+                  className={`inline-flex min-h-[32px] items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60 ${
+                    visao === v.id ? 'bg-gold-500 text-military-darker' : 'muted hover:bg-gray-100 dark:hover:bg-white/10'
+                  }`}
+                >
+                  <v.icon size={13} aria-hidden="true" /> {v.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -372,10 +411,17 @@ export default function Legislative() {
           action: hasFilters ? { label: 'Limpar filtros', onClick: clearFilters, icon: X } : undefined,
         }}
       >
-        <div className={`space-y-3 ${loading ? 'opacity-60' : ''}`}>
-          {filtered.map((item) => (
-            <ProposalCard key={item.id} item={item} onOpen={() => setOpenId(item.id)} />
-          ))}
+        <div id="lista-proposicoes" className={`scroll-mt-24 space-y-4 ${loading ? 'opacity-60' : ''}`}>
+          {visao === 'lista' ? (
+            <ProposalList itens={visiveis} onOpen={setOpenId} />
+          ) : (
+            <div className="space-y-3">
+              {visiveis.map((item) => (
+                <ProposalCard key={item.id} item={item} onOpen={() => setOpenId(item.id)} />
+              ))}
+            </div>
+          )}
+          <Pagination page={pagina} pages={paginas} onChange={irPara} total={filtered.length} label="proposições" />
         </div>
       </DataState>
 
@@ -401,6 +447,65 @@ function Indicador({ rotulo, valor, dica }) {
   )
 }
 
+// ── Lista compacta ───────────────────────────────────────────────────────────
+// Uma linha por proposição: número, ementa em até duas linhas, etapa e data.
+// A linha inteira abre o mesmo detalhe do cartão.
+function ProposalList({ itens, onOpen }) {
+  return (
+    <div className="card overflow-hidden p-0">
+      <div className="hidden grid-cols-[9rem_1fr_12rem_6.5rem] gap-4 border-b border-gray-200 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider muted dark:border-white/10 md:grid" aria-hidden="true">
+        <span>Número</span>
+        <span>Ementa</span>
+        <span>Etapa</span>
+        <span className="text-right">Apresentada</span>
+      </div>
+      <ul className="divide-y divide-gray-200 dark:divide-white/[0.06]">
+        {itens.map((item) => {
+          const stage = LEG_STAGE[item.stage] || LEG_STAGE.pendente
+          const Icon = STAGE_ICON[item.stage] || CircleDot
+          const pendente = item.stage === 'pendente'
+          const data = item.presented_at ? formatDateBR(item.presented_at) : anoDoCodigo(item.code)
+          return (
+            <li key={item.id}>
+              <button
+                type="button"
+                onClick={() => onOpen(item.id)}
+                className="grid w-full grid-cols-[1fr_auto] gap-x-3 gap-y-1.5 px-4 py-3 text-left transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gold-500/60 dark:hover:bg-white/5 md:grid-cols-[9rem_1fr_12rem_6.5rem] md:items-center md:gap-4"
+              >
+                <span className="min-w-0">
+                  <span className="block font-mono text-xs font-bold text-gray-900 dark:text-gold-400">{item.code}</span>
+                  {tipoDe(item.code) && <span className="block truncate text-[11px] muted">{tipoDe(item.code)}</span>}
+                </span>
+                <span className="col-span-2 row-start-2 line-clamp-2 text-sm leading-snug text-gray-800 [text-wrap:pretty] dark:text-gray-200 md:col-span-1 md:col-start-2 md:row-start-1">
+                  {item.relevante === false && <span className="mr-1.5 rounded-full bg-gray-500/15 px-1.5 py-px text-[10px] font-bold text-gray-700 dark:text-gray-300">Fora de defesa</span>}
+                  {item.summary || 'Ementa não informada pela Câmara.'}
+                </span>
+                <span className="col-span-2 row-start-3 md:col-span-1 md:col-start-3 md:row-start-1">
+                  {pendente ? (
+                    <span className="inline-flex items-center gap-1 text-xs muted" title={SENTIDO_ETAPA.pendente}>
+                      <CircleDashed size={12} aria-hidden="true" /> {stage.label}
+                    </span>
+                  ) : (
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ${stage.classes}`}
+                      title={SENTIDO_ETAPA[item.stage]}
+                    >
+                      <Icon size={11} aria-hidden="true" /> {stage.label}
+                    </span>
+                  )}
+                </span>
+                <span className="col-start-2 row-start-1 whitespace-nowrap text-right font-mono text-xs tabular-nums muted md:col-start-4">
+                  {data || '—'}
+                </span>
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
 // ── Cartão de proposição ─────────────────────────────────────────────────────
 function ProposalCard({ item, onOpen }) {
   const stage = LEG_STAGE[item.stage] || LEG_STAGE.pendente
@@ -412,7 +517,7 @@ function ProposalCard({ item, onOpen }) {
   return (
     <button onClick={onOpen} className="card w-full p-5 text-left transition-colors hover:border-gold-500/40">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="font-mono text-xs font-bold text-gold-600 dark:text-gold-400">{item.code}</span>
+        <span className="font-mono text-xs font-bold text-gray-900 dark:text-gold-400">{item.code}</span>
         {tipoDe(item.code) && <span className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">{tipoDe(item.code)}</span>}
         <span className="inline-flex items-center gap-1 text-[11px] muted">
           <Building size={11} aria-hidden="true" /> {item.house}
@@ -494,7 +599,14 @@ function ProposalDetail({ item, onAtualizado }) {
   }
 
   return (
-    <div className="max-h-[70vh] space-y-5 overflow-y-auto pr-1">
+    // Área rolável focável: recebe o foco ao abrir (o modal foca o primeiro
+    // elemento focável) em vez do link no rodapé, que rolava o detalhe para o fim.
+    <div
+      tabIndex={0}
+      role="region"
+      aria-label="Detalhes da proposição"
+      className="max-h-[70vh] space-y-5 overflow-y-auto rounded-md pr-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60"
+    >
       <div className="flex flex-wrap items-center gap-2">
         <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${stage.classes}`}>{stage.label}</span>
         {tipoDe(item.code) && <span className="chip">{tipoDe(item.code)}</span>}
@@ -543,7 +655,7 @@ function ProposalDetail({ item, onAtualizado }) {
         {item.stage === 'pendente' && (
           <p className="mt-2 flex items-start gap-2 rounded-lg bg-gray-500/5 p-3 text-sm muted dark:bg-white/5">
             <CircleDashed size={15} className="mt-0.5 shrink-0" />
-            A situação desta proposição ainda não foi consultada. A Câmara exige uma consulta por proposição,
+            A etapa desta proposição ainda não foi verificada. A Câmara exige uma consulta por proposição,
             e o servidor as faz em lotes a cada coleta.
           </p>
         )}
@@ -585,9 +697,9 @@ function ProposalDetail({ item, onAtualizado }) {
                         />
                       )}
                     </div>
-                    <div className={`pb-4 ${current ? '' : 'opacity-70'}`}>
+                    <div className={`pb-4 ${current ? '' : 'text-gray-600 dark:text-gray-400'}`}>
                       <p className="text-sm font-semibold leading-tight">{info.label}</p>
-                      {current && <p className="mt-0.5 text-xs text-gold-600 dark:text-gold-400">etapa atual</p>}
+                      {current && <p className="mt-0.5 text-xs font-semibold text-amber-800 dark:text-gold-400">etapa atual</p>}
                       {step === 'plenario' && rito.plenarioOpcional && !current && (
                         <p className="mt-0.5 text-xs muted">só quando a decisão não fica com as comissões</p>
                       )}
@@ -601,9 +713,9 @@ function ProposalDetail({ item, onAtualizado }) {
                         </span>
                         <span className="w-0.5 flex-1 bg-gray-200 dark:bg-white/10" style={{ minHeight: 22 }} />
                       </div>
-                      <div className={`pb-4 ${noSenado ? '' : 'opacity-70'}`}>
+                      <div className={`pb-4 ${noSenado ? '' : 'text-gray-600 dark:text-gray-400'}`}>
                         <p className="text-sm font-semibold leading-tight">Senado Federal</p>
-                        {noSenado && <p className="mt-0.5 text-xs text-gold-600 dark:text-gold-400">etapa atual</p>}
+                        {noSenado && <p className="mt-0.5 text-xs font-semibold text-amber-800 dark:text-gold-400">etapa atual</p>}
                         <p className="mt-0.5 text-xs muted">a outra Casa também vota o texto (depois da Câmara, ou antes, se a proposta começou no Senado); esse andamento não é acompanhado aqui</p>
                       </div>
                     </li>

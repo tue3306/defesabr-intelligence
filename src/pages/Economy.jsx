@@ -132,6 +132,20 @@ export default function Economy() {
         )}
       </section>
 
+      {/* Exportações de armas não moram aqui: atalho explícito para quem procura. */}
+      <Link
+        to="/industria"
+        className="card flex flex-col gap-2 p-4 text-sm transition-colors sm:flex-row sm:items-center sm:gap-4 hover:border-gold-500/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60"
+      >
+        <span className="min-w-0 flex-1">
+          <span className="block font-semibold">Procura as exportações de armas?</span>
+          <span className="block text-xs muted">Os valores exportados em armas e aeronaves, e os países de destino, ficam em Indústria de defesa.</span>
+        </span>
+        <span className="inline-flex shrink-0 items-center gap-1 font-semibold text-brand-600 dark:text-brand-300">
+          Ver em Indústria de defesa <ArrowRight size={15} aria-hidden="true" />
+        </span>
+      </Link>
+
       {/* POR QUE ISTO IMPORTA — o câmbio aplicado a um exemplo */}
       {series?.usd && <PorQueImporta usd={series.usd} eur={series.eur} />}
 

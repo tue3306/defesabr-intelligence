@@ -19,12 +19,52 @@ import { formatDateBR } from '../utils/dateUtils'
 // INCIDENTES NO BRASIL — o que foi atacado no país e quanto isso importa.
 // O Estado brasileiro vem antes dos rankings; o total mundial é só contexto.
 
-const CRIT = {
-  CRITICO: { rotulo: 'Crítico', cor: 'bg-red-500 nivel-marca-critico', chip: 'nivel-chip-critico bg-red-500/15 text-red-800 dark:text-red-300' },
-  ALTO: { rotulo: 'Alto', cor: 'bg-amber-500 nivel-marca-alto', chip: 'nivel-chip-alto bg-amber-500/15 text-amber-800 dark:text-amber-300' },
-  MEDIO: { rotulo: 'Médio', cor: 'bg-brand-500 nivel-marca-medio', chip: 'nivel-chip-medio bg-brand-500/15 text-brand-700 dark:text-brand-300' },
-  BAIXO: { rotulo: 'Baixo', cor: 'bg-gray-400 nivel-marca-baixo', chip: 'nivel-chip-baixo bg-gray-500/15 text-gray-700 dark:text-gray-300' },
+// TIPO DE ALVO — quem a organização atingida é, pelos critérios de
+// server/src/lib/criticidade.js (o campo continua se chamando `criticality`).
+// Não é urgência de notícia nem nível de alerta: por isso o nome e a paleta são
+// outros. A escala é de um tom só (violeta), do mais escuro ao mais claro, e o
+// que separa os degraus é a luminosidade — continua legível com daltonismo,
+// sem depender do modo daltônico. O rótulo vai sempre escrito ao lado da cor.
+const ALVO = {
+  CRITICO: {
+    rotulo: 'Estado ou infraestrutura crítica',
+    curto: 'Estado ou infraestrutura',
+    descricao: 'órgão público (.gov.br, .mil.br, .jus.br, .leg.br) ou setor de governo e defesa, energia ou saúde',
+    cor: 'bg-violet-800 dark:bg-violet-300',
+    chip: 'bg-violet-700/15 text-violet-900 dark:bg-violet-300/20 dark:text-violet-100',
+  },
+  ALTO: {
+    rotulo: 'Serviço essencial, ensino ou ONG',
+    curto: 'Serviço essencial',
+    descricao: 'transporte, finanças ou educação, ensino superior (.edu.br) ou organização sem fins lucrativos (.org.br)',
+    cor: 'bg-violet-500 dark:bg-violet-500',
+    chip: 'bg-violet-500/10 text-violet-800 dark:bg-violet-400/10 dark:text-violet-200',
+  },
+  MEDIO: {
+    rotulo: 'Empresa',
+    curto: 'Empresa',
+    descricao: 'empresa brasileira (.com.br) ou de outro setor produtivo',
+    cor: 'bg-violet-300 dark:bg-violet-800',
+    chip: 'bg-gray-500/10 text-gray-700 dark:text-gray-300',
+  },
+  BAIXO: {
+    rotulo: 'Não identificado',
+    curto: 'Não identificado',
+    descricao: 'sem setor nem domínio que permitam classificar',
+    cor: 'bg-gray-300 dark:bg-gray-600',
+    chip: 'text-gray-600 dark:text-gray-400',
+  },
 }
+const ORDEM_ALVO = ['CRITICO', 'ALTO', 'MEDIO', 'BAIXO']
+
+// A lista de órgãos públicos vem do servidor com todo o histórico (as 20
+// divulgações mais recentes); o recorte de tempo dela é feito aqui.
+const JANELAS_ORGAOS = [
+  { id: 30, rotulo: '30 dias' },
+  { id: 365, rotulo: '12 meses' },
+  { id: 0, rotulo: 'Tudo' },
+]
+const LIMITE_ORGAOS = 20
 
 const JANELAS = [
   { id: 365, rotulo: '12 meses' },
@@ -32,8 +72,11 @@ const JANELAS = [
   { id: 3650, rotulo: 'Tudo' },
 ]
 
-/** "nos últimos 90 dias" ou, na janela "Tudo", "em todo o histórico". */
-const periodoTexto = (dias) => (dias >= 3650 ? 'em todo o histórico' : `nos últimos ${dias} dias`)
+/** "nos últimos 90 dias", "nos últimos 12 meses" ou, na janela "Tudo", "em todo o histórico". */
+const periodoTexto = (dias) => {
+  if (dias >= 3650) return 'em todo o histórico'
+  return dias === 365 ? 'nos últimos 12 meses' : `nos últimos ${dias} dias`
+}
 
 export default function CyberThreats() {
   const [dias, setDias] = useState(365)
@@ -43,6 +86,14 @@ export default function CyberThreats() {
   const vazio = d && d.acervo === 0
 
   const crit = Object.fromEntries((br?.porCriticidade || []).map((c) => [c.nivel, c.total]))
+  const [janelaOrgaos, setJanelaOrgaos] = useState(0)
+  const orgaos = (br?.estado || []).filter((e) => {
+    if (!janelaOrgaos) return true
+    const t = Date.parse(e.discovered_at)
+    return Number.isFinite(t) && Date.now() - t <= janelaOrgaos * 86400000
+  })
+  // Se veio o limite cheio, pode haver mais órgãos antes do mais antigo listado.
+  const orgaosNoLimite = (br?.estado?.length || 0) >= LIMITE_ORGAOS
 
   return (
     <div className="space-y-6">
@@ -103,22 +154,24 @@ export default function CyberThreats() {
                 icon={Building2}
                 label="Vítimas no Brasil"
                 value={br.total}
-                hint={`de ${br.totalHistorico} desde 2017`}
+                hint={`organizações ${periodoTexto(dias)}; ${br.totalHistorico} desde 2017`}
                 accent={br.total ? 'amber' : 'green'}
               />
               <MetricCard
                 icon={Landmark}
-                label="Órgãos públicos"
+                label="Órgãos públicos atacados"
                 value={br.estado.length}
-                hint="governo, judiciário e forças armadas"
+                hint={orgaosNoLimite
+                  ? `os ${LIMITE_ORGAOS} mais recentes desde 2017; pode haver mais`
+                  : 'governo, judiciário e forças armadas, desde 2017'}
                 accent={br.estado.length ? 'red' : 'green'}
               />
               <MetricCard
                 icon={ShieldAlert}
-                label="Incidentes críticos"
+                label="Estado ou infraestrutura crítica"
                 value={crit.CRITICO || 0}
-                hint="infraestrutura crítica ou Estado"
-                accent={crit.CRITICO ? 'red' : 'green'}
+                hint={`vítimas com este tipo de alvo ${periodoTexto(dias)}`}
+                accent={crit.CRITICO ? 'brand' : 'green'}
               />
               {/* Sem "participação do Brasil" em %: a amostra global coletada é
                   parcial (só as 100 mais recentes), e o percentual sairia enviesado. */}
@@ -126,7 +179,7 @@ export default function CyberThreats() {
                 icon={Globe2}
                 label="Vítimas no mundo"
                 value={d.indice?.vitimas ? d.indice.vitimas.toLocaleString('pt-BR') : '—'}
-                hint={d.indice?.grupos ? `${d.indice.grupos} grupos acompanhados no mundo` : 'total do ransomware.live'}
+                hint={d.indice?.grupos ? `todo o histórico do índice; ${d.indice.grupos} grupos acompanhados` : 'todo o histórico do ransomware.live'}
               />
             </div>
 
@@ -138,12 +191,39 @@ export default function CyberThreats() {
                   Órgãos públicos atacados
                   <InfoTooltip text="Identificados pelo endereço do site — .gov.br, .mil.br, .jus.br, .leg.br. É um fato que dá para conferir no próprio endereço, não um palpite pelo nome." />
                 </h2>
-                <p className="mt-1 text-sm muted">
-                  Governo, judiciário e forças armadas com vazamento divulgado. Mostra todo o
-                  histórico, qualquer que seja o período escolhido acima.
+                <div className="mt-1 flex flex-wrap items-start justify-between gap-3">
+                  <p className="min-w-0 max-w-prose text-sm muted">
+                    Governo, judiciário e forças armadas com vazamento divulgado. Esta lista tem período
+                    próprio, separado do seletor do topo da página
+                    {orgaosNoLimite && `, e traz só as ${LIMITE_ORGAOS} divulgações mais recentes`}.
+                  </p>
+                  <div role="group" aria-label="Período da lista de órgãos públicos" className="flex shrink-0 gap-1 rounded-lg border border-gray-300 p-0.5 dark:border-white/15">
+                    {JANELAS_ORGAOS.map((j) => (
+                      <button
+                        key={j.id}
+                        type="button"
+                        onClick={() => setJanelaOrgaos(j.id)}
+                        aria-pressed={janelaOrgaos === j.id}
+                        className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60 ${
+                          janelaOrgaos === j.id ? 'bg-gold-500 text-military-darker' : 'muted hover:bg-gray-100 dark:hover:bg-white/10'
+                        }`}
+                      >
+                        {j.rotulo}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <p className="mt-3 text-xs muted" aria-live="polite">
+                  {orgaos.length === 1 ? '1 órgão público' : `${orgaos.length} órgãos públicos`}
+                  {janelaOrgaos ? ` nos últimos ${janelaOrgaos === 365 ? '12 meses' : `${janelaOrgaos} dias`}` : ' desde 2017'}
                 </p>
-                <ul className="mt-4 divide-y divide-gray-200 dark:divide-white/10">
-                  {br.estado.map((e) => (
+                {orgaos.length === 0 && (
+                  <p className="mt-2 text-sm muted">
+                    Nenhum órgão público teve vazamento divulgado neste período. Escolha um período maior.
+                  </p>
+                )}
+                <ul className="mt-2 divide-y divide-gray-200 dark:divide-white/10">
+                  {orgaos.map((e) => (
                     <li key={e.external_id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5 text-sm">
                       <span className="font-mono text-xs tabular-nums muted">{formatDateBR(e.discovered_at)}</span>
                       {/* `victimBruto` (só quando a limpeza mudou o nome) fica no title:
@@ -155,7 +235,7 @@ export default function CyberThreats() {
                         className="rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-bold text-red-800 dark:text-red-300"
                         title={`Grupo que reivindicou o ataque: ${e.group}`}
                       >
-                        <span className="font-normal opacity-70">grupo </span>
+                        <span className="font-normal">grupo </span>
                         <span className="font-mono">{e.group}</span>
                       </span>
                       <span className="ml-auto text-xs muted">{e.criticality_reason}</span>
@@ -165,44 +245,48 @@ export default function CyberThreats() {
               </section>
             )}
 
-            {/* ── CRITICIDADE ── */}
+            {/* ── TIPO DE ALVO (campo `criticality`) ── */}
             <section className="card p-5">
               <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-                <Activity size={18} className="text-brand-400 dark:text-brand-300" aria-hidden="true" />
-                Quem foi atingido, por nível
+                <Activity size={18} className="text-violet-700 dark:text-violet-300" aria-hidden="true" />
+                Quem foi atingido, por tipo de alvo
               </h2>
-              <p className="mt-1 text-sm muted">
-                O nível diz <strong>quem</strong> foi atingido, não o tamanho do estrago: crítico é órgão
-                público ou serviço essencial; baixo é quando não dá para saber.
+              <p className="mt-1 max-w-prose text-sm muted">
+                Diz <strong>que tipo de organização</strong> foi atingida {periodoTexto(dias)}, não o tamanho
+                do estrago nem a urgência. Sai do endereço do site e do setor informado pela fonte.
               </p>
-              <div className="mt-4 flex h-3 overflow-hidden rounded-full" aria-hidden="true">
-                {['CRITICO', 'ALTO', 'MEDIO', 'BAIXO'].map((n) => {
+              <div className="mt-4 flex h-3 gap-px overflow-hidden rounded-full" aria-hidden="true">
+                {ORDEM_ALVO.map((n) => {
                   const q = crit[n] || 0
                   if (!q || !br.total) return null
                   return (
                     <span
                       key={n}
-                      className={CRIT[n].cor}
+                      className={ALVO[n].cor}
                       style={{ width: `${(q / br.total) * 100}%` }}
-                      title={`${CRIT[n].rotulo}: ${q}`}
+                      title={`${ALVO[n].rotulo}: ${q}`}
                     />
                   )
                 })}
               </div>
-              <div className="mt-3 flex flex-wrap gap-4 text-sm">
-                {['CRITICO', 'ALTO', 'MEDIO', 'BAIXO'].map((n) => (
-                  <span key={n} className="flex items-center gap-1.5">
-                    <i className={`h-2.5 w-2.5 rounded-full ${CRIT[n].cor}`} aria-hidden="true" />
-                    {CRIT[n].rotulo}
-                    <strong className="font-mono tabular-nums">{crit[n] || 0}</strong>
-                  </span>
+              <ul className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                {ORDEM_ALVO.map((n) => (
+                  <li key={n} className="flex items-start gap-2">
+                    <i className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${ALVO[n].cor}`} aria-hidden="true" />
+                    <span className="min-w-0">
+                      <span className="font-semibold">{ALVO[n].rotulo}</span>{' '}
+                      <strong className="font-mono tabular-nums">{crit[n] || 0}</strong>
+                      <span className="block text-xs leading-snug muted">{ALVO[n].descricao}</span>
+                    </span>
+                  </li>
                 ))}
-              </div>
+              </ul>
               <p className="mt-3 text-xs leading-relaxed muted">
-                {d.escala}{' '}
+                Não entra na conta o tamanho do vazamento, que quem declara é o atacante.{' '}
                 <Link to="/metodologia#criticidade" className="font-semibold text-brand-600 hover:underline dark:text-brand-300">
-                  Como os níveis são definidos
-                </Link>
+                  Como o tipo de alvo é definido
+                </Link>{' '}
+                (na metodologia, &ldquo;criticidade&rdquo;).
               </p>
             </section>
 
@@ -215,7 +299,7 @@ export default function CyberThreats() {
               />
               <Ranking
                 titulo="Setores mais atingidos no Brasil"
-                subtitulo="Classificação da própria fonte, em 14 setores."
+                subtitulo={`Vítimas brasileiras por setor ${periodoTexto(dias)}, na classificação da própria fonte (14 setores).`}
                 itens={br.porSetor.map((i) => ({ ...i, nome: setorPt(i.nome) }))}
               />
             </div>
@@ -251,8 +335,11 @@ export default function CyberThreats() {
                 Organizações brasileiras divulgadas
               </h2>
               <p className="mt-1 text-sm muted">
-                Da divulgação mais recente para a mais antiga. A data é a da publicação pelo grupo, não
-                a do ataque, que costuma ser semanas antes.
+                Da divulgação mais recente para a mais antiga
+                {br.itens.length < br.total
+                  ? `: as ${br.itens.length} mais recentes das ${br.total} divulgadas ${periodoTexto(dias)}`
+                  : ` ${periodoTexto(dias)}`}
+                . A data é a da publicação pelo grupo, não a do ataque, que costuma ser semanas antes.
               </p>
 
               {br.itens.length === 0 ? (
@@ -269,7 +356,7 @@ export default function CyberThreats() {
                         <th scope="col" className="py-2 pr-3 font-semibold">Organização</th>
                         <th scope="col" className="py-2 pr-3 font-semibold">Grupo</th>
                         <th scope="col" className="py-2 pr-3 font-semibold">Setor</th>
-                        <th scope="col" className="py-2 pr-3 font-semibold">Nível</th>
+                        <th scope="col" className="py-2 pr-3 font-semibold">Tipo de alvo</th>
                         <th scope="col" className="py-2 font-semibold">Fonte</th>
                       </tr>
                     </thead>
@@ -293,10 +380,11 @@ export default function CyberThreats() {
                           <td className="py-2 pr-3 text-xs muted">{setorPt(v.sector) || '—'}</td>
                           <td className="py-2 pr-3">
                             <span
-                              className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${CRIT[v.criticality]?.chip || ''}`}
-                              title={v.criticality_reason}
+                              className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold ${ALVO[v.criticality]?.chip || ''}`}
+                              title={[ALVO[v.criticality]?.rotulo, v.criticality_reason].filter(Boolean).join(': ') || undefined}
                             >
-                              {CRIT[v.criticality]?.rotulo || '—'}
+                              {ALVO[v.criticality] && <i className={`h-2 w-2 rounded-full ${ALVO[v.criticality].cor}`} aria-hidden="true" />}
+                              {ALVO[v.criticality]?.curto || '—'}
                             </span>
                           </td>
                           <td className="py-2">

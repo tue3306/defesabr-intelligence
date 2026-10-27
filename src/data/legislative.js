@@ -12,7 +12,8 @@
 // -----------------------------------------------------------------------------
 
 export const LEG_STAGE = {
-  pendente: { label: 'Situação não consultada', classes: 'bg-gray-500/15 text-gray-600 dark:text-gray-300' },
+  // Sem destaque: é falta de leitura, não uma etapa. O texto basta.
+  pendente: { label: 'Etapa ainda não verificada', classes: 'bg-gray-500/[0.08] font-medium text-gray-600 dark:text-gray-400' },
   apresentada: { label: 'Apresentada', classes: 'bg-sky-500/15 text-sky-800 dark:text-sky-300' },
   comissao: { label: 'Em comissão', classes: 'bg-yellow-500/15 text-yellow-800 dark:text-yellow-300' },
   plenario: { label: 'No plenário', classes: 'bg-amber-500/15 text-amber-800 dark:text-amber-300' },
