@@ -1,35 +1,22 @@
 import { useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { MapPin, ArrowLeft, ArrowRight, ShieldAlert, Users, Radio, CalendarDays, Newspaper } from 'lucide-react'
+import { MapPin, ArrowRight, ShieldAlert, Users, Radio, CalendarDays, Newspaper, Swords } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import DataState from '../components/ui/DataState'
 import InfoTooltip from '../components/ui/InfoTooltip'
 import {
   fmt, useJanela, SeletorJanela, BotoesFiltro, OPCOES_IDIOMA, Variacao, BarraUrgencia, LegendaUrgencia,
   ListaNoticias, CoberturaPorDia, ListaFontes, PorIdioma, ForaDoCatalogo, Rotulo, useNomesTeatros,
-  rotaPais,
+  rotaPais, rotaTeatro, VoltarMundo,
 } from '../components/mundo/ElementosMundo'
 import { useResource } from '../hooks/useResource'
 import { worldService } from '../services/worldService'
 import { formatDateBR } from '../utils/dateUtils'
 
-// -----------------------------------------------------------------------------
-// PAÍS NO MUNDO — a página completa que o dossiê do mapa resume
-//
-// O dossiê embutido no mapa mostra seis manchetes do recorte Brasil. Quem clica
-// nos Estados Unidos querendo saber o que o Pentágono anunciou não encontra
-// nada ali: a matéria não passou no filtro de defesa do Brasil. Esta página
-// conta o escopo mundial inteiro, com a lista paginada, os teatros em que o
-// país aparece e os países que o acompanham no mesmo texto.
-//
-// "CO-MENCIONADO" É CO-OCORRÊNCIA, NÃO ALIANÇA NEM INIMIGO. Rússia e Ucrânia
-// aparecem juntas porque as matérias falam das duas; o número diz quantas
-// matérias, e só isso.
-//
-// País que não está no catálogo devolve 404, e 404 aqui não é falha: é um
-// endereço digitado errado ou um link antigo. A tela diz isso com calma e
-// oferece o caminho de volta, em vez de um bloco vermelho de erro.
-// -----------------------------------------------------------------------------
+// PAÍS NO MUNDO — a página completa que o dossiê do mapa resume: o escopo
+// mundial inteiro, os conflitos em que o país aparece e os países citados junto.
+// "Citado junto" é co-ocorrência no texto, não aliança nem inimizade.
+// País fora do catálogo (404) é um estado com saída, não um erro.
 
 export default function WorldCountry() {
   const { nome = '' } = useParams()
@@ -90,7 +77,7 @@ export default function WorldCountry() {
       <PageHeader
         icon={MapPin}
         title={titulo}
-        description="Tudo o que o acervo mundial registra sobre o país no período: cobertura por dia, teatros em que aparece, países citados junto e a lista completa de matérias."
+        description={`Tudo o que as notícias coletadas dizem sobre ${titulo} no período: quantas saíram por dia, em que conflitos o país aparece, quem é citado junto e a lista completa.`}
         breadcrumb={[{ label: 'Quadro do país' }, { label: 'Mundo', to: `/mundo?days=${dias}` }, { label: titulo }]}
         badges={d?.iso ? <span className="chip font-mono">{d.iso}</span> : null}
         meta={d ? [
@@ -100,10 +87,8 @@ export default function WorldCountry() {
         ] : undefined}
         actions={(
           <>
+            <VoltarMundo dias={dias} />
             <SeletorJanela dias={dias} onChange={mudarJanela} />
-            <Link to={`/mundo?days=${dias}`} className="btn-ghost px-3 py-1.5">
-              <ArrowLeft size={15} aria-hidden="true" /> Mundo
-            </Link>
           </>
         )}
       >
@@ -119,7 +104,7 @@ export default function WorldCountry() {
                 <h2 id="titulo-por-dia" className="mb-3 flex items-center gap-2 text-base font-bold tracking-tight">
                   <CalendarDays size={16} className="text-gold-500" aria-hidden="true" />
                   Matérias por dia
-                  <InfoTooltip text="Quantas matérias do escopo mundial mencionam o país em cada dia da janela. Volume de cobertura, não intensidade de acontecimento." />
+                  <InfoTooltip text="Quantas notícias citam o país em cada dia do período. Mede quanto se escreveu, não a gravidade do que aconteceu." />
                 </h2>
                 <CoberturaPorDia porDia={c?.porDia} />
               </section>
@@ -156,8 +141,8 @@ export default function WorldCountry() {
 
                 {teatros.length > 0 && (
                   <div className="mb-3">
-                    <Rotulo>Teatros em que o país aparece</Rotulo>
-                    <div role="group" aria-label="Filtrar por teatro" className="flex flex-wrap gap-1.5">
+                    <Rotulo>Filtrar por conflito</Rotulo>
+                    <div role="group" aria-label="Filtrar por conflito" className="flex flex-wrap gap-1.5">
                       <ChipFiltro
                         ativo={!filtro.teatro}
                         onClick={() => setFiltro((f) => ({ ...f, teatro: '', pagina: 1 }))}
@@ -199,12 +184,39 @@ export default function WorldCountry() {
               </section>
 
               <div className="min-w-0 space-y-4">
+                {/* ── CONFLITOS: o caminho país → teatro ── */}
+                {teatros.length > 0 && (
+                  <section className="card p-4 sm:p-5" aria-labelledby="titulo-conflitos">
+                    <h2 id="titulo-conflitos" className="mb-3 flex items-center gap-2 text-base font-bold tracking-tight">
+                      <Swords size={16} className="text-gold-500" aria-hidden="true" />
+                      Conflitos em que aparece
+                      <InfoTooltip text="Teatros de conflito — regiões onde uma guerra ou crise acontece — cujas notícias citam este país. Clique para abrir a página do conflito." />
+                    </h2>
+                    <ul className="space-y-1">
+                      {teatros.map((t) => (
+                        <li key={t.id}>
+                          <Link
+                            to={rotaTeatro(t.id, dias)}
+                            className="flex min-h-[40px] items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60 dark:hover:bg-white/5"
+                          >
+                            <span className="min-w-0 truncate">{t.nome || t.id}</span>
+                            <span className="flex shrink-0 items-center gap-1.5">
+                              <span className="font-mono text-xs font-semibold tabular-nums">{fmt(t.total)}</span>
+                              <ArrowRight size={13} className="muted" aria-hidden="true" />
+                            </span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+
                 {/* ── CO-MENCIONADOS ── */}
                 <section className="card p-4 sm:p-5" aria-labelledby="titulo-co">
                   <h2 id="titulo-co" className="mb-3 flex items-center gap-2 text-base font-bold tracking-tight">
                     <Users size={16} className="text-gold-500" aria-hidden="true" />
                     Citados junto
-                    <InfoTooltip text="Países mencionados nas mesmas matérias. Co-ocorrência no texto — não indica aliança, conflito nem relação entre os dois." />
+                    <InfoTooltip text="Países citados nas mesmas notícias. Só quer dizer que aparecem no mesmo texto — não indica aliança, conflito nem relação entre os dois." />
                   </h2>
                   {coMencionados.length === 0 ? (
                     <p className="text-xs muted">Nenhum outro país citado nas mesmas matérias.</p>
@@ -214,7 +226,7 @@ export default function WorldCountry() {
                         <li key={p.nome}>
                           <Link
                             to={rotaPais(p.nome, dias)}
-                            className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60 dark:hover:bg-white/5"
+                            className="flex min-h-[40px] items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60 dark:hover:bg-white/5"
                           >
                             <span className="min-w-0 truncate">
                               {p.pt || p.nome}
@@ -229,7 +241,7 @@ export default function WorldCountry() {
                 </section>
 
                 {/* ── RANSOMWARE ── */}
-                <Ransomware rw={rw} />
+                <Ransomware rw={rw} brasil={d.iso === 'BR'} />
               </div>
             </div>
 
@@ -263,7 +275,7 @@ function ChipFiltro({ ativo, onClick, children }) {
  * Sem código ISO no catálogo, o bloco diz que não dá para cruzar, em vez de
  * mostrar zero como se fosse segurança.
  */
-function Ransomware({ rw }) {
+function Ransomware({ rw, brasil }) {
   const disponivel = !!rw?.disponivel
   const itens = Array.isArray(rw?.itens) ? rw.itens : []
   return (
@@ -271,9 +283,10 @@ function Ransomware({ rw }) {
       <h2 id="titulo-rw" className="mb-2 flex items-center gap-2 text-base font-bold tracking-tight">
         <ShieldAlert size={16} className="text-gold-500" aria-hidden="true" />
         Vítimas de ransomware
+        <InfoTooltip text="Organizações deste país que grupos criminosos dizem ter atacado e divulgaram nos seus sites. É reivindicação do grupo, não confirmação da vítima." />
       </h2>
       <p className="font-mono text-2xl font-extrabold tabular-nums">{disponivel ? fmt(rw.total) : '—'}</p>
-      <p className="text-[11px] muted">{disponivel ? 'organizações divulgadas' : 'país fora do catálogo ISO'}</p>
+      <p className="text-[11px] muted">{disponivel ? 'organizações divulgadas que a coleta registrou' : 'sem código de país para cruzar com a fonte'}</p>
 
       {disponivel && itens.length > 0 && (
         <ul className="mt-3 space-y-1.5">
@@ -297,9 +310,10 @@ function Ransomware({ rw }) {
           ))}
         </ul>
       )}
-      {disponivel && typeof rw.total === 'number' && rw.total > itens.length && (
-        <Link to="/ciberameacas" className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-gold-600 hover:underline dark:text-gold-400">
-          ver incidentes <ArrowRight size={10} aria-hidden="true" />
+      {/* Incidentes no Brasil só cobre o Brasil: o atalho não serve a outros países. */}
+      {brasil && disponivel && typeof rw.total === 'number' && rw.total > itens.length && (
+        <Link to="/ciberameacas" className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-gold-600 hover:underline dark:text-gold-400">
+          Ver todos os incidentes no Brasil <ArrowRight size={12} aria-hidden="true" />
         </Link>
       )}
     </section>

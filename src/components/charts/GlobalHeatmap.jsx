@@ -4,6 +4,7 @@ import { Search, MapPin, X } from 'lucide-react'
 import { apiOnline } from '../../services/apiBridge'
 import { coberturaPorPais } from '../../hooks/useVitrineReal'
 import CountryDossier from './CountryDossier'
+import { plural } from '../../utils/textUtils'
 
 const geoUrl = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json'
 
@@ -243,7 +244,7 @@ export default function GlobalHeatmap({
               <span className="font-semibold">{nomePt(ativo)}</span>
               {aoVivo ? (
                 <span className="muted">
-                  {' · '}{dadosAtivo?.total ?? 0} menção(ões) no período
+                  {' · '}{plural(dadosAtivo?.total ?? 0, 'menção', 'menções')} no período
                 </span>
               ) : (
                 <span className="muted">{carregando ? ' · carregando…' : ' · sem dados do servidor'}</span>
@@ -361,7 +362,7 @@ export default function GlobalHeatmap({
                 </span>
                 <span
                   className={`shrink-0 font-mono text-xs tabular-nums ${p.total ? 'muted' : 'text-gray-400 dark:text-gray-600'}`}
-                  title={p.total ? `${p.total} menção(ões) no período` : 'Acompanhado, sem menção no período'}
+                  title={p.total ? `${plural(p.total, 'menção', 'menções')} no período` : 'Acompanhado, sem menção no período'}
                 >
                   {p.total || '—'}
                 </span>

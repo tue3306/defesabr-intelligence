@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { setorPt } from '../utils/textUtils'
 import {
-  Crosshair, ShieldAlert, Wrench, Bug, ChevronDown, Landmark, ExternalLink,
+  Crosshair, ShieldAlert, Wrench, ChevronDown, ChevronRight, Landmark, HelpCircle,
 } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import MetricCard from '../components/ui/MetricCard'
@@ -12,50 +12,9 @@ import { useResource } from '../hooks/useResource'
 import { request } from '../services/client'
 import { formatDateBR } from '../utils/dateUtils'
 
-// -----------------------------------------------------------------------------
-// GRUPOS CONTRA O BRASIL
-//
-// A tela de Incidentes responde "o que foi atacado no Brasil". Esta responde a
-// outra metade, que é a que serve para defender: QUEM ATACA, e o que já fez
-// aqui.
-//
-// ─────────────────────────────────────────────────────────────────────────────
-// A LISTA DE CVEs SAIU DO CENTRO DA TELA
-//
-// Ela ocupava o primeiro terço da página: uma tabela de identificadores
-// (CVE-2023-48788), CVSS, fabricante e produto. Era tecnicamente correta e
-// estava no lugar errado, por duas razões.
-//
-// A PRIMEIRA é de público. Um identificador de CVE só significa alguma coisa
-// para quem opera infraestrutura e vai aplicar a correção. Esta plataforma é
-// sobre segurança e defesa do Brasil, e quem a lê quer saber quem está
-// atacando o país — não a numeração NVD de uma falha no FortiClient. Para o
-// leitor errado, a tabela é ruído com aparência de rigor.
-//
-// A SEGUNDA é de proporção. Colocada em primeiro lugar, ela empurrava para
-// baixo o dado que realmente distingue esta plataforma: QUAIS GRUPOS
-// ATACARAM O ESTADO BRASILEIRO. Prefeitura, câmara municipal, secretaria
-// estadual de saúde — órgãos públicos com vazamento divulgado, com nome e
-// data. Isso não existe pronto em lugar nenhum, e estava em segundo plano
-// atrás de uma lista que qualquer boletim de vulnerabilidade publica.
-//
-// AS VULNERABILIDADES NÃO SUMIRAM — mudaram de altitude. Continuam no perfil
-// de cada grupo, onde respondem a pergunta certa ("como este grupo entra"), e
-// o número agregado continua no cartão. O que saiu foi a tabela como
-// protagonista.
-//
-// O contexto brasileiro passou a vir junto: quantos grupos atacaram órgãos do
-// Estado, quantas organizações brasileiras cada um já expôs, e o que a
-// presença de uma vulnerabilidade conhecida significa para quem defende esses
-// alvos.
-// -----------------------------------------------------------------------------
-
-const SEV = {
-  CRITICAL: 'bg-red-500/15 text-red-800 dark:text-red-300',
-  HIGH: 'bg-amber-500/15 text-amber-800 dark:text-amber-300',
-  MEDIUM: 'bg-brand-500/15 text-brand-700 dark:text-brand-300',
-  LOW: 'bg-gray-500/15 text-gray-700 dark:text-gray-300',
-}
+// GRUPOS CONTRA O BRASIL — quem ataca, o que já fez aqui e como opera.
+// A lista de CVEs saiu do centro da tela: as técnicas de entrada continuam no
+// perfil de cada grupo, onde respondem "como este grupo entra".
 
 export default function ThreatActors() {
   const atores = useResource(() => request('GET /cyber/atores', { params: { limit: 25 } }), [])
@@ -71,81 +30,59 @@ export default function ThreatActors() {
       <PageHeader
         icon={Crosshair}
         title="Grupos contra o Brasil"
-        description="Quem ataca organizações brasileiras: quantas já expôs, se atingiu o Estado, e como entra — técnicas mapeadas ao MITRE ATT&CK e ferramentas conhecidas."
-        help="Os perfis vêm do ransomware.live e cobrem apenas os grupos com vítima brasileira registrada no acervo."
+        description="As quadrilhas que já atacaram organizações brasileiras: quantas vítimas cada uma fez aqui, se atingiu órgãos públicos e como costuma agir."
+        help="Os perfis vêm do ransomware.live e cobrem só os grupos com vítima brasileira registrada nesta plataforma."
         breadcrumb={[{ label: 'Ataques cibernéticos' }, { label: 'Grupos contra o Brasil' }]}
         badges={<Badge type={lista.length ? 'live' : 'sem-dado'} />}
       />
 
-      {/* TRÊS CARTÕES, E OS TRÊS SÃO SOBRE O BRASIL.
-        *
-        * Vinham quatro: "Grupos · Vulnerabilidades · CVEs críticos · Estado".
-        * Os dois do meio contavam CVE — o dado menos específico desta
-        * plataforma — e empurravam para a ponta aquele que só ela tem: quantos
-        * grupos atingiram o Estado brasileiro.
-        *
-        * Primeiro os CVEs críticos saíram. Agora saiu o último, e com ele a
-        * última contagem que não respondia a nenhuma pergunta de quem
-        * acompanha segurança e defesa do país. */}
+      {/* Três cartões, todos sobre o Brasil. */}
       <div className="grid gap-4 sm:grid-cols-3">
         <MetricCard icon={Crosshair} label="Grupos contra o Brasil" value={lista.length || '—'}
           hint={`${comPerfil} com perfil detalhado`} accent="amber" />
-        <MetricCard icon={Landmark} label="Atacaram o Estado brasileiro"
+        <MetricCard icon={Landmark} label="Atacaram órgãos públicos"
           value={contraEstado || '—'}
-          hint="órgão público, judiciário ou militar" accent="red" />
+          hint="pelo endereço do site: .gov.br, .jus.br, .mil.br" accent="red" />
         <MetricCard icon={ShieldAlert} label="Organizações expostas" value={totalVitimas || '—'}
-          hint="somadas por estes grupos, no Brasil" accent="red" />
+          hint="no Brasil, somando todos estes grupos" accent="red" />
       </div>
 
-      {/* ── O QUE ISSO SIGNIFICA PARA QUEM DEFENDE ──
-        *
-        * No lugar daquela tabela, a leitura que ela nao dava: o que a
-        * presenca destes grupos significa para o alvo brasileiro. Cada frase
-        * abaixo e derivada de contagem do acervo, nao de opiniao. */}
-      <section className="card p-5">
-        <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-          <Landmark size={18} className="text-red-600 dark:text-red-400" />
-          O que isto significa para o Brasil
-          <InfoTooltip text="Derivado do acervo desta plataforma: os grupos listados são os que têm vítima brasileira registrada, e as contagens saem dessas vítimas." />
-        </h2>
-
-        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-          <Leitura
-            titulo="O Estado é alvo, não espectador"
-            corpo={contraEstado > 0
-              ? `${contraEstado} dos ${lista.length} grupos com atividade no Brasil já divulgaram dados de órgão público, judiciário ou militar — identificados pelo domínio (.gov.br, .jus.br, .mil.br), não por suposição.`
-              : 'Nenhum dos grupos listados tem, no acervo, vítima com domínio de órgão público brasileiro.'}
-          />
-          <Leitura
-            titulo="A exposição é acumulada"
-            corpo={totalVitimas > 0
-              ? `Somadas, estas organizações expuseram ${totalVitimas} vítimas brasileiras desde que a fonte começou a registrar. Não é uma campanha: é atividade contínua, ano após ano.`
-              : 'Ainda sem vítimas brasileiras somadas para os grupos listados.'}
-          />
-          <Leitura
-            titulo="A entrada é conhecida"
-            corpo={comPerfil > 0
-              ? `${comPerfil} destes grupos têm perfil detalhado no acervo, com as táticas e técnicas mapeadas ao MITRE ATT&CK. O modo de entrada não é segredo — está catalogado, e abre no perfil de cada um.`
-              : 'Os perfis detalhados ainda não foram coletados para estes grupos.'}
-          />
-        </div>
-
-        <p className="mt-4 text-xs leading-relaxed muted">
-          Como cada grupo entra está no perfil dele, abaixo: as táticas e técnicas mapeadas ao
-          MITRE ATT&amp;CK e as ferramentas conhecidas. É o que responde à pergunta que importa
-          aqui — <strong>como este grupo opera</strong> — sem virar catálogo de falhas técnicas.
-        </p>
-      </section>
+      {/* Glossário recolhido: quem já sabe não precisa rolar por ele. */}
+      <details className="card group p-0">
+        <summary className="flex cursor-pointer list-none items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60 [&::-webkit-details-marker]:hidden">
+          <HelpCircle size={16} className="text-brand-500 dark:text-brand-300" aria-hidden="true" />
+          Entenda os termos desta tela
+          <ChevronRight size={15} className="ml-auto transition-transform group-open:rotate-90" aria-hidden="true" />
+        </summary>
+        <dl className="grid grid-cols-1 gap-4 border-t border-gray-200 px-5 py-4 text-sm leading-relaxed dark:border-white/10 md:grid-cols-2">
+          <Termo nome="Grupo de ransomware">
+            Quadrilha que invade sistemas, sequestra os dados e cobra resgate. Quem não paga tem o nome
+            divulgado no site do grupo. Os nomes (lockbit, qilin…) são os que os próprios grupos usam.
+          </Termo>
+          <Termo nome="Selo vermelho de órgãos públicos">
+            Quantas vítimas do grupo têm site de governo, judiciário ou forças armadas
+            (.gov.br, .jus.br, .mil.br). Dá para conferir no próprio endereço.
+          </Termo>
+          <Termo nome="Táticas e técnicas (MITRE ATT&CK)">
+            O MITRE ATT&amp;CK é um catálogo público que dá um código a cada forma de ataque — como
+            entrar, se esconder, roubar dados. Os códigos (ex.: TA0001) aparecem no perfil de cada grupo.
+          </Termo>
+          <Termo nome="No Brasil × no mundo">
+            &ldquo;No Brasil&rdquo; conta as vítimas brasileiras registradas nesta plataforma. &ldquo;No mundo&rdquo;
+            é o total que a fonte informa para o planeta. São contagens diferentes de propósito.
+          </Termo>
+        </dl>
+      </details>
 
       {/* ── PERFIS ── */}
       <section className="card p-5">
         <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-          <Crosshair size={18} className="text-brand-400 dark:text-brand-300" />
+          <Crosshair size={18} className="text-brand-400 dark:text-brand-300" aria-hidden="true" />
           Perfis dos grupos
         </h2>
         <p className="mt-1 text-sm muted">
-          Clique para ver as táticas MITRE ATT&amp;CK e as ferramentas de cada um.
-          <strong> BR</strong> é o que o grupo fez aqui; <strong>mundo</strong> vem da fonte e conta o planeta.
+          Do que mais atacou o Brasil para o que menos. Abra um grupo para ver como ele opera e quem
+          ele já atingiu aqui.
         </p>
 
         <DataState
@@ -153,7 +90,7 @@ export default function ThreatActors() {
           error={atores.error}
           empty={!lista.length}
           onRetry={atores.refetch}
-          emptyProps={{ icon: Crosshair, title: 'Sem atores mapeados', hint: 'Aguardando a coleta.' }}
+          emptyProps={{ icon: Crosshair, title: 'Nenhum grupo registrado ainda', hint: 'Os grupos aparecem aqui assim que a coleta trouxer a primeira vítima brasileira.' }}
         >
           <div className="mt-4 space-y-2">
             {lista.map((a) => (
@@ -166,7 +103,6 @@ export default function ThreatActors() {
             ))}
           </div>
         </DataState>
-        <p className="mt-3 text-xs muted">{atores.data?.nota}</p>
       </section>
     </div>
   )
@@ -181,30 +117,32 @@ function Ator({ a, aberto, onToggle }) {
 
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-white/10">
-      <button onClick={onToggle} className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 p-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-white/5" aria-expanded={aberto}>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={aberto}
+        className="flex min-h-[44px] w-full flex-wrap items-center gap-x-3 gap-y-1 p-3 text-left text-sm hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gold-500/60 dark:hover:bg-white/5"
+      >
         <span className="font-mono font-bold">{a.nome}</span>
         {a.contraEstado > 0 && (
           <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-bold text-red-800 dark:text-red-300">
-            {a.contraEstado} contra o Estado
+            {a.contraEstado} {a.contraEstado === 1 ? 'órgão público' : 'órgãos públicos'}
           </span>
         )}
         <span className="text-xs muted">
           {a.vitimasBr} no Brasil{a.vitimasMundo ? ` · ${a.vitimasMundo} no mundo` : ''}
         </span>
         <span className="ml-auto flex items-center gap-3 text-xs muted">
-          {/* Em branco, a célula se lia como "este grupo não usa técnica
-            * nenhuma" — numa página cujo subtítulo promete justamente as
-            * técnicas mapeadas. A verdade é que a fonte não mapeou esse grupo,
-            * e isso precisa estar escrito. */}
+          {/* Sem mapeamento, diz isso — em branco pareceria "não usa técnica nenhuma". */}
           {a.tecnicas > 0 || a.ferramentas > 0 ? (
             <>
               {a.tecnicas > 0 && <span>{a.tecnicas} técnicas</span>}
               {a.ferramentas > 0 && <span>{a.ferramentas} ferramentas</span>}
             </>
           ) : (
-            <span className="italic">sem mapeamento na fonte</span>
+            <span className="italic">sem perfil técnico na fonte</span>
           )}
-          <ChevronDown size={16} className={aberto ? 'rotate-180 transition-transform' : 'transition-transform'} />
+          <ChevronDown size={16} aria-hidden="true" className={aberto ? 'rotate-180 transition-transform' : 'transition-transform'} />
         </span>
       </button>
 
@@ -225,8 +163,9 @@ function Ator({ a, aberto, onToggle }) {
 
           {d?.ttps?.length > 0 && (
             <div className="mb-4">
-              <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wider muted">
-                Táticas e técnicas (MITRE ATT&amp;CK)
+              <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider muted">
+                Como opera (MITRE ATT&amp;CK)
+                <InfoTooltip text="Catálogo público que dá um código a cada forma de ataque. A tática é o objetivo (por exemplo, entrar no sistema); a técnica é o jeito de fazer." />
               </p>
               <div className="space-y-2">
                 {d.ttps.map((t) => (
@@ -243,7 +182,7 @@ function Ator({ a, aberto, onToggle }) {
                         </li>
                       ))}
                       {(t.techniques || []).length > 6 && (
-                        <li className="text-xs muted">… e mais {t.techniques.length - 6}</li>
+                        <li className="text-xs muted">e mais {t.techniques.length - 6}</li>
                       )}
                     </ul>
                   </div>
@@ -255,7 +194,7 @@ function Ator({ a, aberto, onToggle }) {
           {d?.ferramentas && Object.keys(d.ferramentas).length > 0 && (
             <div className="mb-4">
               <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider muted">
-                <Wrench size={12} /> Ferramentas
+                <Wrench size={12} aria-hidden="true" /> Ferramentas
               </p>
               <div className="space-y-1">
                 {Object.entries(d.ferramentas).map(([cat, fs]) => (
@@ -292,12 +231,11 @@ function Ator({ a, aberto, onToggle }) {
   )
 }
 
-/** Um parágrafo de leitura derivada. Sem número solto: sempre com a frase. */
-function Leitura({ titulo, corpo }) {
+function Termo({ nome, children }) {
   return (
-    <div className="rounded-lg border border-gray-200 p-3.5 dark:border-white/10">
-      <p className="text-sm font-bold">{titulo}</p>
-      <p className="mt-1 text-xs leading-relaxed muted">{corpo}</p>
+    <div>
+      <dt className="font-semibold text-gray-900 dark:text-gray-100">{nome}</dt>
+      <dd className="mt-0.5 text-gray-700 dark:text-gray-300">{children}</dd>
     </div>
   )
 }

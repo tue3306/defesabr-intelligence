@@ -21,7 +21,9 @@ export default function InfoTooltip({ text, label = 'O que é isto?', size = 14 
         // Esc fecha a dica sem tirar o foco do botão (WCAG 1.4.13: conteúdo
         // que aparece no foco precisa poder ser dispensado).
         onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false) }}
-        className="inline-flex items-center justify-center rounded-full text-gray-400 transition-colors hover:text-brand-300"
+        // O padding com margem negativa aumenta a área de toque (~30px) sem
+        // empurrar o texto ao redor.
+        className="-m-2 inline-flex items-center justify-center rounded-full p-2 text-gray-400 transition-colors hover:text-brand-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60"
       >
         <HelpCircle size={size} />
       </button>

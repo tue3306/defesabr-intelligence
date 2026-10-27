@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
-  Swords, ArrowLeft, ArrowRight, CalendarDays, Radio, Flag, Newspaper, SearchCode,
+  Swords, ArrowRight, CalendarDays, Radio, Flag, Newspaper, SearchCode,
 } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import DataState from '../components/ui/DataState'
@@ -9,25 +9,14 @@ import InfoTooltip from '../components/ui/InfoTooltip'
 import {
   fmt, useJanela, SeletorJanela, BotoesFiltro, OPCOES_IDIOMA, Variacao, BarraUrgencia, URGENCIAS,
   ListaNoticias, CoberturaPorDia, ListaFontes, PorIdioma, RegrasTeatro, ForaDoCatalogo, Rotulo,
-  useNomesTeatros, rotaPais,
+  useNomesTeatros, rotaPais, VoltarMundo,
 } from '../components/mundo/ElementosMundo'
 import { useResource } from '../hooks/useResource'
 import { worldService } from '../services/worldService'
 
-// -----------------------------------------------------------------------------
-// TEATRO DE CONFLITO
-//
-// Um teatro do catálogo — Rússia × Ucrânia, Israel × Hamas, Sahel — é um
-// conjunto de TERMOS, não uma afirmação sobre o estado de uma guerra. A página
-// mostra o que o acervo registrou com esses termos no período, e termina
-// mostrando os próprios termos: quem duvidar de por que uma matéria caiu aqui
-// confere a regra na mesma tela, sem precisar confiar na plataforma.
-//
-// A distribuição de urgência é a das MATÉRIAS, pela regra de vocabulário da
-// lente (invasão, bombardeio, sanções…). Não é um índice de gravidade do
-// conflito; um teatro com muitas matérias "críticas" é um teatro sobre o qual
-// se escreveu com essas palavras.
-// -----------------------------------------------------------------------------
+// TEATRO DE CONFLITO — um conjunto de TERMOS do catálogo, não uma afirmação
+// sobre o estado de uma guerra. A página termina mostrando os próprios termos,
+// para quem quiser conferir por que uma notícia caiu aqui.
 
 export default function WorldTheater() {
   const { id = '' } = useParams()
@@ -101,6 +90,7 @@ export default function WorldTheater() {
         icon={Swords}
         title={titulo}
         description={t?.descricao || undefined}
+        help="Teatro de conflito é a região onde uma guerra ou crise acontece. Aqui, cada teatro reúne as notícias que citam os termos dele — a lista de termos está no fim da página."
         breadcrumb={[{ label: 'Quadro do país' }, { label: 'Mundo', to: `/mundo?days=${dias}` }, { label: titulo }]}
         badges={t?.regiao ? <span className="chip">{t.regiao}</span> : null}
         meta={d ? [
@@ -110,10 +100,8 @@ export default function WorldTheater() {
         ] : undefined}
         actions={(
           <>
+            <VoltarMundo dias={dias} />
             <SeletorJanela dias={dias} onChange={mudarJanela} />
-            <Link to={`/mundo?days=${dias}`} className="btn-ghost px-3 py-1.5">
-              <ArrowLeft size={15} aria-hidden="true" /> Mundo
-            </Link>
           </>
         )}
       >
@@ -122,7 +110,7 @@ export default function WorldTheater() {
             {c && <Variacao variacao={c.variacao} total={c.total} periodoAnterior={c.periodoAnterior} dias={periodo} />}
             {paisesDoTeatro.length > 0 && (
               <div>
-                <Rotulo>Países do teatro</Rotulo>
+                <Rotulo>Países envolvidos — abra a página de cada um</Rotulo>
                 <ul className="flex flex-wrap gap-1.5">
                   {paisesDoTeatro.map((nome) => (
                     <li key={nome}>
@@ -146,8 +134,8 @@ export default function WorldTheater() {
           <div className={`space-y-6 transition-opacity ${r.loading ? 'opacity-60' : ''}`} aria-busy={r.loading || undefined}>
             {c?.total === 0 && (
               <p className="card border-dashed p-4 text-sm muted">
-                Sem cobertura no período — o acervo não registrou matéria com os termos deste teatro nos
-                últimos {fmt(periodo)} dias. Isso não quer dizer que nada aconteceu.
+                Nenhuma notícia com os termos deste conflito nos últimos {fmt(periodo)} dias. Isso não
+                quer dizer que nada aconteceu. Tente um período maior acima.
               </p>
             )}
 
@@ -157,7 +145,7 @@ export default function WorldTheater() {
                 <h2 id="titulo-por-dia" className="mb-3 flex items-center gap-2 text-base font-bold tracking-tight">
                   <CalendarDays size={16} className="text-gold-500" aria-hidden="true" />
                   Matérias por dia
-                  <InfoTooltip text="Quantas matérias casaram com os termos do teatro em cada dia. Volume de cobertura, não intensidade do conflito." />
+                  <InfoTooltip text="Quantas notícias citaram os termos deste conflito em cada dia. Mede quanto se escreveu, não a intensidade do conflito." />
                 </h2>
                 <CoberturaPorDia porDia={c?.porDia} />
               </section>
@@ -166,7 +154,7 @@ export default function WorldTheater() {
                 <div>
                   <h2 id="titulo-urgencia" className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider muted">
                     Urgência das matérias
-                    <InfoTooltip text="A urgência é atribuída a cada matéria pelo vocabulário (invasão, bombardeio, sanções…). Não é um índice de gravidade do conflito." />
+                    <InfoTooltip text="Cada notícia recebe uma urgência pelas palavras que usa (invasão, bombardeio, sanções…). Não é um índice de gravidade do conflito." />
                   </h2>
                   <BarraUrgencia porUrgencia={pu} total={c?.total} altura="h-2.5" />
                   <ul className="mt-3 space-y-1.5">
@@ -206,7 +194,7 @@ export default function WorldTheater() {
               >
                 <h2 id="titulo-lista" className="mb-3 flex items-center gap-2 text-base font-bold tracking-tight">
                   <Newspaper size={16} className="text-gold-500" aria-hidden="true" />
-                  Matérias do teatro
+                  Notícias deste conflito
                 </h2>
 
                 <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -220,7 +208,8 @@ export default function WorldTheater() {
                     <button
                       type="button"
                       onClick={() => setFiltro((f) => ({ ...f, pais: '', pagina: 1 }))}
-                      className="chip hover:border-gold-500/50"
+                      className="chip hover:border-gold-500/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60"
+                      aria-label={`Remover filtro de país: ${ptPorNome[filtro.pais] || filtro.pais}`}
                     >
                       País: {ptPorNome[filtro.pais] || filtro.pais} · limpar
                     </button>
@@ -235,7 +224,7 @@ export default function WorldTheater() {
                   onPagina={irParaPagina}
                   vazio={filtro.pais || filtro.idioma
                     ? 'Nenhuma matéria corresponde aos filtros neste período.'
-                    : `Nenhuma matéria do acervo casou com os termos deste teatro nos últimos ${fmt(periodo)} dias.`}
+                    : `Nenhuma notícia com os termos deste conflito nos últimos ${fmt(periodo)} dias.`}
                 />
               </section>
 
@@ -245,7 +234,7 @@ export default function WorldTheater() {
                   <h2 id="titulo-paises" className="mb-3 flex items-center gap-2 text-base font-bold tracking-tight">
                     <Flag size={16} className="text-gold-500" aria-hidden="true" />
                     Países mencionados
-                    <InfoTooltip text="Países citados nas matérias do teatro. Clique no nome para filtrar a lista; a seta abre a página do país." />
+                    <InfoTooltip text="Países citados nas notícias deste conflito. Clique no nome para filtrar a lista; a seta abre a página do país." />
                   </h2>
                   {paises.length === 0 ? (
                     <p className="text-xs muted">Nenhum país citado nas matérias do período.</p>
@@ -274,7 +263,7 @@ export default function WorldTheater() {
                                 to={rotaPais(p.nome, dias)}
                                 aria-label={`Abrir a página de ${p.pt || p.nome}`}
                                 title="Abrir a página do país"
-                                className="shrink-0 rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white"
+                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white"
                               >
                                 <ArrowRight size={14} aria-hidden="true" />
                               </Link>
@@ -301,11 +290,11 @@ export default function WorldTheater() {
             <section className="card p-4 sm:p-5" aria-labelledby="titulo-regras">
               <h2 id="titulo-regras" className="mb-1 flex items-center gap-2 text-base font-bold tracking-tight">
                 <SearchCode size={16} className="text-gold-500" aria-hidden="true" />
-                Como este teatro é detectado
+                Como as notícias deste conflito são encontradas
               </h2>
               <p className="mb-3 text-sm muted">
-                Uma matéria entra aqui quando o texto casa com uma das alternativas abaixo: pelo menos
-                um termo de cada grupo. Sem acento e sem diferença de maiúsculas, por palavra inteira.
+                Uma notícia entra aqui quando o texto contém uma das combinações abaixo: pelo menos
+                um termo de cada grupo. Acentos e maiúsculas não importam; vale só a palavra inteira.
               </p>
               <RegrasTeatro regras={t?.regras} />
             </section>

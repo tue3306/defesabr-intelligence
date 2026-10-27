@@ -115,7 +115,7 @@ export function Variacao({ variacao, total, periodoAnterior, dias, compacto = fa
         className="rounded-full bg-gray-500/15 px-2 py-0.5 text-[11px] font-semibold muted"
         title="Nenhuma matéria no período anterior: não há base para calcular a variação."
       >
-        sem base de comparação
+        {compacto ? 'sem comparação' : 'sem base de comparação'}
       </span>
     )
   }
@@ -409,6 +409,15 @@ export function ForaDoCatalogo({ titulo, texto, dias }) {
         <ArrowLeft size={15} aria-hidden="true" /> Voltar para Mundo &amp; Conflitos
       </Link>
     </div>
+  )
+}
+
+/** Botão de voltar ao panorama, igual nas páginas de país e de teatro. */
+export function VoltarMundo({ dias }) {
+  return (
+    <Link to={`/mundo?days=${dias}`} className="btn-ghost px-3 py-1.5">
+      <ArrowLeft size={15} aria-hidden="true" /> Voltar para Mundo
+    </Link>
   )
 }
 

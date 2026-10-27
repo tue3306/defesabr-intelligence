@@ -1,37 +1,14 @@
 import { Link } from 'react-router-dom'
-import { Globe2, Info, TrendingUp, ShieldAlert, Newspaper, Swords, ArrowRight } from 'lucide-react'
+import { Globe2, TrendingUp, ShieldAlert, Newspaper, Swords, ArrowRight, Factory } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import GlobalHeatmap from '../components/charts/GlobalHeatmap'
 import InfoTooltip from '../components/ui/InfoTooltip'
 import { useResource } from '../hooks/useResource'
 import { request } from '../services/client'
 
-// -----------------------------------------------------------------------------
-// MAPA ESTRATÉGICO — o centro da plataforma
-//
-// O mapa vivia dentro de uma aba de "Dados & Gráficos", espremido entre um
-// gráfico de barras e um comparativo de PIB. Estava enterrado como se fosse
-// mais um gráfico, e é a peça que melhor responde à pergunta do nível
-// estratégico: o que o mundo está discutindo, e o que disso toca o Brasil.
-//
-// É também a única tela que cruza DUAS FONTES INDEPENDENTES pelo código ISO —
-// a cobertura noticiosa que a coleta produz e as vítimas de ransomware que os
-// próprios grupos divulgam. Nenhuma das duas sabe da outra; o cruzamento é o
-// produto.
-//
-// ─────────────────────────────────────────────────────────────────────────────
-// POR QUE O BRASIL É A ÂNCORA, E NÃO MAIS UM PAÍS
-//
-// Ele é citado em quase toda matéria do acervo — é uma plataforma sobre o
-// Brasil. Usá-lo como teto da escala pintaria o resto do mundo de cinza: a
-// Venezuela com seis menções viraria 3% do Brasil com duzentas, e o mapa
-// deixaria de distinguir qualquer coisa.
-//
-// Então ele sai da escala de cor e ganha a cor da marca, com o selo "âncora".
-// Presente e distinto, nunca apagado — e a contagem dele aparece do mesmo
-// jeito na lista. O que a escala mede é o RESTO DO MUNDO em relação a si
-// mesmo, que é a comparação que informa.
-// -----------------------------------------------------------------------------
+// MAPA ESTRATÉGICO — o que o acervo discute e o que disso toca o Brasil.
+// Cruza cobertura noticiosa e vítimas de ransomware pelo código ISO do país.
+// O Brasil fica fora da escala de cor (seria o teto e apagaria o resto do mundo).
 
 export default function StrategicMap() {
   // O panorama do país acompanha o mapa: são a mesma pergunta em duas formas.
@@ -43,39 +20,16 @@ export default function StrategicMap() {
       <PageHeader
         icon={Globe2}
         title="Mapa estratégico"
-        description="Que países o acervo está mencionando, e o que cada um tem a ver com o Brasil. Cobertura noticiosa cruzada com as vítimas de ransomware do território, pelo código ISO."
+        description="Quais países aparecem nas notícias coletadas e o que cada um tem a ver com o Brasil. Clique num país para ver as notícias e os ataques cibernéticos ligados a ele."
+        help="A cor mede quantas notícias citam o país, não o risco. Um país aparece mais porque a imprensa escreveu mais sobre ele — não porque é mais perigoso."
         breadcrumb={[{ label: 'Quadro do país' }, { label: 'Mapa' }]}
       />
-
-      {/* ── A LEITURA DO NÍVEL ESTRATÉGICO ──
-        *
-        * Antes de qualquer número, o que a tela mede e o que ela NÃO mede.
-        * Um mapa-múndi colorido é a peça mais persuasiva de um painel de
-        * inteligência, e a mais fácil de ler errado. */}
-      <div className="card flex items-start gap-3 p-4">
-        <Info size={18} className="mt-0.5 shrink-0 text-brand-400 dark:text-brand-300" />
-        <div className="min-w-0 text-sm">
-          <p className="font-semibold">Isto é cobertura, não risco.</p>
-          <p className="mt-1 leading-relaxed muted">
-            A cor mede quantas matérias coletadas mencionam cada país no período. Um país aparece
-            mais porque a imprensa escreveu mais sobre ele — o que não é a mesma coisa que ser mais
-            perigoso, nem que ter mais relação com o Brasil. O que liga um país ao Brasil está no
-            dossiê que abre ao selecioná-lo: as menções concretas e, quando houver, as organizações
-            daquele território com vazamento divulgado.
-          </p>
-        </div>
-      </div>
 
       <section className="card p-5">
         <GlobalHeatmap height={360} />
       </section>
 
-      {/* ── O RESTO DO MUNDO TEM ÁREA PRÓPRIA ──
-        *
-        * Este mapa conta só o que passou no filtro de defesa do Brasil. Quem
-        * chega aqui querendo a guerra na Ucrânia ou o Pentágono não encontra —
-        * e não por falta de cobertura: a lente é outra. A chamada diz onde
-        * ela está. */}
+      {/* Este mapa conta só o recorte de defesa do Brasil; guerras e EUA ficam em /mundo. */}
       <Link
         to="/mundo"
         className="card card-interactive flex items-center gap-3 p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60"
@@ -86,28 +40,24 @@ export default function StrategicMap() {
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-bold">Ver notícias do mundo e conflitos</span>
           <span className="block text-xs muted">
-            Estados Unidos, guerras e teatros em curso — inclusive o que não toca a defesa do Brasil.
+            Estados Unidos, guerras e conflitos em curso — inclusive o que não envolve a defesa do Brasil.
           </span>
         </span>
         <ArrowRight size={18} className="shrink-0 text-gold-600 dark:text-gold-400" aria-hidden="true" />
       </Link>
 
-      {/* ── O QUE O MAPA NÃO MOSTRA SOZINHO ──
-        *
-        * O mapa responde "onde". Estas três colunas respondem "e daí para o
-        * Brasil" — que é a pergunta do nível estratégico e a razão de a
-        * plataforma existir. */}
+      {/* O mapa responde "onde"; os três painéis, "e daí para o Brasil". */}
       {p && (
         <section>
           <h2 className="mb-3 flex items-center gap-2 text-lg font-bold tracking-tight">
-            <TrendingUp size={18} className="text-gold-500" />
-            O recorte brasileiro do período
-            <InfoTooltip text="Contagens do acervo, medidas nos últimos 90 dias. Menção e ligação são coisas diferentes, e cada painel diz qual das duas está contando." />
+            <TrendingUp size={18} className="text-gold-500" aria-hidden="true" />
+            O Brasil nos últimos 90 dias
+            <InfoTooltip text="Contagens das notícias coletadas nos últimos 90 dias, qualquer que seja o período escolhido no mapa. Ser citado não é o mesmo que estar envolvido: cada painel diz o que conta." />
           </h2>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <Painel
-              icone={Factoryish}
+              icone={Factory}
               titulo="Setores sob pressão"
               dica="Setor com cobertura noticiosa E incidente registrado no período. A interseção é o que interessa; não significa que sejam o mesmo fato."
               vazio="Nenhum setor com as duas coisas no período."
@@ -134,17 +84,12 @@ export default function StrategicMap() {
   )
 }
 
-/** Ícone de setor sem importar mais um pacote: reaproveita o que já existe. */
-function Factoryish(props) {
-  return <TrendingUp {...props} />
-}
-
 function Painel({ icone: Icone, titulo, dica, itens, vazio }) {
   const lista = itens?.filter(Boolean) || []
   return (
     <div className="card p-4">
       <h3 className="flex items-center gap-1.5 text-sm font-bold">
-        <Icone size={15} className="text-brand-400 dark:text-brand-300" />
+        <Icone size={15} className="text-brand-400 dark:text-brand-300" aria-hidden="true" />
         {titulo}
         <InfoTooltip text={dica} />
       </h3>

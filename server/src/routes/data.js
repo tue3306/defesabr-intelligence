@@ -386,8 +386,8 @@ router.get('/cyber/ransomware', async (req, res) => {
 router.get('/cyber/atores', exigirPapel('user'), async (req, res) => {
   res.json({
     items: await atoresContraBrasil({ limite: limite(req.query.limit, 20, 60) }),
-    nota: '`vitimasBr` vem do acervo desta plataforma; `vitimasMundo` vem da fonte e '
-      + 'conta o planeta inteiro. Sao numeros diferentes de proposito.',
+    nota: 'As vítimas no Brasil vêm do acervo desta plataforma; as vítimas no mundo vêm da fonte '
+      + 'e contam o planeta inteiro. São números diferentes de propósito.',
   })
 })
 

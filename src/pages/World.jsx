@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
-  Swords, Info, BookOpenCheck, Flag, Map as MapIcon, Newspaper, Search, X, ExternalLink,
+  Swords, Info, BookOpenCheck, Flag, Map as MapIcon, Newspaper, Search, X, ExternalLink, ChevronRight,
 } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import DataState from '../components/ui/DataState'
@@ -16,28 +16,9 @@ import { useResource } from '../hooks/useResource'
 import { worldService } from '../services/worldService'
 import { timeAgo } from '../utils/dateUtils'
 
-// -----------------------------------------------------------------------------
-// MUNDO & CONFLITOS
-//
-// O dono do produto queria ver o que acontece nos Estados Unidos e nas guerras
-// em curso, e a plataforma não mostrava — não por falta de tela, mas porque a
-// coleta descartava essas matérias na entrada: o filtro de relevância é sobre a
-// defesa do Brasil, e a guerra na Ucrânia não passa nele. A lente internacional
-// passou a gravá-las; esta é a tela que as lê.
-//
-// DUAS REGRAS DO PROJETO VALEM AQUI COM MAIS FORÇA QUE EM QUALQUER OUTRO LUGAR
-//
-// 1. COBERTURA NÃO É RISCO. Um teatro com trezentas matérias não é "mais
-//    grave" que um com dez: é mais noticiado. A nota no topo diz isso antes de
-//    qualquer número, e nenhuma cor aqui sugere gravidade além da urgência que
-//    a própria matéria recebeu.
-//
-// 2. NADA ESCRITO À MÃO. O catálogo de teatros é VOCABULÁRIO de detecção —
-//    como as regiões estratégicas —, não uma lista de guerras declaradas. Todo
-//    número vem do acervo. Teatro sem matéria no período continua na grade,
-//    com zero e "sem cobertura no período": sumir com ele, ou pintá-lo de
-//    calmo, afirmaria algo que ninguém mediu.
-// -----------------------------------------------------------------------------
+// MUNDO & CONFLITOS — o escopo internacional (EUA, guerras), inclusive o que
+// não passa no filtro de defesa do Brasil. Duas regras: cobertura não é risco,
+// e nada escrito à mão — teatro sem matéria continua na grade, com zero.
 
 export default function World() {
   const navigate = useNavigate()
@@ -98,38 +79,46 @@ export default function World() {
       <PageHeader
         icon={Swords}
         title="Mundo & Conflitos"
-        description="O que o acervo registra sobre outros países — Estados Unidos à frente — e sobre as guerras e teatros de conflito em curso, inclusive o que não toca a defesa do Brasil."
+        description="Notícias sobre outros países e sobre as guerras e crises em curso — inclusive o que não envolve a defesa do Brasil. Clique num país ou conflito para ver tudo sobre ele."
         breadcrumb={[{ label: 'Quadro do país' }, { label: 'Mundo' }]}
         meta={[
           { label: 'Matérias', value: fmt(totais?.materias) },
           { label: 'Países', value: fmt(totais?.paises) },
-          { label: 'Teatros de conflito com cobertura', value: fmt(totais?.teatrosComCobertura) },
+          { label: 'Conflitos com notícias', value: fmt(totais?.teatrosComCobertura) },
           { label: 'Fontes', value: fmt(totais?.fontes) },
           { label: 'Em português / inglês', value: `${fmt(totais?.porIdioma?.pt)} / ${fmt(totais?.porIdioma?.en)}` },
         ]}
         actions={<SeletorJanela dias={dias} onChange={mudarJanela} />}
       />
 
-      {/* ── O QUE A TELA MEDE, ANTES DE QUALQUER NÚMERO ── */}
-      <div className="card flex items-start gap-3 p-4">
-        <Info size={18} className="mt-0.5 shrink-0 text-brand-400 dark:text-brand-300" aria-hidden="true" />
-        <div className="min-w-0 text-sm">
-          <p className="font-semibold">Isto é cobertura, não risco.</p>
-          <p className="mt-1 leading-relaxed muted">
-            Cada número conta matérias coletadas que mencionam o país ou o teatro no período. Um
-            conflito aparece mais porque a imprensa escreveu mais sobre ele — não porque ficou mais
-            grave. Matérias de fontes em inglês levam o selo <SeloEN />.
+      {/* ── O QUE A TELA MEDE: uma linha à vista, o detalhe recolhido ── */}
+      <details className="card group p-0">
+        <summary className="flex cursor-pointer list-none items-start gap-3 rounded-xl p-4 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60 [&::-webkit-details-marker]:hidden">
+          <Info size={18} className="mt-0.5 shrink-0 text-brand-400 dark:text-brand-300" aria-hidden="true" />
+          <span className="min-w-0 flex-1">
+            <strong>Os números contam notícias, não medem risco.</strong>{' '}
+            <span className="muted">Um conflito aparece mais porque a imprensa escreveu mais sobre ele, não porque ficou mais grave.</span>
+          </span>
+          <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-gold-600 dark:text-gold-400">
+            <span className="hidden sm:inline">Saiba mais</span>
+            <ChevronRight size={15} className="transition-transform group-open:rotate-90" aria-hidden="true" />
+          </span>
+        </summary>
+        <div className="space-y-2 border-t border-gray-200 px-4 py-3 pl-11 text-sm leading-relaxed dark:border-white/10">
+          <p className="muted">
+            <strong className="text-gray-900 dark:text-gray-100">Teatro de conflito</strong> é a região onde uma
+            guerra ou crise acontece, como Rússia × Ucrânia. Notícias de fontes em inglês levam o selo <SeloEN />.
           </p>
-          {p?.nota && <p className="mt-1 text-xs leading-relaxed muted">{p.nota}</p>}
+          {p?.nota && <p className="text-xs muted">{p.nota}</p>}
           <button
             type="button"
             onClick={() => setMetodoAberto(true)}
-            className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-gold-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60 dark:text-gold-400"
+            className="inline-flex items-center gap-1.5 font-semibold text-gold-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60 dark:text-gold-400"
           >
-            <BookOpenCheck size={15} aria-hidden="true" /> Como a lente decide
+            <BookOpenCheck size={15} aria-hidden="true" /> Como as notícias são classificadas
           </button>
         </div>
-      </div>
+      </details>
 
       <DataState
         loading={panorama.loading && !p}
@@ -160,13 +149,10 @@ export default function World() {
             <section aria-labelledby="titulo-teatros">
               <h2 id="titulo-teatros" className="mb-3 flex items-center gap-2 text-lg font-bold tracking-tight">
                 <Swords size={18} className="text-gold-500" aria-hidden="true" />
-                Conflitos e teatros
-                <InfoTooltip text="O catálogo é vocabulário de detecção, não uma lista de guerras declaradas. Todo número é contagem de matérias do acervo; teatro sem matéria no período aparece com zero." />
+                Conflitos
+                <InfoTooltip text="Cada cartão é um teatro de conflito: a região onde uma guerra ou crise acontece. A lista é fixa e não é uma lista de guerras declaradas; conflito sem notícia no período aparece com zero." />
               </h2>
-              {/* A barra colorida de cada cartão só tinha explicação no hover,
-                * que não existe numa projeção: sem chave, vermelho+laranja lê-se
-                * como "mais grave", que é justamente o que o aviso do topo pede
-                * para não concluir. */}
+              {/* Legenda fixa da barra de cada cartão (hover não existe no toque). */}
               <ul className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] muted">
                 <li className="font-semibold">Urgência das matérias:</li>
                 {URGENCIAS.map((u) => (
@@ -192,8 +178,8 @@ export default function World() {
                 Menções por país
               </h2>
               <p className="mb-4 text-sm muted">
-                O acervo mundial inteiro, e não só o recorte Brasil do Mapa estratégico. Clicar num
-                país abre a página dele.
+                Todas as notícias internacionais, não só as ligadas à defesa do Brasil. Clique num
+                país para abrir a página dele.
               </p>
               <GlobalHeatmap
                 height={420}
@@ -233,8 +219,8 @@ export default function World() {
           Feed internacional
         </h2>
         <p className="mb-4 text-sm muted">
-          Matérias do escopo mundial, das mais recentes para as mais antigas. As que também passaram
-          no filtro de defesa do Brasil levam o selo correspondente.
+          Todas as notícias internacionais, das mais recentes para as mais antigas. As que também
+          tratam da defesa do Brasil levam o selo &ldquo;também no recorte Brasil&rdquo;.
         </p>
 
         <div className="mb-4 flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center">
@@ -290,13 +276,13 @@ export default function World() {
               onPagina={irParaPagina}
               vazio={filtro.q || filtro.idioma || filtro.urgencia
                 ? 'Nenhuma matéria corresponde aos filtros neste período.'
-                : `Nenhuma matéria do escopo mundial nos últimos ${dias} dias.`}
+                : `Nenhuma notícia internacional nos últimos ${dias} dias. Tente um período maior.`}
             />
           )}
         </DataState>
       </section>
 
-      <Modal open={metodoAberto} onClose={() => setMetodoAberto(false)} title="Como a lente decide" maxWidth="max-w-2xl">
+      <Modal open={metodoAberto} onClose={() => setMetodoAberto(false)} title="Como as notícias são classificadas" maxWidth="max-w-2xl">
         <MetodoDaLente aberto={metodoAberto} />
       </Modal>
     </div>
@@ -378,8 +364,7 @@ function CartaoTeatro({ t, dias }) {
 
       {semCobertura ? (
         <p className="mt-3 rounded-lg bg-gray-100 px-3 py-2 text-xs muted dark:bg-white/5">
-          Sem cobertura no período — o que não quer dizer que nada aconteceu, só que o acervo não
-          registrou matéria.
+          Nenhuma notícia no período — o que não quer dizer que nada aconteceu.
         </p>
       ) : (
         <>
