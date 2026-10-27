@@ -7,15 +7,33 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Não publicado]
 
+### Revisão como iniciante, numa cópia local logada
+
+- **Filtros.** "Limpar filtros" deixava a palavra na caixa de busca; a lista
+  já não estava filtrada por ela, e a tela dizia o contrário.
+- **Relevância.** Ficção ("exército" em resenha de filme, trailer de jogo) e
+  "exército digital" saem do acervo; "submarino nuclear de ataque" deixa de
+  ser CRÍTICO. A regra nova está publicada no método. O acervo de produção
+  foi reclassificado (3 matérias saíram, 1 mudou de urgência).
+- **Textos.** Urgência com acento em todas as telas; setores do
+  ransomware.live em português; plurais reais no lugar de "órgão(s)
+  público(s)"; acentos nas notas e regras publicadas; "Notícias do dia" no
+  painel e no tour; avisos não pulam por cima do tour de boas-vindas; no
+  celular, o aviso de privacidade não cobre mais o menu.
+- **Repositório.** Documentação descrevia SQLite; "Como rodar" não subia o
+  Postgres; `.env.example` tinha uma linha sem `#`; um teste de transação
+  falhava às vezes no CI por depender de uma pausa de 50 ms.
+
 ### Painel de saúde sem amarelo falso, e uma plataforma mais fácil de ler
 
 - **Coleta.** O "timeout exceeded when trying to connect" de 11 fontes era o
-  pool do Postgres esgotado, não a fonte: as gravações entram numa fila. O
-  IstoÉ (Brotli sem ser pedido) é lido por um caminho alternativo; timeout
-  passa a valer nova tentativa; o ransomware.live é consultado com pausa e,
-  no limite de taxa, o resto fica para o próximo ciclo. Defesa Aérea & Naval
-  (403 só para datacenter) fica fora da coleta em produção, e o Consultor
-  Jurídico (403 para qualquer cliente) sai. Comex Stat fora do ar vira
+  pool do Postgres esgotado, não a fonte: as gravações entram numa fila.
+  Timeout passa a valer nova tentativa (resolveu o BCB); o ransomware.live é
+  consultado com pausa e, no limite de taxa, o resto fica para o próximo
+  ciclo. Ficam fora da coleta em produção o Defesa Aérea & Naval (403 só para
+  datacenter) e o IstoÉ (a CDN manda Brotli a datacenter e o runtime da
+  Vercel recusa a resposta antes de ela chegar ao código — três caminhos
+  testados); o Consultor Jurídico (403 para qualquer cliente) sai. Comex Stat fora do ar vira
   mensagem clara.
 - **TLS verificado com o Supabase.** `DATABASE_CA_CERT` passa a ter a CA
   oficial (conferida pela impressão digital contra a cadeia do servidor).

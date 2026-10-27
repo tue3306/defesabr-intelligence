@@ -1,5 +1,3 @@
-import https from 'node:https'
-import zlib from 'node:zlib'
 import config from '../config.js'
 
 // -----------------------------------------------------------------------------
@@ -153,10 +151,6 @@ async function buscarUmaVez(url, {
         'User-Agent': config.coleta.userAgent,
         Accept: aceita,
         'Accept-Language': 'pt-BR,pt;q=0.9',
-        // Explícito: o IstoÉ responde em Brotli mesmo sem ser pedido, e o
-        // runtime recusava a resposta ("the client did not request Br"). O
-        // fetch do Node descomprime os três.
-        'Accept-Encoding': 'gzip, deflate, br',
         ...extras,
       },
     })
@@ -273,80 +267,10 @@ function decodificar(bytes, contentType) {
   }
 }
 
-// -----------------------------------------------------------------------------
-// BROTLI SEM PEDIDO
-//
-// O IstoÉ responde SEMPRE em Brotli — com `Accept-Encoding: gzip`, sem o
-// cabeçalho, de qualquer jeito. É o servidor dele fora do padrão. Na máquina de
-// desenvolvimento o fetch do Node aceita; no runtime da Vercel ele recusa com
-// "Upstream server returned Content-Encoding: br, but the client did not
-// request Brotli", e a fonte aparecia como fora do ar a cada ciclo.
-//
-// Só nesse erro, a busca é refeita pelo `https` nativo pedindo resposta sem
-// compressão; o que vier comprimido é desfeito aqui. Segue até três
-// redirecionamentos. A mensagem não existe no Node: vem do runtime da Vercel.
-// -----------------------------------------------------------------------------
-
-const RX_BROTLI_RECUSADO = /Content-Encoding: br, but the client did not request/i
-
-export function buscarCru(url, { timeoutMs = config.coleta.timeoutMs } = {}, saltos = 3) {
-  return new Promise((resolve, reject) => {
-    const req = https.get(url, {
-      // `identity`: o IstoÉ respeita o pedido de resposta sem compressão, e
-      // assim a camada de rede da Vercel — de onde vem a recusa do Brotli, que
-      // não existe no Node — não tem o que recusar. Se vier comprimida mesmo
-      // assim, ela é desfeita abaixo.
-      headers: { 'User-Agent': config.coleta.userAgent, Accept: '*/*', 'Accept-Encoding': 'identity' },
-      timeout: timeoutMs,
-    }, (res) => {
-      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location && saltos > 0) {
-        res.resume()
-        const destino = new URL(res.headers.location, url).toString()
-        return resolve(buscarCru(destino, { timeoutMs }, saltos - 1))
-      }
-      if (res.statusCode < 200 || res.statusCode >= 300) {
-        res.resume()
-        return reject(new ErroDeColeta(`HTTP ${res.statusCode}`, { url, status: res.statusCode }))
-      }
-      const partes = []
-      res.on('data', (p) => partes.push(p))
-      res.on('error', reject)
-      res.on('end', () => {
-        const corpo = Buffer.concat(partes)
-        const codificacao = String(res.headers['content-encoding'] || '').toLowerCase()
-        try {
-          const cru = codificacao === 'br' ? zlib.brotliDecompressSync(corpo)
-            : codificacao === 'gzip' ? zlib.gunzipSync(corpo)
-              : codificacao === 'deflate' ? zlib.inflateSync(corpo)
-                : corpo
-          resolve({ bytes: new Uint8Array(cru), contentType: res.headers['content-type'] })
-        } catch (err) {
-          reject(new ErroDeColeta(`resposta comprimida ilegível (${codificacao})`, { url, causa: err }))
-        }
-      })
-    })
-    req.on('timeout', () => req.destroy(new ErroDeColeta(`sem resposta em ${timeoutMs}ms`, { url })))
-    req.on('error', (err) => reject(err instanceof ErroDeColeta ? err : new ErroDeColeta(String(err?.message || err), { url, causa: err })))
-  })
-}
-
 export async function buscarTexto(url, opcoes = {}) {
-  try {
-    const r = await buscar(url, { aceita: 'application/rss+xml, application/xml, text/xml, */*', ...opcoes })
-    // A recusa do Brotli pode estourar aqui, na leitura do corpo, e não no
-    // fetch — foi assim na Vercel. Por isso a leitura fica dentro do `try`.
-    const bytes = new Uint8Array(await r.arrayBuffer())
-    return decodificar(bytes, r.headers.get('content-type'))
-  } catch (err) {
-    if (!RX_BROTLI_RECUSADO.test(String(err?.message || ''))) throw err
-    const libera = await vaga(hostDe(url))
-    try {
-      const { bytes, contentType } = await buscarCru(url, opcoes)
-      return decodificar(bytes, contentType)
-    } finally {
-      libera()
-    }
-  }
+  const r = await buscar(url, { aceita: 'application/rss+xml, application/xml, text/xml, */*', ...opcoes })
+  const bytes = new Uint8Array(await r.arrayBuffer())
+  return decodificar(bytes, r.headers.get('content-type'))
 }
 
 export async function buscarJson(url, opcoes = {}) {

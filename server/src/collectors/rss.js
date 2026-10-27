@@ -54,7 +54,8 @@ import { urgenciaParaOBrasil } from '../lib/ancora.js'
  *
  * O Defesa Aérea & Naval entrou depois e caiu no mesmo caso: HTTP 403 de
  * dentro do datacenter, 200 daqui. Na Vercel os feeds do Google Notícias
- * voltaram a responder; o Defesa Aérea & Naval, não.
+ * voltaram a responder; o Defesa Aérea & Naval, não. O IstoÉ caiu num caso
+ * parecido (Brotli que o runtime da Vercel recusa) — ver a nota na entrada.
  *
  * Fonte assim leva `bloqueiaServidor: true`: em desenvolvimento ela é coletada
  * (contribui, e é especializada), em produção fica de fora da coleta. Mantê-la
@@ -285,7 +286,11 @@ export const FONTES_PADRAO = [
   { slug: 'metropoles', name: 'Metrópoles', url: 'https://www.metropoles.com/feed', site_url: 'https://www.metropoles.com', category: 'Imprensa geral', somenteRelevantes: true },
   { slug: 'gazeta-do-povo', name: 'Gazeta do Povo — República', url: 'https://www.gazetadopovo.com.br/feed/rss/republica.xml', site_url: 'https://www.gazetadopovo.com.br', category: 'Imprensa geral', somenteRelevantes: true },
   { slug: 'veja', name: 'Veja', url: 'https://veja.abril.com.br/feed/', site_url: 'https://veja.abril.com.br', category: 'Imprensa geral', somenteRelevantes: true },
-  { slug: 'istoe', name: 'IstoÉ', url: 'https://istoe.com.br/feed', site_url: 'https://istoe.com.br', category: 'Imprensa geral', somenteRelevantes: true },
+  // IstoÉ: a CDN responde em Brotli a IP de datacenter mesmo quando o pedido
+  // diz `identity`, e o runtime da Vercel recusa a resposta ("the client did not
+  // request Brotli") antes de ela chegar ao código — inclusive pelo `https`
+  // nativo. Testado em três caminhos; fica fora da coleta em produção.
+  { slug: 'istoe', name: 'IstoÉ', url: 'https://istoe.com.br/feed', site_url: 'https://istoe.com.br', category: 'Imprensa geral', somenteRelevantes: true, bloqueiaServidor: true },
   { slug: 'carta-capital', name: 'CartaCapital', url: 'https://www.cartacapital.com.br/feed/', site_url: 'https://www.cartacapital.com.br', category: 'Imprensa geral', somenteRelevantes: true },
   { slug: 'jovem-pan', name: 'Jovem Pan', url: 'https://jovempan.com.br/feed', site_url: 'https://jovempan.com.br', category: 'Imprensa geral', somenteRelevantes: true },
   { slug: 'terra', name: 'Terra', url: 'https://www.terra.com.br/rss/', site_url: 'https://www.terra.com.br', category: 'Imprensa geral', somenteRelevantes: true },
