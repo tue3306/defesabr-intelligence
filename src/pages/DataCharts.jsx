@@ -45,12 +45,29 @@ const TABS = [
   { id: 'risco', label: 'Cobertura por país', icon: ShieldAlert },
 ]
 
+// Cabeçalhos do CSV em português: as linhas vêm com os nomes de campo da API.
+// `null` tira a coluna (ex.: `trend`, que o hook fixa em 'flat').
+const COLUNAS_CSV = {
+  category: 'Categoria', atual: 'Últimos 30 dias', anterior: '30 dias anteriores',
+  region: 'Região', events: 'Notícias', share: 'Participação (%)', trend: null,
+  year: 'Ano', usd: 'Gasto (US$ bi)', pctGdp: '% do PIB', pctPib: '% do PIB',
+  name: 'País', value: 'Gasto (US$ bi)', period: 'Ano',
+  country: 'País', code: 'Código', pais: 'País', gastoUSDbi: 'Gasto (US$ bi)', mencoes: 'Menções',
+  indicador: 'Indicador', valor: 'Valor', escala: 'Escala',
+}
+
+const paraCsv = (rows) => rows.map((linha) => Object.fromEntries(
+  Object.entries(linha)
+    .filter(([k]) => COLUNAS_CSV[k] !== null)
+    .map(([k, v]) => [COLUNAS_CSV[k] || k, v]),
+))
+
 /** Exportação de uma série em CSV. A tela exige sessão, e toda conta exporta. */
 function ExportCSVButton({ rows, filename, label }) {
   return (
     <button
       type="button"
-      onClick={() => exportCSV(rows, filename)}
+      onClick={() => exportCSV(paraCsv(rows), filename)}
       className="chip transition-colors hover:border-gold-500/40 hover:text-gold-600 dark:hover:text-gold-400"
       aria-label={`Exportar ${label} em CSV`}
     >
@@ -164,7 +181,7 @@ export default function DataCharts() {
 
   // O CSV do mapa carrega as mesmas contagens que o mapa pinta.
   const activityRows = useMemo(
-    () => (paises.data?.items || []).map((p) => ({ pais: p.nome, mencoes: p.total })),
+    () => (paises.data?.items || []).map((p) => ({ pais: p.pt || p.nome, mencoes: p.total })),
     [paises.data]
   )
 

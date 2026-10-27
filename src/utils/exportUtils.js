@@ -4,6 +4,8 @@
 // que só geram CSV. Aqui elas são carregadas sob demanda, na primeira vez que
 // um PDF é realmente pedido.
 // -----------------------------------------------------------------------------
+import { plural } from './textUtils'
+
 let jsPDFModule = null
 async function loadJsPDF() {
   if (!jsPDFModule) jsPDFModule = (await import('jspdf')).default
@@ -257,8 +259,8 @@ export async function exportClippingToPDF(clipping) {
   pdf.setFont('helvetica', 'normal')
   pdf.setFontSize(9)
   pdf.setTextColor(150, 201, 222)
-  pdf.text('Clipping de Segurança e Defesa — nível tático', M, 19.5)
-  const periodo = clipping.period_days ? `últimos ${clipping.period_days} dia(s)` : 'período corrente'
+  pdf.text('Notícias do dia — Segurança e Defesa do Brasil', M, 19.5)
+  const periodo = clipping.period_days ? `últimos ${plural(clipping.period_days, 'dia')}` : 'período corrente'
   pdf.text(`Edição de ${clipping.date || dataCurta(clipping.generatedAt)} · ${periodo}`, M, 25)
 
   // O nível de alerta ocupa a direita do cabeçalho, na cor dele. Sem nível,
@@ -293,10 +295,10 @@ export async function exportClippingToPDF(clipping) {
     texto(`Distribuição por urgência: ${partes}.`, { size: 9 })
   }
   const numeros = [
-    clipping.total_collected != null ? `${clipping.total_collected} item(ns) no acervo` : null,
+    clipping.total_collected != null ? `${plural(clipping.total_collected, 'item coletado', 'itens coletados')}` : null,
     clipping.relevant_total != null ? `${clipping.relevant_total} aprovados pelo filtro de relevância` : null,
-    clipping.active_sources != null ? `${clipping.active_sources} fonte(s) responderam na última coleta` : null,
-    `${(clipping.news || []).length} matéria(s) nesta edição`,
+    clipping.active_sources != null ? `${plural(clipping.active_sources, 'fonte respondeu', 'fontes responderam')} na última coleta` : null,
+    `${plural((clipping.news || []).length, 'notícia', 'notícias')} nesta edição`,
   ].filter(Boolean)
   texto(numeros.join('  ·  '), { size: 9, cor: COR.fraco })
 
