@@ -116,7 +116,7 @@ const PASSOS = [
     alvo: 'menu-/ciberameacas',
     veu: MENU,
     titulo: 'Incidentes no Brasil',
-    texto: 'Organizações brasileiras que grupos de ransomware dizem ter atacado, com setor, data e o nível de criticidade de cada caso.',
+    texto: 'Organizações brasileiras que grupos de ransomware dizem ter atacado, com setor, data e o tipo de alvo — do órgão público à pequena empresa.',
     ms: 5500,
   },
   {
@@ -157,14 +157,22 @@ const MARGEM = 16
 const TOPO = 64 // barra superior fixa
 const VEU = 0.64
 
-/** O primeiro elemento marcado que está de fato na tela (o menu do celular fica fora dela). */
+const visivel = (el) => {
+  const r = el.getBoundingClientRect()
+  return r.width > 0 && r.height > 0 && r.right > 0 && r.left < window.innerWidth
+}
+
+/**
+ * O primeiro elemento marcado que está de fato na tela. No celular o menu
+ * lateral fica fechado, fora dela: o destaque vai para o botão ☰, que é por
+ * onde a pessoa chega àquela tela depois. Sem isso o passo esperava 3,5 s
+ * com a tela escurecida e sem cartão, e parecia travado.
+ */
 const alvoDe = (passo) => {
   if (!passo?.alvo) return null
-  for (const el of document.querySelectorAll(`[data-tour="${passo.alvo}"]`)) {
-    const r = el.getBoundingClientRect()
-    if (r.width > 0 && r.height > 0 && r.right > 0 && r.left < window.innerWidth) return el
-  }
-  return null
+  const el = [...document.querySelectorAll(`[data-tour="${passo.alvo}"]`)].find(visivel)
+  if (el || !passo.alvo.startsWith('menu-')) return el || null
+  return [...document.querySelectorAll('[data-tour="menu-botao"]')].find(visivel) || null
 }
 
 const mesmoRetangulo = (a, b) => (
@@ -212,6 +220,8 @@ export default function VisitaGuiada() {
   // 'indo': trocando de tela ou rolando até o alvo; 'parado': relógio correndo.
   const [fase, setFase] = useState('indo')
   const [ret, setRet] = useState(null)
+  // O destaque está no botão ☰ porque o menu do celular está fechado.
+  const [pelaBotaoMenu, setPelaBotaoMenu] = useState(false)
   const [tamCartao, setTamCartao] = useState({ w: 380, h: 220 })
 
   const cartaoRef = useRef(null)
@@ -284,6 +294,7 @@ export default function VisitaGuiada() {
         block: p.alvo.startsWith('menu-') ? 'nearest' : alto ? 'start' : 'center',
       })
     }
+    setPelaBotaoMenu(el?.dataset?.tour === 'menu-botao')
     const r = el?.getBoundingClientRect()
     const novo = r ? { top: r.top, left: r.left, width: r.width, height: r.height } : null
     setRet((antigo) => {
@@ -447,6 +458,11 @@ export default function VisitaGuiada() {
         <p className="mt-1.5 text-sm leading-relaxed text-gray-700 dark:text-gray-300" aria-live="polite">
           {passo.texto}
         </p>
+        {passo.alvo?.startsWith('menu-') && pelaBotaoMenu && (
+          <p className="mt-2 text-xs font-medium text-gold-600 dark:text-gold-400">
+            Para voltar a esta tela, toque em ☰ no topo e escolha “{passo.titulo}”.
+          </p>
+        )}
 
         {/* Um segmento por passo; o atual enche com o tempo de leitura. */}
         <div className="mt-4 flex gap-1" aria-hidden="true">

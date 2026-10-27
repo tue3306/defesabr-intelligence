@@ -110,13 +110,16 @@ export function Variacao({ variacao, total, periodoAnterior, dias, compacto = fa
   if (variacao === undefined) {
     return <span className="rounded-full bg-gray-500/15 px-2 py-0.5 text-[11px] font-semibold muted">variação —</span>
   }
+  // Sem base de comparação, o cartão compacto não ganha selo: a explicação fica
+  // uma vez só, no cabeçalho da página (a coleta internacional é recente).
   if (variacao === null) {
+    if (compacto) return null
     return (
       <span
         className="rounded-full bg-gray-500/15 px-2 py-0.5 text-[11px] font-semibold muted"
-        title="Nenhuma matéria no período anterior: não há base para calcular a variação."
+        title="Nenhuma notícia no período anterior: não há base para calcular a variação."
       >
-        {compacto ? 'sem comparação' : 'sem base de comparação'}
+        sem base de comparação
       </span>
     )
   }
@@ -129,7 +132,7 @@ export function Variacao({ variacao, total, periodoAnterior, dias, compacto = fa
       ? 'bg-amber-500/15 text-amber-800 dark:text-amber-300'
       : 'bg-sky-500/15 text-sky-800 dark:text-sky-300'
   const titulo = typeof total === 'number' && typeof periodoAnterior === 'number'
-    ? `${fmt(total)} matérias neste período contra ${fmt(periodoAnterior)} nos ${dias ?? '—'} dias anteriores`
+    ? `${fmt(total)} notícias neste período contra ${fmt(periodoAnterior)} nos ${dias ?? '—'} dias anteriores`
     : undefined
 
   return (
@@ -163,7 +166,7 @@ export function BarraUrgencia({ porUrgencia, total, altura = 'h-2' }) {
   return (
     <div
       role="img"
-      aria-label={`Urgência das matérias: ${descricao}`}
+      aria-label={`Urgência das notícias: ${descricao}`}
       className={`flex w-full overflow-hidden rounded-full bg-gray-200 dark:bg-white/10 ${altura}`}
     >
       {base > 0 && URGENCIAS.map((u) => {
@@ -193,7 +196,7 @@ export function SeloEN() {
   return (
     <span
       className="rounded border border-sky-500/40 bg-sky-500/10 px-1 py-px font-mono text-[10px] font-bold text-sky-800 dark:text-sky-300"
-      title="Matéria de fonte em inglês"
+      title="Notícia de fonte em inglês"
     >
       EN
     </span>
@@ -223,7 +226,7 @@ export function NoticiaMundo({ n, dias, nomesTeatro = {} }) {
         {n.urgencia && <Badge type="urgency" value={n.urgencia} />}
         {n.idioma === 'en' && <SeloEN />}
         {n.escopo === 'brasil' && (
-          <span className="chip text-[10px]" title="A matéria também passou no filtro de defesa do Brasil">
+          <span className="chip text-[10px]" title="A notícia também passou no filtro de defesa do Brasil">
             também no recorte Brasil
           </span>
         )}
@@ -286,7 +289,7 @@ export function ListaNoticias({ noticias, dias, nomesTeatro, onPagina, vazio, at
           page={pagina}
           pages={paginas}
           total={typeof noticias?.total === 'number' ? noticias.total : undefined}
-          label="matérias"
+          label="notícias"
           onChange={onPagina}
         />
       </div>
@@ -303,11 +306,11 @@ const diaCurto = (dia) => {
 export function CoberturaPorDia({ porDia, altura = 200 }) {
   const dados = Array.isArray(porDia) ? porDia : []
   if (!dados.length) {
-    return <p className="flex items-center justify-center rounded-lg bg-gray-100 text-sm muted dark:bg-white/5" style={{ height: altura }}>Sem matérias por dia no período.</p>
+    return <p className="flex items-center justify-center rounded-lg bg-gray-100 text-sm muted dark:bg-white/5" style={{ height: altura }}>Sem notícias por dia no período.</p>
   }
   const total = dados.reduce((s, d) => s + (Number(d.total) || 0), 0)
   return (
-    <div style={{ height: altura }} role="img" aria-label={`Matérias por dia: ${fmt(total)} em ${fmt(dados.length)} dias`}>
+    <div style={{ height: altura }} role="img" aria-label={`Notícias por dia: ${fmt(total)} em ${fmt(dados.length)} dias`}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={dados} margin={{ left: -18, right: 6, top: 6 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-gray-300 dark:text-white/10" vertical={false} />
@@ -317,7 +320,7 @@ export function CoberturaPorDia({ porDia, altura = 200 }) {
             {...tooltipStyle}
             cursor={{ fill: 'rgba(148,163,184,0.12)' }}
             labelFormatter={(d) => formatDateBR(d)}
-            formatter={(v) => [`${fmt(v)} ${v === 1 ? 'matéria' : 'matérias'}`, 'Cobertura']}
+            formatter={(v) => [`${fmt(v)} ${v === 1 ? 'notícia' : 'notícias'}`, 'Cobertura']}
           />
           <Bar dataKey="total" fill={CHART_GREEN} radius={[3, 3, 0, 0]} />
         </BarChart>
@@ -411,6 +414,16 @@ export function ForaDoCatalogo({ titulo, texto, dias }) {
       </Link>
     </div>
   )
+}
+
+/**
+ * O item "Período anterior" do cabeçalho de país e de teatro. Quando a coleta
+ * internacional ainda não cobre o período anterior, o zero não é medida: vira
+ * texto que diz isso.
+ */
+export function metaPeriodoAnterior(c) {
+  if (c?.comparacaoIncompleta) return { label: 'Comparação', value: 'sem dados do período anterior' }
+  return { label: 'Período anterior', value: fmt(c?.periodoAnterior) }
 }
 
 /** Botão de voltar ao panorama, igual nas páginas de país e de teatro. */

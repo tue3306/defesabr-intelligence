@@ -7,7 +7,7 @@ import PageHeader from '../components/ui/PageHeader'
 import DataState from '../components/ui/DataState'
 import InfoTooltip from '../components/ui/InfoTooltip'
 import {
-  fmt, useJanela, SeletorJanela, BotoesFiltro, OPCOES_IDIOMA, Variacao, BarraUrgencia, URGENCIAS,
+  fmt, useJanela, SeletorJanela, BotoesFiltro, OPCOES_IDIOMA, Variacao, metaPeriodoAnterior, BarraUrgencia, URGENCIAS,
   ListaNoticias, CoberturaPorDia, ListaFontes, PorIdioma, RegrasTeatro, ForaDoCatalogo, Rotulo,
   useNomesTeatros, rotaPais, VoltarMundo,
 } from '../components/mundo/ElementosMundo'
@@ -94,8 +94,8 @@ export default function WorldTheater() {
         breadcrumb={[{ label: 'Mundo' }, { label: 'Mundo & Conflitos', to: `/mundo?days=${dias}` }, { label: titulo }]}
         badges={t?.regiao ? <span className="chip">{t.regiao}</span> : null}
         meta={d ? [
-          { label: 'Matérias', value: fmt(c?.total) },
-          { label: 'Período anterior', value: fmt(c?.periodoAnterior) },
+          { label: 'Notícias', value: fmt(c?.total) },
+          metaPeriodoAnterior(c),
           { label: 'Janela', value: `${fmt(periodo)} dias` },
         ] : undefined}
         actions={(
@@ -107,7 +107,7 @@ export default function WorldTheater() {
       >
         {d && (
           <div className="space-y-3">
-            {c && <Variacao variacao={c.variacao} total={c.total} periodoAnterior={c.periodoAnterior} dias={periodo} />}
+            {c && !c.comparacaoIncompleta && <Variacao variacao={c.variacao} total={c.total} periodoAnterior={c.periodoAnterior} dias={periodo} />}
             {paisesDoTeatro.length > 0 && (
               <div>
                 <Rotulo>Países envolvidos — abra a página de cada um</Rotulo>
@@ -144,7 +144,7 @@ export default function WorldTheater() {
               <section className="card min-w-0 p-4 sm:p-5 lg:col-span-2" aria-labelledby="titulo-por-dia">
                 <h2 id="titulo-por-dia" className="mb-3 flex items-center gap-2 text-base font-bold tracking-tight">
                   <CalendarDays size={16} className="text-gold-500" aria-hidden="true" />
-                  Matérias por dia
+                  Notícias por dia
                   <InfoTooltip text="Quantas notícias citaram os termos deste conflito em cada dia. Mede quanto se escreveu, não a intensidade do conflito." />
                 </h2>
                 <CoberturaPorDia porDia={c?.porDia} />
@@ -153,7 +153,7 @@ export default function WorldTheater() {
               <section className="card min-w-0 space-y-4 p-4 sm:p-5" aria-labelledby="titulo-urgencia">
                 <div>
                   <h2 id="titulo-urgencia" className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider muted">
-                    Urgência das matérias
+                    Urgência das notícias
                     <InfoTooltip text="Cada notícia recebe uma urgência pelas palavras que usa (invasão, bombardeio, sanções…). Não é um índice de gravidade do conflito." />
                   </h2>
                   <BarraUrgencia porUrgencia={pu} total={c?.total} altura="h-2.5" />
@@ -223,7 +223,7 @@ export default function WorldTheater() {
                   atualizando={r.loading}
                   onPagina={irParaPagina}
                   vazio={filtro.pais || filtro.idioma
-                    ? 'Nenhuma matéria corresponde aos filtros neste período.'
+                    ? 'Nenhuma notícia corresponde aos filtros neste período.'
                     : `Nenhuma notícia com os termos deste conflito nos últimos ${fmt(periodo)} dias.`}
                 />
               </section>
@@ -237,7 +237,7 @@ export default function WorldTheater() {
                     <InfoTooltip text="Países citados nas notícias deste conflito. Clique no nome para filtrar a lista; a seta abre a página do país." />
                   </h2>
                   {paises.length === 0 ? (
-                    <p className="text-xs muted">Nenhum país citado nas matérias do período.</p>
+                    <p className="text-xs muted">Nenhum país citado nas notícias do período.</p>
                   ) : (
                     <div role="group" aria-label="Filtrar por país">
                       <ul className="space-y-1">

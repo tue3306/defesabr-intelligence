@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Link2, MapPin, Building2, ShieldAlert, Factory, Landmark, ExternalLink,
@@ -62,8 +62,23 @@ export default function Correlations() {
   const panorama = useResource(() => request('GET /intel/brasil', { params: { days: dias } }), [dias], { keepPreviousData: true })
 
   const d = r.data
-  const itens = d?.items || []
+  const itens = useMemo(() => d?.items || [], [d])
   const p = panorama.data
+
+  // Uma notícia que cita três estados gerava três cartões com o mesmo título.
+  // Agrupada, a notícia aparece uma vez, com as ligações dentro, da mais
+  // direta para a menos direta. A ordem entre notícias segue a da API.
+  const grupos = useMemo(() => {
+    const porArtigo = new Map()
+    for (const c of itens) {
+      const chave = c.artigo?.id ?? `sem-artigo-${c.id}`
+      if (!porArtigo.has(chave)) porArtigo.set(chave, { chave, artigo: c.artigo, ligacoes: [] })
+      porArtigo.get(chave).ligacoes.push(c)
+    }
+    const lista = [...porArtigo.values()]
+    for (const g of lista) g.ligacoes.sort((a, b) => b.forca - a.forca)
+    return lista
+  }, [itens])
 
   return (
     <div className="space-y-6">
@@ -91,11 +106,13 @@ export default function Correlations() {
             não parecer falha de carregamento. */}
         {d?.resumo && (
           <p className="text-xs muted" aria-live="polite">
+            Em tela: <strong className="font-mono">{grupos.length}</strong>{' '}
+            {grupos.length === 1 ? 'notícia' : 'notícias'}, com{' '}
             <strong className="font-mono">{itens.length}</strong>{' '}
-            {itens.length === 1 ? 'ligação' : 'ligações'} em tela
+            {itens.length === 1 ? 'ligação' : 'ligações'}
             {minForca > 1 && (
               <>
-                {' '}de <strong className="font-mono">{d.resumo.correlacoes}</strong> no período
+                {' '}(de <strong className="font-mono">{d.resumo.correlacoes}</strong> no período)
               </>
             )}
             {' · '}
@@ -131,12 +148,13 @@ export default function Correlations() {
         }}
       >
         <div className={`space-y-3 transition-opacity ${r.loading ? 'opacity-60' : ''}`}>
-          {itens.map((c) => (
-            <Correlacao
-              key={c.id}
-              c={c}
-              aberto={aberto === c.id}
-              onToggle={() => setAberto(aberto === c.id ? null : c.id)}
+          {grupos.map((g) => (
+            <NoticiaComLigacoes
+              key={g.chave}
+              artigo={g.artigo}
+              ligacoes={g.ligacoes}
+              aberto={aberto}
+              onToggle={(id) => setAberto(aberto === id ? null : id)}
             />
           ))}
         </div>
@@ -207,69 +225,77 @@ export default function Correlations() {
   )
 }
 
-function Correlacao({ c, aberto, onToggle }) {
-  const Icon = ICONE_ALVO[c.alvo?.tipo] || Building2
-
+/** Um cartão por notícia; cada ligação dela, com força e evidência, dentro. */
+function NoticiaComLigacoes({ artigo, ligacoes, aberto, onToggle }) {
+  const maisForte = ligacoes[0]?.forca
   return (
-    <article className={`card border-l-4 p-4 ${corForca(c.forca)}`}>
-      <button onClick={onToggle} aria-expanded={aberto} className="w-full text-left">
+    <article className={`card border-l-4 p-4 ${corForca(maisForte)}`}>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">
+          {ligacoes.length === 1 ? 'possível relação' : `${ligacoes.length} possíveis relações`}
+        </span>
+        {artigo?.categoria && (
+          <span
+            className="rounded-full px-2 py-0.5 text-[10px] font-bold border text-gray-900 dark:text-gray-100"
+            style={{ backgroundColor: `${categoryColor(artigo.categoria)}26`, borderColor: `${categoryColor(artigo.categoria)}80` }}
+          >
+            {artigo.categoria}
+          </span>
+        )}
+        <span className="ml-auto font-mono text-[11px] muted">
+          {formatDateTimeBR(artigo?.publicadoEm)}
+        </span>
+      </div>
+
+      <h3 className="mt-2 font-semibold leading-snug">
+        {artigo?.url ? (
+          <a href={artigo.url} target="_blank" rel="noopener noreferrer nofollow" className="hover:underline">
+            {artigo.titulo}
+            <ExternalLink size={12} className="ml-1 inline align-baseline opacity-60" aria-hidden="true" />
+            <span className="sr-only"> (abre {artigo.fonte ? `em ${artigo.fonte}` : 'o site do veículo'} em nova aba)</span>
+          </a>
+        ) : artigo?.titulo}
+      </h3>
+      {artigo?.fonte && <p className="mt-0.5 text-[11px] muted">{artigo.fonte}</p>}
+
+      <ul className="mt-3 divide-y divide-gray-200 border-t border-gray-200 dark:divide-white/10 dark:border-white/10">
+        {ligacoes.map((c) => (
+          <Ligacao key={c.id} c={c} aberto={aberto === c.id} onToggle={() => onToggle(c.id)} />
+        ))}
+      </ul>
+    </article>
+  )
+}
+
+function Ligacao({ c, aberto, onToggle }) {
+  const Icon = ICONE_ALVO[c.alvo?.tipo] || Building2
+  return (
+    <li className="py-2.5">
+      <button type="button" onClick={onToggle} aria-expanded={aberto} className="w-full rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
         <div className="flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider dark:bg-white/5">
             <Icon size={11} aria-hidden="true" /> {c.alvo?.rotulo || c.alvo?.id}
           </span>
           <span className="chip font-mono text-[10px]" title="Quão direta é a ligação: 5 = mesmo site ou nome; 2 = só o mesmo setor. Não mede perigo.">força {c.forca} de 5</span>
-          <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">
-            possível relação
+          <span className="ml-auto inline-flex items-center gap-1 text-xs font-semibold text-brand-600 dark:text-brand-300">
+            {aberto ? 'Ocultar evidência' : 'Ver evidência'}
+            <ChevronDown size={14} aria-hidden="true" className={aberto ? 'rotate-180 transition-transform' : 'transition-transform'} />
           </span>
-          {c.artigo?.categoria && (
-            <span
-              className="rounded-full px-2 py-0.5 text-[10px] font-bold border text-gray-900 dark:text-gray-100"
-              style={{ backgroundColor: `${categoryColor(c.artigo.categoria)}26`, borderColor: `${categoryColor(c.artigo.categoria)}80` }}
-            >
-              {c.artigo.categoria}
-            </span>
-          )}
-          <span className="ml-auto font-mono text-[11px] muted">
-            {formatDateTimeBR(c.artigo?.publicadoEm)}
-          </span>
-          <ChevronDown size={15} aria-hidden="true" className={aberto ? 'rotate-180 transition-transform' : 'transition-transform'} />
         </div>
-
-        <h3 className="mt-2 font-semibold leading-snug">{c.artigo?.titulo}</h3>
-
         {/* O MOTIVO é o produto desta tela: fica visível sem precisar abrir. */}
-        <p className="mt-1.5 text-sm leading-relaxed text-gray-700 dark:text-gray-300">
-          {c.motivo}
-        </p>
-        {!aberto && (
-          <span className="mt-2 inline-block text-xs font-semibold text-brand-600 dark:text-brand-300">
-            Ver evidência e fonte
-          </span>
-        )}
+        <p className="mt-1.5 text-sm leading-relaxed text-gray-700 dark:text-gray-300">{c.motivo}</p>
       </button>
 
       {aberto && (
-        <div className="mt-3 space-y-2.5 border-t border-gray-200 pt-3 dark:border-white/10">
+        <div className="mt-2 space-y-2 rounded-lg bg-gray-500/5 p-3 dark:bg-white/5">
           <Campo rotulo="Evidência" texto={c.evidencia} mono />
-
           {/* Só a evidência literal: textos de gabarito por regra não entram como análise. */}
-
           <p className="text-[11px] muted">
             Regra aplicada: <code className="font-mono">{c.regra}</code>
           </p>
-          {c.artigo?.url && (
-            <a
-              href={c.artigo.url}
-              target="_blank"
-              rel="noopener noreferrer nofollow"
-              className="btn-ghost inline-flex px-2.5 py-1 text-xs"
-            >
-              <ExternalLink size={13} aria-hidden="true" /> Abrir notícia{c.artigo.fonte ? ` em ${c.artigo.fonte}` : ''}
-            </a>
-          )}
         </div>
       )}
-    </article>
+    </li>
   )
 }
 

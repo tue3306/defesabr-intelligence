@@ -61,6 +61,7 @@ export default function Navbar({ onToggleMobile, onToggleCollapse, collapsed }) 
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-gray-200 bg-white/80 px-4 backdrop-blur-xl dark:border-white/[0.06] dark:bg-military-darker/80">
       <button
         onClick={onToggleMobile}
+        data-tour="menu-botao"
         className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 lg:hidden"
         aria-label="Abrir menu de navegação"
       >

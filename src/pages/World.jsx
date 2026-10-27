@@ -14,7 +14,7 @@ import {
 } from '../components/mundo/ElementosMundo'
 import { useResource } from '../hooks/useResource'
 import { worldService } from '../services/worldService'
-import { timeAgo } from '../utils/dateUtils'
+import { formatDateBR, timeAgo } from '../utils/dateUtils'
 
 // MUNDO & CONFLITOS — o escopo internacional (EUA, guerras), inclusive o que
 // não passa no filtro de defesa do Brasil. Duas regras: cobertura não é risco,
@@ -82,14 +82,26 @@ export default function World() {
         description="Notícias sobre outros países e sobre as guerras e crises em curso — inclusive o que não envolve a defesa do Brasil. Clique num país ou conflito para ver tudo sobre ele."
         breadcrumb={[{ label: 'Mundo' }, { label: 'Mundo & Conflitos' }]}
         meta={[
-          { label: 'Matérias', value: fmt(totais?.materias) },
+          { label: 'Notícias', value: fmt(totais?.materias) },
           { label: 'Países', value: fmt(totais?.paises) },
           { label: 'Conflitos com notícias', value: fmt(totais?.teatrosComCobertura) },
           { label: 'Fontes', value: fmt(totais?.fontes) },
           { label: 'Em português / inglês', value: `${fmt(totais?.porIdioma?.pt)} / ${fmt(totais?.porIdioma?.en)}` },
         ]}
         actions={<SeletorJanela dias={dias} onChange={mudarJanela} />}
-      />
+      >
+        {/* Dito uma vez aqui, em vez de um selo "sem comparação" em cada cartão. */}
+        {p?.comparacaoIncompleta && (
+          <p className="flex items-start gap-2 text-xs leading-relaxed muted">
+            <Info size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
+            <span>
+              As notícias internacionais passaram a ser gravadas {p.lenteDesde ? `em ${formatDateBR(p.lenteDesde)}` : 'há pouco'}.
+              Ainda não há dados do período anterior para comparar, por isso os cartões não mostram
+              variação (sobe/desce).
+            </span>
+          </p>
+        )}
+      </PageHeader>
 
       {/* ── O QUE A TELA MEDE: uma linha à vista, o detalhe recolhido ── */}
       <details className="card group p-0">
@@ -134,7 +146,7 @@ export default function World() {
               <h2 id="titulo-destaques" className="mb-3 flex items-center gap-2 text-lg font-bold tracking-tight">
                 <Flag size={18} className="text-gold-500" aria-hidden="true" />
                 Países em destaque
-                <InfoTooltip text="Uma lista fixa de países acompanhados de perto, na mesma ordem sempre — mesmo quando o período não trouxe matéria sobre eles. A ordem não é ranking." />
+                <InfoTooltip text="Uma lista fixa de países acompanhados de perto, na mesma ordem sempre — mesmo quando o período não trouxe notícia sobre eles. A ordem não é ranking." />
               </h2>
               {destaques.length === 0 ? (
                 <p className="card p-4 text-sm muted">O servidor não devolveu destaques de país.</p>
@@ -154,7 +166,7 @@ export default function World() {
               </h2>
               {/* Legenda fixa da barra de cada cartão (hover não existe no toque). */}
               <ul className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] muted">
-                <li className="font-semibold">Urgência das matérias:</li>
+                <li className="font-semibold">Urgência das notícias:</li>
                 {URGENCIAS.map((u) => (
                   <li key={u.id} className="inline-flex items-center gap-1">
                     <span className="h-2.5 w-2.5 rounded-sm" style={{ background: u.cor }} aria-hidden="true" />
@@ -275,7 +287,7 @@ export default function World() {
               atualizando={feed.loading}
               onPagina={irParaPagina}
               vazio={filtro.q || filtro.idioma || filtro.urgencia
-                ? 'Nenhuma matéria corresponde aos filtros neste período.'
+                ? 'Nenhuma notícia corresponde aos filtros neste período.'
                 : `Nenhuma notícia internacional nos últimos ${dias} dias. Tente um período maior.`}
             />
           )}
@@ -312,7 +324,7 @@ function CartaoDestaque({ d, dias, principal }) {
       </div>
 
       <p className={`mt-1 font-mono font-extrabold tabular-nums ${principal ? 'text-4xl' : 'text-2xl'}`}>{fmt(d.total)}</p>
-      <p className="text-[11px] muted">matérias mencionam em {dias} dias</p>
+      <p className="text-[11px] muted">notícias mencionam em {dias} dias</p>
 
       {m ? (
         <div className="relative z-10 mt-3 border-t border-gray-200 pt-2.5 dark:border-white/10">
@@ -351,7 +363,7 @@ function CartaoTeatro({ t, dias }) {
         </div>
         <div className="shrink-0 text-right">
           <p className={`font-mono text-xl font-extrabold tabular-nums ${semCobertura ? 'muted' : ''}`}>{fmt(t.total)}</p>
-          <p className="text-[10px] muted">matérias</p>
+          <p className="text-[10px] muted">notícias</p>
         </div>
       </div>
 

@@ -33,7 +33,12 @@ import { formatDateBR } from '../../utils/dateUtils'
 // vez de mostrar zero como se fosse segurança.
 // -----------------------------------------------------------------------------
 
-export default function CountryDossier({ pais, dias = 180 }) {
+/** "no último ano" / "nos últimos 90 dias": a janela escrita junto de cada número. */
+const janelaTexto = (dias) => (dias === 365 ? 'no último ano (365 dias)' : `nos últimos ${dias} dias`)
+
+// O padrão é 365 dias porque o mapa abre em "1 ano": com 180, a ficha do Brasil
+// dizia 99 notícias ao lado de 118 menções no mapa, para a mesma pergunta.
+export default function CountryDossier({ pais, dias = 365 }) {
   // O DOSSIÊ EXIGE SESSÃO, E PERGUNTAR ANTES É DIFERENTE DE FALHAR DEPOIS.
   //
   // `/news/pais/:nome` passa por `exigirPapel('user')` — é conteúdo de
@@ -107,7 +112,7 @@ export default function CountryDossier({ pais, dias = 180 }) {
                   <Newspaper size={11} /> Cobertura noticiosa
                 </p>
                 <p className="mt-0.5 font-mono text-2xl font-extrabold tabular-nums">{c.total}</p>
-                <p className="text-[11px] muted">matérias mencionam em {d.periodoDias} dias</p>
+                <p className="text-[11px] muted">notícias citam o país {janelaTexto(d.periodoDias)}</p>
               </div>
               <div className="rounded-lg bg-gray-100 p-3 dark:bg-white/5">
                 <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider muted">
@@ -126,7 +131,7 @@ export default function CountryDossier({ pais, dias = 180 }) {
             {c.porCategoria.length > 0 && (
               <div className="mb-4">
                 <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider muted">
-                  Do que se fala
+                  Do que se fala {janelaTexto(d.periodoDias)}
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {c.porCategoria.slice(0, 6).map((x) => (
@@ -175,7 +180,7 @@ export default function CountryDossier({ pais, dias = 180 }) {
               </div>
             ) : (
               <p className="mb-4 text-sm muted">
-                Nenhuma matéria do acervo menciona este país nos últimos {d.periodoDias} dias.
+                Nenhuma notícia do acervo menciona este país {janelaTexto(d.periodoDias)}.
               </p>
             )}
 
@@ -259,7 +264,7 @@ function Tendencia({ c, dias }) {
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${cor}`}
-      title={`${c.total} matérias neste período contra ${c.periodoAnterior} nos ${dias} dias anteriores`}
+      title={`${c.total} notícias neste período contra ${c.periodoAnterior} nos ${dias} dias anteriores`}
     >
       <Icone size={11} />
       {sobe ? '+' : ''}{c.variacao}% vs. período anterior

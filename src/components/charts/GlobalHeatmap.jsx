@@ -390,7 +390,7 @@ export default function GlobalHeatmap({
       </p>
 
       {/* Dossiê do país SELECIONADO — nunca do que está sob o cursor. */}
-      {withNews && <CountryDossier pais={selecionado} />}
+      {withNews && <CountryDossier pais={selecionado} dias={dias} />}
     </div>
   )
 }

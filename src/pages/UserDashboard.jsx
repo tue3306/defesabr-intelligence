@@ -19,6 +19,10 @@ import {
   HelpCircle,
   Compass,
   BarChart3,
+  ShieldAlert,
+  Swords,
+  Factory,
+  LayoutGrid,
 } from 'lucide-react'
 import NewsCard from '../components/ui/NewsCard'
 import { SkeletonCard } from '../components/ui/Skeleton'
@@ -28,17 +32,19 @@ import InfoTooltip from '../components/ui/InfoTooltip'
 import Atualizacao from '../components/ui/Atualizacao'
 import NewsVolumeChart from '../components/charts/NewsVolumeChart'
 import MilitarySpendingChart from '../components/charts/MilitarySpendingChart'
-import GlobalHeatmap from '../components/charts/GlobalHeatmap'
 import { useNews } from '../hooks/useNews'
 import { useNewsStore } from '../store/newsStore'
 import { useNotificationStore } from '../store/notificationStore'
 import { useAuthStore } from '../store/authStore'
 import { useNewsVolume } from '../hooks/useNewsVolume'
-import { useGastoMilitar, useIndicadoresBcb, useIndiceDeAlerta } from '../hooks/useDadosReais'
+import { useExportacoes, useGastoMilitar, useIndicadoresBcb, useIndiceDeAlerta } from '../hooks/useDadosReais'
+import { coberturaPorPais } from '../hooks/useVitrineReal'
 import { useSettingsStore } from '../store/settingsStore'
 import { useUiStore } from '../store/uiStore'
 import { useResource } from '../hooks/useResource'
 import { request } from '../services/client'
+import { worldService } from '../services/worldService'
+import { intelligenceService } from '../services/intelligenceService'
 import { alertMeta, categoryColor, corDoNivel, plural } from '../utils/textUtils'
 import { CATEGORIES } from '../data/mockData'
 import { timeAgo } from '../utils/dateUtils'
@@ -64,7 +70,7 @@ const linkSecao = 'inline-flex items-center gap-1 text-xs font-semibold text-bra
 // -----------------------------------------------------------------------------
 // PAINEL DO USUÁRIO — primeira tela depois do login.
 // Ordem pensada para quem chega: o que é grave agora → o que saiu hoje →
-// o que é seu (alertas, pasta) → contexto (indicadores, mapa, gráficos).
+// o que é seu (alertas, pasta) → os outros módulos em números → contexto (gráficos).
 // Cada número vem da API; sem resposta, o bloco diz isso.
 // -----------------------------------------------------------------------------
 export default function UserDashboard() {
@@ -94,7 +100,7 @@ export default function UserDashboard() {
     .filter((n) => n.urgency === 'CRITICO' || n.urgency === 'ALTO')
     .slice(0, 4)
 
-  // As matérias das áreas de interesse sobem para o topo da lista.
+  // As notícias das áreas de interesse sobem para o topo da lista.
   const feed = useMemo(() => {
     if (!interestAreas.length) return news.slice(0, 6)
     const doInteresse = news.filter((n) => interestAreas.includes(n.category))
@@ -288,7 +294,8 @@ export default function UserDashboard() {
             não noticiou acontecimento urgente, não que nada tenha acontecido.
           </p>
         ) : (
-          <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          // Duas colunas só com dois ou mais itens: um sozinho ocuparia meia largura.
+          <ul className={`grid grid-cols-1 gap-3 ${emDestaque.length > 1 ? 'md:grid-cols-2' : ''}`}>
             {emDestaque.map((n) => {
               const externo = /^https?:\/\//i.test(n.url || '')
               return (
@@ -506,19 +513,8 @@ export default function UserDashboard() {
         </div>
       </div>
 
-      {/* ───────────── COBERTURA POR PAÍS ───────────── */}
-      <Section className="card p-5" aria-labelledby="cobertura-pais">
-        <h2 id="cobertura-pais" className="mb-1 flex items-center gap-2 text-lg font-bold tracking-tight">
-          <Globe2 size={18} className="text-brand-400 dark:text-brand-300" aria-hidden="true" /> Cobertura por país
-        </h2>
-        {/* Conta menções em notícia coletada; não mede risco. */}
-        <p className="mb-4 text-sm muted">
-          Quantas notícias coletadas citam cada país. Para o dossiê de cada país, abra o{' '}
-          <Link to="/mapa" className="font-semibold text-brand-600 hover:underline dark:text-brand-300">Mapa estratégico</Link>.
-        </p>
-        {/* Sem o dossiê embutido: no Painel ele dobrava o tamanho da página. */}
-        <GlobalHeatmap height={380} withNews={false} />
-      </Section>
+      {/* ───────────── O OBSERVATÓRIO EM NÚMEROS: uma porta para cada módulo ───────────── */}
+      <ObservatorioEmNumeros />
 
       {/* ───────────── CONTEXTO: volume de notícias + gastos militares ───────────── */}
       <Section aria-labelledby="em-numeros">
@@ -542,6 +538,109 @@ export default function UserDashboard() {
         </div>
       </Section>
     </div>
+  )
+}
+
+// -----------------------------------------------------------------------------
+// O OBSERVATÓRIO EM NÚMEROS
+// Um cartão-link por módulo, com um número que a própria tela do módulo mostra
+// e a janela de tempo escrita no rótulo. Cada consulta falha sozinha: sem
+// resposta, o cartão mostra "—" e continua levando ao módulo.
+// -----------------------------------------------------------------------------
+const usd = (v) => (v >= 1e9
+  ? `US$ ${br(v / 1e9, 2)} bi`
+  : `US$ ${Math.round(v / 1e6).toLocaleString('pt-BR')} mi`)
+
+function ObservatorioEmNumeros() {
+  const ciber = useResource(() => request('GET /cyber/ransomware', { params: { days: 365 } }), [])
+  const mundo = useResource(() => worldService.panorama(30), [])
+  const legis = useResource(() => intelligenceService.legislative({}), [])
+  const mapa = useResource(() => coberturaPorPais(365), [])
+  const exp = useExportacoes()
+
+  const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v.toLocaleString('pt-BR') : null)
+  const armas = exp.data?.porCapitulo?.find((c) => c.codigo === 'NCM-93')
+  const paisesCitados = Array.isArray(mapa.data?.items)
+    ? mapa.data.items.filter((p) => p.total > 0).length
+    : null
+
+  const cartoes = [
+    {
+      to: '/ciberameacas',
+      icone: ShieldAlert,
+      modulo: 'Incidentes no Brasil',
+      valor: num(ciber.data?.brasil?.total),
+      rotulo: 'organizações brasileiras divulgadas por grupos de extorsão, últimos 12 meses',
+      carregando: ciber.loading,
+    },
+    {
+      to: '/mundo',
+      icone: Swords,
+      modulo: 'Mundo & Conflitos',
+      valor: num(mundo.data?.totais?.teatrosComCobertura),
+      rotulo: 'conflitos com notícias nos últimos 30 dias',
+      carregando: mundo.loading,
+    },
+    {
+      to: '/legislativo',
+      icone: Landmark,
+      modulo: 'Projetos de lei',
+      valor: num(legis.data?.items?.length),
+      rotulo: 'proposições de defesa acompanhadas na Câmara',
+      carregando: legis.loading,
+    },
+    {
+      to: '/industria',
+      icone: Factory,
+      modulo: 'Indústria de defesa',
+      valor: typeof armas?.valorUSD === 'number' ? usd(armas.valorUSD) : null,
+      rotulo: exp.data?.ano ? `em armas e munições exportadas em ${exp.data.ano}` : 'em armas e munições exportadas no último ano',
+      carregando: exp.carregando,
+    },
+    {
+      to: '/mapa',
+      icone: Globe2,
+      modulo: 'Mapa estratégico',
+      valor: num(paisesCitados),
+      rotulo: 'países citados nas notícias de defesa, últimos 12 meses',
+      carregando: mapa.loading,
+    },
+  ]
+
+  return (
+    <Section aria-labelledby="observatorio-numeros">
+      <h2 id="observatorio-numeros" className="mb-1 flex items-center gap-2 text-lg font-bold tracking-tight">
+        <LayoutGrid size={18} className="text-brand-400 dark:text-brand-300" aria-hidden="true" /> O observatório em números
+      </h2>
+      <p className="mb-3 text-sm muted">Os outros módulos da plataforma. Toque num cartão para abrir.</p>
+      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        {cartoes.map((c, i) => {
+          const Icone = c.icone
+          return (
+            <li key={c.to} className={`min-w-0 ${i === cartoes.length - 1 ? 'col-span-2 sm:col-span-1' : ''}`}>
+              <Link
+                to={c.to}
+                className="card card-interactive group flex h-full flex-col p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              >
+                <span className="flex items-center gap-1.5 text-xs font-semibold muted">
+                  <Icone size={14} className="shrink-0 text-brand-500 dark:text-brand-300" aria-hidden="true" />
+                  <span className="min-w-0 truncate">{c.modulo}</span>
+                </span>
+                <span className="mt-2 font-mono text-2xl font-extrabold tabular-nums tracking-tight">
+                  {c.valor ?? (c.carregando ? '…' : <span title="O servidor não devolveu este número agora.">—</span>)}
+                </span>
+                <span className="mt-0.5 text-xs leading-snug text-gray-700 [text-wrap:pretty] dark:text-gray-300">
+                  {c.rotulo}
+                </span>
+                <span className="mt-auto inline-flex items-center gap-1 pt-2 text-xs font-semibold text-brand-600 group-hover:underline dark:text-brand-300">
+                  Abrir <ChevronRight size={13} aria-hidden="true" />
+                </span>
+              </Link>
+            </li>
+          )
+        })}
+      </ul>
+    </Section>
   )
 }
 

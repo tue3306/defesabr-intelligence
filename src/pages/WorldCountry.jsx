@@ -5,7 +5,7 @@ import PageHeader from '../components/ui/PageHeader'
 import DataState from '../components/ui/DataState'
 import InfoTooltip from '../components/ui/InfoTooltip'
 import {
-  fmt, useJanela, SeletorJanela, BotoesFiltro, OPCOES_IDIOMA, Variacao, BarraUrgencia, LegendaUrgencia,
+  fmt, useJanela, SeletorJanela, BotoesFiltro, OPCOES_IDIOMA, Variacao, metaPeriodoAnterior, BarraUrgencia, LegendaUrgencia,
   ListaNoticias, CoberturaPorDia, ListaFontes, PorIdioma, ForaDoCatalogo, Rotulo, useNomesTeatros,
   rotaPais, rotaTeatro, VoltarMundo,
 } from '../components/mundo/ElementosMundo'
@@ -63,7 +63,7 @@ export default function WorldCountry() {
         <ForaDoCatalogo
           dias={dias}
           titulo="País fora do catálogo"
-          texto={`"${nome}" não está entre os países que a plataforma detecta no texto das matérias. O endereço pode ter sido digitado errado, ou o link é de uma versão anterior do catálogo.`}
+          texto={`"${nome}" não está entre os países que a plataforma detecta no texto das notícias. O endereço pode ter sido digitado errado, ou o link é de uma versão anterior do catálogo.`}
         />
       </div>
     )
@@ -81,8 +81,8 @@ export default function WorldCountry() {
         breadcrumb={[{ label: 'Mundo' }, { label: 'Mundo & Conflitos', to: `/mundo?days=${dias}` }, { label: titulo }]}
         badges={d?.iso ? <span className="chip font-mono">{d.iso}</span> : null}
         meta={d ? [
-          { label: 'Matérias', value: fmt(c?.total) },
-          { label: 'Período anterior', value: fmt(c?.periodoAnterior) },
+          { label: 'Notícias', value: fmt(c?.total) },
+          metaPeriodoAnterior(c),
           { label: 'Janela', value: `${fmt(d.periodoDias ?? dias)} dias` },
         ] : undefined}
         actions={(
@@ -92,7 +92,7 @@ export default function WorldCountry() {
           </>
         )}
       >
-        {c && <Variacao variacao={c.variacao} total={c.total} periodoAnterior={c.periodoAnterior} dias={d.periodoDias ?? dias} />}
+        {c && !c.comparacaoIncompleta && <Variacao variacao={c.variacao} total={c.total} periodoAnterior={c.periodoAnterior} dias={d.periodoDias ?? dias} />}
       </PageHeader>
 
       <DataState loading={r.loading && !d} error={r.error} empty={false} onRetry={r.refetch} skeletonCount={3}>
@@ -103,7 +103,7 @@ export default function WorldCountry() {
               <section className="card min-w-0 p-4 sm:p-5 lg:col-span-2" aria-labelledby="titulo-por-dia">
                 <h2 id="titulo-por-dia" className="mb-3 flex items-center gap-2 text-base font-bold tracking-tight">
                   <CalendarDays size={16} className="text-gold-500" aria-hidden="true" />
-                  Matérias por dia
+                  Notícias por dia
                   <InfoTooltip text="Quantas notícias citam o país em cada dia do período. Mede quanto se escreveu, não a gravidade do que aconteceu." />
                 </h2>
                 <CoberturaPorDia porDia={c?.porDia} />
@@ -112,7 +112,7 @@ export default function WorldCountry() {
               <section className="card min-w-0 space-y-4 p-4 sm:p-5" aria-labelledby="titulo-composicao">
                 <h2 id="titulo-composicao" className="sr-only">Composição da cobertura</h2>
                 <div>
-                  <Rotulo>Urgência das matérias</Rotulo>
+                  <Rotulo>Urgência das notícias</Rotulo>
                   <BarraUrgencia porUrgencia={c?.porUrgencia} total={c?.total} altura="h-2.5" />
                   <LegendaUrgencia porUrgencia={c?.porUrgencia} />
                 </div>
@@ -136,7 +136,7 @@ export default function WorldCountry() {
               >
                 <h2 id="titulo-lista" className="mb-3 flex items-center gap-2 text-base font-bold tracking-tight">
                   <Newspaper size={16} className="text-gold-500" aria-hidden="true" />
-                  Matérias que mencionam {titulo}
+                  Notícias que mencionam {titulo}
                 </h2>
 
                 {teatros.length > 0 && (
@@ -178,8 +178,8 @@ export default function WorldCountry() {
                   atualizando={r.loading}
                   onPagina={irParaPagina}
                   vazio={filtro.teatro || filtro.idioma
-                    ? 'Nenhuma matéria corresponde aos filtros neste período.'
-                    : `Nenhuma matéria do acervo menciona ${titulo} nos últimos ${d.periodoDias ?? dias} dias.`}
+                    ? 'Nenhuma notícia corresponde aos filtros neste período.'
+                    : `Nenhuma notícia do acervo menciona ${titulo} nos últimos ${d.periodoDias ?? dias} dias.`}
                 />
               </section>
 
@@ -219,7 +219,7 @@ export default function WorldCountry() {
                     <InfoTooltip text="Países citados nas mesmas notícias. Só quer dizer que aparecem no mesmo texto — não indica aliança, conflito nem relação entre os dois." />
                   </h2>
                   {coMencionados.length === 0 ? (
-                    <p className="text-xs muted">Nenhum outro país citado nas mesmas matérias.</p>
+                    <p className="text-xs muted">Nenhum outro país citado nas mesmas notícias.</p>
                   ) : (
                     <ul className="space-y-1">
                       {coMencionados.map((p) => (
