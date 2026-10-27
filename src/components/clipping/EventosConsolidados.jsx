@@ -88,8 +88,8 @@ export default function EventosConsolidados() {
           <strong className="font-mono">{c.eventos}</strong> eventos
           {c.reducao > 0 && <> — <strong className="font-mono">{c.reducao}%</strong> a menos de ruído</>}
           {c.comMaisDeUmVeiculo > 0 && (
-            <>, e <strong className="font-mono">{c.comMaisDeUmVeiculo}</strong> foram corroborados por
-            mais de um veículo</>
+            <>, e <strong className="font-mono">{c.comMaisDeUmVeiculo}</strong>{' '}
+            {c.comMaisDeUmVeiculo === 1 ? 'foi corroborado' : 'foram corroborados'} por mais de um veículo</>
           )}.
         </p>
       )}
@@ -179,7 +179,7 @@ function Evento({ e, aberto, onToggle }) {
             </span>
           )}
           <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${u?.classes || ''}`}>
-            {e.urgencia}
+            {u?.label || e.urgencia}
           </span>
           {e.categoria && (
             <span

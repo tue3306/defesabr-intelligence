@@ -12,6 +12,14 @@ export default function SearchBar({
   const [value, setValue] = useState(defaultValue)
   const timer = useRef()
 
+  // "Limpar filtros" zerava a busca na tela que a usa, mas a caixa seguia
+  // mostrando a palavra — quem olhava achava que o filtro ainda valia. Só a
+  // LIMPEZA vem de fora: sincronizar qualquer valor atropelaria quem ainda está
+  // digitando, porque a tela recebe o texto com 300 ms de atraso.
+  useEffect(() => {
+    if (defaultValue === '') setValue('')
+  }, [defaultValue])
+
   useEffect(() => {
     if (!onChange) return
     clearTimeout(timer.current)

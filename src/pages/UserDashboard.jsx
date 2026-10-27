@@ -186,7 +186,7 @@ export default function UserDashboard() {
               </p>
               <div className="mt-5 flex flex-wrap gap-3">
                 <Link to="/clipping" className="btn-primary">
-                  Ver clipping <ArrowRight size={16} />
+                  Ver notícias do dia <ArrowRight size={16} />
                 </Link>
                 <Link to="/correlacoes" className="btn-ghost border-white/20 text-white hover:bg-white/10">
                   <Link2 size={16} /> Correlações
@@ -384,7 +384,7 @@ export default function UserDashboard() {
           </ul>
         )}
         <Link to="/clipping" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:underline dark:text-brand-300">
-          Ver tudo no Clipping <ChevronRight size={14} />
+          Ver tudo em Notícias do dia <ChevronRight size={14} />
         </Link>
       </Section>
 
@@ -392,7 +392,7 @@ export default function UserDashboard() {
       <Section className="card p-5">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap gap-2">
-            <Link to="/clipping" className="btn-ghost text-sm"><Newspaper size={15} /> Clipping</Link>
+            <Link to="/clipping" className="btn-ghost text-sm"><Newspaper size={15} /> Notícias do dia</Link>
             <Link to="/legislativo" className="btn-ghost text-sm"><FileText size={15} /> Radar legislativo</Link>
             <Link to="/dados" className="btn-ghost text-sm"><Radar size={15} /> Séries e indicadores</Link>
             <Link to="/busca" className="btn-ghost text-sm"><Newspaper size={15} /> Buscar no acervo</Link>
@@ -590,7 +590,7 @@ export default function UserDashboard() {
                 icon={Bookmark}
                 title="Sua pasta está vazia"
                 hint="Use “Salvar” em qualquer notícia para guardá-la na sua pasta."
-                action={{ label: 'Abrir clipping', to: '/clipping', icon: Newspaper }}
+                action={{ label: 'Abrir notícias do dia', to: '/clipping', icon: Newspaper }}
               />
             )}
           </Section>

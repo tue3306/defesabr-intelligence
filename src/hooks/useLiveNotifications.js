@@ -53,6 +53,10 @@ export function useLiveNotifications() {
       const novos = itens.filter((n) => !vistos.has(n.id) && !n.read)
       itens.forEach((n) => vistos.add(n.id))
       if (!avisosRef.current) return
+      // Na primeira visita, o tour de boas-vindas está aberto: avisos pulando
+      // por cima dele, três de uma vez, eram a primeira coisa que um iniciante
+      // via. Ficam no sino; os seguintes, depois do tour, aparecem normalmente.
+      if (!useSettingsStore.getState().onboardingDone) return
 
       for (const n of novos.slice(0, MAX_AVISOS_POR_RODADA)) {
         const estado = n.kind === 'incidente' && n.title.startsWith('Estado brasileiro')

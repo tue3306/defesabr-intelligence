@@ -9,6 +9,7 @@ import InfoTooltip from '../components/ui/InfoTooltip'
 import { useResource } from '../hooks/useResource'
 import { request } from '../services/client'
 import { formatDateTimeBR } from '../utils/dateUtils'
+import { urgencyMeta } from '../utils/textUtils'
 
 // -----------------------------------------------------------------------------
 // MÉTODO & COLETA — auditoria do filtro e das execuções, para quem administra
@@ -204,7 +205,7 @@ export default function Collection() {
             {resultado.classificacao && (
               <p className="mt-3 border-t border-gray-200 pt-2 text-xs muted dark:border-white/10">
                 Classificado como <strong>{resultado.classificacao.categoria}</strong>,
-                urgência <strong>{resultado.classificacao.urgencia}</strong>.
+                urgência <strong>{urgencyMeta[resultado.classificacao.urgencia]?.label || resultado.classificacao.urgencia}</strong>.
                 {resultado.forteNaAbertura && ' Termo inequívoco na abertura do texto.'}
               </p>
             )}

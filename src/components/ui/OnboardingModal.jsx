@@ -24,12 +24,12 @@ const STEPS = [
   {
     icon: Shield,
     title: 'Bem-vindo ao DefesaBR Intelligence',
-    text: 'Segurança e Defesa do Brasil a partir de fontes públicas: mais de 60 feeds de notícia do Brasil e do mundo, a Câmara, o Banco Central, o Comex Stat e os sites onde grupos de extorsão divulgam vítimas. Cada número mostra de onde veio.',
+    text: 'Segurança e Defesa do Brasil a partir de fontes públicas: 60 fontes de notícia do Brasil e do mundo, a Câmara, o Banco Central, o Comex Stat e os sites onde grupos de extorsão divulgam vítimas. Cada número mostra de onde veio.',
   },
   {
     icon: Newspaper,
-    title: 'Painel e Clipping',
-    text: 'O painel resume o acervo e o nível de alerta dos últimos 7 dias — a média da urgência das matérias. O clipping agrupa o mesmo fato coberto por vários veículos e mostra a regra do filtro que aprovou cada um.',
+    title: 'Painel e Notícias do dia',
+    text: 'O painel resume o acervo e o nível de alerta dos últimos 7 dias — a média da urgência das matérias. As Notícias do dia agrupam o mesmo fato coberto por vários veículos e mostram a regra do filtro que aprovou cada um.',
     link: { to: '/clipping', label: 'Abrir o clipping' },
   },
   {
@@ -56,7 +56,7 @@ const STEPS = [
   {
     icon: Star,
     title: 'Escolha seus assuntos',
-    text: 'Marque as áreas que você acompanha — Forças Armadas, Cibersegurança, Fronteiras e outras. No painel, as matérias delas sobem para o topo; no clipping, um botão mostra só elas. Dá para mudar quando quiser, pelo menu com o seu nome.',
+    text: 'Marque as áreas que você acompanha — Forças Armadas, Cibersegurança, Fronteiras e outras. No painel, as matérias delas sobem para o topo; nas Notícias do dia, um botão mostra só elas. Dá para mudar quando quiser, pelo menu com o seu nome.',
     interesses: true,
   },
   {

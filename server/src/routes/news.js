@@ -433,9 +433,9 @@ function respostaDePaises({ days, items, totalAnalisado, semPais }) {
       iso: p.iso || null,
       foraDaEscala: !!p.foraDaEscala,
     })),
-    nota: 'Contagem de MENCOES a paises no texto das noticias coletadas. Mede volume de '
-      + 'cobertura, nao risco, tensao ou atividade militar. Um pais aparece mais porque a '
-      + 'imprensa escreveu mais sobre ele no periodo.',
+    nota: 'Contagem de MENÇÕES a países no texto das notícias coletadas. Mede volume de '
+      + 'cobertura, não risco, tensão ou atividade militar. Um país aparece mais porque a '
+      + 'imprensa escreveu mais sobre ele no período.',
   }
 }
 
@@ -515,8 +515,8 @@ router.get('/news/pais/:nome', exigirPapel('user'), async (req, res) => {
     // Ransomware, quando o pais tem codigo ISO conhecido. Sem ISO nao ha como
     // cruzar, e `disponivel` diz isso. Ver lib/ransomwarePais.js.
     ransomware: await ransomwareDoPais(iso),
-    nota: 'Um pais so aparece ligado a uma noticia quando o detector encontrou um termo dele '
-      + 'no texto — nome, gentilico ou capital. Mencao e o que se mede; relacao causal, nao.',
+    nota: 'Um país só aparece ligado a uma notícia quando o detector encontrou um termo dele '
+      + 'no texto — nome, gentílico ou capital. Menção é o que se mede; relação causal, não.',
   })
 })
 

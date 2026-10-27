@@ -349,7 +349,7 @@ router.get('/cyber/ransomware', async (req, res) => {
       ...p,
       brasil: { ...p.brasil, itens: [], estado: [] },
       restrito: true,
-      motivo: 'Entre para ver as organizacoes nominalmente e o recorte do Estado brasileiro.',
+      motivo: 'Entre para ver as organizações nominalmente e o recorte do Estado brasileiro.',
     })
     return
   }

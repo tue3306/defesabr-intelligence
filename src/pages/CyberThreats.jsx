@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { setorPt } from '../utils/textUtils'
 import { Link } from 'react-router-dom'
 import {
   ShieldAlert, Building2, Landmark, Globe2, ExternalLink, Info, Users, Activity,
@@ -56,7 +57,7 @@ export default function CyberThreats() {
       <PageHeader
         icon={ShieldAlert}
         title="Incidentes no Brasil"
-        description="Organizações brasileiras divulgadas por grupos de ransomware, com o Estado em primeiro plano e o quadro global como referência. Nível operacional: cada linha tem nome e data."
+        description="Organizações brasileiras divulgadas por grupos de ransomware, com o Estado em primeiro plano e o quadro global como referência. Cada linha tem nome e data."
         help="Os registros vêm dos sites de extorsão dos próprios grupos, indexados pelo ransomware.live. Aparecer aqui é reivindicação de ataque, não confirmação da vítima."
         breadcrumb={[{ label: 'Ataques cibernéticos' }, { label: 'Incidentes no Brasil' }]}
         badges={<Badge type={d?.acervo ? 'live' : 'sem-dado'} cadencia={d?.acervo ? 'a cada 30 min' : undefined} />}
@@ -135,7 +136,7 @@ export default function CyberThreats() {
                   Amostra enviesada não vira percentual. */}
               <MetricCard
                 icon={Globe2}
-                label="Base do índice"
+                label="Vítimas no mundo"
                 value={d.indice?.vitimas ? d.indice.vitimas.toLocaleString('pt-BR') : '—'}
                 hint={d.indice?.grupos ? `${d.indice.grupos} grupos acompanhados no mundo` : 'total do ransomware.live'}
               />
@@ -229,7 +230,7 @@ export default function CyberThreats() {
               <Ranking
                 titulo="Setores mais atingidos no Brasil"
                 subtitulo="Classificação da própria fonte, em 14 setores."
-                itens={br.porSetor}
+                itens={br.porSetor.map((i) => ({ ...i, nome: setorPt(i.nome) }))}
               />
             </div>
 
@@ -303,7 +304,7 @@ export default function CyberThreats() {
                               {v.group || '—'}
                             </span>
                           </td>
-                          <td className="py-2 pr-3 text-xs muted">{v.sector || '—'}</td>
+                          <td className="py-2 pr-3 text-xs muted">{setorPt(v.sector) || '—'}</td>
                           <td className="py-2 pr-3">
                             <span
                               className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${CRIT[v.criticality]?.chip || ''}`}

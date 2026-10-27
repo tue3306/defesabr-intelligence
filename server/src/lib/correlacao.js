@@ -623,6 +623,9 @@ function pontuarBrasil(entidades, correlacoes) {
   let score = 0
 
   const conta = (tipo) => entidades.filter((e) => e.tipo === tipo).length
+  // "2 órgão(s) público(s) brasileiro(s)" aparecia em cada item da lista de
+  // destaques; plural de verdade lê melhor.
+  const qtd = (n, um, varios) => `${n} ${n === 1 ? um : varios}`
 
   const orgaos = conta('orgao')
   const empresas = conta('empresa')
@@ -631,17 +634,17 @@ function pontuarBrasil(entidades, correlacoes) {
   const setores = entidades.filter((e) => e.tipo === 'setor')
   const setoresCriticos = setores.filter((e) => e.critico).length
 
-  if (orgaos) { score += Math.min(orgaos * 18, 36); partes.push(`${orgaos} órgão(s) público(s) brasileiro(s)`) }
-  if (empresas) { score += Math.min(empresas * 14, 28); partes.push(`${empresas} empresa(s) brasileira(s)`) }
-  if (infra) { score += Math.min(infra * 16, 32); partes.push(`${infra} instalação(ões) de infraestrutura crítica`) }
-  if (ufs) { score += Math.min(ufs * 8, 16); partes.push(`${ufs} unidade(s) da federação`) }
-  if (setoresCriticos) { score += Math.min(setoresCriticos * 8, 16); partes.push(`${setoresCriticos} setor(es) crítico(s)`) }
-  else if (setores.length) { score += 5; partes.push(`${setores.length} setor(es) estratégico(s)`) }
+  if (orgaos) { score += Math.min(orgaos * 18, 36); partes.push(qtd(orgaos, 'órgão público brasileiro', 'órgãos públicos brasileiros')) }
+  if (empresas) { score += Math.min(empresas * 14, 28); partes.push(qtd(empresas, 'empresa brasileira', 'empresas brasileiras')) }
+  if (infra) { score += Math.min(infra * 16, 32); partes.push(qtd(infra, 'instalação de infraestrutura crítica', 'instalações de infraestrutura crítica')) }
+  if (ufs) { score += Math.min(ufs * 8, 16); partes.push(qtd(ufs, 'unidade da federação', 'unidades da federação')) }
+  if (setoresCriticos) { score += Math.min(setoresCriticos * 8, 16); partes.push(qtd(setoresCriticos, 'setor crítico', 'setores críticos')) }
+  else if (setores.length) { score += 5; partes.push(qtd(setores.length, 'setor estratégico', 'setores estratégicos')) }
 
   // Uma correlação forte vale mais que qualquer menção: significa que o texto
   // toca algo que a plataforma REGISTROU, não apenas algo que ela reconhece.
   const fortes = correlacoes.filter((c) => c.forca >= FORCA.GRUPO).length
-  if (fortes) { score += Math.min(fortes * 12, 24); partes.push(`${fortes} correlação(ões) direta(s) com o acervo`) }
+  if (fortes) { score += Math.min(fortes * 12, 24); partes.push(qtd(fortes, 'correlação direta com o acervo', 'correlações diretas com o acervo')) }
 
   return {
     score: Math.min(Math.round(score), 100),
@@ -665,14 +668,14 @@ export const METODO_CORRELACAO = {
     { id: 'setor-sob-pressao', forca: FORCA.SETOR, titulo: 'O setor tratado tem incidentes brasileiros no período', criterio: `Coincidência de SETOR na janela de ${JANELA_DIAS} dias. Situa a leitura; não afirma que a matéria e o incidente são o mesmo fato.` },
   ],
   guardas: [
-    'Endereco com caminho (gov.br/anvisa) e sufixo publico (gov.br, com.br) NAO servem para '
-      + 'casar dominio: identificam o portal, nao a organizacao.',
-    'Nome de grupo so e reconhecido quando o texto tambem tem contexto cibernetico, e nomes '
-      + 'que sao palavra comum (global, nova, apos, fog, maze) nunca contam sozinhos.',
-    'Igualdade de nome exige correspondencia exata do texto normalizado — continencia nao vale.',
-    'Municipio sai do dominio da vitima, nunca de tabela externa, e rotulo de funcao administrativa '
-      + '(saude.mt.gov.br) e excluido: nao e cidade. Cidade de nome composto nao e detectada, porque '
-      + 'comparar sem espacos faria "arcos" casar dentro de "marcos".',
+    'Endereço com caminho (gov.br/anvisa) e sufixo público (gov.br, com.br) NÃO servem para '
+      + 'casar domínio: identificam o portal, não a organização.',
+    'Nome de grupo só é reconhecido quando o texto também tem contexto cibernético, e nomes '
+      + 'que são palavra comum (global, nova, após, fog, maze) nunca contam sozinhos.',
+    'Igualdade de nome exige correspondência exata do texto normalizado — continência não vale.',
+    'Município sai do domínio da vítima, nunca de tabela externa, e rótulo de função administrativa '
+      + '(saude.mt.gov.br) é excluído: não é cidade. Cidade de nome composto não é detectada, porque '
+      + 'comparar sem espaços faria "arcos" casar dentro de "marcos".',
   ],
   ressalva: 'Correlação não é causalidade. Cada ligação declara a regra que a produziu e a '
     + 'evidência literal que a sustenta; nenhuma nasce de similaridade semântica ou de estimativa.',

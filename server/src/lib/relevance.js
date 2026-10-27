@@ -183,7 +183,34 @@ const EXCLUSOES = [
   'direito de defesa', 'ampla defesa', 'defesa da tese',
   'soberania popular', 'linha de defesa', 'defesa do titulo',
   'sistema de defesa do torcedor', 'defesa sanitaria', 'defesa agropecuaria',
+  // "Exército" em sentido figurado. "Como Janones montou um exército digital
+  // na campanha de Lula" entrou no acervo como Forças Armadas — é política.
+  'exercito digital', 'exercito de fas', 'exercito de seguidores', 'exercito de robos',
+  'exercito de bots', 'exercito de voluntarios', 'exercito de influenciadores',
 ]
+
+// FICÇÃO E ENTRETENIMENTO
+//
+// "Uma aldeia contra um exército inteiro e um amor proibido no meio da guerra
+// nesta aventura medieval" — resenha de filme, vinda do Google Notícias —
+// entrou como Forças Armadas, urgência média, porque "exército" na abertura
+// aprova sozinho. Para quem chega à plataforma, uma resenha de cinema no
+// acervo de defesa desacredita tudo o que está ao lado.
+//
+// A regra é estreita de propósito: só desqualifica quando a ABERTURA traz
+// sinal de ficção E todo termo forte encontrado é GENÉRICO — palavra que um
+// filme também usa. Notícia que nomeia instituição ("Exército Brasileiro",
+// "Ministério da Defesa", "KC-390") continua passando, mesmo falando de filme.
+const SINAIS_DE_FICCAO = [
+  'filme', 'filmes', 'serie de tv', 'minisserie', 'novela', 'streaming', 'netflix',
+  'prime video', 'elenco', 'estrelado por', 'protagonizado por', 'trailer',
+  'bilheteria', 'nos cinemas', 'medieval', 'amor proibido',
+]
+const FORTES_GENERICOS = new Set([
+  'exercito', 'forca aerea', 'submarino', 'submarinos', 'missil', 'misseis',
+  'blindado', 'blindados', 'espionagem', 'navio de guerra', 'navios de guerra',
+  'fragata', 'fragatas', 'porta-avioes',
+])
 
 // USO CIVIL DE TERMO MILITAR — mascarado antes de procurar os termos fortes.
 //
@@ -244,6 +271,7 @@ function termosDisjuntos(spans) {
 const RX_FORTES = FORTES.map((t) => ({ termo: t, rx: fronteira(normalizar(t)) }))
 const RX_FRACOS = FRACOS.map((t) => ({ termo: t, rx: fronteira(normalizar(t)) }))
 const RX_EXCLUSOES = EXCLUSOES.map((t) => ({ termo: t, rx: fronteira(normalizar(t)) }))
+const RX_FICCAO = SINAIS_DE_FICCAO.map((t) => fronteira(normalizar(t)))
 
 // -----------------------------------------------------------------------------
 // O RODAPÉ QUE O VEÍCULO ANEXA AO RESUMO
@@ -532,7 +560,10 @@ export function avaliarRelevancia(texto) {
   // comparação e cobre o caso em que `inicio`, que passa por `semUsoCivil()`
   // e não é um pedaço de `palheiro`, divirja dele. O efeito real das
   // exclusões agora vem do filtro de spans acima.
-  const desqualificado = excluidos.length > 0 && fortes.length === 0
+  const ficcao = RX_FICCAO.some((rx) => rx.test(inicio))
+    && spansFortes.length > 0
+    && spansFortes.every((sp) => FORTES_GENERICOS.has(sp.termo))
+  const desqualificado = (excluidos.length > 0 && fortes.length === 0) || ficcao
 
   return {
     relevante: !desqualificado && suficiente,
@@ -699,6 +730,12 @@ const EXPRESSOES_DESCRITIVAS = [
   // FINALIDADE, não fato: "míssil de cruzeiro PARA ATAQUES a 300 km" descreve o
   // que o equipamento faz; "sistema de defesa contra ataques" também.
   'para ataque', 'para ataques', 'defesa contra ataques', 'protecao contra ataques',
+  // CLASSE de meio, não fato: "o Rubis, quinto submarino nuclear DE ATAQUE do
+  // programa Barracuda" saía CRÍTICO — a notícia era a apresentação do casco.
+  'submarino nuclear de ataque', 'submarinos nucleares de ataque', 'submarino de ataque',
+  'submarinos de ataque', 'helicoptero de ataque', 'helicopteros de ataque',
+  'aviao de ataque', 'avioes de ataque', 'caca de ataque', 'cacas de ataque',
+  'drone de ataque', 'drones de ataque', 'aeronave de ataque', 'aeronaves de ataque',
 ]
 
 const RX_DESCRITIVAS = EXPRESSOES_DESCRITIVAS.map((e) => new RegExp(normalizar(e).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'))
@@ -902,8 +939,14 @@ export const METODO_RELEVANCIA = {
     },
     {
       titulo: 'Contextos que desqualificam',
-      texto: `${EXCLUSOES.length} expressões derrubam o texto quando não há termo forte: "defesa do `
-        + 'consumidor", "ampla defesa", "soberania popular".',
+      texto: `${EXCLUSOES.length} expressões anulam o termo forte que elas contêm: "defesa do `
+        + 'consumidor", "ampla defesa", "exército digital".',
+    },
+    {
+      titulo: 'Ficção não é notícia',
+      texto: 'Se a abertura traz sinal de ficção ("filme", "série", "elenco", "medieval") e o único '
+        + 'termo forte é uma palavra que um filme também usa ("exército", "míssil", "submarino"), o '
+        + 'texto não entra. Quem nomeia instituição — "Exército Brasileiro", "KC-390" — continua entrando.',
     },
     {
       titulo: 'Fronteira de palavra',

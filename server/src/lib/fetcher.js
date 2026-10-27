@@ -282,8 +282,9 @@ function decodificar(bytes, contentType) {
 // "Upstream server returned Content-Encoding: br, but the client did not
 // request Brotli", e a fonte aparecia como fora do ar a cada ciclo.
 //
-// Só nesse erro, a busca é refeita pelo `https` nativo, que entrega os bytes
-// como vieram, e o Brotli é desfeito aqui. Segue até três redirecionamentos.
+// Só nesse erro, a busca é refeita pelo `https` nativo pedindo resposta sem
+// compressão; o que vier comprimido é desfeito aqui. Segue até três
+// redirecionamentos. A mensagem não existe no Node: vem do runtime da Vercel.
 // -----------------------------------------------------------------------------
 
 const RX_BROTLI_RECUSADO = /Content-Encoding: br, but the client did not request/i
@@ -291,7 +292,11 @@ const RX_BROTLI_RECUSADO = /Content-Encoding: br, but the client did not request
 export function buscarCru(url, { timeoutMs = config.coleta.timeoutMs } = {}, saltos = 3) {
   return new Promise((resolve, reject) => {
     const req = https.get(url, {
-      headers: { 'User-Agent': config.coleta.userAgent, Accept: '*/*', 'Accept-Encoding': 'br, gzip, deflate' },
+      // `identity`: o IstoÉ respeita o pedido de resposta sem compressão, e
+      // assim a camada de rede da Vercel — de onde vem a recusa do Brotli, que
+      // não existe no Node — não tem o que recusar. Se vier comprimida mesmo
+      // assim, ela é desfeita abaixo.
+      headers: { 'User-Agent': config.coleta.userAgent, Accept: '*/*', 'Accept-Encoding': 'identity' },
       timeout: timeoutMs,
     }, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location && saltos > 0) {

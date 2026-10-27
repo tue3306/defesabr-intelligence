@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { setorPt } from '../utils/textUtils'
 import {
   Crosshair, ShieldAlert, Wrench, Bug, ChevronDown, Landmark, ExternalLink,
 } from 'lucide-react'
@@ -279,7 +280,7 @@ function Ator({ a, aberto, onToggle }) {
                     <span className="font-medium" title={v.victimBruto ? `Publicado pelo grupo como: ${v.victimBruto}` : undefined}>
                       {v.victim}
                     </span>
-                    {v.sector && <span className="muted">· {v.sector}</span>}
+                    {v.sector && <span className="muted">· {setorPt(v.sector)}</span>}
                   </li>
                 ))}
               </ul>

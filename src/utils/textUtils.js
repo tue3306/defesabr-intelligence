@@ -87,3 +87,35 @@ export function categoryColor(cat) {
   const paleta = daltonico() ? categoryColorsDaltonico : categoryColors
   return paleta[cat] || categoryColors[cat] || '#64748b'
 }
+
+// Setores do ransomware.live vêm em inglês. O dado guardado continua o da
+// fonte; a tradução é só de exibição, e um setor novo que a fonte criar
+// aparece no original em vez de sumir.
+const SETORES_PT = {
+  'Professional Services': 'Serviços profissionais',
+  Manufacturing: 'Indústria',
+  Technology: 'Tecnologia',
+  Healthcare: 'Saúde',
+  'Agriculture and Food Production': 'Agro e alimentos',
+  'Retail & E-Commerce': 'Varejo e comércio eletrônico',
+  Transportation: 'Transporte',
+  'Transportation/Logistics': 'Transporte e logística',
+  'Government & Defense': 'Governo e defesa',
+  'Public Sector': 'Setor público',
+  Education: 'Educação',
+  'Energy & Utilities': 'Energia e saneamento',
+  'Financial Services': 'Serviços financeiros',
+  'Hospitality and Tourism': 'Turismo e hotelaria',
+  Construction: 'Construção',
+  Telecommunication: 'Telecomunicações',
+  Telecommunications: 'Telecomunicações',
+  'Business Services': 'Serviços empresariais',
+  'Consumer Services': 'Serviços ao consumidor',
+  'Media & Entertainment': 'Mídia e entretenimento',
+  'Real Estate': 'Imobiliário',
+  Legal: 'Jurídico',
+  'Not Found': 'Não informado',
+  Unknown: 'Não informado',
+}
+
+export const setorPt = (nome) => (nome && SETORES_PT[nome]) || nome

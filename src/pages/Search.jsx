@@ -14,6 +14,7 @@ import { useCan } from '../auth/useCan'
 import { useResource } from '../hooks/useResource'
 import { searchService } from '../services'
 import { SEARCH_TYPES } from '../services/searchService'
+import { urgencyMeta } from '../utils/textUtils'
 
 // Os tipos declaram o ícone por nome (dado puro); aqui ligamos ao componente.
 const TYPE_ICONS = {
@@ -327,7 +328,7 @@ function ResultRow({ item, query }) {
               className="rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide"
               style={{ background: `${color}22`, color }}
             >
-              {item.badge}
+              {urgencyMeta[item.badge]?.label || item.badge}
             </span>
           )}
         </div>
