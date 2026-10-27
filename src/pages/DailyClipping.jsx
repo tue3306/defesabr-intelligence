@@ -1,5 +1,4 @@
 import { useMemo, useState, useEffect, useCallback } from 'react'
-import { motion } from 'framer-motion'
 import {
   Bookmark,
   BookmarkCheck,
@@ -18,8 +17,9 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Flag,
+  HelpCircle,
+  X,
 } from 'lucide-react'
-import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
@@ -28,7 +28,7 @@ import InfoTooltip from '../components/ui/InfoTooltip'
 import { useResource } from '../hooks/useResource'
 import { request } from '../services/client'
 
-import Badge from '../components/ui/Badge'
+import Badge, { ROTULO_URGENCIA, SENTIDO_URGENCIA } from '../components/ui/Badge'
 import SearchBar from '../components/ui/SearchBar'
 import TagFilter from '../components/ui/TagFilter'
 import Can from '../auth/Can'
@@ -39,44 +39,30 @@ import { useNewsStore } from '../store/newsStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { useUiStore } from '../store/uiStore'
 import { URGENCY_LEVELS } from '../data/mockData'
-import { alertMeta, categoryColor, clipboard, urgencyMeta , corDoNivel } from '../utils/textUtils'
+import { alertMeta, categoryColor, clipboard, urgencyMeta, corDoNivel, plural } from '../utils/textUtils'
 import { formatDateBR, formatDateTimeBR, formatFullDate } from '../utils/dateUtils'
 import { exportClippingToPDF } from '../utils/exportUtils'
 
-// Quem assina a edição. Não há redação por trás: a seleção é do filtro de
-// relevância. Constava "Mesa de Análise", que já não nomeava uma pessoa mas
-// ainda sugeria uma equipe de analistas lendo e escolhendo — autoria inventada
-// do mesmo jeito, só que coletiva.
+// Quem assina a edição: não há redação humana, a seleção é do filtro de relevância.
 const EDITORIAL_DESK = 'coleta automática · filtro de relevância publicado'
 
 export default function DailyClipping() {
   const addClipping = useNewsStore((s) => s.addClipping)
   const latest = useNewsStore((s) => s.latestClipping)
   const clippings = useNewsStore((s) => s.clippings)
-  // Contava as fontes "habilitadas" da lista escrita a mao. O numero da
-  // edicao vem do servidor (`result.active_sources`); este era so o fallback,
-  // e um fallback que inventa numero e pior que nenhum.
+  // Fallback do contador de fontes: também vem do servidor, nunca de lista local.
   const fontesReais = useFontesReais()
 
   const [result, setResult] = useState(latest)
   const [sourcesOpen, setSourcesOpen] = useState(false)
   const [loadingEdition, setLoadingEdition] = useState(true)
 
-  // EDIÇÃO REAL, do backend.
-  //
-  // Antes, esta tela abria sempre com o documento demonstrativo guardado no
-  // navegador — o que fazia o clipping parecer congelado numa data de 2026.
-  // Agora ela pede a edição ao servidor, que a monta do que foi realmente
-  // coletado no período.
-  //
-  // A edição local continua sendo o estado inicial: se a API estiver fora, a
-  // tela abre com ela em vez de vazia, e o selo diz de onde veio o dado.
+  // A edição real vem do servidor. A guardada no navegador é só o estado
+  // inicial: se a API estiver fora, a tela abre com ela e o selo diz a origem.
   const recarregarEdicao = useCallback(async () => {
     try {
       const { data, meta } = await newsService.latestClipping()
-      // Só substitui se veio da API E tem conteúdo. Uma edição real vazia
-      // (nenhuma notícia relevante no período) ainda é a resposta certa e
-      // deve aparecer — mas não deve apagar a edição em tela por acidente.
+      // Só substitui se veio da API e tem conteúdo.
       if (meta?.source !== 'live' || !data) return
       setResult({ ...data, source: 'live' })
     } catch {
@@ -97,19 +83,22 @@ export default function DailyClipping() {
   // As áreas de interesse escolhidas em Configurações viram um atalho de filtro.
   const interestAreas = useSettingsStore((s) => s.interestAreas)
 
-  // Memoizado porque esta lista entra nas dependências de um `useMemo` abaixo:
-  // `result?.news || []` devolveria um array novo a cada render, o que invalidaria o memo
-  // em todo render e o tornaria pior que nenhum.
+  // Memoizado porque entra nas dependências dos `useMemo` abaixo.
   const allNews = useMemo(() => result?.news || [], [result])
   const hasFilters = Boolean(query.trim() || cats.length || urgency)
 
-  // As categorias disponíveis vêm da edição inteira (não da lista já filtrada),
-  // mais as que estiverem marcadas: se a edição recarregar sem uma delas, o chip
-  // continua na tela para ser desmarcado, em vez de o filtro ficar preso invisível.
+  // Categorias da edição inteira, mais as marcadas: um chip marcado continua
+  // visível para ser desmarcado mesmo se a edição recarregar sem ele.
   const availableCats = useMemo(
     () => [...new Set([...allNews.map((n) => n.category).filter(Boolean), ...cats])],
     [allNews, cats]
   )
+
+  const contagemUrgencia = useMemo(() => {
+    const c = {}
+    for (const n of allNews) c[n.urgency] = (c[n.urgency] || 0) + 1
+    return c
+  }, [allNews])
 
   const filteredNews = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -130,18 +119,17 @@ export default function DailyClipping() {
   const handleSaveToArchive = () => {
     if (!result) return
     addClipping(result)
-    toast.success('Clipping salvo no arquivo')
+    toast.success('Edição salva no Arquivo')
   }
 
-  // A geração do PDF é assíncrona (a biblioteca é carregada sob demanda):
-  // o aviso de sucesso só pode vir depois que o arquivo existe de fato.
+  // O PDF é gerado de forma assíncrona: o aviso só vem depois que o arquivo existe.
   const handlePDF = async () => {
     if (!result) return
     try {
       await exportClippingToPDF(result)
-      toast.success('PDF do clipping gerado')
+      toast.success('PDF da edição gerado')
     } catch {
-      toast.error('Não foi possível gerar o PDF deste clipping.')
+      toast.error('Não foi possível gerar o PDF. Tente de novo em instantes.')
     }
   }
 
@@ -152,14 +140,13 @@ export default function DailyClipping() {
     if (found) {
       setResult(found.data)
       clearFilters()
-      toast.success(`Edição de ${found.date} carregada`)
+      toast.success(`Edição de ${formatDateBR(found.date)} carregada`)
     } else {
-      toast('Sem clipping arquivado nesta data', { icon: '📭' })
+      toast(`Nenhuma edição arquivada em ${formatDateBR(iso)}. Veja as datas salvas em Arquivo & Pasta.`, { icon: '📭' })
     }
   }
 
-  // Sem nível calculável, NENHUM default. `|| alertMeta.NORMAL` pintava a
-  // borda de verde e o selo de "NORMAL" sobre um período do qual nada se sabe.
+  // Sem nível calculável não há default: pintar "NORMAL" seria inventar.
   const alert = alertMeta[result?.alert_level] || null
   const publishedAt = result?.generatedAt || result?.date
 
@@ -168,40 +155,33 @@ export default function DailyClipping() {
       <PageHeader
         icon={Newspaper}
         title="Notícias do dia"
-        description="O clipping diário: o que a coleta trouxe em segurança e defesa no período, filtrado por relevância, classificado por categoria e urgência, com o nível de alerta do período."
-        help="O nível de alerta é a média ponderada da urgência de todas as matérias relevantes do período (crítico 100, alto 70, médio 40, baixo 15): NORMAL abaixo de 35, ATENÇÃO até 59, ALERTA até 79, CRÍTICO a partir de 80. Sem matérias no período, não há nível."
+        description="As notícias de segurança e defesa selecionadas automaticamente na edição de hoje. Filtre por assunto ou urgência e abra a fonte original."
+        help="O nível de alerta é a média ponderada da urgência de todas as notícias relevantes do período (crítico 100, alto 70, médio 40, baixo 15): NORMAL abaixo de 35, ATENÇÃO até 59, ALERTA até 79, CRÍTICO a partir de 80. Sem notícias no período, não há nível."
         breadcrumb={[{ label: 'Notícias e ligações' }, { label: 'Notícias do dia' }]}
         badges={
           <>
             <Badge type="alert" value={result?.alert_level} />
-            {/* O selo segue a ORIGEM da edição em tela. Uma edição montada
-                pelo servidor a partir de coleta real é dado ao vivo, mesmo sem
-                resumo executivo — que é análise, não coleta. */}
+            {/* O selo segue a ORIGEM da edição em tela. */}
             <Badge type={result?.source === 'live' ? 'live' : 'sem-dado'} cadencia={result?.source === 'live' ? 'a cada 15 min' : undefined} />
           </>
         }
         meta={[
           { label: 'Edição', value: result?.date || formatFullDate() },
           { label: 'Notícias', value: String(allNews.length) },
-          // Duas coleções de fontes convivem aqui, e o contador precisa mostrar
-          // a que produziu ESTA edição: quantas responderam na última execução
-          // da coleta. O fallback também vem do servidor — antes era a
-          // contagem de uma lista escrita à mão no navegador.
+          // Quantas fontes responderam na coleta que produziu ESTA edição.
           { label: 'Fontes ativas', value: String(result?.active_sources ?? fontesReais.total ?? '—') },
         ]}
         actions={
-          <>
-            <label className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-white/10">
-              <CalendarDays size={16} className="text-gold-500" />
-              <span className="sr-only">Carregar clipping arquivado por data</span>
-              <input
-                type="date"
-                onChange={handleDateChange}
-                className="bg-transparent text-sm focus:outline-none"
-                aria-label="Carregar clipping arquivado por data"
-              />
-            </label>
-          </>
+          <label className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm focus-within:ring-2 focus-within:ring-gold-500/60 dark:border-white/10">
+            <CalendarDays size={16} className="text-gold-500" aria-hidden="true" />
+            <span className="muted">Edição arquivada</span>
+            <input
+              type="date"
+              onChange={handleDateChange}
+              className="bg-transparent text-sm focus:outline-none"
+              aria-label="Abrir edição arquivada de uma data"
+            />
+          </label>
         }
       >
         {/* Barra de ações do documento */}
@@ -209,23 +189,21 @@ export default function DailyClipping() {
           <Can
             do="reports.export"
             fallback={
-              <span className="btn-ghost cursor-not-allowed opacity-60" title="A exportação está acima do nível de leitura desta conta.">
-                <Lock size={14} /> Exportar PDF
+              <span className="btn-ghost cursor-not-allowed opacity-60" title="A exportação não está disponível para o seu nível de acesso.">
+                <Lock size={14} aria-hidden="true" /> Exportar PDF
               </span>
             }
           >
             <button onClick={handlePDF} disabled={!result} className="btn-ghost">
-              <FileDown size={16} /> Exportar PDF
+              <FileDown size={16} aria-hidden="true" /> Exportar PDF
             </button>
           </Can>
           <button onClick={handleSaveToArchive} disabled={!result} className="btn-ghost">
-            <Save size={16} /> Salvar no arquivo
+            <Save size={16} aria-hidden="true" /> Salvar no arquivo
           </button>
           <button onClick={() => window.print()} className="btn-ghost">
-            <Printer size={16} /> Imprimir
+            <Printer size={16} aria-hidden="true" /> Imprimir
           </button>
-          {/* A edição desta tela é montada pelo SERVIDOR, a partir do que os
-              coletores trouxeram e o filtro aprovou. */}
           <PublishedNote
             at={publishedAt}
             detalhe={result?.source === 'live'
@@ -239,160 +217,147 @@ export default function DailyClipping() {
         <EmptyState
           icon={Newspaper}
           title="Nenhuma edição publicada ainda"
-          hint="Assim que a coleta trouxer matérias aprovadas pelo filtro, a edição aparece aqui com o nível de alerta do período."
+          hint="Assim que a coleta trouxer notícias aprovadas pelo filtro, a edição aparece aqui com o nível de alerta do período."
           action={{ label: 'Ver edições arquivadas', to: '/arquivo', icon: CalendarDays }}
         />
       )}
 
-      {/* Os eventos vem ANTES da edicao: e a leitura de inteligencia, e a
-          edicao do dia e o documento. Quem abre o clipping quer saber o que
-          aconteceu, e "tres veiculos cobriram isto" responde melhor que uma
-          lista de manchetes parecidas. */}
-      {/* O QUE MAIS TOCA O BRASIL VEM ANTES DA EDICAO.
-        *
-        * O indice `br_score` era calculado a cada coleta e nao aparecia em
-        * tela nenhuma: media a densidade de vinculo de cada materia com o pais
-        * — orgaos, empresas, infraestrutura, UFs e setores reconhecidos — e
-        * ficava so no banco.
-        *
-        * E a resposta para "noticia de fora que importa aqui". Uma materia
-        * sobre a Russia que cita a Embraer e o Ministerio da Defesa pontua
-        * alto; uma sobre a Russia que nao cita nada brasileiro, zero. Sem
-        * nenhum julgamento editorial no meio: o motivo do indice viaja junto
-        * do numero, e a tela o mostra. */}
-      <RelevantesParaOBrasil />
-
-      <EventosConsolidados />
-
+      {/* A LISTA DA EDIÇÃO VEM PRIMEIRO: é o que o leitor abriu a tela para ver.
+          Contexto (nível de alerta, temas) fica ao lado no desktop e logo
+          abaixo no celular; os blocos de análise vêm depois da lista. */}
       {result && (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="space-y-6"
-        >
-          {/* Nível de alerta do período */}
-          <section
-            className={`card border-l-4 p-5 sm:p-6 ${alert?.classes.split(' ').find((c) => c.startsWith('border')) || 'border-gray-300 dark:border-white/15'}`}
-          >
-            <div className="mb-3 flex flex-wrap items-center gap-3">
-              <h2 className="text-lg font-bold tracking-tight">Nível de alerta do período</h2>
-              <Badge type="alert" value={result.alert_level} />
-            </div>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <section aria-labelledby="titulo-lista" className="min-w-0 space-y-4 lg:col-span-2">
+            <div className="card space-y-4 p-4 sm:p-5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 id="titulo-lista" className="text-lg font-bold tracking-tight">Notícias da edição</h2>
+                <LegendaSelos />
+              </div>
 
-            {/* O NÍVEL DE ALERTA MOSTRA A CONTA QUE O PRODUZ.
-              *
-              * Antes era um selo e um número: "CRÍTICO · 100/100". Um índice sem
-              * a distribuição por trás não pode ser contestado por quem lê — e
-              * foi justamente essa opacidade que deixou o indicador marcar
-              * CRÍTICO 100/100 todo dia sem ninguém notar que a amostra vinha
-              * ordenada por urgência e cortada em LIMIT 20.
-              *
-              * Com a distribuição visível, o mesmo erro seria óbvio no primeiro
-              * olhar: "20 de 20 críticos" não é o retrato de um país, é o
-              * retrato de uma consulta. */}
-            <NivelDeAlerta
-              level={result.alert_level}
-              score={result.alert_score}
-              basis={result.alert_basis}
-              distribuicao={result.alert_distribution}
-            />
-          </section>
-
-          {/* Filtros da edição */}
-          <section className="card space-y-4 p-5">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               <SearchBar
                 placeholder="Buscar nesta edição (ex.: submarino, cibersegurança)…"
                 defaultValue={query}
                 onChange={setQuery}
               />
-              <select
-                value={urgency}
-                onChange={(e) => setUrgency(e.target.value)}
-                className="input"
-                aria-label="Filtrar por urgência"
-              >
-                <option value="">Todas as urgências</option>
-                {URGENCY_LEVELS.map((lv) => (
-                  <option key={lv} value={lv}>{urgencyMeta[lv]?.label || lv}</option>
-                ))}
-              </select>
-            </div>
-            {(availableCats.length > 1 || cats.length > 0) && (
+
               <div>
-                <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase muted">
-                  <Filter size={13} /> Categorias
-                </p>
-                <TagFilter
-                  options={availableCats}
-                  selected={cats}
-                  getColor={categoryColor}
-                  onToggle={(c) => setCats((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]))}
-                />
-                <div className="mt-2 flex flex-wrap items-center gap-3">
-                  {interestAreas.some((a) => availableCats.includes(a)) && (
-                    <button
-                      onClick={() => setCats(interestAreas.filter((a) => availableCats.includes(a)))}
-                      className="text-xs font-semibold text-brand-600 hover:underline dark:text-brand-300"
+                <p id="rotulo-urgencia" className="mb-2 text-xs font-semibold muted">Urgência</p>
+                <div className="flex flex-wrap gap-1.5" role="group" aria-labelledby="rotulo-urgencia">
+                  <BotaoFiltro ativo={!urgency} onClick={() => setUrgency('')} contagem={allNews.length}>
+                    Todas
+                  </BotaoFiltro>
+                  {URGENCY_LEVELS.filter((lv) => contagemUrgencia[lv] || urgency === lv).map((lv) => (
+                    <BotaoFiltro
+                      key={lv}
+                      ativo={urgency === lv}
+                      onClick={() => setUrgency(urgency === lv ? '' : lv)}
+                      contagem={contagemUrgencia[lv] || 0}
+                      cor={corDoNivel(lv)}
                     >
-                      Só as minhas áreas de interesse
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => useUiStore.getState().abrirInteresses()}
-                    className="text-xs font-semibold text-gray-600 hover:underline dark:text-gray-300"
-                  >
-                    {interestAreas.length ? 'Personalizar interesses' : 'Escolher minhas áreas de interesse'}
-                  </button>
+                      {ROTULO_URGENCIA[lv]}
+                    </BotaoFiltro>
+                  ))}
                 </div>
               </div>
-            )}
-            <div className="flex flex-wrap items-center gap-3 border-t border-gray-200 pt-3 text-sm dark:border-white/[0.07]">
-              <span className="muted" aria-live="polite">
-                <strong className="text-gray-700 dark:text-gray-200">{filteredNews.length}</strong> de {allNews.length} notícias
-              </span>
-              {hasFilters && (
-                <button onClick={clearFilters} className="text-xs font-semibold text-gold-600 hover:underline dark:text-gold-400">
-                  Limpar filtros
-                </button>
+
+              {(availableCats.length > 1 || cats.length > 0) && (
+                <div>
+                  <p className="mb-2 text-xs font-semibold muted">Assunto (categoria)</p>
+                  <TagFilter
+                    options={availableCats}
+                    selected={cats}
+                    getColor={categoryColor}
+                    onToggle={(c) => setCats((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]))}
+                  />
+                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+                    {interestAreas.some((a) => availableCats.includes(a)) && (
+                      <button
+                        onClick={() => setCats(interestAreas.filter((a) => availableCats.includes(a)))}
+                        className="py-1 text-xs font-semibold text-brand-600 hover:underline dark:text-brand-300"
+                      >
+                        Só as minhas áreas de interesse
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => useUiStore.getState().abrirInteresses()}
+                      className="py-1 text-xs font-semibold text-gray-600 hover:underline dark:text-gray-300"
+                    >
+                      {interestAreas.length ? 'Personalizar interesses' : 'Escolher minhas áreas de interesse'}
+                    </button>
+                  </div>
+                </div>
               )}
+
+              <div className="flex flex-wrap items-center gap-3 border-t border-gray-200 pt-3 text-sm dark:border-white/[0.07]">
+                <span className="muted" aria-live="polite">
+                  {hasFilters
+                    ? <><strong className="text-gray-700 dark:text-gray-200">{filteredNews.length}</strong> de {plural(allNews.length, 'notícia')}</>
+                    : <><strong className="text-gray-700 dark:text-gray-200">{allNews.length}</strong> {allNews.length === 1 ? 'notícia' : 'notícias'}</>}
+                </span>
+                {hasFilters && (
+                  <button onClick={clearFilters} className="inline-flex items-center gap-1 text-xs font-semibold text-gold-600 hover:underline dark:text-gold-400">
+                    <X size={12} aria-hidden="true" /> Limpar filtros
+                  </button>
+                )}
+              </div>
             </div>
-          </section>
 
-          {/* Notícias */}
-          {filteredNews.length === 0 ? (
-            <EmptyState
-              icon={Filter}
-              tone="filter"
-              title="Nenhuma notícia corresponde aos filtros"
-              hint="Ajuste a busca, a urgência ou as categorias para ver as demais notícias desta edição."
-              action={{ label: 'Limpar filtros', onClick: clearFilters, icon: SlidersHorizontal }}
-            />
-          ) : (
-            <section className="space-y-3">
-              <h2 className="text-lg font-bold tracking-tight">Notícias selecionadas</h2>
-              {filteredNews.map((n, i) => (
-                <ClippingNewsItem key={n.id ?? i} news={n} defaultOpen={i === 0} />
-              ))}
-            </section>
-          )}
-
-          {allNews.length > 0 && <ThemeCounter news={allNews} />}
-
-          {result.trends?.length > 0 && (
-            <section className="card p-5">
-              <h3 className="mb-3 text-sm font-bold uppercase tracking-wide muted">Tendências do dia</h3>
-              <div className="flex flex-wrap gap-2">
-                {result.trends.map((t) => (
-                  <span key={t} className="chip">{t}</span>
+            {filteredNews.length === 0 ? (
+              <EmptyState
+                icon={Filter}
+                tone="filter"
+                title={allNews.length ? 'Nenhuma notícia corresponde aos filtros' : 'Esta edição não tem notícias'}
+                hint={allNews.length
+                  ? 'Ajuste a busca, a urgência ou o assunto para ver as demais notícias desta edição.'
+                  : 'Nenhuma notícia coletada passou pelo filtro de relevância neste período.'}
+                action={allNews.length ? { label: 'Limpar filtros', onClick: clearFilters, icon: SlidersHorizontal } : undefined}
+              />
+            ) : (
+              <div className="space-y-3">
+                {filteredNews.map((n, i) => (
+                  <ClippingNewsItem key={n.id ?? i} news={n} defaultOpen={i === 0} />
                 ))}
               </div>
+            )}
+          </section>
+
+          <aside className="min-w-0 space-y-6" aria-label="Resumo da edição">
+            <section
+              className={`card border-l-4 p-5 ${alert?.classes.split(' ').find((c) => c.startsWith('border')) || 'border-gray-300 dark:border-white/15'}`}
+            >
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <h2 className="text-base font-bold tracking-tight">Nível de alerta do período</h2>
+                <Badge type="alert" value={result.alert_level} />
+              </div>
+              <NivelDeAlerta
+                level={result.alert_level}
+                score={result.alert_score}
+                basis={result.alert_basis}
+                distribuicao={result.alert_distribution}
+              />
             </section>
-          )}
-        </motion.div>
+
+            {allNews.length > 0 && <ThemeCounter news={allNews} />}
+
+            {result.trends?.length > 0 && (
+              <section className="card p-5">
+                <h2 className="mb-3 text-base font-bold tracking-tight">Tendências do dia</h2>
+                <div className="flex flex-wrap gap-2">
+                  {result.trends.map((t) => (
+                    <span key={t} className="chip">{t}</span>
+                  ))}
+                </div>
+              </section>
+            )}
+          </aside>
+        </div>
       )}
+
+      {/* Leituras complementares, depois da lista principal. */}
+      <RelevantesParaOBrasil />
+
+      <EventosConsolidados />
 
       <SourcesPanel open={sourcesOpen} onToggle={() => setSourcesOpen((o) => !o)} />
 
@@ -404,13 +369,60 @@ export default function DailyClipping() {
   )
 }
 
+function BotaoFiltro({ ativo, onClick, contagem, cor, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={ativo}
+      className={`inline-flex min-h-[32px] items-center gap-1.5 rounded-lg border px-3 py-1 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60 ${
+        ativo
+          ? 'border-gold-500 bg-gold-500 text-military-darker'
+          : 'border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-white/15 dark:text-gray-300 dark:hover:bg-white/10'
+      }`}
+    >
+      {cor && <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: cor }} aria-hidden="true" />}
+      {children}
+      <span className={`font-mono tabular-nums ${ativo ? 'opacity-80' : 'opacity-60'}`}>{contagem}</span>
+    </button>
+  )
+}
+
+// "O que significam os selos?" — a explicação fica perto da lista, recolhida.
+function LegendaSelos() {
+  return (
+    <details className="group relative text-xs">
+      <summary className="inline-flex cursor-pointer list-none items-center gap-1 rounded py-1 font-semibold text-brand-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60 dark:text-brand-300 [&::-webkit-details-marker]:hidden">
+        <HelpCircle size={13} aria-hidden="true" /> O que significam os selos?
+      </summary>
+      <div className="mt-2 space-y-2 rounded-lg border border-gray-200 p-3 sm:absolute sm:right-0 sm:z-20 sm:w-96 sm:bg-white sm:shadow-lg dark:border-white/10 sm:dark:bg-military-darker">
+        <p className="font-semibold">Urgência — o quanto o fato pede atenção</p>
+        <ul className="space-y-1.5">
+          {URGENCY_LEVELS.map((lv) => (
+            <li key={lv} className="flex items-start gap-2">
+              <Badge type="urgency" value={lv} className="shrink-0" />
+              <span className="leading-relaxed text-gray-700 dark:text-gray-300">{SENTIDO_URGENCIA[lv]}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="border-t border-gray-200 pt-2 leading-relaxed text-gray-700 dark:border-white/10 dark:text-gray-300">
+          <span className="font-semibold">Categoria</span> — o selo colorido diz o assunto da notícia
+          (ex.: Forças Armadas, cibersegurança). Use os botões de assunto para filtrar.
+        </p>
+      </div>
+    </details>
+  )
+}
+
 // Crédito discreto para quem só LÊ a edição (sem capacidade de gerar).
 function PublishedNote({ at, detalhe }) {
   return (
-    <span title={detalhe} className="inline-flex items-center gap-1.5 text-xs muted sm:ml-auto">
-      <ShieldCheck size={14} className="text-emerald-500 dark:text-emerald-400" />
-      Gerado pela {EDITORIAL_DESK}
-      {at && <span className="font-mono">· {formatDateTimeBR(at)}</span>}
+    <span title={detalhe} className="flex items-start gap-1.5 text-xs muted sm:ml-auto">
+      <ShieldCheck size={14} className="mt-px shrink-0 text-emerald-500 dark:text-emerald-400" aria-hidden="true" />
+      <span>
+        Gerado pela {EDITORIAL_DESK}
+        {at && <span className="whitespace-nowrap font-mono"> · {formatDateTimeBR(at)}</span>}
+      </span>
     </span>
   )
 }
@@ -516,18 +528,18 @@ function ThemeCounter({ news }) {
 
   return (
     <section className="card p-5">
-      <h3 className="mb-3 flex flex-wrap items-center gap-2 text-sm font-bold uppercase tracking-wide muted">
+      <h2 className="mb-3 flex flex-wrap items-center gap-2 text-base font-bold tracking-tight">
         Notícias por tema
-        <span className="chip normal-case">{news.length} no total</span>
-      </h3>
+        <span className="chip text-xs font-medium">{news.length} no total</span>
+      </h2>
       <div className="space-y-2.5">
         {rows.map(([cat, count]) => (
           <div key={cat} className="flex items-center gap-3">
-            <span className="flex w-32 shrink-0 items-center gap-2 text-sm sm:w-40">
-              <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: categoryColor(cat) }} />
+            <span className="flex min-w-0 flex-1 items-center gap-2 text-sm" title={cat}>
+              <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: categoryColor(cat) }} aria-hidden="true" />
               <span className="truncate font-medium">{cat}</span>
             </span>
-            <span className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700/30">
+            <span className="h-2 w-20 shrink-0 overflow-hidden rounded-full bg-gray-200 sm:w-28 dark:bg-gray-700/30" aria-hidden="true">
               <span
                 className="block h-full rounded-full"
                 style={{ width: `${(count / max) * 100}%`, background: categoryColor(cat) }}
@@ -544,21 +556,19 @@ function ThemeCounter({ news }) {
 // Painel informativo: quais fontes alimentam a edição. A gestão das fontes
 // vive em Configurações — aqui a lista é apenas de consulta.
 function SourcesPanel({ open, onToggle }) {
-  // Listava as 15 fontes escritas a mao e contava quantas tinham
-  // `status: 'online'` — um literal. O painel dizia "11 online" com o servidor
-  // fora do ar. Agora sao as fontes reais, com o estado da ultima coleta.
+  // Fontes reais, com o estado da última coleta.
   const fontes = useFontesReais()
   const online = fontes.ok ?? 0
 
   return (
     <section className="card overflow-hidden">
-      <button onClick={onToggle} className="flex w-full items-center justify-between gap-3 p-4" aria-expanded={open}>
+      <button onClick={onToggle} className="flex w-full items-center justify-between gap-3 p-4 text-left" aria-expanded={open}>
         <span className="flex items-center gap-2 font-semibold">
-          <Rss size={17} className="text-gold-500" /> Fontes monitoradas ({fontes.total ?? '—'})
+          <Rss size={17} className="text-gold-500" aria-hidden="true" /> Fontes monitoradas ({fontes.total ?? '—'})
         </span>
         <span className="flex items-center gap-3">
-          <span className="text-xs muted">{online} responderam</span>
-          <ChevronDown size={18} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+          <span className="text-xs muted">{online} responderam na última coleta</span>
+          <ChevronDown size={18} aria-hidden="true" className={`shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
         </span>
       </button>
       {open && (
@@ -591,27 +601,26 @@ function SourcesPanel({ open, onToggle }) {
 }
 
 /**
- * As matérias que mais citam entidades brasileiras concretas.
- *
- * Havia um "índice de vínculo com o Brasil, de 0 a 100" em destaque ao lado de
- * cada uma. O número soma menções a entidades do catálogo e correlações — é
- * uma ordenação útil, e um péssimo número para exibir: "82/100" lido por quem
- * chega parece medir importância ou risco para o país, e não mede. Fica a
- * ordem e fica, à vista, o que foi reconhecido no texto.
+ * As notícias que mais citam entidades brasileiras concretas. O índice numérico
+ * fica de fora de propósito: ele ordena, mas não mede importância nem risco.
  */
+const RELEVANTES_INICIAIS = 3
+
 function RelevantesParaOBrasil() {
   const r = useResource(() => request('GET /intel/brasil', { params: { days: 30 } }), [])
   const itens = r.data?.maisBrasileiras || []
+  const [todas, setTodas] = useState(false)
+  const visiveis = itens.slice(0, todas ? 6 : RELEVANTES_INICIAIS)
 
   return (
     <section className="card p-5">
       <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
         <Flag size={18} className="text-gold-500" />
-        Mais ligadas a entidades brasileiras
+        Notícias que citam o Brasil
         <InfoTooltip text="Ordenadas por quantas entidades brasileiras concretas o texto cita — órgãos, empresas, infraestrutura crítica, unidades da federação e setores do catálogo — e por ligações diretas com o acervo. Citação não é importância nem risco." />
       </h2>
       <p className="mt-1 text-sm muted">
-        Inclui matéria estrangeira: o que conta é o que o texto cita, não de onde ele veio.
+        Últimos 30 dias, incluindo notícia estrangeira: conta o que o texto cita, não de onde ele veio.
       </p>
 
       <DataState
@@ -619,12 +628,12 @@ function RelevantesParaOBrasil() {
         error={r.error}
         empty={!itens.length}
         onRetry={r.refetch}
-        emptyProps={{ icon: Flag, title: 'Nenhuma matéria cita entidade brasileira no período', hint: 'O reconhecimento roda a cada coleta.' }}
+        emptyProps={{ icon: Flag, title: 'Nenhuma notícia cita entidade brasileira no período', hint: 'O reconhecimento roda a cada coleta; volte mais tarde.' }}
       >
         <ul className="mt-4 space-y-2">
-          {itens.slice(0, 6).map((m) => (
+          {visiveis.map((m) => (
             <li key={m.id} className="flex items-start gap-3 rounded-lg border border-gray-200 p-3 dark:border-white/10">
-              <Flag size={14} className="mt-1 shrink-0 text-gold-500" />
+              <Flag size={14} className="mt-1 shrink-0 text-gold-500" aria-hidden="true" />
               <span className="min-w-0">
                 <span className="block text-sm font-semibold leading-snug">{m.title}</span>
                 <span className="mt-0.5 block text-xs leading-relaxed muted">{m.br_motivo}</span>
@@ -635,20 +644,25 @@ function RelevantesParaOBrasil() {
             </li>
           ))}
         </ul>
+        {itens.length > RELEVANTES_INICIAIS && (
+          <button
+            type="button"
+            onClick={() => setTodas((v) => !v)}
+            aria-expanded={todas}
+            className="mt-3 inline-flex items-center gap-1 py-1 text-sm font-semibold text-gold-600 hover:underline dark:text-gold-400"
+          >
+            <ChevronDown size={16} aria-hidden="true" className={`transition-transform ${todas ? 'rotate-180' : ''}`} />
+            {todas ? 'Mostrar menos' : `Mostrar mais ${Math.min(itens.length, 6) - RELEVANTES_INICIAIS}`}
+          </button>
+        )}
       </DataState>
     </section>
   )
 }
 
 /**
- * O nível de alerta com a conta aberta.
- *
- * A barra é a DISTRIBUIÇÃO das ocorrências por urgência — não o score. São duas
- * coisas diferentes, e mostrar as duas juntas é o que permite discordar: o score
- * é a média ponderada, a barra é a população sobre a qual a média foi tirada.
- *
- * Sem nível calculável não desenha barra nem inventa "NORMAL": diz que não houve
- * ocorrência no período, que é o fato.
+ * O nível de alerta com a conta aberta: o número é a média ponderada, a barra é
+ * a distribuição sobre a qual a média foi tirada. Sem nível, não inventa "NORMAL".
  */
 function NivelDeAlerta({ level, score, basis, distribuicao }) {
   const ORDEM = ['CRITICO', 'ALTO', 'MEDIO', 'BAIXO']
@@ -659,16 +673,15 @@ function NivelDeAlerta({ level, score, basis, distribuicao }) {
 
   if (!level || !total) {
     return (
-      <p className="mb-4 text-xs leading-relaxed muted">
-        Sem ocorrência relevante nesta janela — o nível de alerta não é calculável.
-        Ausência de ocorrência não é calma: é ausência, e a plataforma indica acima em que
-        janela há material.
+      <p className="text-xs leading-relaxed muted">
+        Sem ocorrência relevante neste período, o nível de alerta não pode ser calculado.
+        Isso indica falta de dados, não que o período esteja calmo.
       </p>
     )
   }
 
   return (
-    <div className="mb-4">
+    <div>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className="font-mono text-2xl font-extrabold tabular-nums leading-none">
           {score}
@@ -677,8 +690,7 @@ function NivelDeAlerta({ level, score, basis, distribuicao }) {
         <span className="text-xs muted">{basis}</span>
       </div>
 
-      {/* A barra empilhada: cada faixa é uma urgência, e a largura é a
-        * proporção real das ocorrências. */}
+      {/* Cada faixa é uma urgência; a largura é a proporção real. */}
       <div
         className="mt-2 flex h-2.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-white/10"
         role="img"
@@ -705,12 +717,16 @@ function NivelDeAlerta({ level, score, basis, distribuicao }) {
         ))}
       </ul>
 
-      <p className="mt-2 text-xs leading-relaxed muted">
-        Pesos: CRÍTICO 100, ALTO 70, MÉDIO 40, BAIXO 15. A média corre sobre <strong>todas</strong> as
-        {' '}{total} ocorrências da janela, e não sobre a seleção listada abaixo — que vem ordenada por
-        urgência e cortada, e por isso é sempre mais grave que o período. Medir a seleção em vez da
-        janela era o que fazia este indicador marcar CRÍTICO 100/100 todos os dias.
-      </p>
+      <details className="mt-3 text-xs">
+        <summary className="cursor-pointer font-semibold text-brand-600 hover:underline dark:text-brand-300">
+          Como o nível é calculado
+        </summary>
+        <p className="mt-1.5 leading-relaxed muted">
+          Pesos: CRÍTICO 100, ALTO 70, MÉDIO 40, BAIXO 15. A média considera <strong>todas</strong> as
+          {' '}{total} ocorrências do período, e não só as notícias listadas — a lista vem ordenada por
+          urgência e cortada, por isso é sempre mais grave que o período inteiro.
+        </p>
+      </details>
     </div>
   )
 }

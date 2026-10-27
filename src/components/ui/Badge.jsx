@@ -5,13 +5,15 @@ const AVISO = { label: 'AVISO', classes: 'bg-brand-500/15 text-brand-700 dark:te
 // O QUE CADA NÍVEL QUER DIZER, ao passar o cursor ou focar o selo. Quem nunca
 // viu a plataforma lê "ALTO" e não sabe se é muito ou pouco; a explicação
 // completa está em /metodologia, e o resumo precisa estar onde o selo está.
-const SENTIDO_URGENCIA = {
-  CRITICO: 'Crítico: o título narra um acontecimento violento — ataque, invasão, bombardeio, mortos. Pede atenção agora.',
-  ALTO: 'Alto: assunto sério que pede acompanhamento — guerra, crise, operação, ameaça, investigação.',
-  MEDIO: 'Médio: decisão ou movimento relevante — acordo, contrato, exercício militar, visita oficial.',
-  BAIXO: 'Baixo: informação de contexto, sem fato que peça atenção imediata.',
-  AVISO: 'Aviso do sistema: algo na coleta de dados precisa da atenção do administrador.',
+export const SENTIDO_URGENCIA = {
+  CRITICO: 'o título narra um acontecimento violento — ataque, invasão, bombardeio, mortos. Pede atenção agora.',
+  ALTO: 'assunto sério que pede acompanhamento — guerra, crise, operação, ameaça, investigação.',
+  MEDIO: 'decisão ou movimento relevante — acordo, contrato, exercício militar, visita oficial.',
+  BAIXO: 'informação de contexto, sem fato que peça atenção imediata.',
+  AVISO: 'algo na coleta de dados precisa da atenção do administrador.',
 }
+// Mesmas palavras do selo, sem caixa alta, para o texto de ajuda e os filtros.
+export const ROTULO_URGENCIA = { CRITICO: 'Crítico', ALTO: 'Alto', MEDIO: 'Médio', BAIXO: 'Baixo', AVISO: 'Aviso do sistema' }
 
 // Badge generico. type: 'urgency' | 'alert' | 'category' | 'live' | 'sem-dado' | 'plain'
 export default function Badge({ type = 'plain', value, children, className = '', cadencia }) {
@@ -20,7 +22,7 @@ export default function Badge({ type = 'plain', value, children, className = '',
     // são urgência de matéria e por isso não entram em `urgencyMeta`.
     const m = urgencyMeta[value] || (value === 'AVISO' ? AVISO : urgencyMeta.BAIXO)
     return (
-      <Pill className={`${m.classes} ${className}`} title={SENTIDO_URGENCIA[value] || SENTIDO_URGENCIA.BAIXO}>
+      <Pill className={`${m.classes} ${className}`} title={SENTIDO_URGENCIA[value] ? `${ROTULO_URGENCIA[value]}: ${SENTIDO_URGENCIA[value]}` : `Baixo: ${SENTIDO_URGENCIA.BAIXO}`}>
         {m.label}
       </Pill>
     )

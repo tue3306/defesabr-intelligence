@@ -12,29 +12,9 @@ import { request } from '../services/client'
 import { formatDateTimeBR } from '../utils/dateUtils'
 import { categoryColor } from '../utils/textUtils'
 
-// -----------------------------------------------------------------------------
-// CORRELAÇÕES — o Brasil como centro, e a razão de cada ligação à vista
-//
-// Esta é a tela que separa a plataforma de um leitor de RSS. As outras
-// respondem "o que aconteceu"; esta responde "o que isto tem a ver com o
-// resto do que sabemos sobre o país".
-//
-// O QUE ELA MOSTRA
-//
-//   MOTIVO      a regra que produziu a ligação, em português;
-//   EVIDÊNCIA   o trecho literal que a sustenta — o domínio que casou, o
-//               termo encontrado no texto, a sigla da UF.
-//
-// A evidência fica visível de propósito. Uma correlação que o leitor não pode
-// conferir é indistinguível de uma inventada, e este projeto já removeu coisa
-// demais por esse motivo para reintroduzir o problema numa tela nova.
-//
-// A FORÇA NÃO É RISCO. É o quanto a ligação é DIRETA: domínio igual a domínio
-// (5) não deixa dúvida sobre ser a mesma organização; coincidência de setor (2)
-// apenas situa a leitura. Confundir as duas coisas transformaria uma escala de
-// procedência numa escala de perigo, que é outra coisa e que a plataforma não
-// tem como medir.
-// -----------------------------------------------------------------------------
+// CORRELAÇÕES — possíveis ligações entre notícias e o que a plataforma já sabe
+// sobre o Brasil, cada uma com o MOTIVO (a regra) e a EVIDÊNCIA literal à vista.
+// A força (1–5) mede o quanto a ligação é direta, não risco.
 
 const ICONE_ALVO = {
   vitima: ShieldAlert,
@@ -51,9 +31,7 @@ const JANELAS = [
   { id: 180, rotulo: '6 meses' },
 ]
 
-// "FATO CONCRETO" SAIU. O filtro de força 4 e 5 se chamava assim, e quem lia
-// entendia que a LIGAÇÃO era um fato confirmado — quando o fato concreto é só
-// a coincidência de nome ou de domínio. O rótulo agora diz o que a força mede.
+// Os rótulos dizem o que a força mede (quão direta), nunca "fato confirmado".
 const FORCAS = [
   { id: 4, rotulo: 'Mais diretas (4–5)' },
   { id: 3, rotulo: 'Diretas (3–5)' },
@@ -70,24 +48,8 @@ function corForca(f) {
 
 export default function Correlations() {
   const [dias, setDias] = useState(60)
-  // ───────────────────────────────────────────────────────────────────────────
-  // A TELA ABRE PELAS LIGAÇÕES DIRETAS, NÃO POR TODAS
-  //
-  // Medido no acervo real: 159 das 167 ligações são `setor-sob-pressao`, a
-  // regra mais fraca da escala. Ela é legítima — situa a leitura — mas numa
-  // plataforma de defesa quase toda matéria trata de um setor com incidente
-  // registrado, então ela dispara quase sempre e diz quase o mesmo.
-  //
-  // Com o padrão em "todas", a página abria com dezenas de cartões repetindo
-  // a mesma observação genérica, e as poucas ligações que apontam para um fato
-  // concreto — um município atacado, uma organização que consta na lista de
-  // explora — ficavam soterradas na página três. O produto parecia lista de
-  // notícias com nota de rodapé.
-  //
-  // Abrir em "diretas ou mais" põe a substância primeiro. Nada é escondido: o
-  // filtro está à vista, "Todas" fica a um clique, e a contagem no topo
-  // continua declarando o total verdadeiro.
-  // ───────────────────────────────────────────────────────────────────────────
+  // Abre nas ligações diretas (3–5): quase todas as de força 2 são a mesma
+  // coincidência de setor e soterravam as demais. "Todas" fica a um clique.
   const [minForca, setMinForca] = useState(3)
   const [aberto, setAberto] = useState(null)
 
@@ -108,52 +70,29 @@ export default function Correlations() {
       <PageHeader
         icon={Link2}
         title="Correlações"
-        description="Possíveis relações entre as notícias e o que a plataforma já sabe sobre o Brasil — ataques registrados, grupos, estados e infraestrutura —, com a evidência de cada ligação à vista."
+        description="Notícias que podem ter ligação com ataques, grupos, estados ou infraestrutura do Brasil já registrados na plataforma. Cada cartão mostra o motivo e a evidência."
+        help="A ligação nasce de uma coincidência literal — um domínio igual a outro, um nome de grupo que consta no acervo, a sigla de um estado (UF) dentro de um endereço de site. Ela não afirma que a notícia fala do ataque nem que um fato causou o outro."
         breadcrumb={[{ label: 'Notícias e ligações' }, { label: 'Correlações' }]}
       />
 
-      {/* ── O PANORAMA DO PAÍS ── */}
-      {p && (
-        <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <Painel
-            titulo="Setores com notícia e ataque"
-            dica="Setor com cobertura noticiosa E incidente registrado no período. A interseção é o que interessa: aparecer nos dois lados não significa serem o mesmo fato."
-            vazio="Nenhum setor com as duas coisas no período."
-            itens={p.setoresSobPressao?.slice(0, 6).map((s) => ({ chave: s.setor, rotulo: s.nome, valor: s.materias }))}
-          />
-          <Painel
-            titulo="Estados citados com órgão atacado"
-            dica="O estado (UF, unidade da federação) é identificado pelo endereço do site: arcos.mg.gov.br contém .mg.gov.br. É fato, não inferência."
-            vazio="Nenhum estado citado tem órgão com vazamento divulgado no período."
-            itens={p.estados?.slice(0, 6).map((e) => ({ chave: e.uf, rotulo: e.nome, valor: e.materias }))}
-          />
-          <Painel
-            titulo="Entidades mais citadas"
-            dica="Órgãos, empresas, infraestrutura e unidades da federação citados no texto das matérias, pelo catálogo brasileiro. Setores ficam no painel ao lado, para os dois não repetirem a mesma contagem. Citação não implica envolvimento."
-            vazio="Nenhuma entidade brasileira reconhecida no período."
-            itens={p.entidades?.slice(0, 6).map((e) => ({ chave: `${e.tipo}-${e.entidade_id}`, rotulo: e.nome, valor: e.mencoes }))}
-          />
-        </section>
-      )}
-
-      {/* ── FILTROS ── */}
-      <div className="card flex flex-wrap items-center justify-between gap-3 p-4">
-        <div className="flex flex-wrap items-center gap-3">
+      {/* ── FILTROS + RESSALVA ── */}
+      <section className="card space-y-3 p-4">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
           <Grupo rotulo="Período" opcoes={JANELAS} valor={dias} onChange={setDias} />
-          <Grupo rotulo="Força" opcoes={FORCAS} valor={minForca} onChange={setMinForca} />
+          <Grupo
+            rotulo="Força da ligação"
+            dica="Quão direta é a ligação: 5 = mesmo site ou mesmo nome; 2 = só o mesmo setor. Não mede perigo."
+            opcoes={FORCAS}
+            valor={minForca}
+            onChange={setMinForca}
+          />
         </div>
-        {/* A CONTAGEM PRECISA DIZER QUANTAS ESTÃO EM TELA.
-          *
-          * Ela anunciava "143 ligações" com a lista abaixo mostrando onze — o
-          * total do período contra o resultado do filtro, que abre em "diretas
-          * ou mais". Quem lia via um número grande e uma lista curta e concluía
-          * que a página tinha falhado em carregar o resto.
-          *
-          * Agora diz as duas coisas e o que separa uma da outra. */}
+        {/* Diz quantas estão em tela E o total do período, para a lista curta
+            não parecer falha de carregamento. */}
         {d?.resumo && (
-          <p className="text-xs muted">
+          <p className="text-xs muted" aria-live="polite">
             <strong className="font-mono">{itens.length}</strong>{' '}
-            {minForca > 1 ? 'em tela' : 'ligações'}
+            {itens.length === 1 ? 'ligação' : 'ligações'} em tela
             {minForca > 1 && (
               <>
                 {' '}de <strong className="font-mono">{d.resumo.correlacoes}</strong> no período
@@ -161,26 +100,21 @@ export default function Correlations() {
             )}
             {' · '}
             <strong className="font-mono">{d.resumo.artigosComCorrelacao}</strong> de{' '}
-            <strong className="font-mono">{d.resumo.artigosAvaliados}</strong> matérias avaliadas
+            <strong className="font-mono">{d.resumo.artigosAvaliados}</strong> notícias avaliadas
             têm alguma ligação
           </p>
         )}
-      </div>
-
-      {/* ── A RESSALVA, ANTES DA LISTA ── */}
-      <p className="flex items-start gap-2 rounded-lg bg-brand-500/10 p-3 text-xs leading-relaxed">
-        <Info size={15} className="mt-0.5 shrink-0 text-brand-500 dark:text-brand-300" />
-        <span className="text-gray-700 dark:text-gray-300">
-          <strong>Cada ligação é uma possível relação, não um fato confirmado.</strong> Ela nasce de
-          uma coincidência literal — um domínio igual a outro, um nome de grupo que consta no
-          acervo, a sigla de um estado (UF) dentro de um endereço de site — e não afirma que a notícia fala do ataque
-          nem que um fato causou o outro. A <strong>força</strong> (1 a 5) mede o quanto a ligação é
-          direta, não o quanto ela é perigosa.{' '}
-          <Link to="/metodologia#correlacao" className="font-semibold text-brand-600 hover:underline dark:text-brand-300">
-            Entenda em 1 minuto
-          </Link>
-        </span>
-      </p>
+        <p className="flex items-start gap-2 rounded-lg bg-brand-500/10 p-3 text-sm leading-relaxed">
+          <Info size={16} className="mt-0.5 shrink-0 text-brand-500 dark:text-brand-300" aria-hidden="true" />
+          <span className="text-gray-700 dark:text-gray-300">
+            <strong>Cada ligação é uma possível relação, não um fato confirmado.</strong>{' '}
+            A força indica o quanto ela é direta, não o quanto é perigosa.{' '}
+            <Link to="/metodologia#correlacao" className="font-semibold text-brand-600 hover:underline dark:text-brand-300">
+              Entenda em 1 minuto
+            </Link>
+          </span>
+        </p>
+      </section>
 
       <DataState
         loading={r.loading && !d}
@@ -189,11 +123,14 @@ export default function Correlations() {
         onRetry={r.refetch}
         emptyProps={{
           icon: Link2,
-          title: 'Nenhuma ligação direta no período',
-          hint: 'A tela abre filtrando as ligações mais diretas. Escolha "Todas" para incluir as coincidências de setor, ou amplie a janela. A maioria das matérias não tem correlação — e esse é o resultado correto.',
+          title: minForca > 1 ? 'Nenhuma ligação direta no período' : 'Nenhuma ligação no período',
+          hint: minForca > 1
+            ? 'Escolha "Todas (1–5)" para incluir as coincidências de setor, ou amplie o período. A maioria das notícias não tem ligação, e isso é esperado.'
+            : 'Amplie o período. A maioria das notícias não tem ligação, e isso é esperado.',
+          action: minForca > 1 ? { label: 'Ver todas as ligações', onClick: () => setMinForca(1) } : undefined,
         }}
       >
-        <div className="space-y-3">
+        <div className={`space-y-3 transition-opacity ${r.loading ? 'opacity-60' : ''}`}>
           {itens.map((c) => (
             <Correlacao
               key={c.id}
@@ -204,6 +141,39 @@ export default function Correlations() {
           ))}
         </div>
       </DataState>
+
+      {/* ── PANORAMA DO PERÍODO: contexto, depois da lista ── */}
+      {p && (
+        <section aria-labelledby="titulo-panorama" className="space-y-3">
+          <div>
+            <h2 id="titulo-panorama" className="text-lg font-bold tracking-tight">Panorama do período</h2>
+            <p className="mt-0.5 text-sm muted">O que mais aparece no mesmo período escolhido acima.</p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <Painel
+              titulo="Setores com notícia e ataque"
+              dica="Setor com cobertura noticiosa E incidente registrado no período. Aparecer nos dois lados não significa serem o mesmo fato."
+              unidade="notícias"
+              vazio="Nenhum setor com as duas coisas no período."
+              itens={p.setoresSobPressao?.slice(0, 6).map((s) => ({ chave: s.setor, rotulo: s.nome, valor: s.materias }))}
+            />
+            <Painel
+              titulo="Estados citados com órgão atacado"
+              dica="O estado (UF) é identificado pelo endereço do site: arcos.mg.gov.br contém .mg.gov.br."
+              unidade="notícias"
+              vazio="Nenhum estado citado tem órgão com vazamento divulgado no período."
+              itens={p.estados?.slice(0, 6).map((e) => ({ chave: e.uf, rotulo: e.nome, valor: e.materias }))}
+            />
+            <Painel
+              titulo="Entidades mais citadas"
+              dica="Órgãos, empresas, infraestrutura e estados citados no texto das notícias, pelo catálogo brasileiro (setores ficam no painel ao lado). Citação não implica envolvimento."
+              unidade="menções"
+              vazio="Nenhuma entidade brasileira reconhecida no período."
+              itens={p.entidades?.slice(0, 6).map((e) => ({ chave: `${e.tipo}-${e.entidade_id}`, rotulo: e.nome, valor: e.mencoes }))}
+            />
+          </div>
+        </section>
+      )}
 
       {d?.metodo && (
         <details className="card p-4">
@@ -221,7 +191,7 @@ export default function Correlations() {
           {d.metodo.guardas && (
             <>
               <p className="mt-4 text-xs font-bold uppercase tracking-wider muted">
-                Guardas contra falso positivo
+                Proteções contra ligação falsa
               </p>
               <ul className="mt-1.5 space-y-1">
                 {d.metodo.guardas.map((g) => (
@@ -245,7 +215,7 @@ function Correlacao({ c, aberto, onToggle }) {
       <button onClick={onToggle} aria-expanded={aberto} className="w-full text-left">
         <div className="flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider dark:bg-white/5">
-            <Icon size={11} /> {c.alvo?.rotulo || c.alvo?.id}
+            <Icon size={11} aria-hidden="true" /> {c.alvo?.rotulo || c.alvo?.id}
           </span>
           <span className="chip font-mono text-[10px]" title="Quão direta é a ligação: 5 = mesmo site ou nome; 2 = só o mesmo setor. Não mede perigo.">força {c.forca} de 5</span>
           <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">
@@ -262,7 +232,7 @@ function Correlacao({ c, aberto, onToggle }) {
           <span className="ml-auto font-mono text-[11px] muted">
             {formatDateTimeBR(c.artigo?.publicadoEm)}
           </span>
-          <ChevronDown size={15} className={aberto ? 'rotate-180 transition-transform' : 'transition-transform'} />
+          <ChevronDown size={15} aria-hidden="true" className={aberto ? 'rotate-180 transition-transform' : 'transition-transform'} />
         </div>
 
         <h3 className="mt-2 font-semibold leading-snug">{c.artigo?.titulo}</h3>
@@ -271,36 +241,18 @@ function Correlacao({ c, aberto, onToggle }) {
         <p className="mt-1.5 text-sm leading-relaxed text-gray-700 dark:text-gray-300">
           {c.motivo}
         </p>
+        {!aberto && (
+          <span className="mt-2 inline-block text-xs font-semibold text-brand-600 dark:text-brand-300">
+            Ver evidência e fonte
+          </span>
+        )}
       </button>
 
       {aberto && (
         <div className="mt-3 space-y-2.5 border-t border-gray-200 pt-3 dark:border-white/10">
           <Campo rotulo="Evidência" texto={c.evidencia} mono />
 
-          {/* ─────────────────────────────────────────────────────────────
-            * SAÍRAM DAQUI: "CONTEXTO NO BRASIL", "IMPACTO POSSÍVEL" E O
-            * "ÍNDICE DE VÍNCULO"
-            *
-            * Os três apareciam como se fossem a leitura daquela correlação
-            * específica. Não eram.
-            *
-            * "Impacto possível" é uma STRING FIXA POR REGRA, escrita uma vez
-            * em `lib/correlacao.js` e repetida em toda correlação daquele
-            * tipo. Todo vazamento de órgão do Estado recebia, palavra por
-            * palavra, "eventual exposição de dados de cidadãos e interrupção
-            * de serviço público. A notificação cabe ao CTIR Gov." — verdadeiro
-            * como descrição da CLASSE, e vazio como análise do CASO.
-            *
-            * "Contexto no Brasil" era o mesmo padrão: setor e data de
-            * divulgação montados por gabarito.
-            *
-            * O "Índice de vínculo" saiu junto: um número de 0 a 100 que
-            * parecia medir importância para o país e só somava menções.
-            *
-            * Texto de gabarito com rótulo de análise é pior que ausência de
-            * análise: ocupa o lugar dela e passa por ela. O que fica é o que a
-            * regra REALMENTE prova — a evidência literal.
-            * ───────────────────────────────────────────────────────────── */}
+          {/* Só a evidência literal: textos de gabarito por regra não entram como análise. */}
 
           <p className="text-[11px] muted">
             Regra aplicada: <code className="font-mono">{c.regra}</code>
@@ -312,7 +264,7 @@ function Correlacao({ c, aberto, onToggle }) {
               rel="noopener noreferrer nofollow"
               className="btn-ghost inline-flex px-2.5 py-1 text-xs"
             >
-              <ExternalLink size={13} /> {c.artigo.fonte || 'Abrir na fonte'}
+              <ExternalLink size={13} aria-hidden="true" /> Abrir notícia{c.artigo.fonte ? ` em ${c.artigo.fonte}` : ''}
             </a>
           )}
         </div>
@@ -330,14 +282,14 @@ function Campo({ rotulo, texto, mono = false }) {
   )
 }
 
-function Painel({ titulo, dica, itens, vazio }) {
+function Painel({ titulo, dica, itens, vazio, unidade }) {
   const lista = itens?.filter(Boolean) || []
   return (
     <div className="card p-4">
-      <h2 className="flex items-center gap-1.5 text-sm font-bold">
+      <h3 className="flex items-center gap-1.5 text-sm font-bold">
         {titulo}
         <InfoTooltip text={dica} />
-      </h2>
+      </h3>
       {lista.length === 0 ? (
         <p className="mt-2 text-xs muted">{vazio}</p>
       ) : (
@@ -345,7 +297,7 @@ function Painel({ titulo, dica, itens, vazio }) {
           {lista.map((i) => (
             <li key={i.chave} className="flex items-center justify-between gap-2 text-sm">
               <span className="min-w-0 truncate">{i.rotulo}</span>
-              <span className="shrink-0 font-mono text-xs font-bold tabular-nums">{i.valor}</span>
+              <span className="shrink-0 font-mono text-xs font-bold tabular-nums" title={`${i.valor} ${unidade}`}>{i.valor}</span>
             </li>
           ))}
         </ul>
@@ -354,11 +306,14 @@ function Painel({ titulo, dica, itens, vazio }) {
   )
 }
 
-function Grupo({ rotulo, opcoes, valor, onChange }) {
+function Grupo({ rotulo, dica, opcoes, valor, onChange }) {
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs font-semibold muted">{rotulo}</span>
-      <div className="flex gap-1 rounded-lg border border-gray-300 p-0.5 dark:border-white/15">
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="flex items-center gap-1 text-xs font-semibold muted">
+        {rotulo}
+        {dica && <InfoTooltip text={dica} />}
+      </span>
+      <div className="flex flex-wrap gap-1 rounded-lg border border-gray-300 p-0.5 dark:border-white/15" role="group" aria-label={rotulo}>
         {opcoes.map((o) => (
           <button
             key={o.id}

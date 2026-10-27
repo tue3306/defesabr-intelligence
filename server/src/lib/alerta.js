@@ -72,7 +72,7 @@ export function nivelDeAlerta(artigos) {
   return {
     level,
     score,
-    basis: `média ponderada de ${artigos.length} ocorrência(s) relevante(s) do período`,
+    basis: `média ponderada de ${artigos.length} ${artigos.length === 1 ? 'notícia relevante' : 'notícias relevantes'} do período`,
     distribuicao,
   }
 }
