@@ -230,7 +230,7 @@ export default function Legislative() {
         icon={Landmark}
         title="Projetos de lei"
         description="Projetos de lei e outras propostas que tratam de defesa, Forças Armadas e segurança, com a etapa em que cada um está. A lista cobre só a Câmara dos Deputados: o Senado não é acompanhado aqui."
-        help={`As proposições vêm da API de Dados Abertos da Câmara, buscadas por ${data?.keywords?.length || 13} palavras-chave. A busca da Câmara casa a palavra em qualquer sentido — "inteligência" traz projetos de inteligência artificial — então só fica no Radar a proposição cuja ementa contém um termo inequívoco de defesa; os termos encontrados aparecem em cada cartão. O estágio é derivado do texto oficial de situação, consultado em lotes a cada coleta.`}
+        help={`As proposições vêm da API de Dados Abertos da Câmara, buscadas por ${data?.keywords?.length || 13} palavras-chave. A busca da Câmara casa a palavra em qualquer sentido — "inteligência" traz projetos de inteligência artificial — então só fica na lista a proposição cuja ementa contém um termo inequívoco de defesa; os termos encontrados aparecem em cada cartão. O estágio é derivado do texto oficial de situação, consultado em lotes a cada coleta.`}
         breadcrumb={[{ label: 'Brasil em dados' }, { label: 'Projetos de lei' }]}
         badges={<Badge type={meta?.source === 'live' ? 'live' : 'sem-dado'} />}
         actions={
@@ -246,7 +246,7 @@ export default function Legislative() {
       <section className="card p-4 sm:p-5" aria-label="Resumo do Radar">
         <dl className="grid grid-cols-2 gap-x-4 gap-y-4 lg:grid-cols-4">
           <Indicador
-            rotulo={todas ? 'Proposições coletadas' : 'Proposições no Radar'}
+            rotulo={todas ? 'Proposições coletadas' : 'Proposições de defesa'}
             valor={data ? stats.total : '—'}
             dica={data && !todas ? `de ${data.coletadas ?? stats.total} encontradas por palavra-chave` : 'todas as encontradas por palavra-chave'}
           />
@@ -404,7 +404,7 @@ export default function Legislative() {
         emptyProps={{
           icon: Landmark,
           tone: 'filter',
-          title: hasFilters ? 'Nenhuma proposição corresponde aos filtros' : 'Nenhuma proposição no Radar',
+          title: hasFilters ? 'Nenhuma proposição corresponde aos filtros' : 'Nenhuma proposição de defesa na lista',
           hint: hasFilters
             ? 'Ajuste a busca ou a etapa da tramitação.'
             : 'A coleta da Câmara ainda não trouxe proposições com termo de defesa na ementa.',
@@ -625,7 +625,7 @@ function ProposalDetail({ item, onAtualizado }) {
       </div>
 
       <section className="rounded-xl border-l-4 border-gold-500 bg-gray-500/5 p-4 dark:bg-white/5">
-        <h3 className="text-sm font-bold tracking-tight">Por que está no Radar</h3>
+        <h3 className="text-sm font-bold tracking-tight">Por que está na lista</h3>
         {item.termos?.length > 0 ? (
           <p className="mt-1.5 text-sm leading-relaxed text-gray-700 dark:text-gray-300">
             A ementa contém {item.termos.length === 1 ? 'o termo' : 'os termos'}{' '}
