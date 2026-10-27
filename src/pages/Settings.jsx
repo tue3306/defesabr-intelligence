@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
-import { Bell, Palette, Star, Sun, Moon, ShieldCheck, ArrowRight, Check, SlidersHorizontal } from 'lucide-react'
+import { Bell, Palette, Star, Sun, Moon, ShieldCheck, ArrowRight, Check, SlidersHorizontal, Settings as SettingsIcon } from 'lucide-react'
+import PageHeader from '../components/ui/PageHeader'
 import { useSettingsStore } from '../store/settingsStore'
 import { useUiStore } from '../store/uiStore'
 import { useCan } from '../auth/useCan'
@@ -8,26 +9,75 @@ import { CATEGORIES } from '../data/mockData'
 import { categoryColor, plural } from '../utils/textUtils'
 
 // -----------------------------------------------------------------------------
-// CONFIGURAÇÕES — preferências deste navegador.
-//
-// A tela reunia, além disto: um "Nível de acesso Institucional — sem cobrança"
-// de um sistema de planos que não existe; "Preferências de análise" com número
-// de notícias por clipping e foco padrão que nenhuma tela lia; um bloco "Sem
-// ferramentas de produção" explicando o papel Analista, que nenhuma conta
-// tinha; e três painéis de administração que repetiam o Console de Governança.
-//
-// Ficou o que muda alguma coisa. Nome e senha ficam em Minha conta.
+// CONFIGURAÇÕES — preferências deste navegador. Só o que muda alguma coisa na
+// tela; nome e senha ficam em Minha conta.
 // -----------------------------------------------------------------------------
 
 function Section({ icon: Icon, title, desc, children }) {
   return (
-    <div className="card p-6">
+    <section className="card p-5 sm:p-6">
       <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-        <Icon size={18} className="text-brand-400 dark:text-brand-300" /> {title}
+        <Icon size={18} className="text-brand-400 dark:text-brand-300" aria-hidden="true" /> {title}
       </h2>
       {desc && <p className="mt-1 text-sm muted">{desc}</p>}
       <div className="mt-4">{children}</div>
+    </section>
+  )
+}
+
+// Uma linha de preferência: rótulo + explicação à esquerda, controle à direita.
+function Linha({ id, titulo, ajuda, children, primeira = false }) {
+  return (
+    <div className={`flex flex-wrap items-center justify-between gap-3 ${primeira ? '' : 'mt-4 border-t border-gray-200 pt-4 dark:border-white/10'}`}>
+      <div className="min-w-0 flex-1 basis-60">
+        <p id={id} className="text-sm font-medium">{titulo}</p>
+        {ajuda && <p className="mt-0.5 text-xs leading-relaxed muted">{ajuda}</p>}
+      </div>
+      <div className="shrink-0">{children}</div>
     </div>
+  )
+}
+
+// Botões segmentados (mesmo padrão de filtro das outras telas).
+function Segmentos({ rotulo, opcoes, valor, onChange }) {
+  return (
+    <div className="inline-flex rounded-lg border border-gray-300 p-0.5 dark:border-white/15" role="group" aria-labelledby={rotulo}>
+      {opcoes.map((op) => (
+        <button
+          key={op.id}
+          type="button"
+          onClick={() => onChange(op.id)}
+          aria-pressed={valor === op.id}
+          className={`inline-flex min-h-[36px] items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
+            valor === op.id
+              ? 'bg-gold-500 text-military-darker'
+              : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10'
+          }`}
+        >
+          {op.icone && <op.icone size={15} aria-hidden="true" />}
+          {op.rotulo}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// Interruptor liga/desliga, com o estado também por escrito.
+function Interruptor({ ligado, onToggle, rotulo }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      role="switch"
+      aria-checked={ligado}
+      aria-labelledby={rotulo}
+      className="group inline-flex min-h-[36px] items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+    >
+      <span className="text-xs font-semibold muted" aria-hidden="true">{ligado ? 'Ligado' : 'Desligado'}</span>
+      <span className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${ligado ? 'bg-brand-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
+        <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform motion-reduce:transition-none ${ligado ? 'translate-x-6' : 'translate-x-1'}`} />
+      </span>
+    </button>
   )
 }
 
@@ -37,13 +87,18 @@ export default function Settings() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Configurações</h1>
-        <p className="text-sm muted">
-          Preferências guardadas neste navegador. Nome e senha ficam em{' '}
-          <Link to="/conta" className="font-semibold text-brand-600 hover:underline dark:text-brand-300">Minha conta</Link>.
-        </p>
-      </div>
+      <PageHeader
+        icon={SettingsIcon}
+        title="Configurações"
+        description={(
+          <>
+            Ajuste a aparência, os assuntos que você quer ver primeiro e os avisos. Vale para este
+            navegador. Nome e senha ficam em{' '}
+            <Link to="/conta" className="font-semibold text-brand-600 hover:underline dark:text-brand-300">Minha conta</Link>.
+          </>
+        )}
+        breadcrumb={[{ label: 'Conta' }, { label: 'Configurações' }]}
+      />
 
       <AppearanceSection />
       <InterestAreasSection />
@@ -55,7 +110,7 @@ export default function Settings() {
             Contas, fontes, coleta, integrações, auditoria e diagnóstico ficam num lugar só.
           </p>
           <Link to="/admin" className="btn-primary mt-3">
-            Abrir o Console de Governança <ArrowRight size={15} />
+            Abrir o Console de Governança <ArrowRight size={15} aria-hidden="true" />
           </Link>
         </Section>
       )}
@@ -71,73 +126,44 @@ function AppearanceSection() {
   const toggleDaltonismo = useSettingsStore((st) => st.toggleDaltonismo)
   return (
     <Section icon={Palette} title="Aparência e acessibilidade">
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-sm">Tema {isDark ? 'escuro' : 'claro'}</span>
-        <button onClick={toggleTheme} className="btn-ghost shrink-0 text-sm">
-          {isDark ? <><Sun size={15} /> Usar o claro</> : <><Moon size={15} /> Usar o escuro</>}
-        </button>
-      </div>
+      <Linha id="pref-tema" titulo="Tema" primeira>
+        <Segmentos
+          rotulo="pref-tema"
+          valor={isDark ? 'escuro' : 'claro'}
+          onChange={(v) => { if ((v === 'escuro') !== isDark) toggleTheme() }}
+          opcoes={[
+            { id: 'claro', rotulo: 'Claro', icone: Sun },
+            { id: 'escuro', rotulo: 'Escuro', icone: Moon },
+          ]}
+        />
+      </Linha>
 
-      {/* A ESCALA DE URGÊNCIA É VERMELHO → VERDE, e é justamente o par que a
-        * forma mais comum de daltonismo não separa: CRÍTICO e BAIXO viram a
-        * mesma cor numa tela de alerta. Ligado aqui, gráficos, selos, mapa e
-        * categorias passam à paleta de Okabe-Ito — laranja → azul, que se
-        * distingue por matiz E por luminosidade. */}
-      {/* TAMANHO DO TEXTO — o outro lado da acessibilidade visual.
-        * Daltonismo é sobre distinguir cor; baixa visão é sobre enxergar o que
-        * está escrito. As duas opções ficam juntas porque a pessoa que procura
-        * uma costuma precisar da outra. */}
-      <div className="mt-4 flex flex-wrap items-start justify-between gap-3 border-t border-gray-200 pt-4 dark:border-white/10">
-        <div className="min-w-0">
-          <p className="text-sm font-medium">Tamanho do texto</p>
-          <p className="mt-0.5 text-xs leading-relaxed muted">
-            Aumenta a interface inteira, de forma proporcional — texto, espaçamento e botões. Some
-            com o zoom do navegador, se você já usa um.
-          </p>
-        </div>
-        <div className="flex shrink-0 gap-1.5" role="group" aria-label="Tamanho do texto">
-          {[
+      <Linha
+        id="pref-tamanho"
+        titulo="Tamanho do texto"
+        ajuda="Aumenta a tela inteira na mesma proporção: texto, espaços e botões. Soma com o zoom do navegador."
+      >
+        <Segmentos
+          rotulo="pref-tamanho"
+          valor={tamanhoTexto}
+          onChange={setTamanhoTexto}
+          opcoes={[
             { id: 'normal', rotulo: 'Padrão' },
             { id: 'grande', rotulo: 'Grande' },
             { id: 'maior', rotulo: 'Maior' },
-          ].map((op) => (
-            <button
-              key={op.id}
-              onClick={() => setTamanhoTexto(op.id)}
-              aria-pressed={tamanhoTexto === op.id}
-              className={`rounded-lg border px-3 py-1.5 text-sm font-semibold transition-colors ${
-                tamanhoTexto === op.id
-                  ? 'border-transparent bg-brand-500 text-white'
-                  : 'border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-white/15 dark:text-gray-200 dark:hover:bg-white/10'
-              }`}
-            >
-              {op.rotulo}
-            </button>
-          ))}
-        </div>
-      </div>
+          ]}
+        />
+      </Linha>
 
-      <div className="mt-4 flex items-start justify-between gap-3 border-t border-gray-200 pt-4 dark:border-white/10">
-        <div className="min-w-0">
-          <p className="text-sm font-medium">Cores para daltonismo</p>
-          <p className="mt-0.5 text-xs leading-relaxed muted">
-            Troca a escala vermelho → verde por laranja → azul, que continua legível para quem não
-            distingue vermelho de verde. Vale para selos de urgência, gráficos, mapa e categorias.
-          </p>
-        </div>
-        <button
-          onClick={toggleDaltonismo}
-          role="switch"
-          aria-checked={daltonismo}
-          className={`shrink-0 rounded-lg border px-3 py-1.5 text-sm font-semibold transition-colors ${
-            daltonismo
-              ? 'border-transparent bg-brand-500 text-white'
-              : 'border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-white/15 dark:text-gray-200 dark:hover:bg-white/10'
-          }`}
-        >
-          {daltonismo ? 'Ligado' : 'Desligado'}
-        </button>
-      </div>
+      {/* A escala de urgência vai do vermelho ao verde, par que o daltonismo
+        * mais comum não separa. Ligado, tudo passa à paleta Okabe-Ito (laranja → azul). */}
+      <Linha
+        id="pref-daltonismo"
+        titulo="Cores para daltonismo"
+        ajuda="Troca a escala vermelho → verde por laranja → azul nos selos de urgência, gráficos, mapa e assuntos."
+      >
+        <Interruptor ligado={daltonismo} onToggle={toggleDaltonismo} rotulo="pref-daltonismo" />
+      </Linha>
     </Section>
   )
 }
@@ -148,21 +174,20 @@ function InterestAreasSection() {
   return (
     <Section
       icon={Star}
-      title="Áreas de maior interesse"
-      desc="As matérias dessas categorias sobem para o topo das notícias do painel e ganham um filtro próprio no clipping."
+      title="Assuntos de interesse"
+      desc="As notícias dos assuntos escolhidos aparecem primeiro no Painel e ganham um filtro próprio em Notícias do dia."
     >
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Assuntos de interesse">
         {CATEGORIES.map((cat) => {
           const on = interestAreas.includes(cat)
           return (
             <button
               key={cat}
+              type="button"
               onClick={() => toggleInterestArea(cat)}
               aria-pressed={on}
-              // Selecionada: fundo tingido, borda na cor da área e um visto — a
-              // marca não depende de distinguir a cor. O texto branco sobre a
-              // cor cheia sumia nas áreas de tom claro (âmbar, ouro).
-              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+              // Selecionada: fundo tingido, borda na cor e um visto (a marca não depende da cor).
+              className={`inline-flex min-h-[36px] items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
                 on
                   ? 'text-gray-900 dark:text-gray-100'
                   : 'border-gray-300 text-gray-600 hover:text-gray-900 dark:border-gray-600/50 dark:text-gray-400 dark:hover:text-gray-200'
@@ -177,12 +202,16 @@ function InterestAreasSection() {
           )
         })}
       </div>
-      <p className="mt-3 text-xs muted">
-        {interestAreas.length ? `${plural(interestAreas.length, 'área selecionada', 'áreas selecionadas')} — salvas automaticamente neste navegador.` : 'Nenhuma área selecionada: o painel mostra as matérias por data.'}
-      </p>
-      <button type="button" onClick={() => useUiStore.getState().abrirInteresses()} className="btn-ghost mt-3 px-3 py-1.5 text-sm">
-        <SlidersHorizontal size={15} aria-hidden="true" /> Personalizar interesses, com a descrição de cada área
-      </button>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs muted" role="status">
+          {interestAreas.length
+            ? `${plural(interestAreas.length, 'assunto escolhido', 'assuntos escolhidos')}. Salvo automaticamente.`
+            : 'Nenhum assunto escolhido: as notícias aparecem por data.'}
+        </p>
+        <button type="button" onClick={() => useUiStore.getState().abrirInteresses()} className="btn-ghost px-3 py-1.5 text-sm">
+          <SlidersHorizontal size={15} aria-hidden="true" /> Ver o que é cada assunto
+        </button>
+      </div>
     </Section>
   )
 }
@@ -192,23 +221,14 @@ function NotificationsSection() {
   const onToggle = useSettingsStore((st) => st.toggleNotifications)
   return (
     <Section icon={Bell} title="Avisos na tela">
-      <div className="flex items-center justify-between gap-4">
-        <span className="min-w-0 text-sm">
-          Mostrar aviso quando entrar notícia de urgência alta ou ataque a organização brasileira
-          <span className="mt-0.5 block text-xs muted">
-            Desligado, os avisos continuam registrados na central de Notificações — só deixam de interromper.
-          </span>
-        </span>
-        <button
-          onClick={onToggle}
-          className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${enabled ? 'bg-brand-500' : 'bg-gray-300 dark:bg-gray-600'}`}
-          role="switch"
-          aria-label="Avisos na tela"
-          aria-checked={enabled}
-        >
-          <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${enabled ? 'translate-x-6' : 'translate-x-1'}`} />
-        </button>
-      </div>
+      <Linha
+        id="pref-avisos"
+        titulo="Avisar quando chegar notícia urgente ou ataque a organização brasileira"
+        ajuda="Desligado, os avisos param de interromper, mas continuam guardados em Notificações."
+        primeira
+      >
+        <Interruptor ligado={enabled} onToggle={onToggle} rotulo="pref-avisos" />
+      </Linha>
     </Section>
   )
 }

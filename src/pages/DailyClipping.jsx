@@ -218,7 +218,7 @@ export default function DailyClipping() {
           icon={Newspaper}
           title="Nenhuma edição publicada ainda"
           hint="Assim que a coleta trouxer notícias aprovadas pelo filtro, a edição aparece aqui com o nível de alerta do período."
-          action={{ label: 'Ver edições arquivadas', to: '/arquivo', icon: CalendarDays }}
+          action={{ label: 'Ver edições arquivadas', to: '/arquivo?aba=clippings', icon: CalendarDays }}
         />
       )}
 

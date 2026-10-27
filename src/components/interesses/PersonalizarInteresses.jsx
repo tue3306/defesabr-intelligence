@@ -9,22 +9,10 @@ import { CATEGORIES } from '../../data/mockData'
 import { categoryColor, plural } from '../../utils/textUtils'
 
 // -----------------------------------------------------------------------------
-// PERSONALIZAR INTERESSES — um lugar só, alcançável de qualquer tela
-//
-// As áreas de interesse existiam em três lugares (Configurações, chips no
-// painel, atalho no clipping), e nenhum deles se chamava assim: quem quisesse
-// "escolher o que me interessa" precisava adivinhar que era em Configurações,
-// numa seção chamada "Áreas de maior interesse".
-//
-// Este painel abre do menu do usuário, do painel, do clipping e das
-// configurações, e trabalha com RASCUNHO: marcar e desmarcar não muda nada
-// até "Salvar". Quem abriu só para olhar fecha sem efeito colateral; quem
-// mudou recebe a confirmação do que foi gravado.
-//
-// O que a escolha muda, dito no próprio painel — promessa que a plataforma
-// cumpre, e só ela:
-//   · no Painel, as notícias dessas áreas sobem para o topo;
-//   · no Clipping, o atalho "Só as minhas áreas" filtra por elas.
+// PERSONALIZAR INTERESSES — abre de qualquer tela (menu, Painel, Notícias do
+// dia, Configurações). Trabalha com rascunho: nada muda até "Salvar".
+// Efeito real da escolha: no Painel, essas notícias sobem para o topo; em
+// Notícias do dia, o atalho "Só as minhas áreas" filtra por elas.
 // -----------------------------------------------------------------------------
 
 const DESCRICAO = {
@@ -63,8 +51,8 @@ export default function PersonalizarInteresses() {
     setInterestAreas(lista)
     toast.success(
       lista.length
-        ? `Interesses salvos: ${plural(lista.length, 'área')}. As notícias delas passam a aparecer primeiro.`
-        : 'Interesses removidos. As notícias voltam a aparecer só por data.',
+        ? `Interesses salvos: ${plural(lista.length, 'assunto')}. As notícias deles aparecem primeiro.`
+        : 'Interesses removidos. As notícias voltam a aparecer por data.',
       { id: 'interesses-salvos' },
     )
     fechar()
@@ -72,21 +60,20 @@ export default function PersonalizarInteresses() {
 
   return (
     <Modal open={aberto} onClose={fechar} title="Personalizar interesses" maxWidth="max-w-2xl">
-      <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
-        Marque os assuntos que você mais acompanha. Nada é escondido: as outras notícias continuam
-        todas lá — as das suas áreas apenas <strong>aparecem primeiro</strong> no Painel e podem ser
-        filtradas com um clique no Clipping.
+      <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300 [text-wrap:pretty]">
+        Marque os assuntos que você mais acompanha. As notícias deles <strong>aparecem primeiro</strong> no
+        Painel e ganham um filtro em Notícias do dia. Nada é escondido.
       </p>
 
       <fieldset className="mt-4">
-        <legend className="sr-only">Áreas de interesse</legend>
+        <legend className="sr-only">Assuntos de interesse</legend>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {CATEGORIES.map((cat) => {
             const marcado = rascunho.includes(cat)
             return (
               <label
                 key={cat}
-                className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-colors focus-within:ring-2 focus-within:ring-gold-500 ${
+                className={`flex min-w-0 cursor-pointer items-start gap-3 rounded-xl border p-3 transition-colors focus-within:ring-2 focus-within:ring-gold-500 ${
                   marcado
                     ? 'border-gold-500/60 bg-gold-500/10'
                     : 'border-gray-200 hover:bg-gray-50 dark:border-white/10 dark:hover:bg-white/5'
@@ -114,10 +101,10 @@ export default function PersonalizarInteresses() {
 
       <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
         <button type="button" onClick={() => setRascunho([...CATEGORIES])} className="btn-ghost px-2.5 py-1 text-xs">
-          Marcar todas
+          Marcar todos
         </button>
         <button type="button" onClick={() => setRascunho([])} className="btn-ghost px-2.5 py-1 text-xs">
-          Desmarcar todas
+          Desmarcar todos
         </button>
         {mudou && (
           <button type="button" onClick={() => setRascunho(salvos)} className="btn-ghost px-2.5 py-1 text-xs">
@@ -125,15 +112,15 @@ export default function PersonalizarInteresses() {
           </button>
         )}
         <span className="ml-auto muted" aria-live="polite">
-          {rascunho.length ? `${rascunho.length} de ${CATEGORIES.length} ${rascunho.length === 1 ? 'marcada' : 'marcadas'}` : 'nenhuma marcada'}
+          {rascunho.length ? `${rascunho.length} de ${CATEGORIES.length} ${rascunho.length === 1 ? 'marcado' : 'marcados'}` : 'Nenhum marcado'}
           {mudou ? ' · não salvo' : ''}
         </span>
       </div>
 
-      <p className="mt-3 flex items-start gap-2 rounded-lg bg-gray-500/5 p-3 text-xs leading-relaxed muted dark:bg-white/5">
+      <p className="mt-3 flex items-start gap-2 text-xs leading-relaxed muted">
         <Star size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
         <span>
-          A escolha fica guardada neste navegador, junto com o tema e o tamanho do texto — veja{' '}
+          A escolha fica guardada neste navegador. Veja{' '}
           <Link to="/privacidade" onClick={fechar} className="font-semibold text-brand-600 hover:underline dark:text-brand-300">
             o que a plataforma guarda
           </Link>.

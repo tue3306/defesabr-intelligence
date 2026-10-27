@@ -1,16 +1,15 @@
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
-import { User, Shield, Check, LogOut, KeyRound, Loader2, Trash2 } from 'lucide-react'
+import { User, Shield, Check, LogOut, KeyRound, Loader2, Trash2, UserCircle } from 'lucide-react'
 import { useNavigate, Link } from 'react-router-dom'
+import PageHeader from '../components/ui/PageHeader'
 import { useAuthStore } from '../store/authStore'
 import { ROLE_LABELS } from '../auth/permissions'
+import { formatDateTimeBR } from '../utils/dateUtils'
 
 // -----------------------------------------------------------------------------
-// MINHA CONTA
-//
-// Tudo que se altera aqui é alterado no servidor: o nome de exibição
-// (`PATCH /api/auth/me`) e a senha (`PUT /api/auth/senha`). Vale igual para
-// usuário e administrador.
+// MINHA CONTA — o que muda aqui muda no servidor: nome (`PATCH /api/auth/me`)
+// e senha (`PUT /api/auth/senha`).
 // -----------------------------------------------------------------------------
 
 const TABS = [
@@ -22,38 +21,32 @@ const SENHA_MINIMA = 6
 
 export default function Account() {
   const [tab, setTab] = useState('perfil')
-  const user = useAuthStore((s) => s.user)
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div className="flex flex-wrap items-center gap-3">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-500/15 text-brand-600 dark:text-brand-300">
-          <User size={22} />
-        </span>
-        <div className="min-w-0">
-          <h1 className="text-2xl font-bold tracking-tight">Minha conta</h1>
-          <p className="font-mono text-sm muted">{user?.username}</p>
+      <PageHeader
+        icon={UserCircle}
+        title="Minha conta"
+        description="Seu nome, sua senha e sua sessão. Preferências de tela ficam em Configurações."
+        breadcrumb={[{ label: 'Conta' }, { label: 'Minha conta' }]}
+      >
+        <div className="flex gap-1 border-b border-gray-200 dark:border-white/10" role="tablist" aria-label="Seções da conta">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={tab === t.id}
+              onClick={() => setTab(t.id)}
+              className={`-mb-px flex min-h-[44px] shrink-0 items-center gap-2 border-b-2 px-3 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500 ${
+                tab === t.id ? 'border-gold-500 text-gray-900 dark:text-white' : 'border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'
+              }`}
+            >
+              <t.icon size={16} aria-hidden="true" /> {t.label}
+            </button>
+          ))}
         </div>
-      </div>
-
-      {/* Sem `overflow-x-auto`: com duas abas não há o que rolar, e o `-mb-px`
-        * das abas fazia o navegador desenhar uma barra de rolagem minúscula
-        * ao lado delas. */}
-      <div className="flex gap-1 border-b border-gray-200 dark:border-white/10" role="tablist">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            role="tab"
-            aria-selected={tab === t.id}
-            onClick={() => setTab(t.id)}
-            className={`-mb-px flex shrink-0 items-center gap-2 border-b-2 px-3 py-2.5 text-sm font-semibold transition-colors ${
-              tab === t.id ? 'border-gold-500 text-gray-900 dark:text-white' : 'border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'
-            }`}
-          >
-            <t.icon size={16} /> {t.label}
-          </button>
-        ))}
-      </div>
+      </PageHeader>
 
       {tab === 'perfil' && <ProfileTab />}
       {tab === 'seguranca' && <SecurityTab />}
@@ -63,11 +56,11 @@ export default function Account() {
 
 function Card({ title, desc, children }) {
   return (
-    <div className="card p-6">
+    <section className="card p-5 sm:p-6">
       <h2 className="text-base font-bold tracking-tight">{title}</h2>
       {desc && <p className="mt-0.5 text-sm muted">{desc}</p>}
-      <div className="mt-4">{children}</div>
-    </div>
+      {children && <div className="mt-4">{children}</div>}
+    </section>
   )
 }
 
@@ -96,7 +89,7 @@ function ProfileTab() {
 
   return (
     <div className="space-y-6">
-      <Card title="Identidade">
+      <Card title="Seu nome" desc="É como a plataforma chama você, por exemplo na saudação do Painel.">
         <form onSubmit={salvar} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="conta-nome" className="mb-1 block text-xs font-medium muted">Nome de exibição</label>
@@ -104,29 +97,32 @@ function ProfileTab() {
               id="conta-nome"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              name="name"
+              autoComplete="name"
               maxLength={80}
               className="input"
             />
           </div>
           <div>
-            <span className="mb-1 block text-xs font-medium muted">Nome de usuário</span>
-            <p className="input flex items-center truncate bg-gray-50 font-mono text-sm dark:bg-white/[0.03]">{user?.username || '—'}</p>
-            <p className="mt-1 text-[11px] leading-relaxed muted">É o identificador de entrada e não muda.</p>
+            <span className="mb-1 block text-xs font-medium muted">Nome de usuário (para entrar)</span>
+            <p className="flex min-h-[42px] items-center truncate font-mono text-sm">{user?.username || '—'}</p>
+            <p className="mt-1 text-[11px] leading-relaxed muted">Não pode ser alterado.</p>
           </div>
           {erro && <p role="alert" className="text-sm font-medium text-red-600 dark:text-red-400 sm:col-span-2">{erro}</p>}
           <div className="sm:col-span-2">
             <button type="submit" disabled={salvando || !mudou || normalizado.length < 2} className="btn-primary disabled:opacity-50">
-              {salvando ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />} Salvar nome
+              {salvando ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <Check size={16} aria-hidden="true" />}
+              {salvando ? 'Salvando…' : 'Salvar nome'}
             </button>
           </div>
         </form>
       </Card>
 
-      <Card title="Acesso">
+      <Card title="Sobre a conta">
         <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Info termo="Papel" valor={ROLE_LABELS[user?.role] || '—'} />
-          <Info termo="Conta criada em" valor={user?.createdAt ? new Date(user.createdAt).toLocaleString('pt-BR') : '—'} />
-          <Info termo="Última entrada" valor={user?.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString('pt-BR') : '—'} />
+          <Info termo="Tipo de conta" valor={ROLE_LABELS[user?.role] || '—'} />
+          <Info termo="Criada em" valor={user?.createdAt ? formatDateTimeBR(user.createdAt) : '—'} />
+          <Info termo="Última entrada" valor={user?.lastLoginAt ? formatDateTimeBR(user.lastLoginAt) : '—'} />
         </dl>
       </Card>
     </div>
@@ -151,15 +147,13 @@ function SecurityTab() {
     <div className="space-y-6">
       <TrocarSenha />
 
-      <Card title="Sessão">
-        <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Info termo="Esta sessão expira em" valor={expiraEm ? expiraEm.toLocaleString('pt-BR') : '—'} />
-        </dl>
-        <div className="mt-4">
-          <button onClick={() => { logout(); navigate('/') }} className="btn-ghost text-sm">
-            <LogOut size={15} /> Sair da conta
-          </button>
-        </div>
+      <Card
+        title="Sessão"
+        desc={expiraEm ? `Você continua conectado neste navegador até ${formatDateTimeBR(expiraEm)}.` : 'Você está conectado neste navegador.'}
+      >
+        <button type="button" onClick={() => { logout(); navigate('/') }} className="btn-ghost text-sm">
+          <LogOut size={15} aria-hidden="true" /> Sair da conta
+        </button>
       </Card>
 
       <ExcluirConta />
@@ -167,14 +161,8 @@ function SecurityTab() {
   )
 }
 
-// -----------------------------------------------------------------------------
-// EXCLUIR A PRÓPRIA CONTA
-//
-// A política de privacidade listava a eliminação dos dados entre os direitos
-// da LGPD e mandava "falar com quem opera a instalação". O direito dependia de
-// outra pessoa para ser exercido. Agora ele está aqui, com duas travas contra
-// o clique acidental: a senha e a confirmação digitada.
-// -----------------------------------------------------------------------------
+// EXCLUIR A PRÓPRIA CONTA (direito de eliminação da LGPD), com duas travas
+// contra o clique acidental: a senha e a confirmação digitada.
 function ExcluirConta() {
   const user = useAuthStore((s) => s.user)
   const excluirConta = useAuthStore((s) => s.excluirConta)
@@ -210,7 +198,7 @@ function ExcluirConta() {
   return (
     <Card
       title="Excluir conta"
-      desc="Apaga para sempre a sua conta, a sua pasta de matérias salvas e o estado das suas notificações. Não dá para desfazer."
+      desc="Apaga para sempre a sua conta, as notícias da sua pasta e as suas notificações. Não dá para desfazer."
     >
       {!aberto ? (
         <button type="button" onClick={() => setAberto(true)} className="btn-ghost border-red-500/40 text-sm text-red-700 hover:bg-red-500/10 dark:text-red-300">
@@ -238,6 +226,8 @@ function ExcluirConta() {
               id="excluir-confirma"
               type="text"
               autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
               maxLength={20}
               value={confirmacao}
               onChange={(e) => setConfirmacao(e.target.value)}
@@ -256,7 +246,8 @@ function ExcluirConta() {
               disabled={enviando || !senha || !confirmacao}
               className="btn-primary bg-red-600 hover:bg-red-700 disabled:opacity-50"
             >
-              {enviando ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />} Excluir definitivamente
+              {enviando ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <Trash2 size={16} aria-hidden="true" />}
+              {enviando ? 'Excluindo…' : 'Excluir definitivamente'}
             </button>
             <button type="button" onClick={() => { setAberto(false); setSenha(''); setConfirmacao(''); setErro(null) }} className="btn-ghost">
               Cancelar
@@ -278,7 +269,7 @@ function TrocarSenha() {
     e.preventDefault()
     setErro(null)
     if (form.nova.length < SENHA_MINIMA) return setErro(`A nova senha precisa de ao menos ${SENHA_MINIMA} caracteres.`)
-    if (form.nova !== form.confirma) return setErro('A confirmação não confere com a nova senha.')
+    if (form.nova !== form.confirma) return setErro('As duas senhas novas não são iguais. Digite de novo.')
     setEnviando(true)
     const r = await trocarSenha(form.atual, form.nova)
     setEnviando(false)
@@ -306,11 +297,11 @@ function TrocarSenha() {
   )
 
   return (
-    <Card title="Senha" desc="Exige a senha atual. Trocar a senha encerra as sessões abertas em outros navegadores.">
+    <Card title="Trocar senha" desc="Para trocar, confirme a senha atual. Ao trocar, as sessões abertas em outros navegadores são encerradas.">
       <form onSubmit={enviar} className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {campo('atual', 'Senha atual', 'current-password')}
-        {campo('nova', `Nova senha (mín. ${SENHA_MINIMA})`, 'new-password')}
-        {campo('confirma', 'Confirme a nova', 'new-password')}
+        {campo('nova', `Nova senha (mínimo de ${SENHA_MINIMA} caracteres)`, 'new-password')}
+        {campo('confirma', 'Repita a nova senha', 'new-password')}
         {erro && <p role="alert" className="text-sm font-medium text-red-600 dark:text-red-400 sm:col-span-3">{erro}</p>}
         <div className="sm:col-span-3">
           <button
@@ -318,7 +309,8 @@ function TrocarSenha() {
             disabled={enviando || !form.atual || !form.nova || !form.confirma}
             className="btn-primary disabled:opacity-50"
           >
-            {enviando ? <Loader2 size={16} className="animate-spin" /> : <KeyRound size={16} />} Trocar senha
+            {enviando ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <KeyRound size={16} aria-hidden="true" />}
+            {enviando ? 'Trocando…' : 'Trocar senha'}
           </button>
         </div>
       </form>

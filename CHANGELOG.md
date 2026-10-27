@@ -7,6 +7,45 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Não publicado]
 
+### Acabamento da área logada — cada tela com o essencial primeiro
+
+Revisão de todas as telas de quem entra na plataforma, pensando em quem não é
+do ramo: o que é isto, o que eu faço aqui, sem blocos repetidos nem caixas de
+aviso empilhadas.
+
+- **Moldura do app.** Faixa de indicadores parada (era uma marquise em
+  movimento em todas as páginas); boas-vindas em 4 passos em vez de 7, com
+  atalho para a visita guiada; menu lateral sem "Busca global" duplicada e
+  sem rodapé fixo escondendo as últimas seções; nome do usuário uma vez só.
+- **Painel.** Sem os cartões que repetiam a frase do topo, o bloco de atalhos
+  que copiava o menu e o letreiro rolante; notícias recentes sobem; o nível de
+  alerta fica legível sobre o fundo escuro; o mapa vai sem o dossiê embutido
+  (que mora no Mapa estratégico). Página 20% menor no celular.
+- **Notícias do dia.** A lista aparece na primeira tela (antes ficava a ~8 mil
+  px do topo); filtro de urgência em botões com contagem e legenda dos selos.
+- **Correlações e Radar Legislativo.** Lista antes dos rankings; tipo da
+  proposição por extenso e "Etapa X de 5".
+- **Ataques, Mapa e Mundo.** Uma caixa de explicação em vez de três; termos
+  (ransomware, MITRE ATT&CK, teatro de conflito) explicados onde aparecem;
+  caminho país → conflito e "Voltar para Mundo".
+- **Economia, Indústria, Dados.** Cada gráfico diz o que mostra, em que
+  unidade e de onde vem; abas acessíveis por teclado.
+- **Centro Educacional, Metodologia, Sobre.** Sumário no topo; glossário com
+  12 termos e "mostrar todos"; Centro Educacional 40% mais curto.
+- **Busca, Notificações, Arquivo, Conta, Configurações.** Mesmo cabeçalho do
+  resto do produto; controles padronizados (botões segmentados e um único
+  tipo de interruptor); "Minha pasta" abre primeiro no Arquivo.
+
+#### Corrigido
+
+- Gasto militar em /dados abria num modo que desenhava uma série em reais que
+  não existe (o World Bank publica em dólar): eixo "R$ bi" e barras vazias.
+- Treemap "Gasto militar global" com rótulos ilegíveis (texto herdava o
+  contorno escuro do retângulo).
+- Texto dos eixos dos gráficos com contorno em vez de preenchimento.
+- CSV ao lado do mapa ignorava o período escolhido (sempre 365 dias).
+- Plurais com "(s)" restantes nas telas de leitura e nos textos do servidor.
+
 ### Interface mais limpa, comparada às páginas de produto do mesmo ramo
 
 - **Página inicial.** De onze blocos para oito, na ordem de uma boa página de

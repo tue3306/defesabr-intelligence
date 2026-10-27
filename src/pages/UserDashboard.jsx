@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   ShieldCheck,
-  Clock,
   ArrowRight,
   ChevronRight,
   Newspaper,
@@ -14,16 +13,13 @@ import {
   Landmark,
   Bookmark,
   Star,
-  FileText,
-  Radar,
-  Link2,
   Flame,
   SlidersHorizontal,
   ExternalLink,
   HelpCircle,
   Compass,
+  BarChart3,
 } from 'lucide-react'
-import MetricCard from '../components/ui/MetricCard'
 import NewsCard from '../components/ui/NewsCard'
 import { SkeletonCard } from '../components/ui/Skeleton'
 import Badge from '../components/ui/Badge'
@@ -45,9 +41,9 @@ import { useResource } from '../hooks/useResource'
 import { request } from '../services/client'
 import { alertMeta, categoryColor, corDoNivel, plural } from '../utils/textUtils'
 import { CATEGORIES } from '../data/mockData'
-import { formatTime, timeAgo } from '../utils/dateUtils'
+import { timeAgo } from '../utils/dateUtils'
 
-// Número em pt-BR. `toFixed(3)` escrevia o dólar como "R$ 5.170" — lido aqui como cinco mil.
+// Número em pt-BR (`toFixed(3)` escrevia o dólar como "R$ 5.170").
 const br = (v, casas) => Number(v).toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas })
 
 const Section = ({ children, className = '', ...resto }) => (
@@ -63,15 +59,13 @@ const Section = ({ children, className = '', ...resto }) => (
   </motion.section>
 )
 
+const linkSecao = 'inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:underline dark:text-brand-300'
+
 // -----------------------------------------------------------------------------
-// PAINEL DO USUÁRIO — o que aconteceu, a partir do acervo já filtrado.
-//
-// Este painel mostrava "ATENÇÃO · 42/100" a quem ainda não tivesse aberto o
-// clipping na sessão: o nível vinha do último clipping carregado e, na falta
-// dele, caía numa constante. Também exibia "Plano Institucional", a frase
-// "Sem eventos de ruptura no período. Monitoramento em curso." sem que nada a
-// tivesse apurado, dois cartões repetindo o mesmo nível de alerta e blocos
-// para um "plano Explorar" que nenhuma conta tinha.
+// PAINEL DO USUÁRIO — primeira tela depois do login.
+// Ordem pensada para quem chega: o que é grave agora → o que saiu hoje →
+// o que é seu (alertas, pasta) → contexto (indicadores, mapa, gráficos).
+// Cada número vem da API; sem resposta, o bloco diz isso.
 // -----------------------------------------------------------------------------
 export default function UserDashboard() {
   const { news, source, loading, meta } = useNews()
@@ -86,15 +80,12 @@ export default function UserDashboard() {
   const volume = useNewsVolume(14)
   const gasto = useGastoMilitar()
   const marcarLida = useNotificationStore((s) => s.marcarLida)
-  // Visita guiada pela plataforma: só abre pelo botão — nunca sozinha, para
-  // não competir com o tour de boas-vindas. Ela mora no Layout, porque segue
-  // para as outras telas; este é o único lugar que a abre.
+  // A visita guiada mora no Layout (segue para outras telas); este painel só a abre.
   const abrirVisita = useUiStore((s) => s.abrirVisita)
+  const abrirInteresses = useUiStore((s) => s.abrirInteresses)
 
-  // EM DESTAQUE AGORA — o que as últimas 48 horas trouxeram de mais urgente.
-  // O clipping já devolve ordenado por urgência (crítico, alto, médio, baixo)
-  // e depois por data; aqui ficam só os dois degraus de cima. Sem nenhum,
-  // o bloco diz isso em vez de promover matéria baixa a destaque.
+  // EM DESTAQUE: só crítico e alto das últimas 48 h (o clipping já vem
+  // ordenado por urgência). Sem nenhum, o bloco diz isso.
   const destaque = useResource(
     () => request('GET /news/clipping', { params: { days: 2, limit: 12 } }),
     [],
@@ -103,9 +94,7 @@ export default function UserDashboard() {
     .filter((n) => n.urgency === 'CRITICO' || n.urgency === 'ALTO')
     .slice(0, 4)
 
-  // AS ÁREAS DE INTERESSE SOBEM PARA O TOPO. A preferência existia, com texto
-  // prometendo "destacar o conteúdo mais relevante", e só aparecia como
-  // etiqueta: nenhuma lista a lia.
+  // As matérias das áreas de interesse sobem para o topo da lista.
   const feed = useMemo(() => {
     if (!interestAreas.length) return news.slice(0, 6)
     const doInteresse = news.filter((n) => interestAreas.includes(n.category))
@@ -116,26 +105,20 @@ export default function UserDashboard() {
   const alert = indice.level ? alertMeta[indice.level] : null
   const firstName = user?.name?.split(' ')[0] || ''
 
-  let execLine = 'O servidor de coleta não respondeu.'
+  let execLine = 'O servidor de coleta não respondeu. Tente recarregar a página em alguns minutos.'
   if (loading) execLine = 'Consultando o acervo…'
   else if (meta?.totalRelevant != null) {
     const n = meta.totalRelevant
-    execLine = `${n.toLocaleString('pt-BR')} ${n === 1 ? 'notícia relevante' : 'notícias relevantes'} no acervo`
-      + (meta.lastFetchAt ? ` · última coleta ${timeAgo(meta.lastFetchAt)}.` : '.')
+    execLine = `${n.toLocaleString('pt-BR')} ${n === 1 ? 'notícia de defesa aprovada' : 'notícias de defesa aprovadas'} no acervo`
+      + (meta.totalCollected != null ? `, de ${meta.totalCollected.toLocaleString('pt-BR')} coletadas.` : '.')
   }
 
   // Câmbio, Selic e IPCA do SGS do Banco Central, coletados pelo servidor.
-  // Risco-país e orçamento de defesa não entram: não há fonte pública gratuita
-  // coletada para eles, e cartão sem fonte é o que este painel deixou de ter.
+  // A seta segue o sinal do número; a cor só aparece onde o julgamento é
+  // inequívoco (inflação caindo é boa notícia).
   const indicators = useMemo(() => {
     const s = bcb.series
     if (!s) return []
-    // `delta` tem formatação própria: a variação da Selic saía "+0,01% p.p.",
-    // com a unidade duas vezes.
-    // A SETA SEGUE O SINAL. Antes a seta vinha de "é bom ou ruim" — e o
-    // dólar subindo aparecia com seta para BAIXO, em vermelho. A direção vem
-    // do número; a cor só existe onde o julgamento é inequívoco (inflação
-    // caindo é boa notícia), e no resto fica neutra.
     const cartao = (serie, label, formata, formataDelta, { cairEhBom = false, dica } = {}) => {
       if (!serie?.ultimo) return null
       const v = serie.ultimo.value
@@ -153,43 +136,35 @@ export default function UserDashboard() {
     return [
       cartao(s.usd, 'Dólar', (v) => `R$ ${br(v, 3)}`, (d) => br(d, 3), { dica: 'cotação do dia útil anterior' }),
       cartao(s.eur, 'Euro', (v) => `R$ ${br(v, 3)}`, (d) => br(d, 3), { dica: 'cotação do dia útil anterior' }),
-      // A META da Selic, em % ao ano — o número do noticiário. A "Selic do
-      // mês" que ficava aqui era de um mês pela metade.
-      cartao(s.selicMeta, 'Selic (meta, a.a.)', (v) => `${br(v, 2)}%`, (d) => `${br(d, 2)} p.p.`, { dica: 'última decisão do Copom' }),
-      cartao(s.ipca12, 'IPCA 12 meses', (v) => `${br(v, 2)}%`, (d) => `${br(d, 2)} p.p.`, { cairEhBom: true, dica: 'contra o mês anterior' }),
+      cartao(s.selicMeta, 'Selic (meta ao ano)', (v) => `${br(v, 2)}%`, (d) => `${br(d, 2)} p.p.`, { dica: 'última decisão do Copom' }),
+      cartao(s.ipca12, 'Inflação (IPCA 12 meses)', (v) => `${br(v, 2)}%`, (d) => `${br(d, 2)} p.p.`, { cairEhBom: true, dica: 'contra o mês anterior' }),
     ].filter(Boolean)
   }, [bcb.series])
 
   return (
-    <div className="space-y-6 sm:space-y-8">
-      {/* ───────────── CABEÇALHO DE SITUAÇÃO ───────────── */}
+    <div className="space-y-6">
+      {/* ───────────── CABEÇALHO: saudação + nível de alerta ───────────── */}
       <Section className="card overflow-hidden">
-        <div className="on-dark relative bg-gradient-to-br from-military-darker via-military-card to-brand-900/40 p-6 sm:p-8">
+        <div className="on-dark relative bg-gradient-to-br from-military-darker via-military-card to-brand-900/40 p-5 sm:p-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-2 rounded-full bg-brand-500/15 px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-300">
-                  <ShieldCheck size={14} /> Painel de Situação
+                  <ShieldCheck size={14} aria-hidden="true" /> Painel
                 </span>
                 {source === 'live'
                   ? <Atualizacao ultimaColeta={meta?.lastFetchAt} escuro />
                   : <Badge type="sem-dado" />}
-                <span className="inline-flex items-center gap-1 text-xs text-gray-400">
-                  <Clock size={12} /> Aberto às {formatTime()}
-                </span>
               </div>
-              <h1 className="mt-3 text-2xl font-extrabold tracking-tight sm:text-3xl">
+              <h1 className="mt-3 text-2xl font-extrabold tracking-tight [text-wrap:balance] sm:text-3xl">
                 {greetingByHour()}{firstName ? `, ${firstName}` : ''}.
               </h1>
-              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-gray-300 sm:text-base">
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-gray-300 [text-wrap:pretty] sm:text-base">
                 {execLine}
               </p>
               <div className="mt-5 flex flex-wrap gap-3">
                 <Link to="/clipping" className="btn-primary">
-                  Ver notícias do dia <ArrowRight size={16} />
-                </Link>
-                <Link to="/correlacoes" className="btn-ghost border-white/20 text-white hover:bg-white/10">
-                  <Link2 size={16} /> Correlações
+                  Ver notícias do dia <ArrowRight size={16} aria-hidden="true" />
                 </Link>
                 <button
                   type="button"
@@ -202,27 +177,30 @@ export default function UserDashboard() {
               </div>
             </div>
 
-            {/* NÍVEL DE ALERTA — calculado no servidor sobre as matérias da
-              * janela. Sem ocorrência, diz que não há: ausência não é calma. */}
+            {/* Nível calculado no servidor. Sem ocorrência, diz que não há: ausência não é calma. */}
             <div className="w-full shrink-0 rounded-xl border border-white/10 bg-white/5 p-4 lg:w-64" data-tour="alerta">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Nível de alerta · 7 dias</span>
                 <InfoTooltip
-                  text={`Média ponderada das urgências das matérias relevantes dos últimos 7 dias (crítico 100, alto 70, médio 40, baixo 15).${indice.basis ? ` Base: ${indice.basis}.` : ''}`}
+                  text={`Média ponderada das urgências das notícias relevantes dos últimos 7 dias (crítico 100, alto 70, médio 40, baixo 15).${indice.basis ? ` Base: ${indice.basis}.` : ''}`}
                 />
               </div>
               {alert ? (
                 <>
                   <div className="mt-2 flex items-baseline gap-2">
-                    <span className="text-3xl font-extrabold tracking-tight" style={{ color: alertColor(indice.level) }}>
+                    {/* Texto claro sobre o fundo escuro; a cor do nível fica
+                        no ponto e na barra (o verde direto no texto não passava
+                        de 3:1 de contraste). */}
+                    <span className="inline-flex items-center gap-2 text-3xl font-extrabold tracking-tight text-white">
+                      <span className="h-3 w-3 rounded-full" style={{ background: alertColor(indice.level) }} aria-hidden="true" />
                       {alert.label}
                     </span>
-                    <span className="font-mono text-sm text-gray-400">{indice.value}/100</span>
+                    <span className="font-mono text-sm tabular-nums text-gray-400">{indice.value}/100</span>
                   </div>
                   <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
                     <div className="h-full rounded-full" style={{ width: `${indice.value}%`, background: alertColor(indice.level) }} />
                   </div>
-                  <div className="mt-1 flex justify-between text-[10px] uppercase tracking-wide text-gray-400">
+                  <div className="mt-1 flex justify-between text-[10px] uppercase tracking-wide text-gray-400" aria-hidden="true">
                     <span>Normal</span><span>Crítico</span>
                   </div>
                 </>
@@ -231,7 +209,7 @@ export default function UserDashboard() {
                   {indice.carregando
                     ? 'Calculando…'
                     : indice.erro
-                      ? 'Índice indisponível — a API não respondeu. Isto não quer dizer que não houve ocorrência.'
+                      ? 'Índice indisponível: a API não respondeu. Isso não quer dizer que não houve ocorrência.'
                       : 'Sem ocorrências relevantes nos últimos 7 dias para calcular o nível.'}
                 </p>
               )}
@@ -240,139 +218,93 @@ export default function UserDashboard() {
         </div>
       </Section>
 
-      {/* ───────────── PRIMEIRA VEZ AQUI? ─────────────
-        * A página inicial explica a plataforma a quem ainda não entrou; quem
-        * entra cai direto aqui, num painel de números sem legenda. Um bloco
-        * que abre com um clique responde às quatro perguntas de quem chega:
-        * o que é, para que serve, o que é um alerta e como a análise funciona.
-        * Fechado não ocupa espaço; nada é guardado sobre ele. */}
+      {/* ───────────── PRIMEIRA VEZ AQUI? (fechado não ocupa espaço) ───────────── */}
       <details className="card group p-0">
-        <summary className="flex cursor-pointer list-none items-center gap-2 px-5 py-3 text-sm font-semibold">
-          <HelpCircle size={16} className="text-brand-500 dark:text-brand-300" aria-hidden="true" />
+        <summary className="flex min-h-[44px] cursor-pointer list-none items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+          <HelpCircle size={16} className="shrink-0 text-brand-500 dark:text-brand-300" aria-hidden="true" />
           Primeira vez aqui? Entenda o painel em 1 minuto
-          <ChevronRight size={15} className="ml-auto transition-transform group-open:rotate-90" aria-hidden="true" />
+          <ChevronRight size={15} className="ml-auto shrink-0 transition-transform group-open:rotate-90 motion-reduce:transition-none" aria-hidden="true" />
         </summary>
         <div className="grid grid-cols-1 gap-4 border-t border-gray-200 px-5 py-4 text-sm leading-relaxed text-gray-700 dark:border-white/10 dark:text-gray-300 md:grid-cols-2">
           <div>
-            <p className="font-semibold text-gray-900 dark:text-gray-100">O que é</p>
+            <h2 className="font-semibold text-gray-900 dark:text-gray-100">O que é</h2>
             <p>
               Um painel que reúne, num lugar só, o que sai sobre segurança e defesa do Brasil: mais de 60
               jornais e órgãos públicos, a Câmara dos Deputados, o Banco Central e os sites onde
-              criminosos divulgam organizações atacadas. Tudo coletado sozinho, a cada 15 minutos.
+              criminosos divulgam organizações atacadas. A coleta é automática, a cada 15 minutos.
             </p>
           </div>
           <div>
-            <p className="font-semibold text-gray-900 dark:text-gray-100">Que problema resolve</p>
+            <h2 className="font-semibold text-gray-900 dark:text-gray-100">Para que serve</h2>
             <p>
-              Essa informação está espalhada e misturada com futebol, celebridade e política. A plataforma
-              separa o que é de defesa, organiza por assunto, marca o que é urgente e mostra de onde veio —
-              para quem estuda, trabalha ou só quer acompanhar o tema sem ler cem sites.
+              Essa informação está espalhada e misturada com outros assuntos. A plataforma separa o que é
+              de defesa, organiza por assunto, marca o que é urgente e mostra de onde veio.
             </p>
           </div>
           <div>
-            <p className="font-semibold text-gray-900 dark:text-gray-100">O que é um alerta</p>
+            <h2 className="font-semibold text-gray-900 dark:text-gray-100">O que é um alerta</h2>
             <p>
-              Toda notícia recebe um nível: <strong>crítico</strong> (ataque, invasão, mortos — leia agora),{' '}
-              <strong>alto</strong> (guerra, crise, operação — acompanhe), <strong>médio</strong> (contratos,
+              Toda notícia recebe um nível: <strong>crítico</strong> (ataque, invasão, mortos: leia agora),{' '}
+              <strong>alto</strong> (guerra, crise, operação: acompanhe), <strong>médio</strong> (contratos,
               acordos) ou <strong>baixo</strong> (contexto). O nível mede o quanto o fato importa para o
-              Brasil: um bombardeio só no exterior fica em médio aqui e aparece inteiro em Mundo &amp;
-              Conflitos. Críticos e altos chegam ao sino; só o crítico abre um aviso na tela, uma vez por evento.
+              Brasil. Críticos e altos chegam ao sino; só o crítico abre um aviso na tela, uma vez por evento.
             </p>
           </div>
           <div>
-            <p className="font-semibold text-gray-900 dark:text-gray-100">Como a análise funciona</p>
+            <h2 className="font-semibold text-gray-900 dark:text-gray-100">Como a análise funciona</h2>
             <p>
-              Por listas de palavras escritas à mão, que qualquer pessoa pode conferir — sem inteligência
+              Por listas de palavras escritas à mão, que qualquer pessoa pode conferir, sem inteligência
               artificial. Quando uma notícia cita algo que já está no acervo (uma empresa atacada, um grupo),
               a plataforma mostra a <strong>possível relação</strong>: uma pista, não uma conclusão.
             </p>
           </div>
           <div className="flex flex-wrap gap-2 md:col-span-2">
-            <button type="button" onClick={abrirVisita} className="btn-primary px-3 py-1.5 text-xs">
-              <Compass size={13} aria-hidden="true" /> Fazer a visita guiada (2 min)
-            </button>
             <Link to="/metodologia#niveis" className="btn-ghost px-3 py-1.5 text-xs">O que significa cada nível</Link>
             <Link to="/metodologia#correlacao" className="btn-ghost px-3 py-1.5 text-xs">Como a correlação funciona</Link>
-            <button type="button" onClick={() => useUiStore.getState().abrirInteresses()} className="btn-ghost px-3 py-1.5 text-xs">Escolher meus assuntos</button>
             <Link to="/aprender" className="btn-ghost px-3 py-1.5 text-xs">Centro Educacional</Link>
             <Link to="/privacidade" className="btn-ghost px-3 py-1.5 text-xs">Seus dados e a LGPD</Link>
           </div>
         </div>
       </details>
 
-      {/* ───────────── KPIs ───────────── */}
-      <Section>
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <MetricCard
-            icon={Newspaper}
-            label="Aprovadas no acervo"
-            value={meta?.totalRelevant != null ? String(meta.totalRelevant) : '—'}
-            hint={meta?.totalCollected != null ? `de ${meta.totalCollected} coletadas` : ''}
-            accent="brand"
-          />
-          <MetricCard
-            icon={Bell}
-            label="Alertas não lidos"
-            value={String(unread)}
-            hint="na central de notificações"
-            accent={unread ? 'amber' : 'green'}
-          />
-          <MetricCard
-            icon={Bookmark}
-            label="Na sua pasta"
-            value={String(favorites.length)}
-            hint="matérias salvas"
-            accent="brand"
-          />
-          <MetricCard
-            icon={Star}
-            label="Áreas de interesse"
-            value={String(interestAreas.length)}
-            hint={interestAreas.length ? 'sobem nas notícias abaixo' : 'nenhuma escolhida'}
-            accent="green"
-          />
-        </div>
-      </Section>
-
       {/* ───────────── EM DESTAQUE AGORA ───────────── */}
-      <Section className="card p-5" data-tour="destaque">
+      <Section className="card p-5" data-tour="destaque" aria-labelledby="em-destaque">
         <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
           <h2 id="em-destaque" className="flex items-center gap-2 text-lg font-bold tracking-tight">
             <Flame size={18} className="text-red-600 dark:text-red-400" aria-hidden="true" /> Em destaque agora
-            <InfoTooltip text="As matérias de urgência crítica e alta publicadas nas últimas 48 horas, das mais urgentes para as menos. Urgência vem das palavras do título: crítico é acontecimento violento (ataque, invasão, mortos); alto é assunto sério que pede acompanhamento." />
           </h2>
-          <Link to="/metodologia#niveis" className="text-xs font-semibold text-brand-600 hover:underline dark:text-brand-300">
+          <Link to="/metodologia#niveis" className={linkSecao}>
             O que significa cada nível?
           </Link>
         </div>
-        <p className="mb-3 text-sm muted">O mais urgente das últimas 48 horas, pelo nível de cada matéria.</p>
+        <p className="mb-3 text-sm muted">Notícias de nível crítico e alto das últimas 48 horas.</p>
         {destaque.loading && !destaque.data ? (
           <p className="text-sm muted" role="status">Procurando o que é urgente…</p>
         ) : destaque.error ? (
-          <p className="text-sm muted">Não foi possível consultar o acervo agora.</p>
+          <p className="text-sm muted">Não foi possível consultar o acervo agora. Tente recarregar a página.</p>
         ) : emDestaque.length === 0 ? (
           <p className="rounded-lg bg-gray-500/5 p-3 text-sm text-gray-700 dark:bg-white/5 dark:text-gray-300">
-            Nenhuma matéria crítica ou alta nas últimas 48 horas. Isso quer dizer que a imprensa coletada
-            não noticiou acontecimento urgente — não que nada tenha acontecido.
+            Nenhuma notícia crítica ou alta nas últimas 48 horas. Isso quer dizer que a imprensa coletada
+            não noticiou acontecimento urgente, não que nada tenha acontecido.
           </p>
         ) : (
           <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {emDestaque.map((n) => {
               const externo = /^https?:\/\//i.test(n.url || '')
               return (
-                <li key={n.id} className={`rounded-xl border-l-4 bg-gray-500/5 p-3 dark:bg-white/5 ${n.urgency === 'CRITICO' ? 'border-l-[var(--nivel-critico)]' : 'border-l-[var(--nivel-alto)]'}`}>
+                <li key={n.id} className={`min-w-0 rounded-xl border-l-4 bg-gray-500/5 p-3 dark:bg-white/5 ${n.urgency === 'CRITICO' ? 'border-l-[var(--nivel-critico)]' : 'border-l-[var(--nivel-alto)]'}`}>
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge type="urgency" value={n.urgency} />
                     {n.category && <span className="text-[11px] font-semibold muted">{n.category}</span>}
                     <span className="ml-auto text-[11px] muted">{timeAgo(n.date)}</span>
                   </div>
                   {externo ? (
-                    <a href={n.url} target="_blank" rel="noopener noreferrer" className="mt-1.5 block font-semibold leading-snug hover:text-brand-600 hover:underline dark:hover:text-brand-300">
+                    <a href={n.url} target="_blank" rel="noopener noreferrer" className="mt-1.5 block break-words font-semibold leading-snug hover:text-brand-600 hover:underline dark:hover:text-brand-300">
                       {n.title} <ExternalLink size={12} className="inline align-baseline" aria-hidden="true" />
                       <span className="sr-only"> (abre o site do veículo em nova aba)</span>
                     </a>
                   ) : (
-                    <p className="mt-1.5 font-semibold leading-snug">{n.title}</p>
+                    <p className="mt-1.5 break-words font-semibold leading-snug">{n.title}</p>
                   )}
                   {n.source && <p className="mt-0.5 text-[11px] muted">{n.source}</p>}
                 </li>
@@ -380,155 +312,94 @@ export default function UserDashboard() {
             })}
           </ul>
         )}
-        <Link to="/clipping" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:underline dark:text-brand-300">
-          Ver tudo em Notícias do dia <ChevronRight size={14} />
-        </Link>
       </Section>
 
-      {/* ───────────── AÇÕES RÁPIDAS + ÁREAS DE INTERESSE ───────────── */}
-      <Section className="card p-5">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap gap-2">
-            <Link to="/clipping" className="btn-ghost text-sm"><Newspaper size={15} /> Notícias do dia</Link>
-            <Link to="/legislativo" className="btn-ghost text-sm"><FileText size={15} /> Radar legislativo</Link>
-            <Link to="/dados" className="btn-ghost text-sm"><Radar size={15} /> Séries e indicadores</Link>
-            <Link to="/busca" className="btn-ghost text-sm"><Newspaper size={15} /> Buscar no acervo</Link>
+      {/* ───────────── NOTÍCIAS + TRILHO PESSOAL ───────────── */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <Section className="card min-w-0 p-5 lg:col-span-2" aria-labelledby="noticias-recentes">
+          <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+            <h2 id="noticias-recentes" className="flex items-center gap-2 text-lg font-bold tracking-tight">
+              <Newspaper size={18} className="text-brand-400 dark:text-brand-300" aria-hidden="true" /> Notícias recentes
+            </h2>
+            <Badge type={source === 'live' ? 'live' : 'sem-dado'} cadencia={source === 'live' ? 'a cada 15 min' : undefined} />
           </div>
-          {/* ESCOLHER O INTERESSE ONDE ELE TEM EFEITO.
-            *
-            * Isto aqui era um VISOR: mostrava as áreas escolhidas e, quando não
-            * havia nenhuma, um link para Configurações. Quem quisesse trocar
-            * precisava sair do painel, achar a seção certa da outra tela e
-            * voltar — e o efeito da escolha (as matérias dessas áreas sobem na
-            * lista logo abaixo) acontece AQUI.
-            *
-            * Agora os botões são os próprios chips: um clique liga, outro
-            * desliga, e a lista de notícias abaixo se reordena na hora. */}
-          <div className="min-w-0">
-            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider muted">
-              Suas áreas de interesse{' '}
-              <span className="font-normal normal-case tracking-normal">— clique para ligar ou desligar</span>
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {CATEGORIES.map((cat) => {
-                const ligada = interestAreas.includes(cat)
-                return (
-                  <button
-                    key={cat}
-                    onClick={() => toggleInterestArea(cat)}
-                    aria-pressed={ligada}
-                    title={ligada ? `Deixar de destacar ${cat}` : `Destacar ${cat} nas notícias`}
-                    className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium transition-colors ${
-                      ligada
-                        ? 'border-transparent'
-                        : 'border-gray-300 text-gray-600 hover:text-gray-900 dark:border-gray-600/50 dark:text-gray-400 dark:hover:text-gray-200'
-                    }`}
-                    style={ligada ? { background: `${categoryColor(cat)}22`, color: categoryColor(cat) } : undefined}
-                  >
-                    <span className="h-1.5 w-1.5 rounded-full" style={{ background: categoryColor(cat) }} />
-                    {cat}
-                  </button>
-                )
-              })}
-            </div>
-            <p className="mt-1.5 text-[11px] muted">
-              {interestAreas.length
-                ? `${plural(interestAreas.length, 'área')} — as matérias delas sobem para o topo da lista abaixo.`
-                : 'Nenhuma escolhida: as notícias aparecem por data.'}{' '}
-            </p>
+          <p className="mb-3 text-sm muted">
+            {interestAreas.length
+              ? `As mais novas, com ${interestAreas.length === 1 ? 'a sua área de interesse' : 'as suas áreas de interesse'} primeiro.`
+              : 'As mais novas do acervo. Escolha assuntos abaixo para vê-los primeiro.'}
+          </p>
+
+          {/* Chips de interesse: um clique liga ou desliga, e a lista se reordena na hora. */}
+          <div className="mb-4 flex flex-wrap items-center gap-1.5" role="group" aria-label="Assuntos para ver primeiro">
+            {CATEGORIES.map((cat) => {
+              const ligada = interestAreas.includes(cat)
+              return (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => toggleInterestArea(cat)}
+                  aria-pressed={ligada}
+                  title={ligada ? `Deixar de destacar ${cat}` : `Ver ${cat} primeiro`}
+                  className={`inline-flex min-h-[32px] items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
+                    ligada
+                      ? 'border-transparent'
+                      : 'border-gray-300 text-gray-600 hover:text-gray-900 dark:border-gray-600/50 dark:text-gray-400 dark:hover:text-gray-200'
+                  }`}
+                  style={ligada ? { background: `${categoryColor(cat)}22`, color: categoryColor(cat) } : undefined}
+                >
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: categoryColor(cat) }} aria-hidden="true" />
+                  {cat}
+                </button>
+              )
+            })}
             <button
               type="button"
-              onClick={() => useUiStore.getState().abrirInteresses()}
-              className="btn-ghost mt-2 px-3 py-1.5 text-xs"
+              onClick={abrirInteresses}
+              className="inline-flex min-h-[32px] items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold text-brand-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:text-brand-300"
             >
-              <SlidersHorizontal size={14} aria-hidden="true" /> Personalizar interesses
+              <SlidersHorizontal size={13} aria-hidden="true" /> Personalizar
             </button>
           </div>
-        </div>
-      </Section>
 
-      {/* ───────────── GRID PRINCIPAL ───────────── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-          <Section className="card p-5">
-            <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-              <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-                <Globe2 size={18} className="text-brand-400 dark:text-brand-300" /> Cobertura por país
-              </h2>
+          {!loading && feed.length === 0 ? (
+            <EmptyState compact icon={Newspaper} title="Nenhuma notícia no acervo" hint="A coleta ainda não aprovou notícias ou o servidor não respondeu. Tente de novo em alguns minutos." />
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {loading
+                ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
+                : feed.map((n, i) => (
+                  // No celular, 3 bastam: o resto está em "Ver todas".
+                  <div key={n.id} className={`min-w-0 ${i >= 3 ? 'hidden sm:block' : ''}`}>
+                    <NewsCard news={n} variant="compact" />
+                  </div>
+                ))}
             </div>
-            {/* Chamava-se "Mapa de risco" e não mede risco: conta menções em
-                notícia coletada. */}
-            <p className="mb-4 text-sm muted">
-              Quantas notícias coletadas mencionam cada país. Clique para ver as manchetes.
-            </p>
-            <GlobalHeatmap height={380} />
-          </Section>
-        </div>
+          )}
+          <Link to="/clipping" className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:underline dark:text-brand-300">
+            Ver todas as notícias do dia <ArrowRight size={15} aria-hidden="true" />
+          </Link>
+        </Section>
 
-        {/* ───────────── TRILHO LATERAL ───────────── */}
-        <div className="space-y-6">
-
-          <Section className="card p-5">
-            <h2 className="mb-3 flex items-center gap-2 text-base font-bold tracking-tight">
-              <Landmark size={17} className="text-brand-400 dark:text-brand-300" /> Indicadores
-              <InfoTooltip text="Câmbio, Selic e IPCA do Sistema Gerenciador de Séries Temporais do Banco Central, coletados pelo servidor. A variação compara com o ponto anterior da própria série." />
-            </h2>
-            {!indicators.length && (
-              <p className="text-sm italic muted">
-                {bcb.carregando ? 'Consultando o Banco Central…' : 'Sem indicadores: o servidor de coleta não respondeu.'}
-              </p>
-            )}
-            <ul className="space-y-2.5">
-              {indicators.map((i) => (
-                <li key={i.id} className="flex items-center justify-between gap-3">
-                  <span className="text-sm muted">{i.label}</span>
-                  <span className="flex items-center gap-2">
-                    <span className="font-mono text-sm font-bold">{i.value}</span>
-                    <span
-                      title={i.dica}
-                      className={`inline-flex items-center gap-0.5 text-xs font-semibold ${
-                        i.tom === 'bom' ? 'text-emerald-800 dark:text-emerald-400'
-                          : i.tom === 'ruim' ? 'text-red-800 dark:text-red-400'
-                            : 'text-gray-700 dark:text-gray-300'
-                      }`}
-                    >
-                      {i.direcao === 'sobe' ? <TrendingUp size={12} aria-hidden="true" /> : i.direcao === 'desce' ? <TrendingDown size={12} aria-hidden="true" /> : null}
-                      <span className="sr-only">{i.direcao === 'sobe' ? 'subiu' : i.direcao === 'desce' ? 'caiu' : 'estável'}</span>
-                      {i.delta}
-                    </span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <Link to="/economia" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:underline dark:text-brand-300">
-              Economia &amp; Defesa <ChevronRight size={14} />
-            </Link>
-          </Section>
-
-          <Section className="card p-5">
+        <div className="min-w-0 space-y-6">
+          <Section className="card p-5" aria-labelledby="alertas-recentes">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="flex items-center gap-2 text-base font-bold tracking-tight">
-                <Bell size={17} className="text-brand-400 dark:text-brand-300" /> Alertas recentes
+              <h2 id="alertas-recentes" className="flex items-center gap-2 text-base font-bold tracking-tight">
+                <Bell size={17} className="text-brand-400 dark:text-brand-300" aria-hidden="true" /> Seus alertas
               </h2>
               {unread > 0 && (
-                <span className="rounded-full bg-military-red/15 px-2 py-0.5 text-[10px] font-bold text-red-600 dark:text-red-300">
-                  {unread} {unread > 1 ? 'novos' : 'novo'}
+                <span className="rounded-full bg-military-red/15 px-2 py-0.5 text-[10px] font-bold tabular-nums text-red-600 dark:text-red-300">
+                  {unread} {unread > 1 ? 'não lidos' : 'não lido'}
                 </span>
               )}
             </div>
             {notifications.length === 0 ? (
               <p className="text-sm muted">
-                Nenhum alerta ainda. Eles entram quando a coleta traz matéria de urgência alta ou
+                Nenhum alerta ainda. Eles chegam quando a coleta traz notícia de urgência alta ou
                 ataque a organização brasileira.
               </p>
             ) : (
               <ul className="space-y-2.5">
-                {/* CLICÁVEIS DE VERDADE. A lista parecia de links e não era:
-                    o título não levava a lugar nenhum, e o único jeito de
-                    marcar como lido era ir até a central. Agora abrir o
-                    alerta leva à matéria (ou à tela do incidente) e o marca
-                    como lido — o contador do sino e o do cartão acima
-                    baixam juntos, porque leem o mesmo estado. */}
+                {/* Abrir o alerta leva à notícia (ou ao incidente) e o marca como lido. */}
                 {notifications.slice(0, 5).map((n) => {
                   const externo = /^https?:\/\//i.test(n.url || '')
                   const conteudo = (
@@ -560,96 +431,116 @@ export default function UserDashboard() {
                 })}
               </ul>
             )}
-            <Link to="/notificacoes" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:underline dark:text-brand-300">
-              Ver todas <ChevronRight size={14} />
+            <Link to="/notificacoes" className={`mt-3 ${linkSecao}`}>
+              Ver todos os alertas <ChevronRight size={14} aria-hidden="true" />
             </Link>
           </Section>
 
-          <Section className="card p-5">
+          <Section className="card p-5" aria-labelledby="minha-pasta">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="flex items-center gap-2 text-base font-bold tracking-tight">
-                <Bookmark size={17} className="text-brand-400 dark:text-brand-300" /> Minha Pasta
+              <h2 id="minha-pasta" className="flex items-center gap-2 text-base font-bold tracking-tight">
+                <Bookmark size={17} className="text-brand-400 dark:text-brand-300" aria-hidden="true" /> Minha pasta
               </h2>
-              <Link to="/arquivo" className="text-xs font-semibold text-brand-600 hover:underline dark:text-brand-300">Abrir</Link>
+              {favorites.length > 0 && (
+                <span className="text-xs tabular-nums muted">{plural(favorites.length, 'notícia salva', 'notícias salvas')}</span>
+              )}
             </div>
             {favorites.length > 0 ? (
-              <ul className="space-y-2.5">
-                {favorites.slice(0, 4).map((f) => (
-                  <li key={f.id} className="flex items-start gap-2">
-                    <Star size={14} className="mt-0.5 shrink-0 text-gold-500 dark:text-gold-400" />
-                    <p className="truncate text-sm">{f.title}</p>
-                  </li>
-                ))}
-              </ul>
+              <>
+                <ul className="space-y-2.5">
+                  {favorites.slice(0, 4).map((f) => (
+                    <li key={f.id} className="flex min-w-0 items-start gap-2">
+                      <Star size={14} className="mt-0.5 shrink-0 text-gold-500 dark:text-gold-400" aria-hidden="true" />
+                      <p className="min-w-0 truncate text-sm">{f.title}</p>
+                    </li>
+                  ))}
+                </ul>
+                <Link to="/arquivo" className={`mt-3 ${linkSecao}`}>
+                  Abrir minha pasta <ChevronRight size={14} aria-hidden="true" />
+                </Link>
+              </>
             ) : (
-              <EmptyState
-                compact
-                icon={Bookmark}
-                title="Sua pasta está vazia"
-                hint="Use “Salvar” em qualquer notícia para guardá-la na sua pasta."
-                action={{ label: 'Abrir notícias do dia', to: '/clipping', icon: Newspaper }}
-              />
+              <p className="text-sm muted">
+                Vazia por enquanto. Toque em “Salvar” em qualquer notícia para guardá-la aqui.
+              </p>
             )}
+          </Section>
+
+          <Section className="card p-5" aria-labelledby="indicadores">
+            <h2 id="indicadores" className="mb-3 flex items-center gap-2 text-base font-bold tracking-tight">
+              <Landmark size={17} className="text-brand-400 dark:text-brand-300" aria-hidden="true" /> Indicadores
+              <InfoTooltip text="Câmbio, Selic e inflação (IPCA) do Banco Central, coletados pelo servidor. A variação compara com o ponto anterior da própria série." />
+            </h2>
+            {!indicators.length && (
+              <p className="text-sm muted">
+                {bcb.carregando ? 'Consultando o Banco Central…' : 'Sem indicadores agora: o servidor de coleta não respondeu.'}
+              </p>
+            )}
+            <ul className="space-y-2.5">
+              {indicators.map((i) => (
+                <li key={i.id} className="flex items-center justify-between gap-3">
+                  <span className="min-w-0 text-sm muted">{i.label}</span>
+                  <span className="flex shrink-0 items-center gap-2">
+                    <span className="font-mono text-sm font-bold tabular-nums">{i.value}</span>
+                    <span
+                      title={i.dica}
+                      className={`inline-flex items-center gap-0.5 text-xs font-semibold tabular-nums ${
+                        i.tom === 'bom' ? 'text-emerald-800 dark:text-emerald-400'
+                          : i.tom === 'ruim' ? 'text-red-800 dark:text-red-400'
+                            : 'text-gray-700 dark:text-gray-300'
+                      }`}
+                    >
+                      {i.direcao === 'sobe' ? <TrendingUp size={12} aria-hidden="true" /> : i.direcao === 'desce' ? <TrendingDown size={12} aria-hidden="true" /> : null}
+                      <span className="sr-only">{i.direcao === 'sobe' ? 'subiu' : i.direcao === 'desce' ? 'caiu' : 'estável'}</span>
+                      {i.delta}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-[11px] muted">Fonte: Banco Central do Brasil</p>
+            <Link to="/economia" className={`mt-2 ${linkSecao}`}>
+              Ver Economia &amp; Defesa <ChevronRight size={14} aria-hidden="true" />
+            </Link>
           </Section>
         </div>
       </div>
 
-      {/* ───────────── NOTÍCIAS RECENTES ───────────── */}
-      <Section>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-            <Newspaper size={18} className="text-brand-400 dark:text-brand-300" /> Notícias recentes
-            {interestAreas.length > 0 && <span className="chip text-[10px]">suas áreas primeiro</span>}
-          </h2>
-          <Badge type={source === 'live' ? 'live' : 'sem-dado'} cadencia={source === 'live' ? 'a cada 15 min' : undefined} />
-        </div>
-        {!loading && feed.length === 0 ? (
-          <EmptyState compact icon={Newspaper} title="Nenhuma notícia no acervo" hint="A coleta ainda não aprovou matérias, ou o servidor não respondeu." />
-        ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {loading
-              ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
-              : feed.map((n) => <NewsCard key={n.id} news={n} variant="compact" />)}
-          </div>
-        )}
-        <Link to="/clipping" className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:underline dark:text-brand-300">
-          Ver todo o clipping <ArrowRight size={15} />
-        </Link>
+      {/* ───────────── COBERTURA POR PAÍS ───────────── */}
+      <Section className="card p-5" aria-labelledby="cobertura-pais">
+        <h2 id="cobertura-pais" className="mb-1 flex items-center gap-2 text-lg font-bold tracking-tight">
+          <Globe2 size={18} className="text-brand-400 dark:text-brand-300" aria-hidden="true" /> Cobertura por país
+        </h2>
+        {/* Conta menções em notícia coletada; não mede risco. */}
+        <p className="mb-4 text-sm muted">
+          Quantas notícias coletadas citam cada país. Para o dossiê de cada país, abra o{' '}
+          <Link to="/mapa" className="font-semibold text-brand-600 hover:underline dark:text-brand-300">Mapa estratégico</Link>.
+        </p>
+        {/* Sem o dossiê embutido: no Painel ele dobrava o tamanho da página. */}
+        <GlobalHeatmap height={380} withNews={false} />
       </Section>
 
-      {/* ───────────── DADOS: volume de notícias + gastos militares ───────────── */}
-      <Section>
+      {/* ───────────── CONTEXTO: volume de notícias + gastos militares ───────────── */}
+      <Section aria-labelledby="em-numeros">
+        <h2 id="em-numeros" className="mb-3 flex items-center gap-2 text-lg font-bold tracking-tight">
+          <BarChart3 size={18} className="text-brand-400 dark:text-brand-300" aria-hidden="true" /> Em números
+        </h2>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <div className="card p-5">
-            <h2 className="mb-1 text-base font-bold tracking-tight">Volume de notícias — 14 dias</h2>
-            <p className="mb-4 text-sm muted">Notícias coletadas por dia, agrupadas por categoria.</p>
+          <div className="card min-w-0 p-5">
+            <h3 className="mb-1 text-base font-bold tracking-tight">Notícias por dia (últimos 14 dias)</h3>
+            <p className="mb-4 text-sm muted">Quantas notícias foram coletadas por dia, separadas por assunto.</p>
             <NewsVolumeChart data={volume.data} keys={volume.keys} height={240} />
           </div>
-          <div className="card p-5">
-            <h2 className="mb-1 flex items-center gap-2 text-base font-bold tracking-tight">
-              Gastos militares — Brasil
-              <InfoTooltip text="Série do World Bank: gasto militar em US$ correntes e como % do PIB. A linha de referência é a meta da OTAN, 2% do PIB." />
-            </h2>
-            <p className="mb-4 text-sm muted">World Bank Open Data — série histórica.</p>
+          <div className="card min-w-0 p-5">
+            <h3 className="mb-1 flex items-center gap-2 text-base font-bold tracking-tight">
+              Gasto militar do Brasil
+              <InfoTooltip text="Série do Banco Mundial: gasto militar em US$ correntes e como % do PIB. A linha de referência é a meta da OTAN, 2% do PIB." />
+            </h3>
+            <p className="mb-4 text-sm muted">Série histórica anual. Fonte: Banco Mundial (World Bank Open Data).</p>
             <MilitarySpendingChart data={gasto.data} mode={gasto.aoVivo ? 'usd' : 'dual'} height={240} />
           </div>
         </div>
       </Section>
-
-      {/* ───────────── TICKER ───────────── */}
-      {feed.length > 0 && (
-        <div className="on-dark overflow-hidden rounded-xl border border-white/10 bg-military-darker">
-          <div className="flex w-max animate-marquee gap-10 whitespace-nowrap py-2 pl-6 text-sm">
-            {[...feed, ...feed].map((n, i) => (
-              <span key={`${n.id}-${i}`} className="inline-flex items-center gap-2 text-gray-300">
-                <Badge type="urgency" value={n.urgency} />
-                {n.title}
-                <span className="text-gray-600">•</span>
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }
