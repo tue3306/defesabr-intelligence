@@ -41,7 +41,7 @@ import { useGastoMilitar, useIndiceDeAlerta } from '../hooks/useDadosReais'
 import { useVitrineReal } from '../hooks/useVitrineReal'
 import { useAuthStore } from '../store/authStore'
 import { glossary } from '../data/learnData'
-import { USE_CASES, STANDARDS, FAQ, ROADMAP, LANDING_FEATURES } from '../data/landingExtra'
+import { USE_CASES, FAQ } from '../data/landingExtra'
 import { alertMeta } from '../utils/textUtils'
 
 const FEATURE_ICONS = { Newspaper, Globe2, BarChart3, LineChart, GraduationCap, ShieldCheck, Link2, Bell }
@@ -238,6 +238,114 @@ export default function Landing() {
         </Section>
       )}
 
+      {/* ─────────────────────────────────────────────────────────────────
+        * ORDEM DA PÁGINA — do que convence para o que aprofunda
+        *
+        * Eram quinze blocos, e quem chegava lia três explicações da mesma
+        * coisa ("Primeira vez aqui?", "Por que isto?" e uma grade de oito
+        * cartões "Por que usar esta plataforma?") antes de ver uma notícia de
+        * verdade, que só aparecia perto do fim. A grade saiu; a faixa de
+        * referências (ISO, NIST…) e o roadmap foram para a página Sobre, que é
+        * onde quem quer saber do projeto procura. As notícias subiram para logo
+        * depois dos três passos.
+        * ───────────────────────────────────────────────────────────────── */}
+
+      {/* NOTÍCIAS (ABERTAS) */}
+      <Section>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-bold tracking-tight">Notícias recentes</h2>
+          <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 dark:text-emerald-300">Acesso livre</span>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {loading
+            ? Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)
+            : feed.length
+              ? feed.map((n) => <NewsCard key={n.id} news={n} variant="compact" />)
+              : (
+                /* Buraco em branco na PRIMEIRA tela do produto era o pior lugar
+                   possível para um erro mudo: o `erro` do useNews vinha sendo
+                   descartado no destructuring. Agora a seção diz o que houve. */
+                <p className="col-span-full rounded-xl border border-dashed border-gray-300 px-4 py-6 text-center text-sm muted dark:border-white/15">
+                  {erroNoticias
+                    ? 'Não foi possível carregar as notícias agora — a API não respondeu.'
+                    : 'Nenhuma notícia no período.'}
+                </p>
+              )}
+        </div>
+        <Link to="/painel" className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300">
+          Ver mais notícias <ArrowRight size={15} />
+        </Link>
+      </Section>
+
+      {/* ANÁLISES (PAYWALL) */}
+      {/* Aqui havia uma seção "Análises & briefings estratégicos" com três
+          cenários e suas probabilidades — 62%, 25%, 13% — atrás de um paywall.
+          Os números eram escritos à mão em `mockData`. Vender por assinatura um
+          cenário probabilístico que ninguém calculou é a forma mais direta de
+          perder a credibilidade que o resto da página tenta construir: qualquer
+          avaliador que pergunte "de onde vem esse 62%?" não terá resposta.
+
+          A seção saiu inteira em vez de virar aviso. Análise de cenário depende
+          de juízo humano registrado, que é trabalho a fazer, não recurso a
+          exibir. O que a plataforma faz de verdade — coletar, filtrar e mostrar
+          a série real — já está nas seções acima e abaixo desta. */}
+
+      {/* PRÉVIA DO PRODUTO — números lidos dos módulos, não promessas */}
+      <Section className="card p-5 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg font-bold tracking-tight">O que já está monitorado agora</h2>
+          <Badge type={v.aoVivo ? 'live' : v.carregando ? 'carregando' : 'sem-dado'} />
+        </div>
+        <p className="mt-1 text-sm muted">
+          Contagens lidas do acervo neste instante — o que a coleta trouxe, não texto de vitrine.
+        </p>
+        <div className="mt-5 grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {/* O nível de alerta só aparece quando há base para calculá-lo. A
+              constante que ficava aqui dizia sempre "ATENÇÃO", em qualquer
+              cenário — um indicador que nunca muda não é um indicador. */}
+          <PreviewStat
+            icon={ShieldCheck}
+            value={alerta.level ? alertMeta[alerta.level]?.label || alerta.level : '—'}
+            label="Nível de alerta do período"
+            hint={alerta.value != null ? `${alerta.value}/100 · média da urgência em 7 dias` : 'sem ocorrências no período'}
+          />
+          <PreviewStat
+            icon={Database}
+            value={v.fontes != null ? String(v.fontes) : '—'}
+            label="Fontes coletadas"
+            hint={v.fontesOk != null ? `${v.fontesOk} responderam na última execução` : 'oficiais e especializadas'}
+          />
+          <PreviewStat
+            icon={Newspaper}
+            value={v.artigos != null ? String(v.artigos) : '—'}
+            label="Notícias no acervo"
+            hint={v.coletados != null ? `de ${v.coletados} coletadas, após o filtro` : 'coleta contínua'}
+          />
+          <PreviewStat
+            icon={Landmark}
+            value={v.proposicoes != null ? String(v.proposicoes) : '—'}
+            label="Proposições acompanhadas"
+            hint="Câmara dos Deputados, dados abertos"
+          />
+        </div>
+      </Section>
+
+      {/* MAPA GLOBAL */}
+      <Section className="card p-5 sm:p-6">
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg font-bold tracking-tight">Cobertura por país</h2>
+          <Badge type={v.aoVivo ? 'live' : v.carregando ? 'carregando' : 'sem-dado'} />
+        </div>
+        {/* "Panorama global de risco" prometia uma medida de risco que ninguém
+            faz. O mapa conta menções em notícia coletada — que é útil, e é
+            outra coisa. */}
+        <p className="mb-4 text-sm muted">
+          Quantas notícias coletadas mencionam cada país. Mede volume de cobertura, não risco.
+          Passe o cursor para ver as manchetes.
+        </p>
+        <GlobalHeatmap height={420} />
+      </Section>
+
       {/* ═══════════════════════════════════════════════════════════════════
           POR QUE PAGAR, EM VEZ DE ACOMPANHAR NOTÍCIA DE GRAÇA
           ═══════════════════════════════════════════════════════════════════
@@ -296,47 +404,6 @@ export default function Landing() {
         </Section>
       )}
 
-      {/* FAIXA DE CREDIBILIDADE — padrões como referência conceitual */}
-      <Section className="card px-5 py-5 sm:px-6">
-        <div className="flex flex-col items-center gap-4 lg:flex-row lg:justify-between">
-          <p className="text-center text-xs font-semibold uppercase tracking-wider muted lg:text-left">
-            Arquitetura e terminologia inspiradas em
-            <br className="hidden lg:block" /> referências internacionais
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            {STANDARDS.map((s) => (
-              <span key={s} className="chip">{s}</span>
-            ))}
-          </div>
-        </div>
-        <p className="mt-3 text-center text-[11px] muted lg:text-right">
-          Citadas apenas como inspiração conceitual — sem afirmar conformidade, homologação ou certificação.
-        </p>
-      </Section>
-
-      {/* POR QUE USAR */}
-      <Section>
-        <p className="text-center text-xs font-bold uppercase tracking-widest text-brand-400 dark:text-brand-300">Conceitos-chave</p>
-        <h2 className="mt-1 text-center text-2xl font-bold tracking-tight">Por que usar esta plataforma?</h2>
-        <p className="mx-auto mt-2 max-w-2xl text-center text-sm muted">
-          Tudo o que você precisa para acompanhar Segurança e Defesa em um só lugar.
-        </p>
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {LANDING_FEATURES.map((f) => {
-            const Icon = FEATURE_ICONS[f.icon] || ShieldCheck
-            return (
-              <div key={f.title} className="card p-5">
-                <span className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-brand-500/15 text-brand-400 dark:text-brand-300">
-                  <Icon size={22} />
-                </span>
-                <h3 className="font-bold tracking-tight">{f.title}</h3>
-                <p className="mt-1.5 text-sm leading-relaxed text-gray-300">{f.text}</p>
-              </div>
-            )
-          })}
-        </div>
-      </Section>
-
       {/* PARA QUEM É / CASOS DE USO */}
       <Section>
         <p className="text-center text-xs font-bold uppercase tracking-widest text-brand-400 dark:text-brand-300">Casos de uso</p>
@@ -384,61 +451,6 @@ export default function Landing() {
         * exigem sessão, e a tela de bloqueio oferece entrar ou criar conta.
         * ───────────────────────────────────────────────────────────────── */}
 
-      {/* PRÉVIA DO PRODUTO — números lidos dos módulos, não promessas */}
-      <Section className="card p-5 sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-bold tracking-tight">O que já está monitorado agora</h2>
-          <Badge type={v.aoVivo ? 'live' : v.carregando ? 'carregando' : 'sem-dado'} />
-        </div>
-        <p className="mt-1 text-sm muted">
-          Contagens lidas do acervo neste instante — o que a coleta trouxe, não texto de vitrine.
-        </p>
-        <div className="mt-5 grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {/* O nível de alerta só aparece quando há base para calculá-lo. A
-              constante que ficava aqui dizia sempre "ATENÇÃO", em qualquer
-              cenário — um indicador que nunca muda não é um indicador. */}
-          <PreviewStat
-            icon={ShieldCheck}
-            value={alerta.level ? alertMeta[alerta.level]?.label || alerta.level : '—'}
-            label="Nível de alerta do período"
-            hint={alerta.value != null ? `${alerta.value}/100 · média da urgência em 7 dias` : 'sem ocorrências no período'}
-          />
-          <PreviewStat
-            icon={Database}
-            value={v.fontes != null ? String(v.fontes) : '—'}
-            label="Fontes coletadas"
-            hint={v.fontesOk != null ? `${v.fontesOk} responderam na última execução` : 'oficiais e especializadas'}
-          />
-          <PreviewStat
-            icon={Newspaper}
-            value={v.artigos != null ? String(v.artigos) : '—'}
-            label="Notícias no acervo"
-            hint={v.coletados != null ? `de ${v.coletados} coletadas, após o filtro` : 'coleta contínua'}
-          />
-          <PreviewStat
-            icon={Landmark}
-            value={v.proposicoes != null ? String(v.proposicoes) : '—'}
-            label="Proposições acompanhadas"
-            hint="Câmara dos Deputados, dados abertos"
-          />
-        </div>
-      </Section>
-
-      {/* MAPA GLOBAL */}
-      <Section className="card p-5 sm:p-6">
-        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-bold tracking-tight">Cobertura por país</h2>
-          <Badge type={v.aoVivo ? 'live' : v.carregando ? 'carregando' : 'sem-dado'} />
-        </div>
-        {/* "Panorama global de risco" prometia uma medida de risco que ninguém
-            faz. O mapa conta menções em notícia coletada — que é útil, e é
-            outra coisa. */}
-        <p className="mb-4 text-sm muted">
-          Quantas notícias coletadas mencionam cada país. Mede volume de cobertura, não risco.
-          Passe o cursor para ver as manchetes.
-        </p>
-        <GlobalHeatmap height={420} />
-      </Section>
 
       {/* PLATAFORMA EM AÇÃO (showcase de dados/gráficos) */}
       <Section>
@@ -483,46 +495,6 @@ export default function Landing() {
         </div>
       </Section>
 
-      {/* NOTÍCIAS (ABERTAS) */}
-      <Section>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-bold tracking-tight">Notícias recentes</h2>
-          <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 dark:text-emerald-300">Acesso livre</span>
-        </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {loading
-            ? Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)
-            : feed.length
-              ? feed.map((n) => <NewsCard key={n.id} news={n} variant="compact" />)
-              : (
-                /* Buraco em branco na PRIMEIRA tela do produto era o pior lugar
-                   possível para um erro mudo: o `erro` do useNews vinha sendo
-                   descartado no destructuring. Agora a seção diz o que houve. */
-                <p className="col-span-full rounded-xl border border-dashed border-gray-300 px-4 py-6 text-center text-sm muted dark:border-white/15">
-                  {erroNoticias
-                    ? 'Não foi possível carregar as notícias agora — a API não respondeu.'
-                    : 'Nenhuma notícia no período.'}
-                </p>
-              )}
-        </div>
-        <Link to="/painel" className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand-400 dark:text-brand-300 hover:text-brand-300">
-          Ver mais notícias <ArrowRight size={15} />
-        </Link>
-      </Section>
-
-      {/* ANÁLISES (PAYWALL) */}
-      {/* Aqui havia uma seção "Análises & briefings estratégicos" com três
-          cenários e suas probabilidades — 62%, 25%, 13% — atrás de um paywall.
-          Os números eram escritos à mão em `mockData`. Vender por assinatura um
-          cenário probabilístico que ninguém calculou é a forma mais direta de
-          perder a credibilidade que o resto da página tenta construir: qualquer
-          avaliador que pergunte "de onde vem esse 62%?" não terá resposta.
-
-          A seção saiu inteira em vez de virar aviso. Análise de cenário depende
-          de juízo humano registrado, que é trabalho a fazer, não recurso a
-          exibir. O que a plataforma faz de verdade — coletar, filtrar e mostrar
-          a série real — já está nas seções acima e abaixo desta. */}
-
       {/* MINI GLOSSÁRIO + CONCEITO DO DIA */}
       <Section>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -555,42 +527,6 @@ export default function Landing() {
             </h2>
             <ConceptOfDay />
           </div>
-        </div>
-      </Section>
-
-      {/* ─────────────────────────────────────────────────────────────────
-        * AQUI HAVIA "O QUE CADA NÍVEL ENXERGA"
-        *
-        * Restou de quando havia três planos com preço. O comércio simulado saiu
-        * há tempo, e a seção passou a listar níveis de acesso que não separam
-        * mais nada: o projeto é aberto, não há cobrança, e toda conta nasce com
-        * a profundidade completa de leitura.
-        *
-        * Uma grade de três cartões que dizem a mesma coisa é pior que nenhuma:
-        * ocupa a dobra em que caberia o produto e sugere uma escolha que não
-        * existe.
-        * ───────────────────────────────────────────────────────────────── */}
-
-      {/* ROADMAP */}
-      <Section>
-        <p className="flex items-center justify-center gap-1.5 text-center text-xs font-bold uppercase tracking-widest text-brand-400 dark:text-brand-300">
-          <Route size={13} /> Roadmap
-        </p>
-        <h2 className="mt-1 text-center text-2xl font-bold tracking-tight">Uma plataforma em evolução</h2>
-        <p className="mx-auto mt-2 max-w-2xl text-center text-sm muted">Direção do produto — o que já existe está marcado como disponível.</p>
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {ROADMAP.map((r) => (
-            <div key={r.title} className={`card p-5 ${r.done ? 'border-gold-500/30' : ''}`}>
-              <div className="flex items-center gap-2">
-                {r.done
-                  ? <Check size={15} className="shrink-0 text-emerald-800 dark:text-emerald-400" />
-                  : <CircleDot size={15} className="shrink-0 text-gray-400" />}
-                <span className={`text-[11px] font-bold uppercase tracking-wider ${r.done ? 'text-emerald-800 dark:text-emerald-400' : 'muted'}`}>{r.phase}</span>
-              </div>
-              <h3 className="mt-2 font-bold tracking-tight">{r.title}</h3>
-              <p className="mt-1 text-sm leading-relaxed text-gray-300">{r.text}</p>
-            </div>
-          ))}
         </div>
       </Section>
 

@@ -1,12 +1,13 @@
 import { Link } from 'react-router-dom'
 import {
   Shield, Cpu, Database, AlertTriangle, Github, Send, Star, GitFork, ExternalLink, Code2,
-  Compass, Radar, Cog, Share2, Layers, PlugZap, Bell, Lock,
+  Compass, Radar, Cog, Share2, Layers, PlugZap, Bell, Lock, Route, Check, CircleDot, BadgeCheck,
 } from 'lucide-react'
+import { STANDARDS, ROADMAP } from '../data/landingExtra'
 import { APP_VERSION } from '../services/config'
 
 const REPO_URL = 'https://github.com/tue3306/defesabr-intelligence'
-const TECH_STACK = ['React 18', 'Vite', 'Tailwind CSS', 'Zustand', 'Recharts', 'Node.js', 'Express', 'SQLite']
+const TECH_STACK = ['React 18', 'Vite', 'Tailwind CSS', 'Zustand', 'Recharts', 'Node.js', 'Express', 'Postgres (Supabase)', 'Vercel']
 
 // As fontes que o servidor REALMENTE consulta. A lista omitia o ransomware.live,
 // que alimenta duas telas inteiras, e o texto de abertura falava em "quatro
@@ -162,8 +163,9 @@ export default function About() {
           <Layers size={18} className="text-brand-400 dark:text-brand-300" /> Arquitetura e limites
         </h2>
         <p className="mt-1 max-w-2xl text-sm leading-relaxed muted">
-          Um processo Node serve a API e a interface. O servidor coleta, filtra e guarda em SQLite; a
-          interface fala com uma origem só.
+          A API (Express) roda como função na Vercel, ao lado da interface; o banco é Postgres no
+          Supabase, e o agendador do próprio banco dispara a coleta a cada 15 minutos. A interface
+          fala com uma origem só.
         </p>
         <div className="mt-4 space-y-2">
           {ARCHITECTURE_NOTES.map((note) => (
@@ -226,6 +228,45 @@ export default function About() {
           </p>
         </div>
       </Card>
+
+      {/* ROADMAP — veio da página inicial: é assunto de quem quer saber do
+          projeto, não de quem acabou de chegar. */}
+      <section className="card p-6">
+        <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
+          <Route size={18} className="text-brand-400 dark:text-brand-300" /> Uma plataforma em evolução
+        </h2>
+        <p className="mt-1 max-w-2xl text-sm leading-relaxed muted">
+          Direção do produto — o que já existe está marcado como disponível.
+        </p>
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {ROADMAP.map((r) => (
+            <div key={r.title} className={`rounded-lg border p-4 ${r.done ? 'border-gold-500/30' : 'border-gray-200 dark:border-white/10'}`}>
+              <div className="flex items-center gap-2">
+                {r.done
+                  ? <Check size={15} className="shrink-0 text-emerald-800 dark:text-emerald-400" />
+                  : <CircleDot size={15} className="shrink-0 text-gray-400" />}
+                <span className={`text-[11px] font-bold uppercase tracking-wider ${r.done ? 'text-emerald-800 dark:text-emerald-400' : 'muted'}`}>{r.phase}</span>
+              </div>
+              <p className="mt-2 text-sm font-semibold">{r.title}</p>
+              <p className="mt-1 text-xs leading-relaxed muted">{r.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* REFERÊNCIAS — também veio da página inicial. */}
+      <section className="card p-6">
+        <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
+          <BadgeCheck size={18} className="text-brand-400 dark:text-brand-300" /> Referências internacionais
+        </h2>
+        <p className="mt-1 max-w-2xl text-sm leading-relaxed muted">
+          Arquitetura e terminologia inspiradas nestas referências — citadas apenas como inspiração
+          conceitual, sem afirmar conformidade, homologação ou certificação.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {STANDARDS.map((s) => <span key={s} className="chip">{s}</span>)}
+        </div>
+      </section>
 
       {/* REPOSITÓRIO */}
       <div className="card overflow-hidden">

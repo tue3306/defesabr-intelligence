@@ -49,38 +49,20 @@ import { useUiStore } from '../../store/uiStore'
 //                 o orgao do Estado exposto. Serve a quem age hoje.
 //
 // A mesma materia pode aparecer nos tres, em profundidades diferentes. Nao e
-// uma taxonomia de conteudo: e uma escada de altitude, e a navegacao passou a
-// dizer em que degrau cada tela esta.
+// uma taxonomia de conteudo: e uma escada de altitude.
+//
+// A ORDEM NO MENU, PORÉM, SEGUE O USO, NÃO A ALTITUDE. O estratégico vinha
+// primeiro, e quem entrava achava mapa, séries e legislativo antes das
+// notícias do dia — o que quase todo mundo veio ver. Agora: notícias,
+// ataques, quadro do país. Os nomes das seções dizem o assunto, sem o jargão
+// de doutrina; o `nivel` de cada uma continua valendo por dentro.
 // ─────────────────────────────────────────────────────────────────────────────
 const NAV_SECTIONS = [
   {
     title: 'Visão geral',
     items: [
-      { to: '/', label: 'Início', icon: Home, end: true },
       { to: '/painel', label: 'Painel', icon: LayoutDashboard, requiresAuth: true },
       { to: '/busca', label: 'Busca global', icon: Search, requiresAuth: true },
-    ],
-  },
-  {
-    title: 'O quadro do país',
-    nivel: 'estrategico',
-    items: [
-      // O MAPA GANHOU PAGINA PROPRIA e abre o nivel estrategico.
-      //
-      // Ele vivia dentro de uma aba de "Dados & Graficos", entre um grafico de
-      // barras e um comparativo de PIB — enterrado como se fosse mais um
-      // grafico. E a peca que melhor responde a pergunta estrategica ("o que o
-      // mundo esta dizendo, e o que isso tem a ver com o Brasil"), e a unica
-      // que cruza duas fontes independentes pelo codigo ISO.
-      { to: '/mapa', label: 'Mapa estratégico', icon: Globe2, requiresAuth: true },
-      // O MAPA CONTA O RECORTE BRASIL; ESTA ÁREA CONTA O MUNDO. Estados Unidos,
-      // guerras e teatros em curso — o que a lente de defesa do Brasil
-      // descartava na entrada e a lente internacional passou a gravar.
-      { to: '/mundo', label: 'Mundo & Conflitos', icon: Swords, requiresAuth: true },
-      { to: '/economia', label: 'Economia & Defesa', icon: DollarSign, requiresAuth: true },
-      { to: '/industria', label: 'Indústria de defesa', icon: Factory, requiresAuth: true },
-      { to: '/legislativo', label: 'Radar Legislativo', icon: Landmark, requiresAuth: true },
-      { to: '/dados', label: 'Séries e indicadores', icon: LineChart, requiresAuth: true },
     ],
   },
   {
@@ -112,9 +94,34 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    title: 'O quadro do país',
+    nivel: 'estrategico',
+    items: [
+      // O MAPA GANHOU PAGINA PROPRIA e abre o nivel estrategico.
+      //
+      // Ele vivia dentro de uma aba de "Dados & Graficos", entre um grafico de
+      // barras e um comparativo de PIB — enterrado como se fosse mais um
+      // grafico. E a peca que melhor responde a pergunta estrategica ("o que o
+      // mundo esta dizendo, e o que isso tem a ver com o Brasil"), e a unica
+      // que cruza duas fontes independentes pelo codigo ISO.
+      { to: '/mapa', label: 'Mapa estratégico', icon: Globe2, requiresAuth: true },
+      // O MAPA CONTA O RECORTE BRASIL; ESTA ÁREA CONTA O MUNDO. Estados Unidos,
+      // guerras e teatros em curso — o que a lente de defesa do Brasil
+      // descartava na entrada e a lente internacional passou a gravar.
+      { to: '/mundo', label: 'Mundo & Conflitos', icon: Swords, requiresAuth: true },
+      { to: '/economia', label: 'Economia & Defesa', icon: DollarSign, requiresAuth: true },
+      { to: '/industria', label: 'Indústria de defesa', icon: Factory, requiresAuth: true },
+      { to: '/legislativo', label: 'Radar Legislativo', icon: Landmark, requiresAuth: true },
+      { to: '/dados', label: 'Séries e indicadores', icon: LineChart, requiresAuth: true },
+    ],
+  },
+  {
     title: 'Recursos',
     items: [
       { to: '/aprender', label: 'Centro Educacional', icon: GraduationCap },
+      // A página pública. Ficava no topo, ao lado de "Painel", e as duas
+      // pareciam a mesma coisa para quem já entrou.
+      { to: '/', label: 'Página inicial', icon: Home, end: true },
       // A régua de cada número fica a um clique de onde o número aparece: sem
       // isso, "Como a plataforma decide" só existiria para quem chegasse pelo
       // rodapé.

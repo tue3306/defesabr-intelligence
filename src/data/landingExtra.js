@@ -39,7 +39,7 @@ export const FAQ = [
   },
   {
     q: 'A plataforma precisa de servidor ou banco de dados?',
-    a: 'Sim, e é isso que a torna real. Um processo Node serve a API e a interface, coleta as notícias a cada 15 minutos e guarda em SQLite. Sem o servidor no ar, as telas mostram erro — não há dado local de reserva.',
+    a: 'Sim, e é isso que a torna real. Um servidor (na Vercel, com banco Postgres no Supabase) coleta as notícias a cada 15 minutos e guarda tudo no banco. Sem o servidor no ar, as telas mostram erro — não há dado local de reserva.',
   },
   {
     q: 'Como entro na plataforma?',
