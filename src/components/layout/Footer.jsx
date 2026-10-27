@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
-import { Shield, Github, Compass } from 'lucide-react'
+import { Shield, Github, Compass, Mail } from 'lucide-react'
+import { RESPONSAVEL } from '../../data/responsavel'
 import { useCan } from '../../auth/useCan'
 
 // Os ícones de LinkedIn, X, YouTube e Instagram apontavam para a página inicial
@@ -26,12 +27,18 @@ export default function Footer() {
 
         <div className="flex items-center gap-3">
           <a
-            href="https://github.com/tue3306/defesabr-intelligence"
+            href={`mailto:${RESPONSAVEL.email}`}
+            className="inline-flex items-center gap-1.5 muted hover:text-brand-400 dark:text-brand-300"
+          >
+            <Mail size={16} aria-hidden="true" /> Contato
+          </a>
+          <a
+            href={RESPONSAVEL.repoUrl}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-1.5 muted hover:text-brand-400 dark:text-brand-300"
           >
-            <Github size={16} /> Repositório
+            <Github size={16} aria-hidden="true" /> Repositório
           </a>
         </div>
       </div>

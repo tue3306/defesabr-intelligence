@@ -1,13 +1,14 @@
 import { Link } from 'react-router-dom'
 import {
   Shield, Cpu, Database, AlertTriangle, Github, Send, Star, GitFork, ExternalLink, Code2,
-  Compass, Radar, Cog, Share2, Layers, PlugZap, Bell, Lock, Route, Check, CircleDot, BadgeCheck,
+  Compass, Radar, Cog, Share2, Layers, PlugZap, Bell, Lock, Route, Check, CircleDot, BadgeCheck, Mail, User,
 } from 'lucide-react'
 import { STANDARDS, ROADMAP } from '../data/landingExtra'
 import { APP_VERSION } from '../services/config'
 import PageHeader from '../components/ui/PageHeader'
+import { RESPONSAVEL } from '../data/responsavel'
 
-const REPO_URL = 'https://github.com/tue3306/defesabr-intelligence'
+const REPO_URL = RESPONSAVEL.repoUrl
 const TECH_STACK = ['React 18', 'Vite', 'Tailwind CSS', 'Zustand', 'Recharts', 'Node.js', 'Express', 'Postgres (Supabase)', 'Vercel']
 
 // As fontes que o servidor de fato consulta.
@@ -18,6 +19,7 @@ const APIS = [
   { name: 'Comex Stat (MDIC)', use: 'Exportações da indústria de defesa por NCM', custo: 'Gratuita' },
   { name: 'World Bank Open Data', use: 'Gasto militar e PIB, série histórica', custo: 'Gratuita' },
   { name: 'ransomware.live', use: 'Organizações brasileiras divulgadas por grupos de extorsão, e os grupos', custo: 'Chave gratuita' },
+  { name: 'CISA — catálogo KEV', use: 'Falhas de software com exploração confirmada em ataques', custo: 'Gratuita' },
 ]
 
 // O ciclo clássico tem cinco etapas. A plataforma cobre três — DIREÇÃO e ANÁLISE
@@ -62,7 +64,7 @@ const SECOES = [
   { id: 'privacidade', rotulo: 'Dados e privacidade' },
   { id: 'arquitetura', rotulo: 'Arquitetura' },
   { id: 'evolucao', rotulo: 'Evolução' },
-  { id: 'contato', rotulo: 'Contato' },
+  { id: 'contato', rotulo: 'Responsável e contato' },
 ]
 
 // O roteador usa hash (#/sobre), então a âncora rola via JS.
@@ -273,18 +275,32 @@ export default function About() {
         </div>
       </section>
 
-      {/* CONTATO — as issues do repositório são o único canal. */}
-      <Card id="contato" icon={Send} title="Contato">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <a href={`${REPO_URL}/issues/new`} target="_blank" rel="noopener noreferrer" className="btn-primary justify-center">
+      {/* RESPONSÁVEL E CONTATO */}
+      <Card id="contato" icon={User} title="Responsável e contato">
+        <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
+          O DefesaBR Intelligence é mantido por{' '}
+          <a href={RESPONSAVEL.githubUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-brand-600 hover:underline dark:text-brand-300">
+            {RESPONSAVEL.github}
+          </a>
+          , que responde pelo conteúdo, pelas regras de classificação e pela correção de erros.
+        </p>
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <a href={`mailto:${RESPONSAVEL.email}`} className="btn-primary justify-center">
+            <Mail size={16} aria-hidden="true" /> {RESPONSAVEL.email}
+          </a>
+          <a href={RESPONSAVEL.githubUrl} target="_blank" rel="noopener noreferrer" className="btn-ghost justify-center">
+            <Github size={16} aria-hidden="true" /> github.com/{RESPONSAVEL.github}
+          </a>
+          <a href={`${REPO_URL}/issues/new`} target="_blank" rel="noopener noreferrer" className="btn-ghost justify-center">
             <Send size={16} aria-hidden="true" /> Relatar um problema
           </a>
           <a href={`${REPO_URL}/issues`} target="_blank" rel="noopener noreferrer" className="btn-ghost justify-center">
             <Github size={16} aria-hidden="true" /> Ver as issues abertas
           </a>
           <p className="text-xs leading-relaxed muted sm:col-span-2">
-            As issues do repositório são públicas e ficam registradas. Não há formulário de contato:
-            a plataforma não envia e-mail, e um formulário que não chega a ninguém seria pior que nenhum.
+            <strong>Correções:</strong> um dado ou rótulo errado informado por e-mail ou issue é conferido
+            na fonte original. Confirmado o erro, a regra é corrigida no código e a mudança fica registrada
+            no histórico público do repositório.
           </p>
         </div>
       </Card>

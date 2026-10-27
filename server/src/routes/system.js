@@ -202,6 +202,7 @@ router.get('/meta', async (req, res) => {
       { nome: 'UN Comtrade (ONU) — reserva das exportações', tipo: 'API', url: 'https://comtradeplus.un.org' },
       { nome: 'World Bank Open Data', tipo: 'API', url: 'https://data.worldbank.org' },
       { nome: 'ransomware.live', tipo: 'API', url: 'https://www.ransomware.live' },
+      { nome: 'CISA — catálogo KEV', tipo: 'API', url: 'https://www.cisa.gov/known-exploited-vulnerabilities-catalog' },
     ],
     // O que a plataforma AINDA NÃO faz — contado, não escrito à mão.
     //

@@ -7,6 +7,7 @@ import {
 import { normalizar } from '../lib/relevance.js'
 import { SERIES_BCB } from '../collectors/bcb.js'
 import { panoramaRansomware, alertasRansomware } from '../collectors/ransomware.js'
+import { panoramaKev } from '../collectors/kev.js'
 import { atoresContraBrasil, ator } from '../collectors/atores.js'
 import { exigirPapel } from '../lib/auth.js'
 import { limitar } from '../lib/limite.js'
@@ -364,6 +365,26 @@ router.get('/cyber/ransomware', async (req, res) => {
     return
   }
   res.json(p)
+})
+
+// GET /api/cyber/vulnerabilidades — catálogo KEV da CISA
+//
+// Público: é dado aberto da CISA, sem nada sobre vítimas.
+router.get('/cyber/vulnerabilidades', async (req, res) => {
+  const dias = Math.min(Math.max(parseInt(req.query.days, 10) || 90, 1), 3650)
+  try {
+    const p = await panoramaKev({ dias, limite: limite(req.query.limit, 30, 100) })
+    res.json({
+      ...p,
+      provider: 'CISA — Known Exploited Vulnerabilities',
+      fonteUrl: 'https://www.cisa.gov/known-exploited-vulnerabilities-catalog',
+    })
+  } catch (err) {
+    // 42P01: a tabela ainda não existe porque a migração 0004 não foi aplicada.
+    if (err?.code !== '42P01') throw err
+    res.json({ dias, total: 0, naJanela: 0, comRansomware: 0, ultimaInclusao: null, fabricantes: [], recentes: [],
+      provider: 'CISA — Known Exploited Vulnerabilities', nota: 'Catálogo ainda não coletado.' })
+  }
 })
 
 // ─────────────────────────────────────────────────────────────────────────────

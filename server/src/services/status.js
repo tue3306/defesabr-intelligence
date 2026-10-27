@@ -263,6 +263,16 @@ export async function capacidades() {
       evidencia: (t) => `${t} vítima(s) registradas`,
     }),
     await capacidadeDeColeta({
+      id: 'coleta-kev',
+      nome: 'Vulnerabilidades exploradas',
+      coletor: 'kev',
+      descricao: 'Falhas de software com exploração confirmada em ataques, pelo catálogo público da CISA.',
+      fonte: 'cisa.gov — Known Exploited Vulnerabilities',
+      // Sem a migração 0004 a tabela não existe; o painel segue de pé mostrando zero.
+      contagem: () => contar('SELECT COUNT(*) AS n FROM kev_vulnerabilities').catch(() => 0),
+      evidencia: (t) => `${t} vulnerabilidade(s) no catálogo`,
+    }),
+    await capacidadeDeColeta({
       id: 'coleta-atores',
       nome: 'Atores de ameaça',
       coletor: 'atores',

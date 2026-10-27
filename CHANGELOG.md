@@ -7,6 +7,20 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Não publicado]
 
+### Vulnerabilidades exploradas, limites medidos e responsável
+
+- **Nova coleta: catálogo KEV da CISA** — falhas de software com exploração
+  confirmada em ataques. Coletor `kev` a cada 6 h, tabela `kev_vulnerabilities`
+  (migração `0004`), rota pública `GET /api/cyber/vulnerabilidades` e bloco
+  novo em Ataques cibernéticos. **Em produção, rode `npm run migrate`** antes
+  da próxima coleta.
+- **Metodologia** ganhou "Limites conhecidos e erros medidos": o que já foi
+  medido (lente do mundo, urgência), o que ainda não foi, e links para o
+  arquivo de cada regra no código.
+- **Responsável e contato** na página Sobre e no rodapé, com política de
+  correções.
+- README com capturas de tela das principais telas.
+
 ### Rodada final — testes de ponta a ponta, tema escuro, busca e Projetos de lei
 
 - **Busca** acha telas e conflitos por sinônimos ("exportação armas" →

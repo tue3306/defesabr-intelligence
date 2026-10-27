@@ -32,6 +32,29 @@ O que ameaça o país, antes de virar notícia.
 
 ---
 
+## Telas
+
+| Painel | Notícias do dia |
+|---|---|
+| ![Painel do usuário: nível de alerta, notícias em destaque e alertas](docs/screenshots/painel.jpg) | ![Notícias do dia, com urgência e fonte de cada notícia](docs/screenshots/noticias-do-dia.jpg) |
+| **Ataques cibernéticos** | **Mundo e conflitos** |
+| ![Incidentes no Brasil e falhas de software já usadas em ataques](docs/screenshots/ataques-ciberneticos.jpg) | ![Mapa e teatros de conflito](docs/screenshots/mundo.jpg) |
+| **Projetos de lei** | **Página inicial** |
+| ![Projetos de lei de defesa na Câmara, com a etapa de cada um](docs/screenshots/projetos-de-lei.jpg) | ![Página inicial pública](docs/screenshots/pagina-inicial.jpg) |
+
+<p align="center"><img src="docs/screenshots/painel-celular.jpg" width="260" alt="Painel no celular" /></p>
+
+<sub>Capturas de 27/10/2026, com dados reais coletados na hora.</sub>
+
+## Responsável
+
+Mantido por **[tue3306](https://github.com/tue3306)** — contato: [hoffmann3701@gmail.com](mailto:hoffmann3701@gmail.com).
+Erros de dado ou de classificação podem ser informados por e-mail ou por
+[issue](https://github.com/tue3306/defesabr-intelligence/issues). As regras e o que já foi
+medido sobre os erros delas estão na tela **Metodologia** da plataforma.
+
+---
+
 ## Como entrar
 
 **Crie a sua conta** na tela de entrada, com **usuário e senha** — não há e-mail
@@ -415,6 +438,7 @@ do ambiente; a conta de usuário é criada pela própria suíte e removida no fi
 | [Banco Central (SGS)](https://dadosabertos.bcb.gov.br) | API | Dólar, euro, IPCA, Selic e IGP-M |
 | [Comex Stat (MDIC)](https://comexstat.mdic.gov.br) | API | Exportações de aeronaves e armamento, por país |
 | [ransomware.live](https://www.ransomware.live) | API | Vítimas divulgadas por grupos de extorsão e os perfis dos grupos |
+| [CISA — Known Exploited Vulnerabilities](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) | JSON aberto | Falhas de software com exploração confirmada em ataques |
 
 São **cerca de 60 feeds RSS** — do Brasil e, na área Mundo & Conflitos, do exterior — mais as APIs acima.
 
@@ -433,6 +457,7 @@ ciclo curto não multiplicar chamadas a serviços que não têm nada novo:
 | Feeds RSS e correlações | a cada ciclo (15 min) |
 | ransomware.live e perfis de grupos | 30 min |
 | Câmara, Banco Central, agregadores com chave | 60 min |
+| Catálogo de vulnerabilidades da CISA | 6 h |
 | Comex Stat | 12 h |
 | World Bank | 24 h |
 

@@ -407,6 +407,12 @@ export const PONTES = new Map([
     parametros: ({ days = 365, limit } = {}) => ({ days, limit }),
   }],
 
+  // Falhas de software com exploração confirmada (catálogo KEV da CISA).
+  ['GET /cyber/vulnerabilidades', {
+    caminho: '/cyber/vulnerabilidades',
+    parametros: ({ days = 90, limit } = {}) => ({ days, limit }),
+  }],
+
   // Atores: quem ataca o Brasil, com TTPs e ferramentas.
   ['GET /cyber/atores', { caminho: '/cyber/atores', parametros: ({ limit } = {}) => ({ limit }) }],
 

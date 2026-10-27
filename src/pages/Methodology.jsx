@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   Scale, AlertTriangle, ShieldAlert, Activity, Link2, Filter, Layers, Globe2, Clock,
-  ChevronDown, Info, CheckCircle2, XCircle, Eye, BellRing, Newspaper, Search, ArrowDown,
+  ChevronDown, Info, CheckCircle2, XCircle, Eye, BellRing, Newspaper, Search, ArrowDown, ExternalLink,
 } from 'lucide-react'
 import DataState from '../components/ui/DataState'
 import PageHeader from '../components/ui/PageHeader'
 import { useResource } from '../hooks/useResource'
 import { request } from '../services/client'
 import { urgencyMeta } from '../utils/textUtils'
+import { RESPONSAVEL, codigoFonte } from '../data/responsavel'
 
 // -----------------------------------------------------------------------------
 // COMO A PLATAFORMA DECIDE — página pública que explica cada rótulo da tela.
@@ -102,6 +103,16 @@ const PALAVRAS = {
 }
 
 // Sumário da página: primeiro o essencial, depois o detalhe técnico.
+// Os arquivos que contêm cada régua, para quem quiser conferir a regra exata.
+const REGRAS_NO_CODIGO = [
+  { rotulo: 'Filtro e urgência das notícias', arquivo: 'server/src/lib/relevance.js' },
+  { rotulo: 'Tipo de alvo dos ataques', arquivo: 'server/src/lib/criticidade.js' },
+  { rotulo: 'Nível de alerta do período', arquivo: 'server/src/lib/alerta.js' },
+  { rotulo: 'Força das correlações', arquivo: 'server/src/lib/correlacao.js' },
+  { rotulo: 'Notícias do mundo e teatros', arquivo: 'server/src/lib/mundo.js' },
+  { rotulo: 'Medição da lente do mundo', arquivo: 'server/src/lib/mundo.js#L36' },
+]
+
 const SUMARIO = [
   {
     grupo: 'Em palavras simples',
@@ -123,6 +134,7 @@ const SUMARIO = [
       { id: 'regra-eventos', rotulo: 'Notícias repetidas' },
       { id: 'regra-mundo', rotulo: 'Mundo e teatros de conflito' },
       { id: 'regra-coleta', rotulo: 'Origem e frequência dos dados' },
+      { id: 'limites', rotulo: 'Limites e erros medidos' },
     ],
   },
 ]
@@ -582,10 +594,66 @@ export default function Methodology() {
                   {m.coleta?.cadenciaPorColetor?.camara} min, World Bank a cada{' '}
                   {Math.round((m.coleta?.cadenciaPorColetor?.worldbank || 0) / 60)} h.
                 </li>
+                <li>• Catálogo de vulnerabilidades exploradas da CISA: a cada{' '}
+                  {Math.round((m.coleta?.cadenciaPorColetor?.kev || 0) / 60)} h.
+                </li>
                 <li>• Cobertura internacional fica <strong>{m.coleta?.retencaoMundoDias} dias</strong> no acervo,
                   menos o que alguém guardou na pasta.
                 </li>
               </ul>
+            </Secao>
+
+            <Secao
+              icon={Scale}
+              id="limites"
+              titulo="Limites conhecidos e erros medidos"
+              simples="Toda classificação automática erra. Aqui está o que já foi medido, o que ainda não foi e onde conferir cada regra."
+              onde="Vale para todas as telas."
+            >
+              <h4 className="text-sm font-semibold">O que já foi medido</h4>
+              <ul className="mt-1.5 space-y-1.5 text-sm text-gray-700 dark:text-gray-300">
+                <li>• <strong>Notícias do mundo:</strong> numa amostra de 80 títulos conferidos à mão, 36 de 40
+                  aprovados estavam certos (90%). Estimativa de cobertura: cerca de 80% das notícias que deveriam
+                  entrar, entram.</li>
+                <li>• <strong>Urgência:</strong> uma medição mostrou que 27% das notícias marcadas como críticas eram
+                  expressões como “navio de guerra” ou assunto histórico. Foram criadas exceções; o problema
+                  diminuiu, mas não sumiu.</li>
+              </ul>
+              <h4 className="mt-4 text-sm font-semibold">O que ainda NÃO foi medido</h4>
+              <ul className="mt-1.5 space-y-1.5 text-sm text-gray-700 dark:text-gray-300">
+                <li>• A taxa de erro do filtro de notícias do Brasil, da urgência atual e da força das
+                  correlações. Ainda não existe um conjunto de notícias conferidas à mão para medir isso.
+                  Até lá, trate cada rótulo como indicação, não como certeza.</li>
+                <li>• Os ataques cibernéticos são o que os grupos criminosos <strong>dizem</strong> ter feito.
+                  Ninguém confirma cada caso, e o tipo de alvo usa só o endereço do site e o setor informado.</li>
+              </ul>
+              <h4 className="mt-4 text-sm font-semibold">Confira as regras no código</h4>
+              <ul className="mt-1.5 grid grid-cols-1 gap-1 text-sm sm:grid-cols-2">
+                {REGRAS_NO_CODIGO.map((c) => (
+                  <li key={c.arquivo}>
+                    <a
+                      href={codigoFonte(c.arquivo)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 font-medium text-brand-600 hover:underline dark:text-brand-300"
+                    >
+                      {c.rotulo} <ExternalLink size={12} aria-hidden="true" />
+                      <span className="sr-only">(abre o código no GitHub)</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-4 text-sm text-gray-700 dark:text-gray-300">
+                Achou um rótulo errado? Escreva para{' '}
+                <a href={`mailto:${RESPONSAVEL.email}`} className="font-semibold text-brand-600 hover:underline dark:text-brand-300">
+                  {RESPONSAVEL.email}
+                </a>{' '}
+                ou abra uma{' '}
+                <a href={`${RESPONSAVEL.repoUrl}/issues`} target="_blank" rel="noopener noreferrer" className="font-semibold text-brand-600 hover:underline dark:text-brand-300">
+                  issue no GitHub
+                </a>
+                , com o link da notícia.
+              </p>
             </Secao>
 
             <div className="card border-l-4 border-gold-500 p-5">

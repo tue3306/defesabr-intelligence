@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { setorPt } from '../utils/textUtils'
 import { Link } from 'react-router-dom'
 import {
-  ShieldAlert, Building2, Landmark, Globe2, ExternalLink, Info, Users, Activity,
+  ShieldAlert, Building2, Landmark, Globe2, ExternalLink, Info, Users, Activity, Bug,
 } from 'lucide-react'
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -424,7 +424,94 @@ export default function CyberThreats() {
           </>
         )}
       </DataState>
+
+      <VulnerabilidadesExploradas />
     </div>
+  )
+}
+
+// VULNERABILIDADES EXPLORADAS — catálogo KEV da CISA. Não fala de vítimas
+// brasileiras: fala do software que também roda no Brasil e já foi usado em ataque.
+function VulnerabilidadesExploradas() {
+  const r = useResource(() => request('GET /cyber/vulnerabilidades', { params: { days: 90, limit: 15 } }), [])
+  const k = r.data
+  return (
+    <section className="card p-5" aria-labelledby="titulo-kev">
+      <h2 id="titulo-kev" className="flex items-center gap-2 text-lg font-bold tracking-tight">
+        <Bug size={18} className="text-violet-600 dark:text-violet-300" aria-hidden="true" />
+        Falhas de software já usadas em ataques
+        <InfoTooltip text="Catálogo público da CISA, a agência de cibersegurança dos Estados Unidos. Só entra falha com exploração confirmada em ataque real. Não diz quem foi atacado nem se foi no Brasil." />
+      </h2>
+      <p className="mt-1 text-sm muted">
+        Programas que órgãos e empresas no Brasil também usam. Quem usa um destes deve priorizar a correção.
+      </p>
+      <DataState loading={r.loading} error={r.error} empty={!r.loading && !k?.total} onRetry={r.refetch}>
+        {k && (
+          <>
+            <dl className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="rounded-lg bg-gray-500/5 p-3 dark:bg-white/5">
+                <dt className="text-xs muted">Incluídas nos últimos {k.dias} dias</dt>
+                <dd className="text-2xl font-bold tabular-nums">{k.naJanela}</dd>
+              </div>
+              <div className="rounded-lg bg-gray-500/5 p-3 dark:bg-white/5">
+                <dt className="text-xs muted">Destas, com uso conhecido em ransomware</dt>
+                <dd className="text-2xl font-bold tabular-nums">{k.comRansomware}</dd>
+              </div>
+              <div className="rounded-lg bg-gray-500/5 p-3 dark:bg-white/5">
+                <dt className="text-xs muted">Total no catálogo, desde 2021</dt>
+                <dd className="text-2xl font-bold tabular-nums">{k.total.toLocaleString('pt-BR')}</dd>
+              </div>
+            </dl>
+
+            {k.fabricantes.length > 0 && (
+              <p className="mt-4 text-sm">
+                <span className="font-semibold">Fabricantes que mais aparecem nos últimos {k.dias} dias: </span>
+                {k.fabricantes.map((f) => `${f.fabricante} (${f.total})`).join(', ')}.
+              </p>
+            )}
+
+            <h3 className="mt-5 flex items-center gap-1.5 text-sm font-semibold">
+              Inclusões mais recentes
+              <span className="chip text-[10px]" title="Texto original em inglês">EN</span>
+            </h3>
+            <ul className="mt-2 divide-y divide-gray-100 dark:divide-white/[0.06]">
+              {k.recentes.map((v) => (
+                <li key={v.cve} className="flex flex-col gap-1 py-2.5 sm:flex-row sm:items-start sm:gap-3">
+                  <span className="shrink-0 font-mono text-xs tabular-nums muted sm:w-24 sm:pt-0.5">
+                    {formatDateBR(v.incluidaEm)}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium" lang="en">{v.nome}</p>
+                    <p className="text-xs muted">
+                      {[v.fabricante, v.produto].filter(Boolean).join(' · ')}
+                      {v.usoEmRansomware && (
+                        <span className="ml-2 rounded-full bg-red-500/15 px-2 py-0.5 font-semibold text-red-700 dark:text-red-300">
+                          usada em ransomware
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <a
+                    href={v.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex shrink-0 items-center gap-1 font-mono text-xs font-semibold text-brand-600 hover:underline dark:text-brand-300"
+                  >
+                    {v.cve} <ExternalLink size={11} aria-hidden="true" />
+                    <span className="sr-only">(detalhes no NVD, abre em nova aba)</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-xs muted">
+              Fonte:{' '}
+              <a href={k.fonteUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">{k.provider}</a>
+              {k.ultimaInclusao && `. Última inclusão em ${formatDateBR(k.ultimaInclusao)}`}. Consultado a cada 6 horas.
+            </p>
+          </>
+        )}
+      </DataState>
+    </section>
   )
 }
 

@@ -8,6 +8,7 @@ import { coletarRansomware } from './ransomware.js'
 import { coletarAtores } from './atores.js'
 import { coletarComex } from './comex.js'
 import { coletarBcb } from './bcb.js'
+import { coletarKev } from './kev.js'
 import { calcularCorrelacoes } from './correlacoes.js'
 import { derivarGeografia } from './geografia.js'
 import { gerarNotificacoes } from '../lib/notificacoes.js'
@@ -44,6 +45,7 @@ export const CADENCIA_MINUTOS = {
   bcb: 60,
   worldbank: 24 * 60,
   comex: 12 * 60,    // o próprio coletor também pula dado com menos de 12 h
+  kev: 6 * 60,       // a CISA atualiza o catálogo em dias úteis
   atores: 30,        // renova só perfis com mais de 24 h, em lotes
   geografia: 0,      // derivação local, sem rede
   correlacoes: 0,    // derivação local, sem rede
@@ -162,7 +164,7 @@ export async function coletarTudo(gatilho = 'agendado', { somente } = {}) {
   // ── COLETORES INDEPENDENTES, EM PARALELO ──
   //
   // Cada um busca de um servico diferente e nao depende de nenhum outro.
-  const [noticias, legislativo, indicadores, comex, bcb, agregadores, ransomware] = await Promise.all([
+  const [noticias, legislativo, indicadores, comex, bcb, agregadores, ransomware, vulnerabilidades] = await Promise.all([
     rodar('rss', coletarTodas),
     rodar('camara', coletarCamara),
     rodar('worldbank', coletarWorldBank),
@@ -170,6 +172,7 @@ export async function coletarTudo(gatilho = 'agendado', { somente } = {}) {
     rodar('bcb', coletarBcb),
     rodar('agregadores', coletarAgregadores),
     rodar('ransomware', coletarRansomware),
+    rodar('kev', coletarKev),
   ])
 
   // ── DEPOIS, O QUE DEPENDE DO QUE ACABOU DE ENTRAR ──
@@ -238,6 +241,7 @@ export async function coletarTudo(gatilho = 'agendado', { somente } = {}) {
     // quebrar quem já lia `r.cambio`.
     cambio: bcb,
     comex,
+    vulnerabilidades,
     bcb,
     agregadores,
     ransomware,
