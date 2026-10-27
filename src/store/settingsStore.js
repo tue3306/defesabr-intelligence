@@ -26,6 +26,8 @@ export const useSettingsStore = create(
       interestAreas: [],
       // Onboarding (tour de boas-vindas) — exibido apenas na 1ª visita
       onboardingDone: false,
+      // Primeira visita: inglês se o navegador não estiver em português.
+      idioma: typeof navigator !== 'undefined' && !/^pt/i.test(navigator.language || 'pt') ? 'en' : 'pt',
 
       toggleTheme: () => {
         const next = get().theme === 'dark' ? 'light' : 'dark'
@@ -56,6 +58,7 @@ export const useSettingsStore = create(
         applyDaltonismo(next)
       },
       completeOnboarding: () => set({ onboardingDone: true }),
+      setIdioma: (idioma) => set({ idioma: idioma === 'en' ? 'en' : 'pt' }),
     }),
     // Chave v3: descarta o estado antigo, que trazia as fontes RSS habilitadas
     // por padrao e era a origem dos erros 422 no console.
