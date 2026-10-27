@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { Fragment, useState, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   Landmark, Building, FileText, Filter, X, Download, ChevronRight, ExternalLink,
@@ -19,13 +19,16 @@ import { exportCSV } from '../utils/exportUtils'
 import { formatDateBR } from '../utils/dateUtils'
 
 // As etapas que a situação oficial permite distinguir, na ordem em que ocorrem.
+// O Senado não entra na contagem: a coleta lê só a situação na Câmara.
 const FLOW = ['apresentada', 'comissao', 'plenario', 'sancao', 'aprovado']
+const FLOW_SEM_SANCAO = FLOW.filter((s) => s !== 'sancao')
 
 const STAGE_ICON = {
   pendente: CircleDashed,
   apresentada: FilePlus,
   comissao: CircleDot,
   plenario: Gavel,
+  senado: Building,
   sancao: FileText,
   aprovado: CheckCircle2,
   arquivado: ArchiveIcon,
@@ -38,34 +41,79 @@ const SORTS = [
 ]
 
 // Ordem de avanço para ordenar: arquivada e não consultada vão para o fim.
-const AVANCO = { aprovado: 5, sancao: 4, plenario: 3, comissao: 2, apresentada: 1, arquivado: 0, pendente: -1 }
+const AVANCO = { aprovado: 5, sancao: 4, senado: 3.5, plenario: 3, comissao: 2, apresentada: 1, arquivado: 0, pendente: -1 }
 
-// O que cada sigla quer dizer, para quem não é do ramo. Sigla sem entrada aqui
-// aparece só com o código, como veio da Câmara.
+// O que cada sigla quer dizer, para quem não é do ramo — nomes da tabela de
+// tipos da API da Câmara (/referencias/proposicoes/siglaTipo). Sigla sem
+// entrada aqui aparece só com o código, como veio da Câmara.
 const TIPO_PROPOSICAO = {
   PL: 'Projeto de lei',
   PLP: 'Projeto de lei complementar',
   PEC: 'Proposta de emenda à Constituição',
   PDL: 'Projeto de decreto legislativo',
+  PDC: 'Projeto de decreto legislativo',
   PRC: 'Projeto de resolução',
   MPV: 'Medida provisória',
   PLV: 'Projeto de lei de conversão',
+  PLN: 'Projeto de lei do Congresso Nacional',
   REQ: 'Requerimento',
   RIC: 'Requerimento de informação',
   INC: 'Indicação',
 }
-const tipoDe = (code) => TIPO_PROPOSICAO[/^([A-Z]+)/.exec(code || '')?.[1]] || null
+const siglaDe = (code) => /^([A-Z]+)/.exec(code || '')?.[1] || ''
+const tipoDe = (code) => TIPO_PROPOSICAO[siglaDe(code)] || null
+
+// Como cada tipo tramita (Constituição, arts. 47 a 69, e o portal da Câmara).
+// `fluxo` é o que a contagem "Etapa X de N" usa; `senado` diz se o texto
+// passa pelo Senado depois da Câmara.
+const RITO = {
+  PL: {
+    fluxo: FLOW, senado: true, plenarioOpcional: true,
+    nota: 'Na maioria dos projetos de lei a decisão das comissões é conclusiva: aprovado nelas, o texto segue sem passar pelo plenário. Vai ao plenário se as comissões divergirem ou se um décimo dos deputados recorrer. Depois a outra Casa do Congresso, em geral o Senado, revisa (se mudar o texto, ele volta à Casa onde começou) e o presidente da República sanciona ou veta.',
+  },
+  PLP: {
+    fluxo: FLOW, senado: true,
+    nota: 'Projeto de lei complementar sempre passa pelo plenário e precisa da maioria absoluta (257 dos 513 deputados). Depois a outra Casa do Congresso, em geral o Senado, revisa e o presidente da República sanciona ou veta.',
+  },
+  PEC: {
+    fluxo: FLOW_SEM_SANCAO, senado: true,
+    nota: 'A CCJC analisa se a proposta é admissível e uma comissão especial analisa o conteúdo. O plenário vota em dois turnos e só aprova com três quintos (308 deputados) em cada um; o Senado faz o mesmo. Não há sanção: as Mesas da Câmara e do Senado promulgam a emenda.',
+  },
+  PDL: {
+    fluxo: FLOW_SEM_SANCAO, senado: true,
+    nota: 'Decreto legislativo trata de assunto que a Constituição reserva ao Congresso (art. 49), como aprovar tratados internacionais. Passa pela Câmara e pelo Senado e não vai à sanção do presidente da República.',
+  },
+  PRC: {
+    fluxo: FLOW_SEM_SANCAO, senado: false,
+    nota: 'Projeto de resolução trata de assunto da própria Câmara (art. 51 da Constituição). É votado só na Câmara e não vai à sanção.',
+  },
+  MPV: {
+    fluxo: FLOW, senado: true,
+    nota: 'A medida provisória é editada pelo presidente da República e vale como lei desde a edição, por até 120 dias. Passa por uma comissão mista de deputados e senadores e pelos plenários da Câmara e do Senado. Se o texto for alterado, vira projeto de lei de conversão e vai à sanção; se não, é promulgado pelo Congresso.',
+  },
+}
+RITO.PDC = RITO.PDL
+RITO.PLV = { ...RITO.PL, plenarioOpcional: false, nota: 'Projeto de lei de conversão é o texto de uma medida provisória alterado pelo Congresso; vai à sanção ou veto do presidente da República.' }
+const RITO_PADRAO = { fluxo: FLOW, senado: true, nota: null }
+const ritoDe = (code) => RITO[siglaDe(code)] || RITO_PADRAO
 
 // Uma frase por etapa, para o leitor saber o que o selo significa.
 const SENTIDO_ETAPA = {
-  pendente: 'a plataforma ainda não consultou a situação na Câmara.',
-  apresentada: 'apresentada na Câmara, no início da tramitação.',
-  comissao: 'em análise por uma comissão temática da Câmara.',
-  plenario: 'em discussão ou votação no plenário, com todos os deputados.',
-  sancao: 'aprovada no Congresso, aguardando sanção ou veto do presidente.',
-  aprovado: 'transformada em lei ou norma.',
-  arquivado: 'arquivada, retirada pelo autor ou prejudicada.',
+  pendente: 'a plataforma ainda não consultou a situação desta proposição na Câmara.',
+  apresentada: 'recém-apresentada na Câmara, nos passos iniciais: publicação e despacho do presidente da Casa, que define por quais comissões ela vai passar.',
+  comissao: 'em análise nas comissões da Câmara, onde um relator dá parecer e os membros votam. Em muitos projetos de lei a decisão das comissões é a final na Câmara.',
+  plenario: 'na pauta ou em votação no plenário, com todos os deputados. Nem toda proposição passa por aqui: muitos projetos de lei são decididos só nas comissões.',
+  senado: 'aprovada na Câmara e enviada ao Senado, que revisa o texto (se mudar, ele volta à Câmara). A plataforma só lê a situação na Câmara: o andamento no Senado não é acompanhado aqui.',
+  sancao: 'aprovada pelo Congresso e na última etapa antes de virar norma. Projeto de lei vai à sanção do presidente da República, que tem 15 dias úteis para sancionar ou vetar, no todo ou em parte (o veto volta ao Congresso, que pode derrubá-lo). PEC, decreto legislativo e resolução não têm sanção: são promulgados.',
+  aprovado: 'transformada em norma: lei, emenda constitucional, decreto legislativo ou resolução.',
+  arquivado: 'parou de tramitar sem virar norma: arquivada, retirada pelo autor, devolvida, prejudicada, rejeitada, vetada totalmente ou, no caso de medida provisória, perdeu a eficácia.',
 }
+
+// Fontes oficiais citadas no recolhível "O que significa cada etapa?".
+const FONTES_RITO = [
+  { label: 'Câmara: Entenda o processo legislativo', url: 'https://www.camara.leg.br/entenda-o-processo-legislativo/' },
+  { label: 'Constituição Federal, arts. 59 a 69', url: 'https://www.planalto.gov.br/ccivil_03/constituicao/constituicao.htm#art59' },
+]
 
 /** "PL 1234/2026" → "2026", para quando a data de apresentação ainda não foi consultada. */
 const anoDoCodigo = (code) => /\/(\d{4})\s*$/.exec(code || '')?.[1] || null
@@ -129,7 +177,7 @@ export default function Legislative() {
   const stats = useMemo(() => ({
     total: items.length,
     consultadas: items.filter((i) => i.stage !== 'pendente').length,
-    advanced: items.filter((i) => ['plenario', 'sancao', 'aprovado'].includes(i.stage)).length,
+    advanced: items.filter((i) => ['plenario', 'senado', 'sancao', 'aprovado'].includes(i.stage)).length,
     approved: items.filter((i) => i.stage === 'aprovado').length,
   }), [items])
 
@@ -256,6 +304,24 @@ export default function Legislative() {
                 </li>
               ))}
             </ul>
+            <p className="mt-3 leading-relaxed text-gray-700 dark:text-gray-300">
+              <strong>O caminho muda conforme o tipo.</strong> Projetos de lei passam pelas comissões, às vezes pelo
+              plenário, depois pelo Senado e pela sanção ou veto do presidente da República. PEC, decreto legislativo (PDL)
+              e projeto de resolução (PRC) não vão à sanção, e o projeto de resolução nem passa pelo Senado. Por isso a
+              contagem “Etapa X de N” de cada cartão segue o tipo da proposição.
+            </p>
+            <p className="mt-2 leading-relaxed muted">
+              A etapa é uma leitura automática da frase de situação publicada pela Câmara e pode não captar todos os
+              casos; vale sempre a situação oficial mostrada no detalhe. O andamento no Senado não é acompanhado aqui.
+            </p>
+            <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+              <span className="muted">Fontes:</span>
+              {FONTES_RITO.map((f) => (
+                <a key={f.url} href={f.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 font-semibold text-brand-600 hover:underline dark:text-brand-300">
+                  {f.label} <ExternalLink size={11} aria-hidden="true" />
+                </a>
+              ))}
+            </p>
           </details>
         </div>
 
@@ -339,7 +405,9 @@ function Indicador({ rotulo, valor, dica }) {
 function ProposalCard({ item, onOpen }) {
   const stage = LEG_STAGE[item.stage] || LEG_STAGE.pendente
   const Icon = STAGE_ICON[item.stage] || CircleDot
-  const temBarra = FLOW.includes(item.stage)
+  const { fluxo } = ritoDe(item.code)
+  const posicao = fluxo.indexOf(item.stage)
+  const temBarra = posicao >= 0
 
   return (
     <button onClick={onOpen} className="card w-full p-5 text-left transition-colors hover:border-gold-500/40">
@@ -381,15 +449,15 @@ function ProposalCard({ item, onOpen }) {
           {temBarra && (
             <span
               className="text-xs font-semibold tabular-nums muted"
-              title="Posição no rito de tramitação, não probabilidade de virar lei."
+              title="Posição no rito deste tipo de proposição, lida da situação na Câmara. Não é a probabilidade de virar lei, e nem toda proposição passa por todas as etapas."
             >
-              Etapa {FLOW.indexOf(item.stage) + 1} de {FLOW.length}
+              Etapa {posicao + 1} de {fluxo.length}
             </span>
           )}
         </div>
         {temBarra && (
           <span className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-gray-200 dark:bg-white/10" aria-hidden="true">
-            <span className="block h-full rounded-full bg-gold-500 transition-all" style={{ width: `${stage.pct}%` }} />
+            <span className="block h-full rounded-full bg-gold-500 transition-all" style={{ width: `${((posicao + 1) / fluxo.length) * 100}%` }} />
           </span>
         )}
       </div>
@@ -404,7 +472,11 @@ function ProposalCard({ item, onOpen }) {
 // ── Detalhe com linha do tempo das etapas ────────────────────────────────────
 function ProposalDetail({ item, onAtualizado }) {
   const stage = LEG_STAGE[item.stage] || LEG_STAGE.pendente
-  const currentIndex = FLOW.indexOf(item.stage)
+  const rito = ritoDe(item.code)
+  // "No Senado" não conta como etapa (a coleta não lê o Senado): o plenário
+  // fica concluído e a linha do Senado, destacada.
+  const noSenado = item.stage === 'senado'
+  const currentIndex = noSenado ? rito.fluxo.indexOf('plenario') + 0.5 : rito.fluxo.indexOf(item.stage)
   const [consultando, setConsultando] = useState(false)
 
   const consultar = async () => {
@@ -478,45 +550,74 @@ function ProposalDetail({ item, onAtualizado }) {
 
         {item.stage === 'arquivado' && (
           <p className="mt-2 flex items-center gap-2 rounded-lg bg-gray-500/5 p-3 text-sm muted dark:bg-white/5">
-            <ArchiveIcon size={15} /> Proposição arquivada, retirada ou prejudicada.
+            <ArchiveIcon size={15} /> Proposição encerrada sem virar norma: arquivada, retirada, prejudicada, rejeitada ou vetada.
           </p>
         )}
 
         {currentIndex >= 0 && (
           <ol className="mt-3 space-y-0">
-            {FLOW.map((step, i) => {
+            {rito.fluxo.map((step, i) => {
               const info = LEG_STAGE[step]
               const Icon = STAGE_ICON[step] || CircleDot
               const done = i < currentIndex
               const current = i === currentIndex
-              const last = i === FLOW.length - 1
+              const last = i === rito.fluxo.length - 1
+              // O Senado entra entre o plenário e o fim, sem contar como etapa:
+              // a coleta não lê a situação lá.
+              const senadoDepois = rito.senado && step === 'plenario'
               return (
-                <li key={step} className="flex gap-3">
-                  <div className="flex flex-col items-center">
-                    <span
-                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-                        done ? 'bg-military-green/20 text-emerald-800 dark:text-emerald-400'
-                          : current ? 'bg-gold-500 text-military-darker'
-                            : 'bg-gray-200 text-gray-500 dark:bg-white/10 dark:text-gray-400'
-                      }`}
-                    >
-                      <Icon size={14} />
-                    </span>
-                    {!last && (
+                <Fragment key={step}>
+                  <li className="flex gap-3">
+                    <div className="flex flex-col items-center">
                       <span
-                        className={`w-0.5 flex-1 ${done ? 'bg-military-green/40' : 'bg-gray-200 dark:bg-white/10'}`}
-                        style={{ minHeight: 22 }}
-                      />
-                    )}
-                  </div>
-                  <div className={`pb-4 ${current ? '' : 'opacity-70'}`}>
-                    <p className="text-sm font-semibold leading-tight">{info.label}</p>
-                    {current && <p className="mt-0.5 text-xs text-gold-600 dark:text-gold-400">etapa atual</p>}
-                  </div>
-                </li>
+                        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
+                          done ? 'bg-military-green/20 text-emerald-800 dark:text-emerald-400'
+                            : current ? 'bg-gold-500 text-military-darker'
+                              : 'bg-gray-200 text-gray-500 dark:bg-white/10 dark:text-gray-400'
+                        }`}
+                      >
+                        <Icon size={14} aria-hidden="true" />
+                      </span>
+                      {!last && (
+                        <span
+                          className={`w-0.5 flex-1 ${done ? 'bg-military-green/40' : 'bg-gray-200 dark:bg-white/10'}`}
+                          style={{ minHeight: 22 }}
+                        />
+                      )}
+                    </div>
+                    <div className={`pb-4 ${current ? '' : 'opacity-70'}`}>
+                      <p className="text-sm font-semibold leading-tight">{info.label}</p>
+                      {current && <p className="mt-0.5 text-xs text-gold-600 dark:text-gold-400">etapa atual</p>}
+                      {step === 'plenario' && rito.plenarioOpcional && !current && (
+                        <p className="mt-0.5 text-xs muted">só quando a decisão não fica com as comissões</p>
+                      )}
+                    </div>
+                  </li>
+                  {senadoDepois && (
+                    <li className="flex gap-3">
+                      <div className="flex flex-col items-center">
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-dashed border-gray-300 text-gray-500 dark:border-white/20 dark:text-gray-400">
+                          <Building size={14} aria-hidden="true" />
+                        </span>
+                        <span className="w-0.5 flex-1 bg-gray-200 dark:bg-white/10" style={{ minHeight: 22 }} />
+                      </div>
+                      <div className={`pb-4 ${noSenado ? '' : 'opacity-70'}`}>
+                        <p className="text-sm font-semibold leading-tight">Senado Federal</p>
+                        {noSenado && <p className="mt-0.5 text-xs text-gold-600 dark:text-gold-400">etapa atual</p>}
+                        <p className="mt-0.5 text-xs muted">a outra Casa também vota o texto (depois da Câmara, ou antes, se a proposta começou no Senado); esse andamento não é acompanhado aqui</p>
+                      </div>
+                    </li>
+                  )}
+                </Fragment>
               )
             })}
           </ol>
+        )}
+
+        {rito.nota && (
+          <p className="mt-1 rounded-lg bg-gray-500/5 p-3 text-xs leading-relaxed text-gray-700 dark:bg-white/5 dark:text-gray-300">
+            <strong>Como tramita {siglaDe(item.code) === 'PEC' || siglaDe(item.code) === 'MPV' ? 'uma' : 'um'} {siglaDe(item.code)}:</strong> {rito.nota}
+          </p>
         )}
       </section>
 

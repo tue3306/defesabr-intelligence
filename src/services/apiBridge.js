@@ -535,15 +535,20 @@ export const PONTES = new Map([
  * "norma" e também poderia casar com outros padrões mais genéricos.
  */
 function estagioDe(texto) {
-  // Sem situação consultada não há estágio. Devolvia 'comissao', e 140
-  // proposições apareciam "Em comissão · 35%" sem que ninguém tivesse lido.
+  // Situação oficial da Câmara (tabela codSituacao da API de dados abertos) →
+  // etapa. Sem o órgão onde a proposição está, "Pronta para Pauta" e
+  // "Aguardando Deliberação" valem para comissão e para plenário; ficam em
+  // comissão, o caso mais comum, e o plenário só entra quando o texto o diz.
+  // Sem situação consultada não há etapa.
   if (!texto) return 'pendente'
   const t = texto.toLowerCase()
-  if (/arquivad|retirad|prejudicad|devolvid/.test(t)) return 'arquivado'
-  if (/transformad.*norma|convertid.*lei|sancionad|promulgad/.test(t)) return 'aprovado'
-  if (/remetid.*sanç|aguardando sanç|autógrafo/.test(t)) return 'sancao'
-  if (/plenári|plenario|ordem do dia|pauta/.test(t)) return 'plenario'
-  if (/apresentação de proposição|apresentacao de proposicao|aguardando despacho|aguardando encaminhamento|recebimento/.test(t)) return 'apresentada'
+  if (/transformad[oa] em norma|convertid.*lei|sancionad/.test(t)) return 'aprovado'
+  if (/aguardando deliberação sobre prejudic/.test(t)) return 'comissao'
+  if (/arquiv|retirad|prejudic|devolvid|recusad|perdeu a eficácia|vetad[oa] totalmente|tramitação finalizada|transformad[oa] em nova proposição/.test(t)) return 'arquivado'
+  if (/senado federal/.test(t)) return 'senado'
+  if (/sanç|envio ao executivo|apreciação do veto|autógrafo|promulga/.test(t)) return 'sancao'
+  if (/plenári|plenario|ordem do dia/.test(t)) return 'plenario'
+  if (/apresentação de proposição|apresentacao de proposicao|aguardando despacho do presidente|aguardando distribuição|aguardando encaminhamento|aguardando recebimento|recebido pelo protocolo|aguardando leitura e publicação/.test(t)) return 'apresentada'
   return 'comissao'
 }
 
