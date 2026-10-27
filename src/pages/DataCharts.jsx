@@ -189,10 +189,10 @@ export default function DataCharts() {
 
   // A origem mostrada no cabeçalho acompanha a aba aberta.
   const ORIGEM_DA_ABA = {
-    volume: { texto: 'Acervo de notícias coletadas', vivo: volumeCategoria.aoVivo ?? volume.aoVivo },
-    gastos: { texto: 'World Bank Open Data', vivo: gasto.aoVivo },
-    internacional: { texto: 'World Bank Open Data', vivo: comparacao.aoVivo ?? gasto.aoVivo },
-    risco: { texto: 'Acervo de notícias coletadas', vivo: !!paises.data },
+    volume: { texto: 'Acervo de notícias coletadas', vivo: volumeCategoria.aoVivo ?? volume.aoVivo, carregando: volumeCategoria.carregando },
+    gastos: { texto: 'World Bank Open Data', vivo: gasto.aoVivo, carregando: gasto.carregando },
+    internacional: { texto: 'World Bank Open Data', vivo: comparacao.aoVivo ?? gasto.aoVivo, carregando: comparacao.carregando },
+    risco: { texto: 'Acervo de notícias coletadas', vivo: !!paises.data, carregando: paises.loading },
   }
   const origem = ORIGEM_DA_ABA[tab] || ORIGEM_DA_ABA.volume
 
@@ -204,9 +204,9 @@ export default function DataCharts() {
         description="Os gráficos da plataforma, organizados por tema: volume de notícias, gasto militar, comparação entre países e cobertura por país. Cada gráfico diz o que mostra e de onde vem o dado."
         help="Cada painel declara a sua fonte e o que ela mede. Quando o servidor não responde, o painel mostra a ausência — nenhuma série é substituída por valores de exemplo."
         breadcrumb={[{ label: 'Quadro do país' }, { label: 'Séries e indicadores' }]}
-        badges={<Badge type={origem.vivo ? 'live' : 'sem-dado'} />}
+        badges={<Badge type={origem.vivo ? 'live' : origem.carregando ? 'carregando' : 'sem-dado'} />}
         meta={[
-          { label: 'Fonte', value: origem.vivo ? origem.texto : `${origem.texto} — indisponível` },
+          { label: 'Fonte', value: origem.vivo || origem.carregando ? origem.texto : `${origem.texto} — indisponível` },
         ]}
         actions={
           <button type="button" onClick={recarregar} className="btn-ghost" aria-label="Recarregar as séries de dados">

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import Navbar from './Navbar'
 import Footer from './Footer'
@@ -42,6 +42,19 @@ export default function Layout() {
     mq.addEventListener('change', onChange)
     return () => mq.removeEventListener('change', onChange)
   }, [])
+
+  // Qualquer navegação fecha o menu móvel — inclusive o Voltar do navegador e
+  // links dentro do conteúdo, que não passam pelo clique num item do menu.
+  const { pathname } = useLocation()
+  useEffect(() => { setMobileOpen(false) }, [pathname])
+
+  // Esc fecha o menu móvel.
+  useEffect(() => {
+    if (!mobileOpen) return undefined
+    const onKey = (e) => { if (e.key === 'Escape') setMobileOpen(false) }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [mobileOpen])
 
   // Trava a rolagem do corpo enquanto o menu móvel estiver aberto.
   useEffect(() => {

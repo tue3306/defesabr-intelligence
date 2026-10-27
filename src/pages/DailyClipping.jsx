@@ -20,6 +20,7 @@ import {
   HelpCircle,
   X,
 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import PageHeader from '../components/ui/PageHeader'
 import EmptyState from '../components/ui/EmptyState'
@@ -40,7 +41,7 @@ import { useSettingsStore } from '../store/settingsStore'
 import { useUiStore } from '../store/uiStore'
 import { URGENCY_LEVELS } from '../data/mockData'
 import { alertMeta, categoryColor, clipboard, urgencyMeta, corDoNivel, plural } from '../utils/textUtils'
-import { formatDateBR, formatDateTimeBR, formatFullDate } from '../utils/dateUtils'
+import { formatDateBR, formatDateTimeBR, formatFullDate, timeAgo } from '../utils/dateUtils'
 import { exportClippingToPDF } from '../utils/exportUtils'
 
 // Quem assina a edição: não há redação humana, a seleção é do filtro de relevância.
@@ -439,9 +440,16 @@ function ClippingNewsItem({ news, defaultOpen = false }) {
       .catch(() => toast.error('Não foi possível copiar o link'))
   }
 
+  // O aviso diz onde a notícia ficou e leva até lá.
   const save = () => {
     const added = toggleFavorite(news)
-    toast.success(added ? 'Salvo na sua pasta' : 'Removido da pasta')
+    if (!added) { toast.success('Removido da pasta'); return }
+    toast.success((t) => (
+      <span>
+        Salvo na sua pasta.{' '}
+        <Link to="/arquivo" onClick={() => toast.dismiss(t.id)} className="font-semibold underline">Ver pasta</Link>
+      </span>
+    ))
   }
 
   return (
@@ -451,9 +459,18 @@ function ClippingNewsItem({ news, defaultOpen = false }) {
         <Badge type="category" value={news.category} />
         <span className="muted">{news.source}</span>
         {news.region && <span className="muted">· {news.region}</span>}
+        {news.date && (
+          <time dateTime={news.date} title={formatDateTimeBR(news.date)} className="muted">· {timeAgo(news.date)}</time>
+        )}
       </div>
 
-      <h3 className="mt-2 text-base font-bold leading-snug tracking-tight">{news.title}</h3>
+      <h3 className="mt-2 text-base font-bold leading-snug tracking-tight">
+        {news.url ? (
+          <a href={news.url} target="_blank" rel="noreferrer" className="hover:text-gold-600 hover:underline dark:hover:text-gold-400">
+            {news.title}
+          </a>
+        ) : news.title}
+      </h3>
       {news.summary && (
         <p className="mt-1.5 line-clamp-3 text-sm leading-relaxed text-gray-700 dark:text-gray-300">{news.summary}</p>
       )}
