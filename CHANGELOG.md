@@ -7,6 +7,27 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Não publicado]
 
+### Rodada final — testes de ponta a ponta, tema escuro, busca e Projetos de lei
+
+- **Busca** acha telas e conflitos por sinônimos ("exportação armas" →
+  Indústria, "projeto de lei" → Projetos de lei, "tema escuro" →
+  Configurações) e notícias com as palavras em qualquer ordem.
+- **Menu** com nomes que dizem o que há dentro: Notícias, Ataques
+  cibernéticos, Mundo, Brasil em dados, Ajuda e método.
+- **Painel** com "O observatório em números", um atalho por módulo.
+- **Visita guiada no celular**: o cartão aparecia só após 3,5 s, com a tela
+  escurecida; agora destaca o botão ☰ e aparece em menos de 1 s.
+- **Projetos de lei**: etapas conferidas com a Constituição e a Câmara;
+  regra situação → etapa testada contra as 99 situações oficiais; lista
+  compacta paginada.
+- **Incidentes**: "Tipo de alvo" no lugar de um terceiro sentido para
+  "ALTO/CRÍTICO"; cada número diz o que conta e de quando.
+- **Correlações** agrupadas por notícia; notícias com data; resumos que só
+  repetiam o título escondidos.
+- **Tema escuro e daltonismo**: selos de nível passam a trocar de paleta;
+  eixos e rótulos de gráfico legíveis no escuro.
+- **Exportação**: PDF sem "(s)"; CSVs com colunas e países em português.
+
 ### Acabamento da área logada — cada tela com o essencial primeiro
 
 Revisão de todas as telas de quem entra na plataforma, pensando em quem não é
