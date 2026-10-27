@@ -24,7 +24,7 @@ const STEPS = [
   {
     icon: Shield,
     title: 'Bem-vindo ao DefesaBR Intelligence',
-    text: 'Segurança e Defesa do Brasil a partir de fontes públicas: 60 fontes de notícia do Brasil e do mundo, a Câmara, o Banco Central, o Comex Stat e os sites onde grupos de extorsão divulgam vítimas. Cada número mostra de onde veio.',
+    text: 'Segurança e Defesa do Brasil a partir de fontes públicas: cerca de 60 fontes de notícia do Brasil e do mundo, a Câmara, o Banco Central, o Comex Stat e os sites onde grupos de extorsão divulgam vítimas. Cada número mostra de onde veio.',
   },
   {
     icon: Newspaper,

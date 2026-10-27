@@ -237,7 +237,7 @@ as que alguém guardou na pasta.
 | | |
 |---|---|
 | **Correlações com o Brasil** | Cada matéria cruzada com as organizações atacadas e os grupos do acervo — com o motivo e a evidência literal de cada ligação |
-| **Clipping consolidado** | Matérias de mais de 60 fontes agrupadas por evento, com selo de quantos veículos cobriram cada fato e as fontes originais visíveis |
+| **Clipping consolidado** | Matérias de cerca de 60 fontes agrupadas por evento, com selo de quantos veículos cobriram cada fato e as fontes originais visíveis |
 | **Clipping em PDF** | Documento agrupado por categoria, com o nível de alerta e sua distribuição, e cada matéria trazendo fonte, data, endereço original e os termos que a aprovaram |
 | **Incidentes no Brasil** | Organizações brasileiras divulgadas por grupos de ransomware, com criticidade derivada de domínio e setor, e o recorte do Estado em primeiro plano |
 | **Grupos contra o Brasil** | Quem ataca, quantas organizações brasileiras já expôs e se atingiu o Estado — com técnicas MITRE ATT&CK e ferramentas no perfil de cada grupo |
@@ -416,7 +416,7 @@ do ambiente; a conta de usuário é criada pela própria suíte e removida no fi
 | [Comex Stat (MDIC)](https://comexstat.mdic.gov.br) | API | Exportações de aeronaves e armamento, por país |
 | [ransomware.live](https://www.ransomware.live) | API | Vítimas divulgadas por grupos de extorsão e os perfis dos grupos |
 
-São **mais de 60 feeds RSS** — do Brasil e, na área Mundo & Conflitos, do exterior — mais as APIs acima.
+São **cerca de 60 feeds RSS** — do Brasil e, na área Mundo & Conflitos, do exterior — mais as APIs acima.
 
 ### O ciclo de coleta: 15 minutos, com cadência por fonte
 

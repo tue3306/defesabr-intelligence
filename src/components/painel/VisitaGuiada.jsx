@@ -38,7 +38,7 @@ const PASSOS = [
     rota: '/painel',
     alvo: 'alerta',
     titulo: 'Painel: o resumo do dia',
-    texto: 'A coleta roda sozinha a cada 15 minutos, em mais de 60 fontes. O nível de alerta é a média da urgência das notícias dos últimos 7 dias, de 0 a 100.',
+    texto: 'A coleta roda sozinha a cada 15 minutos, em cerca de 60 fontes. O nível de alerta é a média da urgência das notícias dos últimos 7 dias, de 0 a 100.',
     ms: 6000,
   },
   {
