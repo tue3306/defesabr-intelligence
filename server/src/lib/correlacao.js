@@ -312,10 +312,10 @@ async function regraGrupo(artigo) {
       alvoTipo: 'ator',
       alvoId: g.nome,
       alvoRotulo: g.nome,
-      motivo: `A matéria cita o grupo ${g.nome}, que tem ${g.total} organização(ões) brasileira(s) `
+      motivo: `A matéria cita o grupo ${g.nome}, que tem ${g.total} ${g.total === 1 ? 'organização brasileira' : 'organizações brasileiras'} `
         + `com vazamento divulgado — a mais recente em ${(g.ultima || '').slice(0, 10) || 'data não informada'}.`,
       evidencia: `"${g.nome}" no texto`,
-      contextoBr: `${g.total} vítima(s) no Brasil registradas no acervo desta plataforma.`,
+      contextoBr: `${g.total} ${g.total === 1 ? 'vítima no Brasil registrada' : 'vítimas no Brasil registradas'} no acervo desta plataforma.`,
       impacto: 'Grupo com atividade comprovada contra alvos brasileiros: as TTPs do perfil dele '
         + 'descrevem como ele entra, e valem como lista de verificação defensiva.',
       forca: FORCA.GRUPO,
@@ -358,8 +358,8 @@ async function regraUf(artigo, entidades) {
       alvoTipo: 'uf',
       alvoId: u.id,
       alvoRotulo: u.nome,
-      motivo: `A matéria menciona ${u.nome}, e ${total} órgão(s) público(s) com domínio `
-        + `.${u.id.toLowerCase()}.gov.br constam na lista de vazamentos divulgados.`,
+      motivo: `A matéria menciona ${u.nome}, e ${total} ${total === 1 ? 'órgão público' : 'órgãos públicos'} com domínio `
+        + `.${u.id.toLowerCase()}.gov.br ${total === 1 ? 'consta' : 'constam'} na lista de vazamentos divulgados.`,
       evidencia: `domínios terminados em .${u.id.toLowerCase()}.gov.br: ${linhas.map((l) => l.website).join(', ')}`,
       contextoBr: `Órgãos estaduais e municipais de ${u.nome} atingidos, o mais recente divulgado `
         + `em ${(linhas[0].discovered_at || '').slice(0, 10) || 'data não informada'}.`,
@@ -411,10 +411,10 @@ async function regraSetor(artigo, entidades) {
       alvoTipo: 'setor',
       alvoId: cat.id,
       alvoRotulo: cat.nome,
-      motivo: `A matéria trata do setor ${cat.nome}, e ${total} organização(ões) brasileira(s) desse `
-        + `setor tiveram vazamento divulgado nos últimos ${JANELA_DIAS} dias.`,
+      motivo: `A matéria trata do setor ${cat.nome}, e ${total} ${total === 1 ? 'organização brasileira' : 'organizações brasileiras'} desse `
+        + `setor ${total === 1 ? 'teve' : 'tiveram'} vazamento divulgado nos últimos ${JANELA_DIAS} dias.`,
       evidencia: `termo "${s.termo}" no texto; setor da fonte: ${cat.equivalentes.join(' / ')}`,
-      contextoBr: `${total} incidente(s) no setor no período. Mais recentes: `
+      contextoBr: `${total} ${total === 1 ? 'incidente' : 'incidentes'} no setor no período. Mais recentes: `
         + `${linhas.slice(0, 3).map((l) => l.victim).join('; ')}.`,
       impacto: cat.critico
         ? 'Setor tratado como infraestrutura crítica pela Política Nacional de Segurança de '
