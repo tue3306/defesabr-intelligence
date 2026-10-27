@@ -15,8 +15,10 @@ export const tooltipStyle = {
   itemStyle: { color: '#f1f5f9' },
 }
 
+// Texto dos eixos: preenchido (`fill`), não contornado — com `stroke` o
+// número fica borrado. #64748b dá 4,7:1 sobre branco.
 export const axisStyle = {
-  stroke: '#64748b',
+  fill: '#64748b',
   fontSize: 11,
 }
 

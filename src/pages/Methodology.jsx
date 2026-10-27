@@ -5,46 +5,19 @@ import {
   ChevronDown, Info, CheckCircle2, XCircle, Eye, BellRing, Newspaper, Search, ArrowDown,
 } from 'lucide-react'
 import DataState from '../components/ui/DataState'
+import PageHeader from '../components/ui/PageHeader'
 import { useResource } from '../hooks/useResource'
 import { request } from '../services/client'
 import { urgencyMeta } from '../utils/textUtils'
 
 // -----------------------------------------------------------------------------
-// COMO A PLATAFORMA DECIDE — a página que explica cada número da tela
+// COMO A PLATAFORMA DECIDE — página pública que explica cada rótulo da tela.
+// Primeiro em palavras simples (os níveis, as réguas, a correlação); depois a
+// régua exata, lida de `/api/metodo` com os valores reais. Cada escala diz
+// também o que ela NÃO significa.
 //
-// A plataforma classifica o mundo: esta matéria é CRÍTICA, este incidente é
-// grave, o período está em ATENÇÃO, esta ligação tem força 4. Cada uma dessas
-// réguas existia escrita no código e publicada em alguma rota — só que em
-// rotas que exigem conta de administrador, ou sessão. Quem VIA o selo não
-// tinha como chegar à régua.
-//
-// Um selo "CRÍTICO" que ninguém pode contestar é decoração. Esta página é
-// pública e mostra os valores REAIS, lidos de `/api/metodo`: os pesos do
-// índice de alerta, os degraus da criticidade, as sete regras de correlação
-// com a força de cada uma, o vocabulário da urgência.
-//
-// ESCRITA PARA QUEM NUNCA VIU O ASSUNTO. Cada bloco começa com uma frase em
-// linguagem de todo dia ("Em palavras simples"), e só depois vem a regra
-// técnica. Termo de jargão que aparece uma vez é explicado ali mesmo. Se a
-// pessoa parar de ler no primeiro parágrafo, ela já entendeu o essencial.
-//
-// E cada escala diz o que ela NÃO significa. É a parte que mais importa num
-// produto de inteligência: "volume de cobertura" não é risco, "urgência" não é
-// gravidade, "correlação" não é causa.
-// -----------------------------------------------------------------------------
-
-// -----------------------------------------------------------------------------
-// O GUIA DOS NÍVEIS — em linguagem de todo dia, antes de qualquer régua
-//
-// A página explicava COMO cada nível é calculado, com a lista de palavras. O
-// que faltava era o que qualquer pessoa pergunta primeiro: "recebi um alerta
-// ALTO — e agora?". Cada nível responde a quatro perguntas: o que significa,
-// quanta atenção pede, que tipo de fato o produz, e o que fazer ao recebê-lo.
-//
-// Os nomes são os que o sistema já usa (CRÍTICO, ALTO, MÉDIO, BAIXO) — não
-// uma escala nova inventada para esta página. Os exemplos marcados como
-// "do acervo" são manchetes reais coletadas pela plataforma; os demais são
-// ilustrativos, e dizem isso.
+// GUIA: os nomes de nível são os que o sistema já usa. Os exemplos marcados
+// como "do acervo" são manchetes reais; os demais são ilustrativos e dizem isso.
 // -----------------------------------------------------------------------------
 const GUIA = [
   {
@@ -88,14 +61,8 @@ const GUIA = [
   },
 ]
 
-// -----------------------------------------------------------------------------
-// O MESMO GUIA PARA A CRITICIDADE DE UM INCIDENTE CIBERNÉTICO
-//
-// A urgência mede NOTÍCIA; a criticidade mede o ALVO de um ataque divulgado
-// por um grupo de extorsão — quem foi atingido, e o quanto isso importa para
-// o Brasil. Os critérios são os de `lib/criticidade.js` (domínio e setor da
-// vítima), escritos aqui em palavras de todo dia.
-// -----------------------------------------------------------------------------
+// A criticidade mede o ALVO de um ataque divulgado por um grupo de extorsão
+// (critérios de `lib/criticidade.js`), não a notícia.
 const GUIA_CRITICIDADE = [
   {
     nivel: 'CRITICO',
@@ -127,13 +94,42 @@ const GUIA_CRITICIDADE = [
   },
 ]
 
-// Palavras com acento, para a tela: as listas do servidor são guardadas sem
-// acento ("colisao", "invasao") porque é assim que a comparação é feita — e
-// escritas assim na tela pareciam erro de digitação.
+// As listas do servidor são guardadas sem acento; para a tela, com acento.
 const PALAVRAS = {
   CRITICO: 'ataque, invasão, bombardeio, explosão, abatido, sequestro, mortos',
   ALTO: 'guerra, crise, confronto, emergência, operação, ameaça, investigação, sanções',
   MEDIO: 'acordo, contrato, exercício, visita, entrega, licitação, parceria',
+}
+
+// Sumário da página: primeiro o essencial, depois o detalhe técnico.
+const SUMARIO = [
+  {
+    grupo: 'Em palavras simples',
+    itens: [
+      { id: 'niveis', rotulo: 'Níveis de urgência de uma notícia' },
+      { id: 'criticidade', rotulo: 'Criticidade de um ataque cibernético' },
+      { id: 'reguas', rotulo: 'Quatro réguas diferentes' },
+      { id: 'correlacao', rotulo: 'Como a correlação funciona' },
+    ],
+  },
+  {
+    grupo: 'A régua exata',
+    itens: [
+      { id: 'regra-urgencia', rotulo: 'Urgência' },
+      { id: 'regra-criticidade', rotulo: 'Criticidade' },
+      { id: 'regra-alerta', rotulo: 'Nível de alerta' },
+      { id: 'regra-correlacao', rotulo: 'Força da correlação' },
+      { id: 'regra-filtro', rotulo: 'O filtro de notícias' },
+      { id: 'regra-eventos', rotulo: 'Notícias repetidas' },
+      { id: 'regra-mundo', rotulo: 'Mundo e teatros de conflito' },
+      { id: 'regra-coleta', rotulo: 'Origem e frequência dos dados' },
+    ],
+  },
+]
+
+// O roteador usa hash (#/metodologia), então a âncora rola via JS.
+function irPara(id) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 export default function Methodology() {
@@ -151,22 +147,16 @@ export default function Methodology() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <header className="card p-6 sm:p-8">
-        <div className="mb-4 flex items-center gap-3">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-500/15 text-brand-400 dark:text-brand-300">
-            <Scale size={26} />
-          </span>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Como a plataforma decide</h1>
-            <p className="text-sm muted">Cada número da tela, explicado — e a régua que o produziu</p>
-          </div>
-        </div>
+      <PageHeader
+        icon={Scale}
+        title="Como a plataforma decide"
+        description="O que cada rótulo da tela quer dizer, como é calculado e o que ele não quer dizer."
+        breadcrumb={[{ label: 'Recursos' }, { label: 'Como decidimos' }]}
+      >
         <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
-          Esta plataforma lê notícias e dados públicos e coloca rótulos neles: <strong>urgência</strong> de
+          A plataforma lê notícias e dados públicos e coloca rótulos neles: <strong>urgência</strong> de
           uma matéria, <strong>criticidade</strong> de um ataque, <strong>nível de alerta</strong> do
-          período, <strong>força</strong> de uma ligação entre dois fatos. Esta página mostra, em
-          linguagem simples, o que cada rótulo quer dizer, como ele é calculado e — o mais importante —
-          o que ele <em>não</em> quer dizer.
+          período e <strong>força</strong> de uma ligação entre dois fatos.
         </p>
         <p className="mt-3 rounded-lg bg-brand-500/10 p-3 text-sm leading-relaxed text-gray-800 dark:text-gray-200">
           <strong>A regra que vale para tudo:</strong> a plataforma mede <strong>o que foi publicado</strong>,
@@ -174,14 +164,31 @@ export default function Methodology() {
           qualquer pessoa pode conferir. Não há inteligência artificial, não há adivinhação e não há
           opinião de editor em nenhuma das contas.
         </p>
-      </header>
+      </PageHeader>
 
-      {/* ── ÍNDICE RÁPIDO ── */}
-      <nav aria-label="Nesta página" className="flex flex-wrap gap-2 text-xs">
-        <a href="#niveis" onClick={(e) => { e.preventDefault(); document.getElementById('niveis')?.scrollIntoView({ behavior: 'smooth' }) }} className="btn-ghost px-3 py-1.5 text-xs"><ArrowDown size={13} aria-hidden="true" /> Os níveis, em palavras simples</a>
-        <a href="#criticidade" onClick={(e) => { e.preventDefault(); document.getElementById('criticidade')?.scrollIntoView({ behavior: 'smooth' }) }} className="btn-ghost px-3 py-1.5 text-xs"><ArrowDown size={13} aria-hidden="true" /> Criticidade de ataques</a>
-        <a href="#reguas" onClick={(e) => { e.preventDefault(); document.getElementById('reguas')?.scrollIntoView({ behavior: 'smooth' }) }} className="btn-ghost px-3 py-1.5 text-xs"><ArrowDown size={13} aria-hidden="true" /> As quatro réguas</a>
-        <a href="#correlacao" onClick={(e) => { e.preventDefault(); document.getElementById('correlacao')?.scrollIntoView({ behavior: 'smooth' }) }} className="btn-ghost px-3 py-1.5 text-xs"><ArrowDown size={13} aria-hidden="true" /> Como a correlação funciona</a>
+      {/* ── SUMÁRIO ── */}
+      <nav aria-label="Nesta página" className="card p-5">
+        <h2 className="text-sm font-bold">Nesta página</h2>
+        <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {SUMARIO.map((g) => (
+            <div key={g.grupo}>
+              <p className="text-[11px] font-semibold uppercase tracking-wider muted">{g.grupo}</p>
+              <ol className="mt-1.5 space-y-0.5">
+                {g.itens.map((it) => (
+                  <li key={it.id}>
+                    <a
+                      href={`#${it.id}`}
+                      onClick={(e) => { e.preventDefault(); irPara(it.id) }}
+                      className="inline-flex items-center gap-1.5 rounded py-1 text-sm font-medium text-brand-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:text-brand-300"
+                    >
+                      <ArrowDown size={13} aria-hidden="true" /> {it.rotulo}
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ))}
+        </div>
       </nav>
 
       {/* ── OS NÍVEIS, EM PALAVRAS SIMPLES ── */}
@@ -352,13 +359,20 @@ export default function Methodology() {
         </Link>
       </section>
 
-      <h2 className="pt-2 text-sm font-bold uppercase tracking-wider muted">A régua exata de cada escala</h2>
+      <div className="pt-2">
+        <h2 className="text-lg font-bold tracking-tight">A régua exata de cada escala</h2>
+        <p className="mt-1 text-sm muted">
+          Os valores abaixo são lidos do servidor no momento em que a página abre: são os mesmos que
+          a plataforma usa nas contas.
+        </p>
+      </div>
 
       <DataState loading={r.loading} error={r.error} empty={!r.loading && !m} onRetry={r.refetch}>
         {m && (
           <>
             <Secao
               icon={AlertTriangle}
+              id="regra-urgencia"
               titulo="Urgência de uma notícia"
               simples="É o quanto a notícia pede atenção AGORA. Sai das palavras que o jornalista usou no título: “ataque” e “morte” pesam mais que “acordo” e “visita”."
               onde="Aparece como etiqueta colorida em cada matéria do Clipping, da busca e da pasta."
@@ -379,8 +393,6 @@ export default function Methodology() {
                 ))}
               </div>
               <Regra texto={m.urgencia?.regra} />
-              {/* As exceções vinham na API e não apareciam: quem via "ataque" marcado
-                  como MÉDIO não tinha como saber por quê. */}
               {m.urgencia?.guardas?.length > 0 && (
                 <Recolhivel titulo="Quando a palavra não basta: as exceções que baixam o nível">
                   <ul className="space-y-2">
@@ -398,6 +410,7 @@ export default function Methodology() {
 
             <Secao
               icon={ShieldAlert}
+              id="regra-criticidade"
               titulo="Criticidade de um ataque cibernético"
               simples="Quando um grupo criminoso divulga que atacou uma organização, a plataforma pergunta: o quanto isso importa para o Brasil? Um ministério pesa mais que uma loja."
               onde="Aparece em Incidentes no Brasil e na página de cada país."
@@ -422,7 +435,7 @@ export default function Methodology() {
                   <ul className="mt-1.5 space-y-1.5">
                     {m.criticidade.foraDaConta.map((t) => (
                       <li key={t} className="flex gap-2 text-sm text-gray-700 dark:text-gray-300">
-                        <XCircle size={15} className="mt-0.5 shrink-0 text-gray-400" />
+                        <XCircle size={15} className="mt-0.5 shrink-0 text-gray-400" aria-hidden="true" />
                         <span>{t}</span>
                       </li>
                     ))}
@@ -434,6 +447,7 @@ export default function Methodology() {
 
             <Secao
               icon={Activity}
+              id="regra-alerta"
               titulo="Nível de alerta do período"
               simples="Um número de 0 a 100 que resume o quanto o período foi agitado. É a média das urgências de todas as matérias aprovadas — não de uma seleção."
               onde="Aparece no Painel, na faixa de indicadores do topo e no modo apresentação."
@@ -464,6 +478,7 @@ export default function Methodology() {
 
             <Secao
               icon={Link2}
+              id="regra-correlacao"
               titulo="Força de uma correlação (1 a 5)"
               simples="A plataforma liga uma notícia a um ataque já registrado quando encontra o MESMO nome, o mesmo endereço de site ou a mesma cidade. A força diz o quanto essa ligação é firme: 5 é o mesmo endereço; 2 é só o mesmo setor."
               onde="Aparece na tela de Correlações e nos cartões de matéria com ligação."
@@ -486,7 +501,7 @@ export default function Methodology() {
                   <ul className="space-y-2">
                     {m.correlacao.guardas.map((t) => (
                       <li key={t} className="flex gap-2 text-sm text-gray-700 dark:text-gray-300">
-                        <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                        <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
                         <span>{t}</span>
                       </li>
                     ))}
@@ -498,6 +513,7 @@ export default function Methodology() {
 
             <Secao
               icon={Filter}
+              id="regra-filtro"
               titulo="O filtro: por que uma notícia entra ou não"
               simples="As fontes publicam de tudo — futebol, celebridade, economia. Só entra no acervo o texto que tem palavra inequívoca de defesa, e ela precisa aparecer logo no começo."
               onde="Cada matéria guarda os termos que a aprovaram; o botão “por que está aqui?” mostra a decisão."
@@ -519,6 +535,7 @@ export default function Methodology() {
 
             <Secao
               icon={Layers}
+              id="regra-eventos"
               titulo="Por que a mesma notícia aparece uma vez só"
               simples="Cinco jornais cobrem o mesmo fato com títulos diferentes. A plataforma junta os cinco num evento só e mostra quantos veículos cobriram — porque isso é informação, e cinco linhas parecidas são ruído."
               onde="Notícias do dia, na visão por eventos."
@@ -528,6 +545,7 @@ export default function Methodology() {
 
             <Secao
               icon={Globe2}
+              id="regra-mundo"
               titulo="A lente do mundo e os teatros de conflito"
               simples="O filtro principal é sobre a defesa DO BRASIL. Para acompanhar guerras e a política de defesa de outros países existe uma segunda régua, que aprova segurança internacional em português e inglês."
               onde="Área Mundo & Conflitos."
@@ -550,6 +568,7 @@ export default function Methodology() {
 
             <Secao
               icon={Clock}
+              id="regra-coleta"
               titulo="De onde vem o dado, e de quanto em quanto tempo"
               simples="Um servidor lê as fontes sozinho, de tempos em tempos. Nada aqui é digitado à mão."
               onde="O painel do administrador mostra cada execução da coleta, com duração e erro."
@@ -571,7 +590,7 @@ export default function Methodology() {
 
             <div className="card border-l-4 border-gold-500 p-5">
               <p className="flex items-start gap-2 text-sm leading-relaxed text-gray-800 dark:text-gray-200">
-                <Info size={18} className="mt-0.5 shrink-0 text-gold-600 dark:text-gold-400" />
+                <Info size={18} className="mt-0.5 shrink-0 text-gold-600 dark:text-gold-400" aria-hidden="true" />
                 <span>{m.ressalvaGeral}</span>
               </p>
               <p className="mt-3 text-sm muted">
@@ -594,13 +613,13 @@ export default function Methodology() {
 }
 
 /** Um bloco: o que é em linguagem simples, onde aparece, e a régua. */
-function Secao({ icon: Icon, titulo, simples, onde, children }) {
+function Secao({ id, icon: Icon, titulo, simples, onde, children }) {
   return (
-    <section className="card p-5 sm:p-6">
-      <h2 className="flex items-center gap-2.5 text-lg font-bold tracking-tight">
-        <Icon size={19} className="shrink-0 text-brand-400 dark:text-brand-300" />
+    <section id={id} className="card scroll-mt-24 p-5 sm:p-6" aria-labelledby={`${id}-titulo`}>
+      <h3 id={`${id}-titulo`} className="flex items-center gap-2.5 text-lg font-bold tracking-tight">
+        <Icon size={19} className="shrink-0 text-brand-400 dark:text-brand-300" aria-hidden="true" />
         {titulo}
-      </h2>
+      </h3>
       <p className="mt-2 rounded-lg bg-brand-500/10 p-3 text-sm leading-relaxed text-gray-800 dark:text-gray-200">
         <strong>Em palavras simples:</strong> {simples}
       </p>
@@ -623,7 +642,7 @@ function NaoQuerDizer({ texto }) {
   if (!texto) return null
   return (
     <p className="mt-3 flex items-start gap-2 rounded-lg bg-gray-500/5 p-3 text-sm leading-relaxed muted dark:bg-white/5">
-      <AlertTriangle size={15} className="mt-0.5 shrink-0" />
+      <AlertTriangle size={15} className="mt-0.5 shrink-0" aria-hidden="true" />
       <span><strong>O que isso NÃO quer dizer:</strong> {texto}</span>
     </p>
   )
@@ -635,12 +654,13 @@ function Recolhivel({ titulo, children }) {
   return (
     <div className="mt-3">
       <button
+        type="button"
         onClick={() => setAberto((a) => !a)}
         aria-expanded={aberto}
         className="flex w-full items-center justify-between gap-2 rounded-lg bg-gray-500/5 px-3 py-2 text-left text-sm font-semibold hover:bg-gray-500/10 dark:bg-white/5 dark:hover:bg-white/10"
       >
         {titulo}
-        <ChevronDown size={16} className={`shrink-0 transition-transform ${aberto ? 'rotate-180' : ''}`} />
+        <ChevronDown size={16} className={`shrink-0 transition-transform ${aberto ? 'rotate-180' : ''}`} aria-hidden="true" />
       </button>
       {aberto && <div className="mt-2">{children}</div>}
     </div>

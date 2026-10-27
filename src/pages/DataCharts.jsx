@@ -1,18 +1,13 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   BarChart3,
   RefreshCw,
-  Lock,
   FileSpreadsheet,
   Layers,
   Wallet,
   Globe2,
   ShieldAlert,
-  TrendingUp,
-  TrendingDown,
-  Minus,
 } from 'lucide-react'
 import PageHeader from '../components/ui/PageHeader'
 import Badge from '../components/ui/Badge'
@@ -20,8 +15,6 @@ import InfoTooltip from '../components/ui/InfoTooltip'
 import DataState from '../components/ui/DataState'
 import { SkeletonChart } from '../components/ui/Skeleton'
 import ErrorBoundary from '../components/system/ErrorBoundary'
-import Sparkline from '../components/charts/Sparkline'
-import NewsVolumeChart from '../components/charts/NewsVolumeChart'
 import SentimentChart from '../components/charts/SentimentChart'
 import MilitarySpendingChart from '../components/charts/MilitarySpendingChart'
 import BrazilDefenseBudget from '../components/charts/BrazilDefenseBudget'
@@ -42,35 +35,15 @@ import { exportCSV } from '../utils/exportUtils'
 // Abas evitam a "parede de gráficos": cada aba responde a uma pergunta.
 // -----------------------------------------------------------------------------
 
+const fmtNum = (v, casas) => Number(v).toLocaleString('pt-BR', { maximumFractionDigits: casas })
+
 const TABS = [
   { id: 'volume', label: 'Volume & Categorias', icon: Layers },
   { id: 'gastos', label: 'Gastos militares', icon: Wallet },
   { id: 'internacional', label: 'Comparação internacional', icon: Globe2 },
-  // Nao e risco: e volume de cobertura. Ver a nota em GlobalHeatmap — a
-  // legenda dizia "Critico" para contagem de mencoes, e o rotulo da aba
-  // dizia a mesma coisa errada uma tela antes.
+  // Mede volume de cobertura, não risco (ver GlobalHeatmap).
   { id: 'risco', label: 'Cobertura por país', icon: ShieldAlert },
 ]
-
-// A série real cobre 14 dias; janelas maiores são PROJEÇÃO demonstrativa.
-// Aqui viviam VOLUME_PERIODS, VOLUME_ANCHOR e buildVolumeSeries(): um seletor
-// de 14/30/90 dias e uma funcao que, quando o periodo pedido excedia o dado
-// disponivel, PREENCHIA os dias que faltavam repetindo o ciclo observado com
-// uma modulacao senoidal fixa.
-//
-// A funcao ja tinha um guarda — com dado ao vivo, devolvia so o que existia —,
-// e o proprio comentario dela dizia por que: "seria apresentar dia inventado
-// ao lado de dia coletado, no mesmo grafico, sem distincao possivel para quem
-// olha". Com o servidor no ar, ela nunca extrapolava.
-//
-// Estava morta de duas maneiras. O seletor de periodo nunca foi ligado
-// (`setVolumePeriod` jamais era chamado, entao o grafico ficava preso em 14
-// dias), e `volumeSeries` era calculado num useMemo e nunca renderizado.
-//
-// Saiu inteira. Codigo de fabricacao sem consumidor e pior que codigo de
-// fabricacao em uso: ninguem o ve funcionando errado, e alguem o reimporta.
-// O grafico consome `useNewsVolume(14)` direto, que e medido.
-
 
 /** Exportação de uma série em CSV. A tela exige sessão, e toda conta exporta. */
 function ExportCSVButton({ rows, filename, label }) {
@@ -81,7 +54,7 @@ function ExportCSVButton({ rows, filename, label }) {
       className="chip transition-colors hover:border-gold-500/40 hover:text-gold-600 dark:hover:text-gold-400"
       aria-label={`Exportar ${label} em CSV`}
     >
-      <FileSpreadsheet size={12} /> CSV
+      <FileSpreadsheet size={12} aria-hidden="true" /> CSV
     </button>
   )
 }
@@ -92,7 +65,7 @@ function ExportCSVButton({ rows, filename, label }) {
  * ErrorBoundary para que uma falha de gráfico não derrube a aba inteira.
  */
 function ChartPanel({
-  title, subtitle, method, badge = 'sem-dado', rows, filename, controls, footnote, className = '', children,
+  title, subtitle, method, source, badge = 'sem-dado', rows, filename, controls, footnote, className = '', children,
 }) {
   return (
     <motion.section
@@ -108,10 +81,11 @@ function ChartPanel({
             {title}
             {method && <InfoTooltip text={method} label={`Metodologia — ${title}`} />}
           </h2>
-          {subtitle && <p className="mt-0.5 text-xs muted">{subtitle}</p>}
+          {subtitle && <p className="mt-0.5 max-w-2xl text-xs leading-relaxed muted">{subtitle}</p>}
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <Badge type={badge} />
+          {/* "Dado real" já aparece no cabeçalho da página; aqui, só a ausência. */}
+          {badge !== 'live' && <Badge type={badge} />}
           {rows?.length > 0 && <ExportCSVButton rows={rows} filename={filename} label={title} />}
         </div>
       </header>
@@ -120,7 +94,12 @@ function ChartPanel({
 
       <ErrorBoundary variant="inline" scope={title}>{children}</ErrorBoundary>
 
-      {footnote && <p className="mt-3 text-[11px] leading-relaxed muted">{footnote}</p>}
+      {(footnote || source) && (
+        <p className="mt-3 text-[11px] leading-relaxed muted">
+          {footnote}{footnote && source ? ' ' : ''}
+          {source && <>Fonte: {source}.</>}
+        </p>
+      )}
     </motion.section>
   )
 }
@@ -153,24 +132,9 @@ function ToggleGroup({ label, options, value, onChange }) {
 
 export default function DataCharts() {
   const [tab, setTab] = useState('volume')
-  const [spendingMode, setSpendingMode] = useState('dual')
+  const [spendingMode, setSpendingMode] = useState('usd')
 
-  // Gasto militar do Brasil: World Bank com fallback demonstrativo.
-  // Aqui viviam dois `useResource` que chamavam clientes de API do NAVEGADOR,
-  // ambos com queda para `mockData`:
-  //
-  //   `spending` buscava os dólares reais no World Bank e os MESCLAVA com o
-  //   `brl` e o `pctGdp` do mock — uma série metade coletada e metade
-  //   inventada, sem marca dizendo qual coluna era qual. Falhando a consulta,
-  //   virava mock inteiro. E o hook real `useGastoMilitar()`, que lê o mesmo
-  //   indicador pelo SERVIDOR, já era chamado três linhas abaixo e descartado.
-  //
-  //   `stocks` era pior: `fetchDefensePortfolio()` não chegava a fazer
-  //   requisição nenhuma. Retornava o portfólio escrito à mão direto, sempre,
-  //   com a justificativa de poupar cota de uma API que nunca era consultada.
-  //   Preços e variações de ações de fabricantes, inventados, numa tela de
-  //   dados. O painel saiu inteiro: não há fonte pública gratuita para isso, e
-  //   cotação inventada é a que mais parece verdadeira.
+  // Todas as séries vêm do servidor; sem resposta, o painel mostra a ausência.
   const volume = useNewsVolume(14)
   const gasto = useGastoMilitar()
   const comparacao = useComparacaoPIB('vizinhanca')
@@ -181,7 +145,9 @@ export default function DataCharts() {
   const regioes = useRegioesEstrategicas(180)
   // A mesma consulta que o <GlobalHeatmap /> faz internamente, para que o CSV
   // exportado ao lado do mapa carregue os números que o mapa pinta.
-  const paises = useResource(() => request('GET /news/countries', { params: { days: 365 } }), [])
+  // Acompanha o seletor de período do mapa.
+  const [diasMapa, setDiasMapa] = useState(365)
+  const paises = useResource(() => request('GET /news/countries', { params: { days: diasMapa } }), [diasMapa])
 
   // Cruza % do PIB com o gasto absoluto para a tabela internacional.
   const internationalRows = useMemo(
@@ -190,16 +156,13 @@ export default function DataCharts() {
         .map((c) => ({
           pais: c.country,
           pctPib: c.pctGdp,
-          gastoUSDbi: gastoGlobal.data.find((g) => g.name === c.country)?.value ?? 0,
+          gastoUSDbi: gastoGlobal.data.find((g) => g.name === c.country)?.value ?? null,
         }))
-        .sort((a, b) => b.gastoUSDbi - a.gastoUSDbi),
+        .sort((a, b) => (b.gastoUSDbi ?? -1) - (a.gastoUSDbi ?? -1)),
     [potencias.data, gastoGlobal.data]
   )
 
-  // Esta linha exportava `countryActivity`: catorze países com "intensidade"
-  // de 0 a 100 digitada à mão. O mapa logo abaixo conta MENÇÕES reais por
-  // país, e o CSV ao lado dele dizia outra coisa — quem baixasse os dois teria
-  // duas respostas para a mesma pergunta.
+  // O CSV do mapa carrega as mesmas contagens que o mapa pinta.
   const activityRows = useMemo(
     () => (paises.data?.items || []).map((p) => ({ pais: p.nome, mencoes: p.total })),
     [paises.data]
@@ -207,10 +170,7 @@ export default function DataCharts() {
 
   const recarregar = () => { gasto.recarregar?.(); volume.recarregar?.() }
 
-  // A ORIGEM ACOMPANHA A ABA. O cabeçalho dizia "World Bank" sempre — inclusive
-  // sobre a aba que abre a página, cujos números vêm do acervo de notícias. O
-  // selo "dado real" seguia só o World Bank: com ele fora do ar, a tela inteira
-  // se declarava sem dado enquanto o volume do acervo estava ali, carregado.
+  // A origem mostrada no cabeçalho acompanha a aba aberta.
   const ORIGEM_DA_ABA = {
     volume: { texto: 'Acervo de notícias coletadas', vivo: volumeCategoria.aoVivo ?? volume.aoVivo },
     gastos: { texto: 'World Bank Open Data', vivo: gasto.aoVivo },
@@ -224,12 +184,12 @@ export default function DataCharts() {
       <PageHeader
         icon={BarChart3}
         title="Séries e indicadores"
-        description="As séries que sustentam a leitura de conjuntura: volume noticioso, gasto militar comparado, cobertura por país e índice de alerta. Cada gráfico declara o que mostra e de onde vem."
+        description="Os gráficos da plataforma, organizados por tema: volume de notícias, gasto militar, comparação entre países e cobertura por país. Cada gráfico diz o que mostra e de onde vem o dado."
         help="Cada painel declara a sua fonte e o que ela mede. Quando o servidor não responde, o painel mostra a ausência — nenhuma série é substituída por valores de exemplo."
         breadcrumb={[{ label: 'Quadro do país' }, { label: 'Séries e indicadores' }]}
         badges={<Badge type={origem.vivo ? 'live' : 'sem-dado'} />}
         meta={[
-          { label: 'Origem desta aba', value: origem.vivo ? origem.texto : `${origem.texto} — indisponível` },
+          { label: 'Fonte', value: origem.vivo ? origem.texto : `${origem.texto} — indisponível` },
         ]}
         actions={
           <button type="button" onClick={recarregar} className="btn-ghost" aria-label="Recarregar as séries de dados">
@@ -237,25 +197,37 @@ export default function DataCharts() {
           </button>
         }
       >
-        <nav className="-mb-1 flex gap-1 overflow-x-auto overflow-y-hidden border-b border-gray-200 dark:border-white/10" role="tablist" aria-label="Temas de dados">
-          {TABS.map((t) => (
+        <div className="-mb-1 flex gap-1 overflow-x-auto overflow-y-hidden border-b border-gray-200 dark:border-white/10" role="tablist" aria-label="Temas de dados">
+          {TABS.map((t, i) => (
             <button
               key={t.id}
+              id={`aba-${t.id}`}
               role="tab"
               type="button"
               aria-selected={tab === t.id}
+              aria-controls="painel-dados"
+              tabIndex={tab === t.id ? 0 : -1}
               onClick={() => setTab(t.id)}
+              onKeyDown={(e) => {
+                if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return
+                e.preventDefault()
+                const prox = TABS[(i + (e.key === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length]
+                setTab(prox.id)
+                document.getElementById(`aba-${prox.id}`)?.focus()
+              }}
               className={`-mb-px flex shrink-0 items-center gap-2 border-b-2 px-3 py-2.5 text-sm font-semibold transition-colors ${
                 tab === t.id
                   ? 'border-gold-500 text-gray-900 dark:text-white'
                   : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
               }`}
             >
-              <t.icon size={16} /> {t.label}
+              <t.icon size={16} aria-hidden="true" /> {t.label}
             </button>
           ))}
-        </nav>
+        </div>
       </PageHeader>
+
+      <div id="painel-dados" role="tabpanel" aria-labelledby={`aba-${tab}`} className="space-y-6">
 
       {/* ── VOLUME & CATEGORIAS ── */}
       {tab === 'volume' && (
@@ -265,7 +237,8 @@ export default function DataCharts() {
           <ChartPanel
             badge={volumeCategoria.aoVivo ? 'live' : 'sem-dado'}
             title="Volume por categoria — 30 dias"
-            subtitle="Quantas matérias de cada tema o acervo trouxe, e mais ou menos que nos 30 dias anteriores. A barra fina é o período anterior."
+            subtitle="Número de notícias de cada tema nos últimos 30 dias (barra grossa), comparado aos 30 dias anteriores (barra fina, cinza)."
+            source="acervo de notícias coletadas pela plataforma"
             method="Contagem de matérias por categoria em duas janelas de 30 dias, ordenada por volume. O período anterior é a diferença entre a janela de 60 dias e a de 30 — a contagem, não uma estimativa. Mede COBERTURA, não ocorrência: dez matérias sobre a mesma operação são dez."
             rows={volumeCategoria.data}
             filename="volume-por-categoria.csv"
@@ -276,33 +249,34 @@ export default function DataCharts() {
           <ChartPanel
             badge={regioes.aoVivo ? 'live' : 'sem-dado'}
             title="Regiões estratégicas mais citadas"
-            subtitle="Quantas notícias coletadas citam cada região estratégica no período."
+            subtitle="Número de notícias que citam cada região estratégica nos últimos 180 dias."
+            source="acervo de notícias coletadas pela plataforma"
             method="Contagem de MENÇÕES a cada região no texto das notícias coletadas — não de eventos. Dez matérias sobre a mesma operação são dez menções e um evento; o número mede cobertura, não ocorrência."
             rows={regioes.data}
             filename="regioes-mais-ativas.csv"
           >
-            <div className="space-y-2.5">
-              {regioes.data.map((r) => {
-                const TrendIcon = r.trend === 'up' ? TrendingUp : r.trend === 'down' ? TrendingDown : Minus
-                const trendColor =
-                  r.trend === 'up' ? 'text-red-500 dark:text-red-400'
-                    : r.trend === 'down' ? 'text-emerald-800 dark:text-emerald-400'
-                      : 'muted'
-                return (
-                  <div key={r.region} className="flex items-center gap-3">
-                    <span className="w-36 shrink-0 truncate text-sm font-medium sm:w-44">{r.region}</span>
-                    <span className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-white/10">
+            {regioes.data.length ? (
+              <ul className="space-y-2.5" aria-label="Notícias por região estratégica">
+                {regioes.data.map((r) => (
+                  <li key={r.region} className="flex items-center gap-3">
+                    <span className="w-32 shrink-0 truncate text-sm font-medium sm:w-44" title={r.region}>{r.region}</span>
+                    <span className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-white/10" aria-hidden="true">
                       <span
                         className="block h-full rounded-full bg-gold-500"
                         style={{ width: `${(r.events / (regioes.data[0]?.events || 1)) * 100}%` }}
                       />
                     </span>
-                    <span className="w-9 shrink-0 text-right font-mono text-xs font-bold">{r.events}</span>
-                    <TrendIcon size={14} className={`shrink-0 ${trendColor}`} aria-hidden="true" />
-                  </div>
-                )
-              })}
-            </div>
+                    <span className="w-16 shrink-0 text-right font-mono text-xs font-bold tabular-nums">
+                      {r.events.toLocaleString('pt-BR')}<span className="sr-only"> notícias</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="py-8 text-center text-sm muted" role="status">
+                {regioes.carregando ? 'Carregando…' : 'Nenhuma notícia do período cita as regiões acompanhadas.'}
+              </p>
+            )}
           </ChartPanel>
         </div>
       )}
@@ -313,7 +287,8 @@ export default function DataCharts() {
           <ChartPanel
             className="xl:col-span-2"
             title="Evolução do gasto militar — Brasil"
-            subtitle="Quanto o país destinou à defesa ao longo dos anos, em dólares e proporção do PIB."
+            subtitle="Quanto o Brasil gastou com defesa a cada ano. Use o botão para ver em dólares (US$ correntes) ou em porcentagem do PIB."
+            source="World Bank Open Data"
             method="Série histórica de despesa militar do Brasil, indicadores MS.MIL.XPND.CD (US$ correntes) e MS.MIL.XPND.GD.ZS (% do PIB) do World Bank, coletados pelo servidor. Não há série em reais: o World Bank não a publica, e convertê-la pelo câmbio de hoje inventaria um número."
             badge={gasto.aoVivo ? 'live' : 'sem-dado'}
             rows={gasto.data}
@@ -321,7 +296,6 @@ export default function DataCharts() {
             controls={
               <ToggleGroup
                 label="Exibir"
-                // "R$ + %PIB" saiu junto com a série em reais, que era do mock.
                 options={[
                   { id: 'usd', label: 'US$' },
                   { id: 'pctGdp', label: '% do PIB' },
@@ -343,8 +317,10 @@ export default function DataCharts() {
           </ChartPanel>
 
           <ChartPanel
+            className="xl:col-span-2"
             title="Gasto militar global"
-            subtitle="Como os maiores orçamentos do mundo se distribuem, em US$ bilhões."
+            subtitle="Os maiores orçamentos militares do mundo no último ano publicado. Cada bloco é proporcional ao gasto, em bilhões de dólares (US$ bi)."
+            source="World Bank Open Data"
             badge={gastoGlobal.aoVivo ? 'live' : 'sem-dado'}
             method="Treemap dos maiores orçamentos militares no último ano publicado. Indicador MS.MIL.XPND.CD do World Bank, coletado pelo servidor; a área de cada bloco é proporcional ao gasto absoluto."
             rows={gastoGlobal.data}
@@ -362,7 +338,8 @@ export default function DataCharts() {
           <ChartPanel
             badge={comparacao.aoVivo ? 'live' : 'sem-dado'}
             title="América do Sul — % do PIB em defesa"
-            subtitle="O esforço de defesa dos vizinhos na única métrica que permite comparar economias de tamanhos diferentes."
+            subtitle="Quanto do PIB cada país da América do Sul gasta com defesa, em porcentagem. Comparar pela fatia do PIB permite pôr lado a lado economias de tamanhos diferentes."
+            source="World Bank Open Data"
             method="Despesa militar dividida pelo PIB de cada país no ano de referência. O Brasil aparece destacado para leitura imediata da posição relativa."
             rows={comparacao.data}
             filename="america-do-sul-pct-pib.csv"
@@ -373,11 +350,12 @@ export default function DataCharts() {
           <ChartPanel
             badge={potencias.aoVivo ? 'live' : 'sem-dado'}
             title="Potências militares — % do PIB"
-            subtitle="Onde o Brasil se posiciona diante das maiores forças armadas do mundo."
+            subtitle="A mesma medida (% do PIB gasto com defesa) para o Brasil e as maiores potências militares."
+            source="World Bank Open Data"
             method="Mesma métrica (% do PIB) aplicada às sete maiores referências acompanhadas. A meta da OTAN, de 2% do PIB, é o parâmetro internacional mais citado."
             rows={potencias.data}
             filename="potencias-pct-pib.csv"
-            footnote="Referência: a meta da OTAN recomenda ao menos 2% do PIB — o Brasil opera bem abaixo desse patamar."
+            footnote="Referência: a OTAN pede aos países-membros ao menos 2% do PIB."
           >
             <ComparisonBarChart data={potencias.data} highlightCode="BR" height={340} />
           </ChartPanel>
@@ -386,7 +364,8 @@ export default function DataCharts() {
             className="xl:col-span-2"
             badge={internationalRows.length ? 'live' : 'sem-dado'}
             title="Esforço relativo x gasto absoluto"
-            subtitle="Duas leituras do mesmo país: a fatia do PIB dedicada à defesa e o volume de recursos que isso representa."
+            subtitle="Para cada potência, a fatia do PIB gasta com defesa (%) e o valor total em bilhões de dólares (US$ bi). Um país pode gastar uma fatia grande e um valor pequeno, e vice-versa."
+            source="World Bank Open Data"
             method="Cruzamento do indicador de % do PIB com o gasto absoluto em US$ bilhões. Um país pode ter esforço relativo alto e volume baixo — e o inverso também ocorre."
             rows={internationalRows}
             filename="comparacao-internacional.csv"
@@ -397,23 +376,23 @@ export default function DataCharts() {
                 <thead>
                   <tr className="border-b border-gray-200 text-left text-xs uppercase muted dark:border-white/10">
                     <th scope="col" className="py-2 pr-4">País</th>
-                    <th scope="col" className="py-2 pr-4">% do PIB</th>
-                    <th scope="col" className="py-2 pr-4">Gasto (US$ bi)</th>
-                    <th scope="col" className="py-2">Proporção do maior</th>
+                    <th scope="col" className="py-2 pr-4 text-right">% do PIB</th>
+                    <th scope="col" className="py-2 pr-4 text-right">Gasto (US$ bi)</th>
+                    <th scope="col" className="py-2">Comparado ao maior gasto</th>
                   </tr>
                 </thead>
                 <tbody>
                   {internationalRows.map((r) => (
                     <tr key={r.pais} className="border-b border-gray-100 dark:border-white/[0.06]">
-                      <td className={`py-2 pr-4 font-medium ${r.pais === 'Brasil' ? 'text-gold-600 dark:text-gold-400' : ''}`}>{r.pais}</td>
-                      <td className="py-2 pr-4 font-mono">{r.pctPib}%</td>
-                      <td className="py-2 pr-4 font-mono">{r.gastoUSDbi}</td>
+                      <th scope="row" className={`py-2 pr-4 text-left font-medium ${r.pais === 'Brasil' ? 'text-gold-600 dark:text-gold-400' : ''}`}>{r.pais}</th>
+                      <td className="py-2 pr-4 text-right font-mono tabular-nums">{fmtNum(r.pctPib, 2)}%</td>
+                      <td className="py-2 pr-4 text-right font-mono tabular-nums">{r.gastoUSDbi == null ? '—' : fmtNum(r.gastoUSDbi, 1)}</td>
                       <td className="py-2">
-                        <span className="block h-2 w-full max-w-[180px] overflow-hidden rounded-full bg-gray-200 dark:bg-white/10">
+                        <span className="block h-2 w-full max-w-[180px] overflow-hidden rounded-full bg-gray-200 dark:bg-white/10" aria-hidden="true">
                           <span
                             className="block h-full rounded-full"
                             style={{
-                              width: `${(r.gastoUSDbi / internationalRows[0].gastoUSDbi) * 100}%`,
+                              width: `${((r.gastoUSDbi ?? 0) / (internationalRows[0].gastoUSDbi || 1)) * 100}%`,
                               background: r.pais === 'Brasil' ? '#caa733' : '#2e7d46',
                             }}
                           />
@@ -435,40 +414,35 @@ export default function DataCharts() {
             className="xl:col-span-2"
             badge={paises.data?.items?.length ? 'live' : 'sem-dado'}
             title="Cobertura por país"
-            subtitle="Quantas notícias coletadas mencionam cada país. O Brasil é a âncora e fica fora da escala de cor: citado em quase toda matéria, como teto pintaria o resto do mundo de cinza."
+            subtitle="Quantas notícias coletadas no período escolhido citam cada país: quanto mais escuro, mais citações. O Brasil fica fora da escala de cor, porque aparece em quase toda notícia."
+            source="acervo de notícias coletadas pela plataforma"
             method="Quantas notícias coletadas mencionam cada país, normalizado de 0 a 100 pelo país mais citado. Mede volume de cobertura, não risco. Passe o cursor sobre um país para ver as manchetes."
             rows={activityRows}
             filename="atividade-por-pais.csv"
           >
-            <GlobalHeatmap height={420} />
+            <GlobalHeatmap height={420} onMudarDias={setDiasMapa} />
           </ChartPanel>
 
           <ChartPanel
+            className="xl:col-span-2"
             badge={alerta.aoVivo ? 'live' : 'sem-dado'}
             title="Índice de alerta — 7 dias"
-            subtitle="Média ponderada, de 0 a 100, da urgência das matérias relevantes dos últimos 7 dias."
+            subtitle="Um número de 0 a 100 que resume a urgência das notícias relevantes dos últimos 7 dias. Quanto maior, mais notícias urgentes."
+            source="acervo de notícias coletadas pela plataforma"
             method="Cada matéria relevante do período pesa pela urgência atribuída pelo filtro: crítica 100, alta 70, média 40, baixa 15. O índice é a média. NORMAL abaixo de 35, ATENÇÃO até 59, ALERTA até 79, CRÍTICO a partir de 80. Mede a urgência do que foi noticiado, não o risco real."
             rows={[{ indicador: 'Índice de alerta nacional', valor: alerta.value, escala: '0–100' }]}
             filename="indice-de-alerta.csv"
           >
-            <GaugeChart value={alerta.value} height={300} />
-            <LegendaAlerta />
+            <div className="mx-auto max-w-md">
+              <GaugeChart value={alerta.value} height={300} />
+              <LegendaAlerta />
+            </div>
           </ChartPanel>
-
-          {/* Havia aqui um <TensionBoard />, componente que deixou de existir
-              quando a loja de tensão saiu — a mesma remoção que deixou
-              "regions is not defined" no Ticker. O nome sobreviveu em dois
-              arquivos e teria quebrado esta página ao montar, exatamente como
-              o outro quebrou a produção.
-
-              Nada entra no lugar: o painel "Regiões estratégicas mais citadas",
-              logo acima, já mostra a mesma dimensão com dado que existe —
-              contagem de menções no acervo, e não um nível de tensão que
-              ninguém media. */}
-
 
         </div>
       )}
+
+      </div>
 
       <p className="text-center text-xs muted">
         Fontes: acervo coletado (notícias e proposições), World Bank Open Data, Banco Central (SGS) e

@@ -1,4 +1,4 @@
-import { Factory, Building2, Globe2, Package, Download } from 'lucide-react'
+import { Factory, Building2, Globe2, Package, Download, Info } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Can from '../auth/Can'
 import { exportCSV } from '../utils/exportUtils'
@@ -6,32 +6,26 @@ import MetricCard from '../components/ui/MetricCard'
 import Badge from '../components/ui/Badge'
 import InfoTooltip from '../components/ui/InfoTooltip'
 import EmptyState from '../components/ui/EmptyState'
+import PageHeader from '../components/ui/PageHeader'
 import { bidCompanies } from '../data/defenseIndustry'
 import { useExportacoes } from '../hooks/useDadosReais'
 
 // -----------------------------------------------------------------------------
-// INDÚSTRIA & EXPORTAÇÕES
-//
-// Esta tela tinha quatro indicadores redondos escritos à mão — "+200 empresas",
-// "R$ 230 bi de faturamento", "+200 mil empregos", "US$ 2,5 bi exportados". Não
-// tinham origem, e o último era conferível e estava errado.
-//
-// Agora ela mostra o que o governo publica: o Comex Stat (MDIC) expõe a balança
-// comercial por capítulo da NCM e país de destino, e o servidor coleta os dois
-// capítulos que interessam a defesa — 88 (aeronaves) e 93 (armas e munições).
-//
-// A ressalva aparece na tela, não só no código: o capítulo 88 inclui aviação
-// CIVIL, e a maior parte do que o Brasil exporta ali são jatos comerciais da
-// Embraer. Sem dizer isso, o número vira uma afirmação falsa sobre o tamanho da
-// exportação militar brasileira.
-//
-// A lista de empresas permanece: é referência factual e pública sobre quem
-// compõe a BID, não métrica inventada.
+// INDÚSTRIA DE DEFESA — exportações medidas (Comex Stat/MDIC ou, na falta dele,
+// UN Comtrade) nos capítulos 88 (aeronaves) e 93 (armas e munições) da NCM.
+// A ressalva de que o capítulo 88 inclui aviação civil fica visível na tela:
+// sem ela, o total vira uma afirmação falsa sobre a exportação militar.
 // -----------------------------------------------------------------------------
 
 const fmtUSD = (bi) => `US$ ${Number(bi).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} bi`
-// Estava `US$ {valor} mi` direto: "US$ 1911.7 mi", com ponto decimal inglês.
 const fmtUSDmi = (mi) => `US$ ${Number(mi).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mi`
+
+// As três siglas da tela, explicadas antes de aparecerem nos números.
+const SIGLAS = [
+  ['BID', 'Base Industrial de Defesa: as empresas que fabricam para as Forças Armadas.'],
+  ['NCM', 'Nomenclatura Comum do Mercosul: o código que classifica cada produto exportado.'],
+  ['FOB', 'Valor do produto no porto de saída, sem frete nem seguro.'],
+]
 
 export default function DefenseIndustry() {
   const exp = useExportacoes()
@@ -51,27 +45,23 @@ export default function DefenseIndustry() {
   }
 
   return (
-    <div className="space-y-8">
-      {/* HERO */}
-      <div className="card overflow-hidden">
-        <div className="on-dark bg-gradient-to-br from-military-darker via-military-card to-brand-900/40 p-8 sm:p-10">
-          <span className="inline-flex items-center gap-2 rounded-full bg-brand-500/15 px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-200">
-            <Factory size={14} /> Base Industrial de Defesa
-          </span>
-          <h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Indústria de defesa: exportações</h1>
-          <p className="mt-2 max-w-2xl text-gray-300">
-            O que o Brasil exportou nos capítulos de aeronaves e de armamento, segundo o
-            Comex Stat do Ministério do Desenvolvimento, Indústria e Comércio — ou, quando
-            ele está fora do ar, os mesmos totais que o Brasil reporta à ONU (UN Comtrade).
-          </p>
-          {/* As três siglas da tela, antes de aparecerem nos números. */}
-          <dl className="mt-4 grid max-w-3xl grid-cols-1 gap-2 text-xs text-gray-300 sm:grid-cols-3">
-            <div><dt className="font-bold text-gray-100">BID</dt><dd>Base Industrial de Defesa: as empresas que fabricam para as Forças Armadas.</dd></div>
-            <div><dt className="font-bold text-gray-100">NCM</dt><dd>Nomenclatura Comum do Mercosul: o código que classifica cada produto exportado.</dd></div>
-            <div><dt className="font-bold text-gray-100">FOB</dt><dd>Valor do produto no porto de saída, sem frete nem seguro.</dd></div>
-          </dl>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={Factory}
+        title="Indústria de defesa"
+        description="Quanto o Brasil exportou em aeronaves e em armas e munições, para quais países, e quem são as principais empresas do setor."
+        breadcrumb={[{ label: 'Quadro do país' }, { label: 'Indústria de defesa' }]}
+        badges={<Badge type={exp.aoVivo ? 'live' : 'sem-dado'} />}
+      >
+        <dl className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-3">
+          {SIGLAS.map(([sigla, texto]) => (
+            <div key={sigla} className="rounded-lg bg-gray-500/5 px-3 py-2 dark:bg-white/5">
+              <dt className="font-bold">{sigla}</dt>
+              <dd className="mt-0.5 leading-relaxed muted">{texto}</dd>
+            </div>
+          ))}
+        </dl>
+      </PageHeader>
 
       {!dados ? (
         <EmptyState
@@ -85,29 +75,23 @@ export default function DefenseIndustry() {
         />
       ) : (
         <>
-          {/* TOTAIS POR CAPÍTULO — medidos */}
-          <div>
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-                <Package size={18} className="text-brand-400 dark:text-brand-300" />
-                Exportações em {dados.ano}
-                <InfoTooltip text={dados.nota} />
-              </h2>
-              <Badge type={exp.aoVivo ? 'live' : 'sem-dado'} />
-            </div>
-            {dados.reserva && (
-              <p className="mb-3 rounded-lg border-l-4 border-l-amber-500 bg-amber-500/5 px-3 py-2 text-xs">
-                O Comex Stat (MDIC) está fora do ar. Estes números são os anos fechados que o Brasil
-                reportou à ONU (UN Comtrade) — os mesmos totais, sem o ano corrente.
-              </p>
-            )}
+          {/* TOTAIS POR CAPÍTULO */}
+          <section aria-labelledby="exportacoes-ano">
+            <h2 id="exportacoes-ano" className="mb-1 flex items-center gap-2 text-base font-bold tracking-tight">
+              Exportações em {dados.ano}
+              <InfoTooltip text={dados.nota} label="Sobre estes números" />
+            </h2>
+            <p className="mb-3 text-xs muted">
+              Valor FOB em dólares correntes. Fonte: {dados.provider}.
+              {dados.reserva && ' O Comex Stat (MDIC) está fora do ar; por isso aparecem os anos fechados reportados à ONU, sem o ano corrente.'}
+            </p>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <MetricCard
                 icon={Globe2}
                 label="Total exportado"
                 value={fmtUSD(Math.round((dados.totalUSD / 1e9) * 100) / 100)}
-                hint={`ano ${dados.ano}, valor FOB · incompleto até o último mês publicado`}
+                hint={dados.reserva ? `ano ${dados.ano} fechado` : `ano ${dados.ano}, até o último mês publicado`}
                 accent="brand"
               />
               {dados.porCapitulo.map((c) => (
@@ -122,48 +106,53 @@ export default function DefenseIndustry() {
               ))}
             </div>
 
-            {/* A ressalva não fica escondida num tooltip: ela muda a leitura do
-                número maior da tela. */}
-            <p className="mt-3 rounded-lg border border-gold-500/30 bg-gold-500/10 px-3 py-2 text-xs leading-relaxed">
-              <strong>Como ler:</strong> o capítulo de aeronaves inclui <strong>aviação civil</strong> —
-              a maior parte é jato comercial da Embraer, não material militar. Tratar o total como
-              “exportação de defesa” infla o número em uma ordem de grandeza. O capítulo de armas e
-              munições também mistura uso militar e civil.
-            </p>
-          </div>
+            {/* A ressalva fica à vista: ela muda a leitura do maior número da tela. */}
+            <div className="mt-3 flex items-start gap-2 rounded-lg border border-gold-500/30 bg-gold-500/10 px-3 py-2 text-xs leading-relaxed">
+              <Info size={14} className="mt-0.5 shrink-0 text-gold-600 dark:text-gold-400" aria-hidden="true" />
+              <p>
+                <strong>Atenção ao ler:</strong> o capítulo de aeronaves inclui <strong>aviação civil</strong> —
+                a maior parte é jato comercial da Embraer, não material militar. Tratar o total como
+                “exportação de defesa” infla o número em uma ordem de grandeza. O capítulo de armas e
+                munições também mistura uso militar e civil.
+              </p>
+            </div>
+          </section>
 
-          {/* DESTINOS — medidos */}
-          <section className="card p-5">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-              <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight">
-                <Globe2 size={18} className="text-brand-400 dark:text-brand-300" /> Principais destinos
+          {/* DESTINOS */}
+          <section className="card p-5" aria-labelledby="destinos">
+            <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+              <h2 id="destinos" className="flex items-center gap-2 text-base font-bold tracking-tight">
+                <Globe2 size={17} className="text-brand-400 dark:text-brand-300" aria-hidden="true" /> Principais destinos em {dados.ano}
               </h2>
               <Can do="reports.export">
-                <button onClick={baixarCSV} className="btn-ghost text-sm">
-                  <Download size={15} /> Exportar CSV
+                <button type="button" onClick={baixarCSV} className="btn-ghost text-sm">
+                  <Download size={15} aria-hidden="true" /> Baixar CSV
                 </button>
               </Can>
             </div>
+            <p className="mb-4 text-xs muted">
+              Para onde foram as exportações dos capítulos 88 e 93, por país, em milhões de dólares (US$ mi).
+            </p>
 
-            <div className="space-y-2.5">
+            <ul className="space-y-3 sm:space-y-2.5">
               {dados.porPais.map((p) => {
                 const maximo = dados.porPais[0]?.valorUSD || 1
                 return (
-                  <div key={p.pais} className="flex items-center gap-3">
-                    <span className="w-40 shrink-0 truncate text-sm font-medium">{p.pais}</span>
-                    <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-white/10">
+                  <li key={p.pais} className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 sm:grid-cols-[10rem_1fr_7rem]">
+                    <span className="min-w-0 truncate text-sm font-medium" title={p.pais}>{p.pais}</span>
+                    <span className="col-span-2 row-start-2 h-2.5 overflow-hidden rounded-full bg-gray-200 sm:col-span-1 sm:col-start-2 sm:row-start-1 dark:bg-white/10" aria-hidden="true">
                       <span
                         className="block h-full rounded-full bg-military-green"
                         style={{ width: `${(p.valorUSD / maximo) * 100}%` }}
                       />
                     </span>
-                    <span className="w-24 shrink-0 text-right font-mono text-sm font-bold tabular-nums">
+                    <span className="whitespace-nowrap text-right font-mono text-sm font-bold tabular-nums">
                       {fmtUSDmi(p.valorUSDmi)}
                     </span>
-                  </div>
+                  </li>
                 )
               })}
-            </div>
+            </ul>
 
             <p className="mt-4 text-xs muted">
               Fonte: {dados.provider}. Valor FOB em dólares correntes, capítulos 88 e 93 da NCM.
@@ -173,26 +162,26 @@ export default function DefenseIndustry() {
       )}
 
       {/* EMPRESAS — referência factual, não medição */}
-      <section className="card p-5">
-        <h2 className="mb-1 flex items-center gap-2 text-lg font-bold tracking-tight">
-          <Building2 size={18} className="text-brand-400 dark:text-brand-300" /> Quem compõe a BID
+      <section className="card p-5" aria-labelledby="empresas-bid">
+        <h2 id="empresas-bid" className="mb-1 flex items-center gap-2 text-base font-bold tracking-tight">
+          <Building2 size={17} className="text-brand-400 dark:text-brand-300" aria-hidden="true" /> Quem compõe a BID
         </h2>
         <p className="mb-4 text-sm muted">
-          Referência pública sobre as principais empresas da Base Industrial de Defesa e seus
-          produtos de destaque. É catálogo, não medição — nenhum número desta seção é estimado.
+          Principais empresas da Base Industrial de Defesa e seus produtos de destaque, segundo
+          informação pública do setor. É um catálogo de referência: não há números medidos aqui.
         </p>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {bidCompanies.map((c) => (
-            <div key={c.name} className="rounded-lg border border-gray-200 p-3 dark:border-white/10">
+            <li key={c.name} className="rounded-lg border border-gray-200 p-3 dark:border-white/10">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <span className="text-sm font-bold">{c.name}</span>
+                <h3 className="text-sm font-bold">{c.name}</h3>
                 <span className="chip">{c.segment}</span>
               </div>
               <p className="mt-1 text-xs font-medium">{c.flagship}</p>
               <p className="mt-0.5 text-xs muted">{c.note}</p>
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       </section>
     </div>
   )

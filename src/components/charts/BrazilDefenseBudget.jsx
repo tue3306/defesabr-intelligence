@@ -66,10 +66,12 @@ function Node({ x, y, width, height, name, value, fill, index = 0, depth = 1 }) 
       <rect x={x} y={y} width={width} height={height} fill={color} stroke="#141c28" />
       {show && (
         <>
-          <text x={x + 6} y={y + 16} fill="#fff" fontSize={11} fontWeight={600}>
+          {/* stroke="none": sem isso o texto herda o contorno escuro do
+              retângulo e fica ilegível. */}
+          <text x={x + 6} y={y + 16} fill="#fff" stroke="none" fontSize={11} fontWeight={600}>
             {name}
           </text>
-          <text x={x + 6} y={y + 30} fill="rgba(255,255,255,0.75)" fontSize={10}>
+          <text x={x + 6} y={y + 30} fill="rgba(255,255,255,0.85)" stroke="none" fontSize={10}>
             {bilhoes(value)}
           </text>
         </>

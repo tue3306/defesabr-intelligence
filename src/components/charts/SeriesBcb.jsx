@@ -146,8 +146,8 @@ export default function SeriesBcb({ series, height = 260, ordem }) {
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={dados} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
-            <XAxis dataKey="x" {...axisStyle} interval="preserveStartEnd" minTickGap={18} />
-            <YAxis {...axisStyle} width={56} domain={['auto', 'auto']} tickFormatter={(v) => formatar(v, serie.unit).replace('R$ ', '')} />
+            <XAxis dataKey="x" tick={axisStyle} stroke="#94a3b8" interval="preserveStartEnd" minTickGap={18} />
+            <YAxis tick={axisStyle} stroke="#94a3b8" width={56} domain={['auto', 'auto']} tickFormatter={(v) => formatar(v, serie.unit).replace('R$ ', '')} />
             <Tooltip
               {...tooltipStyle}
               formatter={(v) => [formatar(v, serie.unit), serie.label]}

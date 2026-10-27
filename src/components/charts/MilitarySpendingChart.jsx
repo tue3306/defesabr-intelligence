@@ -21,11 +21,12 @@ export default function MilitarySpendingChart({ data = [], mode = 'dual', height
         <XAxis dataKey="year" tick={axisStyle} tickLine={false} axisLine={false} />
         <YAxis
           yAxisId="left"
+          hide={mode === 'pctGdp'}
           tick={axisStyle}
           tickLine={false}
           axisLine={false}
           width={48}
-          label={{ value: mode === 'usd' ? 'US$ bi' : 'R$ bi', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 11 }}
+          label={{ value: 'US$ bi', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 11 }}
         />
         {mode !== 'usd' && (
           <YAxis
@@ -39,13 +40,11 @@ export default function MilitarySpendingChart({ data = [], mode = 'dual', height
             label={{ value: '% PIB', angle: 90, position: 'insideRight', fill: '#64748b', fontSize: 11 }}
           />
         )}
-        <Tooltip {...tooltipStyle} />
+        <Tooltip {...tooltipStyle} formatter={(v, nome) => [Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 2 }), nome]} />
         <Legend wrapperStyle={{ fontSize: 12 }} />
 
-        {(mode === 'dual') && (
-          <Bar yAxisId="left" dataKey="brl" name="Gasto (R$ bi)" fill="#1f8a4c" radius={[3, 3, 0, 0]} barSize={16} />
-        )}
-        {mode === 'usd' && (
+        {/* O World Bank publica só em dólares: "dual" é dólar + % do PIB. */}
+        {mode !== 'pctGdp' && (
           <Bar yAxisId="left" dataKey="usd" name="Gasto (US$ bi)" fill="#1f8a4c" radius={[3, 3, 0, 0]} barSize={16} />
         )}
         {mode !== 'usd' && (

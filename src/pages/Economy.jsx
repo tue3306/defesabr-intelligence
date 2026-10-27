@@ -15,24 +15,10 @@ import {
 } from '../hooks/useDadosReais'
 
 // -----------------------------------------------------------------------------
-// ECONOMIA & DEFESA
-//
-// A tela tinha um selo "AO VIVO" no cabeçalho e outro em cada gráfico,
-// inclusive nos do World Bank — dado ANUAL, publicado com um a dois anos de
-// atraso. E mostrava a "Selic (mês)" de um mês pela metade, comparada com o
-// mês cheio anterior: uma queda que não aconteceu.
-//
-// Agora cada número diz de quando é e de quanto em quanto tempo muda:
-//
-//   DIÁRIO  — o Banco Central publica todo dia útil (câmbio, meta da Selic,
-//             reservas). A tela relê o servidor a cada minuto.
-//   MENSAL  — publicado uma vez por mês (IPCA, IGP-M). O valor de hoje é o do
-//             último mês fechado.
-//   ANUAL   — World Bank. Série histórica, com o ano escrito ao lado.
-//
-// Nada aqui é estimado ou simulado. O único valor inventado da tela — o
-// contrato de US$ 100 milhões — é declarado como exemplo, e o que ele ilustra
-// (a cotação) é real.
+// ECONOMIA & DEFESA — indicadores do Banco Central (diários e mensais) e
+// comparação internacional do World Bank (anual). Cada número diz de quando é.
+// O único valor fictício da tela (o contrato de US$ 100 milhões) é declarado
+// como exemplo; as cotações aplicadas a ele são reais.
 // -----------------------------------------------------------------------------
 
 const ICONE = {
@@ -81,11 +67,8 @@ function Frequencia({ tipo }) {
 export default function Economy() {
   const vizinhanca = useComparacaoPIB('vizinhanca')
   const gastoGlobal = useGastoGlobal()
-  // ATUALIZA SOZINHA. O Banco Central publica dólar e euro em dias úteis e os
-  // índices uma vez por mês; o servidor relê a cada hora. A tela relê a cada
-  // minuto para que o valor mostrado nunca seja o de quando a aba foi aberta —
-  // e cada cartão diz a data de referência, para não virar promessa de tempo
-  // real que a fonte não faz.
+  // A tela relê o servidor a cada minuto; o servidor consulta o Banco Central a
+  // cada hora. Cada cartão mostra a data de referência do valor.
   const [recarga, setRecarga] = useState(0)
   useEffect(() => {
     const id = setInterval(() => setRecarga((n) => n + 1), 60_000)
@@ -155,13 +138,11 @@ export default function Economy() {
       {/* SÉRIES DO BANCO CENTRAL — a história por trás de cada cartão */}
       {series && (
         <section className="card p-5" aria-labelledby="series-bcb">
-          <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-            <h2 id="series-bcb" className="text-base font-bold tracking-tight">Séries do Banco Central</h2>
-            <span className="text-[11px] muted">relê sozinha a cada minuto</span>
-          </div>
+          <h2 id="series-bcb" className="mb-1 text-base font-bold tracking-tight">Séries do Banco Central</h2>
           <p className="mb-3 text-sm muted">
-            O mesmo dado dos cartões, ao longo do tempo. Escolha a série: a linha tracejada é a média
-            do período, para dizer se o valor de hoje é alto ou baixo para ele.
+            Os mesmos indicadores dos cartões, dia a dia ou mês a mês. Escolha uma série: a linha
+            tracejada é a média do período, para você ver se o valor de hoje está alto ou baixo.
+            Fonte: Banco Central (SGS).
           </p>
           <ErrorBoundary variant="inline" scope="Séries do Banco Central">
             <SeriesBcb series={series} ordem={NO_GRAFICO} />
@@ -174,7 +155,7 @@ export default function Economy() {
         <div className="flex flex-wrap items-center gap-2">
           <h2 id="comparativo-wb" className="text-base font-bold tracking-tight">Defesa comparada entre países</h2>
           <Frequencia tipo="anual" />
-          <span className="text-xs muted">World Bank Open Data — dado anual, publicado com atraso</span>
+          <span className="text-xs muted">Fonte: World Bank Open Data, publicado com um a dois anos de atraso</span>
         </div>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="card p-5">
@@ -183,9 +164,11 @@ export default function Economy() {
                 Gasto militar (% do PIB){anoComparacao ? ` — ${anoComparacao}` : ''}
                 <InfoTooltip text="Quanto da riqueza produzida pelo país num ano (o PIB) foi gasto com defesa. A referência da OTAN para seus membros é 2%." />
               </h3>
-              <Badge type={vizinhanca.aoVivo ? 'live' : 'sem-dado'} cadencia={vizinhanca.aoVivo ? 'anual' : undefined} />
+              {!vizinhanca.aoVivo && <Badge type="sem-dado" />}
             </div>
-            <p className="mb-2 text-xs muted">Brasil e vizinhos da América do Sul.</p>
+            <p className="mb-2 text-xs muted">
+              Quanto do PIB o Brasil e os vizinhos da América do Sul gastam com defesa, em porcentagem.
+            </p>
             <ErrorBoundary variant="inline" scope="Comparativo regional de gasto militar">
               {vizinhanca.data.length ? (
                 <ComparisonBarChart data={vizinhanca.data} highlightCode="BR" height={280} />
@@ -203,10 +186,12 @@ export default function Economy() {
                 Orçamento de defesa (US$ bilhões){anoOrcamento ? ` — ${anoOrcamento}` : ''}
                 <InfoTooltip text="O valor total gasto com defesa no ano, convertido para dólares. Mostra o tamanho do orçamento; o gráfico ao lado mostra o esforço em relação à economia." />
               </h3>
-              <Badge type={gastoGlobal.aoVivo ? 'live' : 'sem-dado'} cadencia={gastoGlobal.aoVivo ? 'anual' : undefined} />
+              {!gastoGlobal.aoVivo && <Badge type="sem-dado" />}
             </div>
-            <p className="mb-3 text-xs muted">Os mesmos países, em valor absoluto.</p>
-            <ul className="space-y-2.5">
+            <p className="mb-3 text-xs muted">
+              Os mesmos países, pelo valor total gasto com defesa no ano, em bilhões de dólares (US$ bi).
+            </p>
+            <ul className="space-y-2.5" aria-label="Orçamento de defesa por país, em US$ bilhões">
               {orcamento.map((d) => (
                 <li key={d.country} className="flex items-center gap-3">
                   <span className="w-20 shrink-0 truncate text-sm font-medium">{d.country}</span>
@@ -222,6 +207,11 @@ export default function Economy() {
                 </li>
               ))}
             </ul>
+            {orcamento.length > 0 && (
+              <p className="mt-3 flex items-center gap-1.5 text-[11px] muted">
+                <span className="inline-block h-2 w-2 rounded-full bg-gold-500" aria-hidden="true" /> Em dourado: Brasil.
+              </p>
+            )}
             {!orcamento.length && (
               <p className="text-sm muted" role="status">
                 {gastoGlobal.carregando || vizinhanca.carregando ? 'Carregando a série do World Bank…' : 'Sem dado do World Bank nesta instalação.'}
@@ -235,9 +225,8 @@ export default function Economy() {
             PIB e esforço de defesa
             <InfoTooltip text="PIB é o valor de tudo o que o país produz num ano. A segunda coluna diz quanto dele vai para a defesa." />
           </h3>
-          {/* OS DOIS ANOS, ESCRITOS. O World Bank publica o PIB antes do gasto
-              militar: nesta coleta, PIB de 2025 e defesa de 2024. O título
-              dizia "2025" para as duas colunas. */}
+          {/* O World Bank publica o PIB antes do gasto militar: os dois anos
+              ficam escritos, porque podem ser diferentes. */}
           <p className="mb-3 text-xs muted">
             Brasil, vizinhos e potências, em bilhões de dólares correntes.
             {anoPib && <> PIB de <strong>{anoPib}</strong></>}
@@ -250,14 +239,11 @@ export default function Economy() {
               <thead>
                 <tr className="border-b border-gray-700/50 text-left text-xs uppercase muted">
                   <th scope="col" className="py-2 pr-4">País</th>
-                  <th scope="col" className="py-2 pr-4">PIB (US$ bi)</th>
-                  <th scope="col" className="py-2">Defesa (% do PIB)</th>
+                  <th scope="col" className="py-2 pr-4 text-right">PIB (US$ bi)</th>
+                  <th scope="col" className="py-2 text-right">Defesa (% do PIB)</th>
                 </tr>
               </thead>
               <tbody>
-                {/* As duas colunas saem do mesmo endpoint e do mesmo ano de
-                    referência — antes vinham de um array escrito à mão, com PIB
-                    e percentual de anos diferentes na mesma linha. */}
                 {pib.data.map((d) => {
                   const pct = vizinhanca.data.find((v) => v.country === d.country)
                     || potencias.data.find((v) => v.country === d.country)
@@ -266,8 +252,8 @@ export default function Economy() {
                       <th scope="row" className="py-2 pr-4 text-left font-medium">
                         {d.country}{d.country === 'Brasil' && <span className="sr-only"> (destacado)</span>}
                       </th>
-                      <td className="py-2 pr-4 font-mono">{d.gdpBi.toLocaleString('pt-BR')}</td>
-                      <td className="py-2 font-mono">
+                      <td className="py-2 pr-4 text-right font-mono tabular-nums">{d.gdpBi.toLocaleString('pt-BR')}</td>
+                      <td className="py-2 text-right font-mono tabular-nums">
                         {pct ? `${pct.pctGdp.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%` : '—'}
                       </td>
                     </tr>
@@ -283,8 +269,8 @@ export default function Economy() {
         Fontes: Banco Central do Brasil (Sistema Gerenciador de Séries Temporais, SGS) e World Bank
         Open Data. Veja também{' '}
         <Link to="/dados" className="font-semibold text-brand-600 hover:underline dark:text-brand-300">Séries e indicadores</Link>{' '}
-        e a{' '}
-        <Link to="/industria" className="font-semibold text-brand-600 hover:underline dark:text-brand-300">Base Industrial</Link>{' '}
+        e{' '}
+        <Link to="/industria" className="font-semibold text-brand-600 hover:underline dark:text-brand-300">Indústria de defesa</Link>{' '}
         (exportações do setor, pelo Comex Stat).
       </p>
     </div>
@@ -371,14 +357,14 @@ function PorQueImporta({ usd, eur }) {
         aprovado em reais. Quando a moeda estrangeira sobe, o mesmo contrato passa a custar mais —
         sem que ninguém tenha aprovado gasto novo.
       </p>
-      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto_1fr]">
         <div className="rounded-lg bg-gray-500/5 p-3 dark:bg-white/5">
           <p className="text-[11px] font-semibold uppercase tracking-wider muted">Em {referencia(inicio.period, 'diaria')}</p>
           <p className="mt-1 font-mono text-lg font-bold">{reais(inicio.value)}</p>
           <p className="text-[11px] muted">dólar a {formatar(inicio.value, 'R$')}</p>
         </div>
-        <div className="flex items-center justify-center" aria-hidden="true">
-          <ArrowRight className="hidden text-gray-400 sm:block" size={22} />
+        <div className="hidden items-center justify-center sm:flex" aria-hidden="true">
+          <ArrowRight className="text-gray-400" size={22} />
         </div>
         <div className="rounded-lg bg-gray-500/5 p-3 dark:bg-white/5">
           <p className="text-[11px] font-semibold uppercase tracking-wider muted">Em {referencia(fim.period, 'diaria')}</p>

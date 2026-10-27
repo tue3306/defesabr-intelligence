@@ -118,10 +118,11 @@ const JANELAS = [
 // país abre a página dele em vez do dossiê embutido. `dias` fixa a janela pela
 // página que contém o mapa: com o seletor próprio (90 dias / 1 ano) ao lado do
 // seletor da página (7 / 30 / 90), a tela mostraria duas janelas ao mesmo tempo
-// e os números do mapa não bateriam com os cartões logo acima.
+// e os números do mapa não bateriam com os cartões logo acima. `onMudarDias`
+// avisa quem está fora (ex.: o CSV ao lado) quando o seletor próprio muda.
 // ─────────────────────────────────────────────────────────────────────────────
 export default function GlobalHeatmap({
-  height = 380, withNews = true, escopo = 'brasil', dias: diasDaPagina, onSelecionarPais,
+  height = 380, withNews = true, escopo = 'brasil', dias: diasDaPagina, onSelecionarPais, onMudarDias,
 }) {
   // ───────────────────────────────────────────────────────────────────────────
   // HOVER E SELEÇÃO DEIXARAM DE SER A MESMA COISA
@@ -218,7 +219,7 @@ export default function GlobalHeatmap({
             {JANELAS.map((j) => (
               <button
                 key={j.id}
-                onClick={() => setDias(j.id)}
+                onClick={() => { setDias(j.id); onMudarDias?.(j.id) }}
                 aria-pressed={dias === j.id}
                 className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
                   dias === j.id ? 'bg-gold-500 text-military-darker' : 'muted hover:bg-gray-100 dark:hover:bg-white/10'
