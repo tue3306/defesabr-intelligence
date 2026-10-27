@@ -1,10 +1,11 @@
+import { Link } from 'react-router-dom'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown, ExternalLink, Copy, Bookmark, BookmarkCheck, Share2, MapPin, Users } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Badge from './Badge'
 import { timeAgo } from '../../utils/dateUtils'
-import { clipboard } from '../../utils/textUtils'
+import { clipboard, resumoUtil } from '../../utils/textUtils'
 import { useNewsStore } from '../../store/newsStore'
 
 // variant: 'compact' (feed) | 'full' (clipping com pontos-chave expansíveis)
@@ -15,7 +16,13 @@ export default function NewsCard({ news, variant = 'compact', defaultOpen = fals
 
   const saveFavorite = () => {
     const added = toggleFavorite(news)
-    toast.success(added ? 'Salvo na sua pasta' : 'Removido da pasta')
+    if (!added) { toast.success('Removido da pasta'); return }
+    toast.success((t) => (
+      <span>
+        Salvo na sua pasta.{' '}
+        <Link to="/arquivo" onClick={() => toast.dismiss(t.id)} className="font-semibold underline">Ver pasta</Link>
+      </span>
+    ))
   }
 
   const copy = () => {
@@ -48,9 +55,11 @@ export default function NewsCard({ news, variant = 'compact', defaultOpen = fals
       </div>
 
       <h3 className="mt-2 text-base font-bold leading-snug tracking-tight">{news.title}</h3>
-      <p className="mt-1.5 text-sm leading-relaxed text-gray-300 dark:text-gray-300">
-        {news.summary}
-      </p>
+      {resumoUtil(news.summary, news.title) && (
+        <p className="mt-1.5 text-sm leading-relaxed text-gray-300 dark:text-gray-300">
+          {news.summary}
+        </p>
+      )}
 
       {variant === 'full' && (
         <>

@@ -432,3 +432,9 @@ details[open] summary svg { transform: rotate(180deg); }
 html:not(.dark) .editorial-quote {
   @apply text-gray-600;
 }
+
+/* Campo de busca: só o botão de limpar da própria interface, não o nativo. */
+input[type='search']::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}

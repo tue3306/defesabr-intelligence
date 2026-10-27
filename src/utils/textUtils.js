@@ -126,3 +126,20 @@ export const setorPt = (nome) => (nome && SETORES_PT[nome]) || nome
  */
 export const plural = (n, singular, pluralForm = `${singular}s`) =>
   `${Number(n).toLocaleString('pt-BR')} ${n === 1 ? singular : pluralForm}`
+
+const semAcento = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+  .replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim()
+
+/**
+ * Resumo que vale a pena mostrar. Muitas fontes RSS mandam como "resumo" o
+ * próprio título seguido do nome do site ("EUA enviam… O Chefão da Notícia"):
+ * repetido no cartão, é ruído. Se o resumo começa pelo título, o que sobra
+ * precisa ter corpo para aparecer; senão, o cartão fica só com o título.
+ */
+export function resumoUtil(resumo, titulo) {
+  if (!resumo) return null
+  const r = semAcento(resumo)
+  const t = semAcento(titulo)
+  if (!t || !r.startsWith(t)) return resumo
+  return r.length - t.length >= 60 ? resumo : null
+}

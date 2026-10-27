@@ -82,7 +82,7 @@ export default function Layout() {
         <ErrorBoundary scope="Faixa de indicadores" variant="inline" fallback={null}>
           <Ticker />
         </ErrorBoundary>
-        <main id="conteudo" className="mx-auto min-h-[calc(100vh-8rem)] max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+        <main id="conteudo" className="mx-auto min-h-[calc(100vh-8rem)] max-w-7xl px-4 pb-24 pt-6 sm:px-6 sm:pt-8 lg:px-8">
           <Outlet />
         </main>
         <Footer />

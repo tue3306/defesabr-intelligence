@@ -40,7 +40,7 @@ import { useNewsStore } from '../store/newsStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { useUiStore } from '../store/uiStore'
 import { URGENCY_LEVELS } from '../data/mockData'
-import { alertMeta, categoryColor, clipboard, urgencyMeta, corDoNivel, plural } from '../utils/textUtils'
+import { alertMeta, categoryColor, clipboard, urgencyMeta, corDoNivel, plural, resumoUtil } from '../utils/textUtils'
 import { formatDateBR, formatDateTimeBR, formatFullDate, timeAgo } from '../utils/dateUtils'
 import { exportClippingToPDF } from '../utils/exportUtils'
 
@@ -471,7 +471,7 @@ function ClippingNewsItem({ news, defaultOpen = false }) {
           </a>
         ) : news.title}
       </h3>
-      {news.summary && (
+      {resumoUtil(news.summary, news.title) && (
         <p className="mt-1.5 line-clamp-3 text-sm leading-relaxed text-gray-700 dark:text-gray-300">{news.summary}</p>
       )}
 
