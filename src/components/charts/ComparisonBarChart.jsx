@@ -45,7 +45,7 @@ export default function ComparisonBarChart({ data = [], highlightCode = 'BR', he
               {sorted.map((d) => (
                 <Cell key={d.code} fill={d.code === highlightCode ? '#caa733' : '#1f8a4c'} />
               ))}
-              <LabelList dataKey="pctGdp" position="right" formatter={pct} style={{ fontSize: 11, fill: '#475569' }} />
+              <LabelList dataKey="pctGdp" position="right" formatter={pct} fontSize={11} fill="#475569" />
             </Bar>
           </BarChart>
         </ResponsiveContainer>

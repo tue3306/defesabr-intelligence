@@ -201,7 +201,7 @@ export default function Learn() {
                     <div className="mt-3">
                       <div className="flex items-center justify-between text-[11px]">
                         <span className="muted">{doneCount} de {p.steps.length} concluídos</span>
-                        <span className="font-mono font-bold tabular-nums" style={{ color: p.color }}>{pct}%</span>
+                        <span className="font-mono font-bold tabular-nums text-gray-800 dark:text-gray-200">{pct}%</span>
                       </div>
                       <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-gray-200 dark:bg-white/10">
                         <span className="block h-full rounded-full transition-all" style={{ width: `${pct}%`, background: p.color }} />

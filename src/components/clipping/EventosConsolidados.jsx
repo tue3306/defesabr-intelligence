@@ -104,13 +104,13 @@ export default function EventosConsolidados() {
                 onClick={() => { setCategoria(ativa ? '' : cat.nome); setTodos(false) }}
                 aria-pressed={ativa}
                 className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${
-                  ativa ? 'text-white' : 'bg-gray-100 muted hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10'
+                  ativa ? 'text-gray-900 dark:text-gray-100' : 'bg-gray-100 muted hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10'
                 }`}
-                style={ativa ? { backgroundColor: categoryColor(cat.nome) } : undefined}
+                style={ativa ? { backgroundColor: `${categoryColor(cat.nome)}33`, boxShadow: `inset 0 0 0 1.5px ${categoryColor(cat.nome)}` } : undefined}
                 title={ativa ? 'Clique para ver todas' : `${plural(cat.materias, 'notícia')} no período`}
               >
                 {cat.nome}
-                <span className={`font-mono text-[10px] ${ativa ? 'opacity-90' : 'opacity-70'}`}>{cat.materias}</span>
+                <span className="font-mono text-[10px] opacity-90">{cat.materias}</span>
                 {ativa && <X size={11} aria-hidden="true" />}
               </button>
             )
@@ -186,8 +186,8 @@ function Evento({ e, aberto, onToggle }) {
           </span>
           {e.categoria && (
             <span
-              className="rounded-full px-2 py-0.5 text-[10px] font-bold text-white"
-              style={{ backgroundColor: categoryColor(e.categoria) }}
+              className="rounded-full px-2 py-0.5 text-[10px] font-bold border text-gray-900 dark:text-gray-100"
+              style={{ backgroundColor: `${categoryColor(e.categoria)}26`, borderColor: `${categoryColor(e.categoria)}80` }}
             >
               {e.categoria}
             </span>

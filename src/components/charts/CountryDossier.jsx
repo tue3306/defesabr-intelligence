@@ -132,8 +132,8 @@ export default function CountryDossier({ pais, dias = 180 }) {
                   {c.porCategoria.slice(0, 6).map((x) => (
                     <span
                       key={x.nome}
-                      className="rounded-full px-2 py-0.5 text-[11px] font-semibold text-white"
-                      style={{ backgroundColor: categoryColor(x.nome) }}
+                      className="rounded-full px-2 py-0.5 text-[11px] font-semibold border text-gray-900 dark:text-gray-100"
+                      style={{ backgroundColor: `${categoryColor(x.nome)}26`, borderColor: `${categoryColor(x.nome)}80` }}
                     >
                       {x.nome} <span className="font-mono">{x.total}</span>
                     </span>

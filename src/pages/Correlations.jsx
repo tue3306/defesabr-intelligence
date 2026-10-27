@@ -223,8 +223,8 @@ function Correlacao({ c, aberto, onToggle }) {
           </span>
           {c.artigo?.categoria && (
             <span
-              className="rounded-full px-2 py-0.5 text-[10px] font-bold text-white"
-              style={{ backgroundColor: categoryColor(c.artigo.categoria) }}
+              className="rounded-full px-2 py-0.5 text-[10px] font-bold border text-gray-900 dark:text-gray-100"
+              style={{ backgroundColor: `${categoryColor(c.artigo.categoria)}26`, borderColor: `${categoryColor(c.artigo.categoria)}80` }}
             >
               {c.artigo.categoria}
             </span>

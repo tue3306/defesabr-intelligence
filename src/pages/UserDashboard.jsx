@@ -342,10 +342,10 @@ export default function UserDashboard() {
                   title={ligada ? `Deixar de destacar ${cat}` : `Ver ${cat} primeiro`}
                   className={`inline-flex min-h-[32px] items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
                     ligada
-                      ? 'border-transparent'
+                      ? 'text-gray-900 dark:text-gray-100'
                       : 'border-gray-300 text-gray-600 hover:text-gray-900 dark:border-gray-600/50 dark:text-gray-400 dark:hover:text-gray-200'
                   }`}
-                  style={ligada ? { background: `${categoryColor(cat)}22`, color: categoryColor(cat) } : undefined}
+                  style={ligada ? { background: `${categoryColor(cat)}26`, borderColor: categoryColor(cat) } : undefined}
                 >
                   <span className="h-1.5 w-1.5 rounded-full" style={{ background: categoryColor(cat) }} aria-hidden="true" />
                   {cat}

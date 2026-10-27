@@ -10,10 +10,10 @@ export function clipboard(text) {
 // mais precisam ser lidos de relance. O `-800` cobre o modo claro; o escuro
 // segue idêntico ao que era.
 export const urgencyMeta = {
-  CRITICO: { label: 'CRÍTICO', classes: 'bg-military-red/20 text-red-800 dark:text-red-300 border-military-red/40' },
-  ALTO: { label: 'ALTO', classes: 'bg-military-amber/20 text-amber-800 dark:text-amber-300 border-military-amber/40' },
-  MEDIO: { label: 'MÉDIO', classes: 'bg-yellow-500/15 text-yellow-800 dark:text-yellow-300 border-yellow-500/40' },
-  BAIXO: { label: 'BAIXO', classes: 'bg-military-green/20 text-emerald-800 dark:text-emerald-300 border-military-green/40' },
+  CRITICO: { label: 'CRÍTICO', classes: 'nivel-chip-critico bg-military-red/20 text-red-800 dark:text-red-300 border-military-red/40' },
+  ALTO: { label: 'ALTO', classes: 'nivel-chip-alto bg-military-amber/20 text-amber-800 dark:text-amber-300 border-military-amber/40' },
+  MEDIO: { label: 'MÉDIO', classes: 'nivel-chip-medio bg-yellow-500/15 text-yellow-800 dark:text-yellow-300 border-yellow-500/40' },
+  BAIXO: { label: 'BAIXO', classes: 'nivel-chip-baixo bg-military-green/20 text-emerald-800 dark:text-emerald-300 border-military-green/40' },
 }
 
 // -----------------------------------------------------------------------------
@@ -31,10 +31,10 @@ export const corDoNivel = (nivel) => `var(--nivel-${String(nivel || 'baixo').toL
 
 // Cores por nível de alerta do dia (a chave é o enum; o label é o texto exibido).
 export const alertMeta = {
-  NORMAL: { label: 'NORMAL', classes: 'bg-military-green/20 text-emerald-800 dark:text-emerald-300 border-military-green/50', value: 18 },
-  ATENCAO: { label: 'ATENÇÃO', classes: 'bg-yellow-500/15 text-yellow-800 dark:text-yellow-300 border-yellow-500/50', value: 42 },
-  ALERTA: { label: 'ALERTA', classes: 'bg-military-amber/20 text-amber-800 dark:text-amber-300 border-military-amber/50', value: 65 },
-  CRITICO: { label: 'CRÍTICO', classes: 'bg-military-red/20 text-red-800 dark:text-red-300 border-military-red/50', value: 88 },
+  NORMAL: { label: 'NORMAL', classes: 'nivel-chip-baixo bg-military-green/20 text-emerald-800 dark:text-emerald-300 border-military-green/50', value: 18 },
+  ATENCAO: { label: 'ATENÇÃO', classes: 'nivel-chip-atencao bg-yellow-500/15 text-yellow-800 dark:text-yellow-300 border-yellow-500/50', value: 42 },
+  ALERTA: { label: 'ALERTA', classes: 'nivel-chip-alto bg-military-amber/20 text-amber-800 dark:text-amber-300 border-military-amber/50', value: 65 },
+  CRITICO: { label: 'CRÍTICO', classes: 'nivel-chip-critico bg-military-red/20 text-red-800 dark:text-red-300 border-military-red/50', value: 88 },
 }
 
 // Cor por categoria (para gráficos e badges). A chave é exibida diretamente.

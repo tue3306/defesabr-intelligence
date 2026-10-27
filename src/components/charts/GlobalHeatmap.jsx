@@ -362,7 +362,7 @@ export default function GlobalHeatmap({
                   )}
                 </span>
                 <span
-                  className={`shrink-0 font-mono text-xs tabular-nums ${p.total ? 'muted' : 'text-gray-400 dark:text-gray-600'}`}
+                  className={`shrink-0 font-mono text-xs tabular-nums ${p.total ? 'muted' : 'text-gray-400'}`}
                   title={p.total ? `${plural(p.total, 'menção', 'menções')} no período` : 'Acompanhado, sem menção no período'}
                 >
                   {p.total || '—'}

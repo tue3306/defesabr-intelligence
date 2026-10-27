@@ -20,10 +20,10 @@ import { formatDateBR } from '../utils/dateUtils'
 // O Estado brasileiro vem antes dos rankings; o total mundial é só contexto.
 
 const CRIT = {
-  CRITICO: { rotulo: 'Crítico', cor: 'bg-red-500', chip: 'bg-red-500/15 text-red-800 dark:text-red-300' },
-  ALTO: { rotulo: 'Alto', cor: 'bg-amber-500', chip: 'bg-amber-500/15 text-amber-800 dark:text-amber-300' },
-  MEDIO: { rotulo: 'Médio', cor: 'bg-brand-500', chip: 'bg-brand-500/15 text-brand-700 dark:text-brand-300' },
-  BAIXO: { rotulo: 'Baixo', cor: 'bg-gray-400', chip: 'bg-gray-500/15 text-gray-700 dark:text-gray-300' },
+  CRITICO: { rotulo: 'Crítico', cor: 'bg-red-500 nivel-marca-critico', chip: 'nivel-chip-critico bg-red-500/15 text-red-800 dark:text-red-300' },
+  ALTO: { rotulo: 'Alto', cor: 'bg-amber-500 nivel-marca-alto', chip: 'nivel-chip-alto bg-amber-500/15 text-amber-800 dark:text-amber-300' },
+  MEDIO: { rotulo: 'Médio', cor: 'bg-brand-500 nivel-marca-medio', chip: 'nivel-chip-medio bg-brand-500/15 text-brand-700 dark:text-brand-300' },
+  BAIXO: { rotulo: 'Baixo', cor: 'bg-gray-400 nivel-marca-baixo', chip: 'nivel-chip-baixo bg-gray-500/15 text-gray-700 dark:text-gray-300' },
 }
 
 const JANELAS = [

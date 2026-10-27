@@ -321,8 +321,8 @@ function ResultRow({ item, query }) {
           </h3>
           {item.badge && (
             <span
-              className="rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide"
-              style={{ background: `${color}22`, color }}
+              className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${urgencyMeta[item.badge] ? `border ${urgencyMeta[item.badge].classes}` : 'text-gray-800 dark:text-gray-200'}`}
+              style={urgencyMeta[item.badge] ? undefined : { background: `${color}22` }}
             >
               {urgencyMeta[item.badge]?.label || item.badge}
             </span>

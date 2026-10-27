@@ -82,6 +82,36 @@ main { overflow-x: clip; }
   --nivel-atencao: #56b4e9;
   --nivel-alerta: #e69f00;
 }
+
+/* Selos e marcas de nível desenhados com classes do Tailwind (urgencyMeta,
+   alertMeta, criticidade): no modo daltonismo passam a seguir as variáveis
+   acima. O texto tem tom próprio por tema, todos acima de 6:1. */
+html[data-daltonico="1"] .nivel-chip-critico { --chip: var(--nivel-critico); color: #8f3a00; }
+html[data-daltonico="1"] .nivel-chip-alto { --chip: var(--nivel-alto); color: #7a4d00; }
+html[data-daltonico="1"] .nivel-chip-medio { --chip: var(--nivel-medio); color: #5e5800; }
+html[data-daltonico="1"] .nivel-chip-baixo { --chip: var(--nivel-baixo); color: #00507d; }
+html[data-daltonico="1"] .nivel-chip-atencao { --chip: var(--nivel-atencao); color: #1d5c80; }
+html.dark[data-daltonico="1"] .nivel-chip-critico { color: #ffa26b; }
+html.dark[data-daltonico="1"] .nivel-chip-alto { color: #f5c051; }
+html.dark[data-daltonico="1"] .nivel-chip-medio { color: #f0e442; }
+html.dark[data-daltonico="1"] .nivel-chip-baixo { color: #7cc4f2; }
+html.dark[data-daltonico="1"] .nivel-chip-atencao { color: #a5d8f5; }
+html[data-daltonico="1"] [class*="nivel-chip-"] {
+  background-color: color-mix(in srgb, var(--chip) 18%, transparent);
+  border-color: color-mix(in srgb, var(--chip) 45%, transparent);
+}
+html[data-daltonico="1"] .nivel-marca-critico { background-color: var(--nivel-critico); }
+html[data-daltonico="1"] .nivel-marca-alto { background-color: var(--nivel-alto); }
+html[data-daltonico="1"] .nivel-marca-medio { background-color: var(--nivel-medio); }
+html[data-daltonico="1"] .nivel-marca-baixo { background-color: var(--nivel-baixo); }
+
+/* Texto de gráfico (Recharts) no tema escuro. Os eixos e rótulos usam tons
+   escolhidos para fundo claro (#64748b, #475569, #8a6f10), que ficam entre
+   1,9:1 e 3:1 sobre o cartão escuro. CSS vence o atributo `fill`. */
+html.dark .recharts-text[fill="#64748b"],
+html.dark .recharts-text[fill="#475569"] { fill: #a3acb9; }
+html.dark .recharts-text[fill="#8a6f10"] { fill: #caa733; }
+
 html:not(.dark) {
   color-scheme: light;
   --color-surface: #ffffff;

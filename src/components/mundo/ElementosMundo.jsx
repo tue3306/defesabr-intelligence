@@ -9,6 +9,7 @@ import Pagination from '../ui/Pagination'
 import { CHART_GREEN, tooltipStyle } from '../charts/chartTheme'
 import { formatDateBR, timeAgo } from '../../utils/dateUtils'
 import { nomesDosTeatros } from '../../services/worldService'
+import { corDoNivel } from '../../utils/textUtils'
 
 // -----------------------------------------------------------------------------
 // PEÇAS COMPARTILHADAS DA ÁREA "MUNDO & CONFLITOS"
@@ -140,10 +141,10 @@ export function Variacao({ variacao, total, periodoAnterior, dias, compacto = fa
 }
 
 export const URGENCIAS = [
-  { id: 'CRITICO', rotulo: 'Crítico', cor: '#c0392b' },
-  { id: 'ALTO', rotulo: 'Alto', cor: '#d68910' },
-  { id: 'MEDIO', rotulo: 'Médio', cor: '#d4ac0d' },
-  { id: 'BAIXO', rotulo: 'Baixo', cor: '#5d8a70' },
+  { id: 'CRITICO', rotulo: 'Crítico', cor: corDoNivel('CRITICO') },
+  { id: 'ALTO', rotulo: 'Alto', cor: corDoNivel('ALTO') },
+  { id: 'MEDIO', rotulo: 'Médio', cor: corDoNivel('MEDIO') },
+  { id: 'BAIXO', rotulo: 'Baixo', cor: corDoNivel('BAIXO') },
 ]
 
 /**
