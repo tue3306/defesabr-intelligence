@@ -11,6 +11,7 @@ import ErrorBoundary from './components/system/ErrorBoundary'
 import { useAuthStore } from './store/authStore'
 import { useSettingsStore, applyTheme, applyDaltonismo, applyTamanhoTexto } from './store/settingsStore'
 import './services'
+import { aplicarIdioma } from './i18n'
 
 // Escolhe o layout: deslogado (Visitante) usa o PÚBLICO, sem menu lateral;
 // autenticado usa o layout do app (com sidebar adaptada ao perfil).
@@ -97,6 +98,7 @@ export default function App() {
   const theme = useSettingsStore((s) => s.theme)
   const daltonismo = useSettingsStore((s) => s.daltonismo)
   const tamanhoTexto = useSettingsStore((s) => s.tamanhoTexto)
+  const idioma = useSettingsStore((s) => s.idioma)
   const { pathname } = useLocation()
 
   // Garante a classe de tema no primeiro render.
@@ -114,6 +116,10 @@ export default function App() {
   useEffect(() => {
     applyTamanhoTexto(tamanhoTexto)
   }, [tamanhoTexto])
+
+  useEffect(() => {
+    aplicarIdioma(idioma)
+  }, [idioma])
 
   // Navegação por rota deve começar no topo (HashRouter não faz isso sozinho).
   useEffect(() => {
@@ -142,7 +148,8 @@ export default function App() {
 
   return (
     <ErrorBoundary scope="Aplicação">
-      <Routes>
+      {/* `key`: trocar o idioma remonta as telas, e todo texto é refeito no idioma novo. */}
+      <Routes key={idioma}>
         {/* Modo apresentação (sem layout) */}
         <Route
           path="/apresentacao"

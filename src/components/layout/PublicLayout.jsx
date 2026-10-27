@@ -7,6 +7,7 @@ import AuthModal from '../auth/AuthModal'
 import ErrorBoundary from '../system/ErrorBoundary'
 import { useTheme } from '../../hooks/useTheme'
 import { useUiStore } from '../../store/uiStore'
+import SeletorIdioma from '../ui/SeletorIdioma'
 
 // -----------------------------------------------------------------------------
 // LAYOUT PÚBLICO — o que aparece fora do painel: página inicial, centro
@@ -93,6 +94,7 @@ export default function PublicLayout() {
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
+            <SeletorIdioma />
             <button
               onClick={toggleTheme}
               className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-white"
