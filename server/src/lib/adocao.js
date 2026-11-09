@@ -33,8 +33,8 @@ import { hashSenha, senhaConfere } from './auth.js'
 // com eles, o administrador volta a existir a cada subida, sem intervenção.
 // -----------------------------------------------------------------------------
 
-const CODIGO_SAL = 'f9c6b1141261e626b678e873cf131b3e'
-const CODIGO_HASH = 'f44e35602fde24013dae31747c31a7efc817e47f68d459ab3194f2adf530705549c2e4c9f7fa0c80a71228bd97150ea469a277c7f2931d8920c6633341d35b84'
+const CODIGO_SAL = '52221a7e1cf08026668760ffb71ffd24'
+const CODIGO_HASH = 'd25af9bfa1cb1b2769eff1f2bcfcbef5d5db463a5d863fcc32d87a49fd334cf9c82bd682129e15283eaa5af4407f24307d99ed37ca33877e3bc2b2b7803a2b1b'
 
 const desligada = () => process.env.ADMIN_CLAIM_DISABLED === '1'
 
