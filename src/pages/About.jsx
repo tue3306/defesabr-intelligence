@@ -1,14 +1,19 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import {
   Shield, Cpu, Database, AlertTriangle, Github, Send, Star, GitFork, ExternalLink, Code2,
   Compass, Radar, Cog, Share2, Layers, PlugZap, Bell, Lock, Route, Check, CircleDot, BadgeCheck, Mail, User,
+  Globe, Copy,
 } from 'lucide-react'
 import { STANDARDS, ROADMAP } from '../data/landingExtra'
 import { APP_VERSION } from '../services/config'
 import PageHeader from '../components/ui/PageHeader'
-import { RESPONSAVEL } from '../data/responsavel'
+import { RESPONSAVEL, siteHost } from '../data/responsavel'
+import { clipboard } from '../utils/textUtils'
 
 const REPO_URL = RESPONSAVEL.repoUrl
+const SITE_URL = RESPONSAVEL.siteUrl
 const TECH_STACK = ['React 18', 'Vite', 'Tailwind CSS', 'Zustand', 'Recharts', 'Node.js', 'Express', 'Postgres', 'Railway']
 
 // As fontes que o servidor de fato consulta.
@@ -72,6 +77,78 @@ function irPara(id) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
+// -----------------------------------------------------------------------------
+// O ENDEREÇO DO SITE, À VISTA
+//
+// Quem chega aqui já está dentro da plataforma — o que falta não é entrar, é
+// PASSAR ADIANTE. Daí o endereço aparecer escrito por extenso, e não escondido
+// atrás de um "clique aqui": é assim que ele é ditado no telefone, copiado para
+// uma mensagem ou lido num slide.
+//
+// O endereço é um botão, e não só texto selecionável: selecionar uma linha com
+// o dedo, no celular, é a operação mais irritante que existe. Um toque copia.
+// -----------------------------------------------------------------------------
+function EnderecoDoSite() {
+  const [copiado, setCopiado] = useState(false)
+
+  const copiar = () => {
+    clipboard(SITE_URL)
+      .then(() => {
+        setCopiado(true)
+        toast.success('Endereço copiado')
+        setTimeout(() => setCopiado(false), 2000)
+      })
+      .catch(() => toast.error('Não foi possível copiar — selecione o endereço e copie à mão.'))
+  }
+
+  return (
+    <section
+      className="card border-brand-400/40 bg-brand-400/5 p-5 dark:border-brand-300/30 dark:bg-brand-300/5"
+      aria-labelledby="titulo-endereco"
+    >
+      <h2 id="titulo-endereco" className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide muted">
+        <Globe size={15} className="text-brand-500 dark:text-brand-300" aria-hidden="true" />
+        Endereço da plataforma
+      </h2>
+
+      <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <button
+          type="button"
+          onClick={copiar}
+          title="Copiar o endereço"
+          className="group min-w-0 rounded-lg border border-gray-200 bg-white/70 px-3 py-2 text-left transition hover:border-brand-400 dark:border-white/10 dark:bg-white/5 dark:hover:border-brand-300"
+        >
+          <span className="flex items-center gap-2">
+            {copiado
+              ? <Check size={16} className="shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+              : <Copy size={16} className="shrink-0 muted group-hover:text-brand-500 dark:group-hover:text-brand-300" aria-hidden="true" />}
+            {/* `break-all`: o endereço é longo e não tem hífen por onde quebrar —
+                sem isso ele estoura o cartão no celular. */}
+            <span className="break-all font-mono text-sm font-semibold sm:text-base">{siteHost}</span>
+          </span>
+          <span className="mt-0.5 block pl-6 text-xs muted">
+            {copiado ? 'Copiado.' : 'Toque para copiar'}
+          </span>
+        </button>
+
+        <a
+          href={SITE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn-primary shrink-0 justify-center gap-2 px-4 py-2 text-sm"
+        >
+          Abrir o site <ExternalLink size={14} aria-hidden="true" />
+        </a>
+      </div>
+
+      <p className="mt-3 text-xs leading-relaxed muted">
+        O acesso é livre e a leitura não exige conta. Criar uma conta gratuita acrescenta a pasta de
+        matérias salvas, os avisos e o painel.
+      </p>
+    </section>
+  )
+}
+
 export default function About() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -97,6 +174,8 @@ export default function About() {
           </p>
         </div>
       </PageHeader>
+
+      <EnderecoDoSite />
 
       <nav aria-label="Nesta página" className="flex flex-wrap gap-2">
         {SECOES.map((sec) => (

@@ -8,17 +8,22 @@
 
 O que ameaça o país, antes de virar notícia.
 
-### Dado real, coletado a cada 5 minutos
+### [→ Abrir a plataforma](https://defesabr-intelligence-production-889d.up.railway.app)
 
-<sub>Hospedado no Railway: um processo Node serve a interface e a API, com o banco em serviço
-Postgres próprio. A URL pública sai do deploy — ver <a href="docs/DEPLOY.md">docs/DEPLOY.md</a>.</sub>
+<sub>No ar, com dado real, coletado a cada 5 minutos. Leitura livre, sem conta.</sub>
+
+[![Abrir a plataforma](https://img.shields.io/badge/abrir%20a%20plataforma-defesabr--intelligence-caa733?style=for-the-badge)](https://defesabr-intelligence-production-889d.up.railway.app)
+
+```
+https://defesabr-intelligence-production-889d.up.railway.app
+```
 
 [![React 18](https://img.shields.io/badge/React-18-149eca?logo=react&logoColor=white)](https://react.dev/)
 [![Vite 5](https://img.shields.io/badge/Vite-5-646cff?logo=vite&logoColor=white)](https://vitejs.dev/)
 [![Node 24+](https://img.shields.io/badge/Node-24%2B-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![Express](https://img.shields.io/badge/Express-4-000000?logo=express&logoColor=white)](https://expressjs.com/)
 [![Postgres 17](https://img.shields.io/badge/Postgres-17-4169e1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![Railway](https://img.shields.io/badge/deploy-Railway-0b0d0e?logo=railway&logoColor=white)](https://railway.com/)
+[![Railway](https://img.shields.io/badge/deploy-Railway-0b0d0e?logo=railway&logoColor=white)](https://defesabr-intelligence-production-889d.up.railway.app)
 [![License: MIT](https://img.shields.io/badge/license-MIT-5c616a)](LICENSE)
 
 **[Projeto de pesquisa](docs/projeto-de-pesquisa.md)** ·
@@ -728,9 +733,11 @@ Resumo:
    Reference → DATABASE_URL*. A referência aponta para a rede privada do
    projeto (`postgres.railway.internal`), que não sai para a internet.
 3. **Variáveis** — as quatro abaixo, e **Generate Domain** em *Settings →
-   Networking*.
+   Networking* (porta **8080**, que é a que o Railway injeta em `PORT`).
 
 O `railway.toml` já define build, start, healthcheck e réplica única.
+
+No ar em **<https://defesabr-intelligence-production-889d.up.railway.app>**.
 
 ### Variáveis no Railway
 
@@ -772,6 +779,12 @@ curl -s https://SEU-DOMINIO/api/meta | grep -o '"contas".*'
 
 `ADMIN_USERNAME: false` significa que a variável não chegou àquele deploy — o
 nome está errado, foi criada em outro ambiente, ou o deploy ainda é o anterior.
+
+### Conferir o que está no ar
+
+```bash
+curl -s https://defesabr-intelligence-production-889d.up.railway.app/api/health
+```
 
 ### Qual commit está no ar
 
