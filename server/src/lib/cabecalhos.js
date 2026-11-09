@@ -1,9 +1,10 @@
 // -----------------------------------------------------------------------------
 // CABEÇALHOS DE SEGURANÇA — fonte única
 //
-// Duas camadas os aplicam: o Express (API e `npm start`) e o `vercel.json` (CDN,
-// que serve o front sem passar pela função). JSON não importa JS, então o
-// `vercel.json` repete estes valores e `test/vercel.test.js` falha se divergirem.
+// Uma camada só os aplica: o Express, que serve a API E o front compilado. Não
+// há CDN nem arquivo de configuração de plataforma repetindo estes valores —
+// eram duas cópias que podiam divergir, e um teste existia só para guardar a
+// igualdade. `test/cabecalhos.test.js` agora confere a resposta de verdade.
 //
 // A CSP não libera nenhuma origem de fora: fontes e atlas de países são
 // servidos pelo próprio site. Nenhum script de terceiro roda nesta origem, que

@@ -20,8 +20,8 @@ export default defineConfig({
     port: Number(process.env.PORT) || 5173,
     // Proxy de /api para o servidor local. E o que permite ao front usar
     // caminho relativo em desenvolvimento e em producao: mesma origem nos dois,
-    // portanto nenhum CORS para depurar e nenhuma variavel de ambiente para
-    // configurar na Vercel.
+    // portanto nenhum CORS para depurar e nenhuma variavel de ambiente de
+    // endereco de API para configurar no deploy.
     proxy: {
       '/api': {
         target: process.env.VITE_API_PROXY || 'http://localhost:3001',

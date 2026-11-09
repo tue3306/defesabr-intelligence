@@ -2,7 +2,7 @@
 
 ## Contexto do projeto
 
-O **DefesaBR Intelligence** tem servidor próprio (Node + Postgres, hospedado na Vercel e no Supabase) que coleta fontes públicas e guarda
+O **DefesaBR Intelligence** tem servidor próprio (Node + Postgres, hospedado no Railway) que coleta fontes públicas e guarda
 contas: nome de exibição, nome de usuário, senha como hash scrypt, papel, situação, pasta de
 favoritos, o estado de leitura das notificações e a trilha de atos de administração. Os dados
 coletados são públicos; os de conta, não.
@@ -91,7 +91,7 @@ recarregamento a quente.
 ## Limite de tentativas e o IP de quem chama
 
 O teto por IP (login, cadastro, favoritos) lê `req.ip`, que o Express calcula
-confiando em **um** salto de proxy (`trust proxy = 1`, o proxy da Vercel).
+confiando em **um** salto de proxy (`trust proxy = 1`, o proxy de borda da plataforma).
 Ele lia o primeiro item de `X-Forwarded-For` — o valor que o próprio cliente
 escreve, porque o proxy acrescenta o endereço real ao fim da cadeia sem apagar o
 começo. Trocar o cabeçalho a cada tentativa bastava para nunca atingir o teto. A

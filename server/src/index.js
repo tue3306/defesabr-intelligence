@@ -19,17 +19,23 @@ function fecharBanco() {
 }
 
 // -----------------------------------------------------------------------------
-// PONTO DE ENTRADA — SÓ PARA O DESENVOLVIMENTO LOCAL
+// PONTO DE ENTRADA — O MESMO LOCALMENTE E EM PRODUÇÃO
 //
 // Ordem: migrações → semeadura → servidor → coleta.
 //
-// Em produção quem serve a API é a função da Vercel, e as migrações rodam no
-// deploy (`npm run migrate`). Aqui o processo é longo e cuida de tudo sozinho,
-// para que `npm run dev` num clone recém-feito suba com o banco pronto.
+// Este é o processo que o Railway sobe (`npm start`) e o mesmo que `npm run dev`
+// usa. Ele cuida de tudo sozinho: aplica as migrações pendentes, semeia o que o
+// banco precisa ter e só então abre a porta — então um deploy novo não tem passo
+// manual, e um clone recém-feito sobe com o banco pronto.
+//
+// As migrações ANTES do listen, e não em paralelo: o healthcheck da plataforma
+// bate em /api/health, e responder "ok" com o esquema pela metade faria o deploy
+// ser dado como bem-sucedido servindo erro em toda consulta.
 //
 // A coleta vem DEPOIS do listen de propósito. Ela leva de 5 a 20 segundos
 // (sete feeds, treze buscas na Câmara, quatro séries do World Bank); esperá-la
-// atrasaria a primeira resposta da API sem motivo.
+// atrasaria a primeira resposta da API — e, num deploy, atrasaria o healthcheck
+// até o ponto de a plataforma reverter uma versão que está boa.
 // -----------------------------------------------------------------------------
 
 // `await` no topo do módulo: sem esperar, a porta abriria antes de o esquema
@@ -43,6 +49,9 @@ const servidor = app.listen(config.port, config.host, async () => {
   console.log(`\n  \x1b[1mDefesaBR Intelligence — API\x1b[0m`)
   console.log(`  \x1b[2m${linha}\x1b[0m`)
   console.log(`  API           http://localhost:${config.port}/api`)
+  if (process.env.RAILWAY_PUBLIC_DOMAIN) {
+    console.log(`  Público       https://${process.env.RAILWAY_PUBLIC_DOMAIN}`)
+  }
   console.log(`  Ambiente      ${config.ambiente}`)
   console.log(`  Node          ${process.version}`)
   // Só host e nome do banco: a URL de conexão carrega usuário e senha.
@@ -78,7 +87,9 @@ const servidor = app.listen(config.port, config.host, async () => {
   // healthcheck passa (ele testa /api/health) e o deploy é dado como bem
   // sucedido. É a falha mais cara possível: tudo indica sucesso e o site não
   // abre. Normalmente significa que o build pulou as devDependencies e o Vite
-  // não rodou.
+  // não rodou: o Railway define NODE_ENV=production na fase de build, e com ela
+  // o `npm install` padrão IGNORA as devDependencies. É por isso que o
+  // railway.toml instala com `--include=dev`.
   if (!existsSync(config.staticDir)) {
     const aviso = '\x1b[33m'
     const fim = '\x1b[0m'

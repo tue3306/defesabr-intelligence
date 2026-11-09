@@ -1,0 +1,51 @@
+# =============================================================================
+# RAILWAY — serviço da aplicação (interface + API num processo só)
+#
+# O que o Railway faz sem este arquivo já é quase certo: detecta Node pelo
+# package.json, respeita `engines.node` (>=24) e roda `npm run build` e
+# `npm start`. As quatro linhas abaixo existem para as três coisas que o padrão
+# erraria, e cada uma delas custaria um deploy "verde" com o site quebrado.
+#
+# O banco NÃO é configurado aqui: é um serviço Postgres separado, criado no mesmo
+# projeto, e a aplicação o alcança por DATABASE_URL. Ver docs/DEPLOY.md.
+# =============================================================================
+
+[build]
+# `--include=dev` NÃO é redundante. A fase de build do Railway roda com
+# NODE_ENV=production, e com ela o `npm install` padrão IGNORA as
+# devDependencies — onde estão o Vite e o plugin do React. O resultado é o pior
+# tipo de falha: `npm start` sobe, /api/health responde 200, o deploy é dado como
+# bem-sucedido e a URL abre EM BRANCO, porque `dist/` nunca foi gerado.
+#
+# O `postinstall` do package.json instala as dependências de server/ em seguida,
+# e o `prebuild` roda o ESLint antes do Vite: build que lintou é build que não
+# publica erro de sintaxe.
+buildCommand = "npm install --include=dev && npm run build"
+
+[deploy]
+# `npm start` é o servidor Express de server/src/index.js. Ele aplica as
+# migrações pendentes e semeia o banco ANTES de abrir a porta, então um deploy
+# novo não tem passo manual — e o healthcheck abaixo só passa com o esquema
+# pronto.
+startCommand = "npm start"
+
+# A sonda. Sem ela o Railway considera o deploy saudável assim que o processo
+# sobe, e trocaria a versão no ar por uma que morre na primeira consulta.
+# O tempo é generoso de propósito: a primeira subida de um banco vazio aplica
+# todas as migrações e semeia as fontes antes de responder.
+healthcheckPath = "/api/health"
+healthcheckTimeout = 300
+
+# Uma réplica. O agendador de coleta vive dentro do processo; duas réplicas
+# seriam dois agendadores. Ciclo sobreposto não corrompe nada — o arrendamento em
+# banco (server/src/lib/arrendamento.js) barra o segundo com 409 —, mas a segunda
+# réplica gastaria recursos buscando o que a primeira já trouxe. Para escalar a
+# entrega sem duplicar a coleta, suba a segunda réplica com
+# COLLECT_INTERVAL_MINUTES=0 e deixe o ciclo a cargo de quem agenda.
+numReplicas = 1
+
+# Falha na subida costuma ser configuração (DATABASE_URL ausente, segredo curto),
+# e nisso reiniciar para sempre só enche o log. Dez tentativas dão margem ao caso
+# real — o banco ainda subindo no primeiro deploy do projeto.
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10

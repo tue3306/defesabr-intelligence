@@ -2,16 +2,15 @@ import { readdir, readFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-// supabase/migrations/ na raiz do repositório. O mesmo arquivo serve ao banco
-// local e ao de produção, mas quem aplica é SEMPRE `npm run migrate` (esta
-// função), nunca `supabase db push`: os nomes não seguem o carimbo de data que
-// a CLI do Supabase exige, e o controle do que já rodou é a nossa tabela
-// `schema_migrations`, não a `supabase_migrations` da CLI.
-const PASTA = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'supabase', 'migrations')
-
-// Migrações cujo nome começa com 01 dependem de pg_cron (agendamento), que só
-// existe no Supabase. Fora dele são puladas, e não tratadas como erro.
-const PREFIXO_CRON = '01'
+// db/migrations/ na raiz do repositório. O mesmo arquivo serve ao banco local,
+// ao da CI e ao de produção; o controle do que já rodou é a tabela
+// `schema_migrations`, criada aqui.
+//
+// Quem aplica é `npm run migrate` (esta função) ou a subida do servidor, que a
+// chama antes de abrir a porta — então um deploy novo no Railway já sobe com o
+// esquema em dia, sem passo manual. Nada de CLI de plataforma no meio: o
+// esquema é do repositório.
+const PASTA = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'db', 'migrations')
 
 const instante = () => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z')
 
@@ -22,6 +21,11 @@ const instante = () => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z')
  *
  * Aceita `pg.Client` ou `pg.Pool`. Num Pool, BEGIN/COMMIT precisam cair na
  * MESMA conexão, então reservamos uma com `connect()`.
+ *
+ * `puladas` continua na resposta, sempre vazia: era onde entravam as migrações
+ * que dependiam de uma extensão de agendamento do banco gerenciado anterior, e
+ * que saíram com ele. Mantê-la poupa mexer em todo chamador, e deixa o lugar
+ * pronto para o dia em que uma migração voltar a depender de extensão opcional.
  *
  * @param {import('pg').Client | import('pg').Pool} cliente
  * @returns {Promise<{ aplicadas: string[], puladas: string[] }>}
@@ -56,11 +60,6 @@ async function aplicar(conexao) {
   for (const arquivo of arquivos) {
     if (jaAplicadas.has(arquivo)) continue
 
-    if (arquivo.startsWith(PREFIXO_CRON) && !(await temPgCron(conexao))) {
-      puladas.push(arquivo)
-      continue
-    }
-
     const sql = await readFile(join(PASTA, arquivo), 'utf8')
     await conexao.query('BEGIN')
     try {
@@ -81,7 +80,3 @@ async function aplicar(conexao) {
   return { aplicadas, puladas }
 }
 
-async function temPgCron(conexao) {
-  const { rows } = await conexao.query("SELECT 1 FROM pg_available_extensions WHERE name = 'pg_cron'")
-  return rows.length > 0
-}

@@ -55,7 +55,7 @@ if (!forcar) {
   }
 }
 
-// Mesmo TLS do pool (db/conexao.js): contra o Supabase a conexão é remota.
+// Mesmo TLS do pool (db/conexao.js): o banco pode ser remoto.
 const cliente = new pg.Client(opcoesDoCliente({ url: config.banco.url, env: process.env }))
 try {
   await cliente.connect()

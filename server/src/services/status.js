@@ -139,9 +139,10 @@ async function armazenamento() {
   const maior = porTabela[0] || null
   const nivel = percentual > LIMIAR_VERMELHO ? 'vermelho' : percentual > LIMIAR_AMARELO ? 'amarelo' : 'verde'
 
-  // DELETE não encolhe o arquivo: só VACUUM FULL devolve espaço ao disco (e é
-  // isso que pg_database_size e o modo somente-leitura do Supabase medem). Sem
-  // a instrução no próprio texto, o admin esperaria a retenção "resolver".
+  // DELETE não encolhe o arquivo: só VACUUM FULL devolve espaço ao disco, e é
+  // isso que pg_database_size mede — o mesmo espaço que ocupa o volume do
+  // serviço. Sem a instrução no próprio texto, o admin esperaria a retenção
+  // "resolver".
   const acao = ' — rode VACUUM FULL nas maiores tabelas (docs/DEPLOY.md, "Armazenamento")'
   const sufixo = nivel === 'vermelho' ? ` · orçamento ESTOURADO: a retenção está encurtando o só-mundo${acao}`
     : nivel === 'amarelo' ? ` · perto do orçamento${acao}` : ''
@@ -171,20 +172,14 @@ async function armazenamento() {
 export async function capacidades() {
   const estadoAgendador = await estadoDoAgendador()
 
-  // Na Vercel não há processo vivo para agendar: quem dispara o ciclo é o
-  // `pg_cron` do Supabase (supabase/migrations/0100_cron.sql). Ler só o
-  // agendador em memória fazia o painel dizer "Desligado" com a coleta
-  // rodando a cada 5 minutos.
-  let pgCron = null
-  if (process.env.VERCEL) {
-    try {
-      const job = await get("SELECT schedule, active FROM cron.job WHERE jobname = 'defesabr-ciclo'")
-      const ultima = await get("SELECT MAX(started_at) AS em FROM collector_runs WHERE \"trigger\" = 'agendado'")
-      pgCron = { ativo: !!job?.active, agenda: job?.schedule || null, ultima: ultima?.em || null }
-    } catch {
-      pgCron = { ativo: false, agenda: null, ultima: null, ilegivel: true }
-    }
-  }
+  // Quando o ciclo rodou pela última vez por agendamento. O agendador em
+  // memória diz se ESTE processo tem o temporizador de pé; esta data diz se a
+  // coleta está de fato acontecendo — e as duas respostas divergem logo depois
+  // de um deploy, quando o processo é novo e o acervo não.
+  const ultimaAgendada = (await get(
+    'SELECT MAX(started_at) AS em FROM collector_runs WHERE "trigger" = ?',
+    ['agendado'],
+  ))?.em || null
   const artigos = await contar('SELECT COUNT(*) AS n FROM articles')
   const relevantes = await contar('SELECT COUNT(*) AS n FROM articles WHERE relevant = 1')
   // Denominador do filtro do Brasil: sem o que só a lente mundial gravou
@@ -375,27 +370,23 @@ export async function capacidades() {
       grupo: 'Processamento',
       ...(() => {
         const s = estadoAgendador
-        if (pgCron) {
-          const quando = pgCron.ultima ? new Date(pgCron.ultima).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : 'ainda não rodou'
-          return {
-            estado: pgCron.ativo ? 'operacional' : 'degradado',
-            detalhe: pgCron.ilegivel
-              ? 'pg_cron do Supabase: não foi possível ler o job defesabr-ciclo.'
-              : pgCron.ativo
-                ? `pg_cron do Supabase (${pgCron.agenda}) · última execução agendada: ${quando}`
-                : 'Job defesabr-ciclo do pg_cron ausente ou pausado — a coleta não roda sozinha.',
-            metricas: { ultimaExecucao: pgCron.ultima, agenda: pgCron.agenda },
-          }
-        }
+        const quando = ultimaAgendada
+          ? new Date(ultimaAgendada).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+          : 'ainda não rodou'
         return {
           estado: s.ativo ? 'operacional' : 'opcional',
           detalhe: s.ativo
-            ? `A cada ${s.intervaloMinutos} min · próxima em ${s.proximaExecucao ? new Date(s.proximaExecucao).toLocaleTimeString('pt-BR') : '—'}`
+            ? `A cada ${s.intervaloMinutos} min · próxima em ${s.proximaExecucao ? new Date(s.proximaExecucao).toLocaleTimeString('pt-BR') : '—'} · última agendada: ${quando}`
             : 'Desligado por configuração (COLLECT_INTERVAL_MINUTES=0).',
-          metricas: { proximaExecucao: s.proximaExecucao, emAndamento: s.emAndamento },
+          metricas: {
+            proximaExecucao: s.proximaExecucao,
+            emAndamento: s.emAndamento,
+            ultimaExecucao: ultimaAgendada,
+          },
         }
       })(),
-      descricao: 'Ciclo periódico com trava contra sobreposição: uma coleta longa não é atropelada pela seguinte.',
+      descricao: 'Temporizador no próprio processo do servidor, com trava em banco contra sobreposição: '
+        + 'uma coleta longa não é atropelada pela seguinte, nem por um ciclo disparado à mão.',
       fonte: 'server/src/collectors/index.js',
     },
     {
@@ -405,11 +396,11 @@ export async function capacidades() {
       estado: 'operacional',
       // Só host e nome do banco: a URL de conexão carrega usuário e senha.
       detalhe: `${(await all("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")).length} tabelas · ${enderecoDoBanco()} · ${descricaoTls(modoTls)}`,
-      descricao: 'Postgres gerenciado (Supabase), fora da instância que atende a API: o acervo e as '
-        + 'contas sobrevivem a deploys e a instâncias novas. O esquema vem das migrações em '
-        + '`supabase/migrations/`.',
+      descricao: 'Postgres gerenciado em serviço próprio, fora do contêiner que atende a API: o '
+        + 'acervo e as contas sobrevivem a deploys e a instâncias novas. O esquema vem das '
+        + 'migrações em `db/migrations/`.',
       pendente: null,
-      fonte: 'Postgres (Supabase)',
+      fonte: 'Postgres',
       metricas: { registros: artigos + await contar('SELECT COUNT(*) AS n FROM bills'), tls: modoTls },
     },
     await armazenamento(),

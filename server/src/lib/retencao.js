@@ -5,7 +5,8 @@ import { apagarJanelasVencidas } from './limite.js'
 // -----------------------------------------------------------------------------
 // RETENÇÃO E ORÇAMENTO DE ARMAZENAMENTO
 //
-// O Supabase Free para de aceitar escrita em 500 MB. Duas defesas:
+// Volume cheio no serviço Postgres do Railway não é "somente leitura": o banco
+// para. Duas defesas contra chegar lá:
 //
 //   1. POR IDADE: só-mundo além de MUNDO_RETENCAO_DIAS e audit_log além de
 //      AUDITORIA_RETENCAO_DIAS saem, e as janelas vencidas do limitador também.
@@ -20,8 +21,8 @@ import { apagarJanelasVencidas } from './limite.js'
 // autovacuum marca o espaço das linhas mortas para REUSO pelas próximas
 // inserções, mas não devolve o arquivo ao disco; só `VACUUM FULL <tabela>`
 // (que trava a tabela enquanto reescreve) faz o tamanho medido cair. A métrica
-// continua sendo `pg_database_size` porque é ela que o Supabase usa para pôr o
-// banco em somente-leitura.
+// continua sendo `pg_database_size` porque é a que corresponde ao que o volume
+// do serviço de fato guarda.
 //
 // Consequência: depois de apagar, o tamanho NÃO volta ao orçamento sozinho, e
 // as passadas de pressão abaixo seguem vendo "acima". Por isso são no máximo
@@ -38,8 +39,9 @@ const LOTE_PADRAO = 2000
 
 /**
  * Teto de lotes por passada. 200 × 2.000 = 400 mil linhas, bem acima do que um
- * ciclo acumula (~3,4 kB/artigo), e mantém a função dentro dos 300 s da Vercel
- * mesmo num acervo antigo gigante: o resto sai no ciclo seguinte.
+ * ciclo acumula (~3,4 kB/artigo). O limite existe para a limpeza não segurar uma
+ * conexão por minutos num acervo antigo gigante, mesmo sem prazo de função a
+ * respeitar: o resto sai no ciclo seguinte.
  */
 const MAX_LOTES_POR_PASSADA = 200
 

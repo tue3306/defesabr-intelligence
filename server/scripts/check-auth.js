@@ -138,7 +138,7 @@ const ROTAS = [
   //
   // Identificador inexistente de propósito: 404 prova que a guarda passou sem
   // mexer no estado de leitura de ninguém. `read-all` muda só a conta que chama.
-  // O ciclo do pg_cron autentica por segredo compartilhado, não por sessão: o
+  // O gatilho externo do ciclo autentica por segredo compartilhado, não por sessão: o
   // papel não muda nada. O que se mede é a GUARDA, sem depender do valor do
   // CRON_SECRET (que a suíte não conhece): sem cabeçalho e com Bearer errado
   // devem dar 401 em qualquer identidade. Exige a API subida COM CRON_SECRET —

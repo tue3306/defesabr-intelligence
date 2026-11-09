@@ -1,9 +1,14 @@
-# Aplica as migrações pendentes no banco de produção (Supabase).
+# Aplica as migrações pendentes no banco de produção, sem reiniciar a aplicação.
+#
+# NA MAIORIA DOS CASOS NÃO É NECESSÁRIO: o servidor aplica as migrações e semeia
+# o banco na subida, antes de abrir a porta (server/src/index.js), então um
+# deploy novo no Railway já entra com o esquema em dia. Este workflow existe para
+# quando se quer migrar sem publicar — ou conferir, de fora, o que o banco tem.
 #
 # Só roda quando alguém dispara à mão (Actions → "Migrar banco de produção" →
 # Run workflow). A string de conexão fica no secret DATABASE_URL do repositório,
-# nunca no código. Use a string do pooler em MODO SESSÃO (porta 5432 do pooler):
-# os runners do GitHub não têm IPv6, e a conexão direta do Supabase é IPv6.
+# nunca no código. Use a DATABASE_PUBLIC_URL do serviço Postgres: o runner do
+# GitHub está fora do projeto e não alcança `postgres.railway.internal`.
 name: Migrar banco de produção
 
 on:
@@ -29,7 +34,7 @@ jobs:
       - name: Conferir o secret
         run: |
           if [ -z "$DATABASE_URL" ]; then
-            echo "::error::Secret DATABASE_URL não configurado (Settings → Secrets and variables → Actions)."
+            echo "::error::Secret DATABASE_URL não configurado (Settings → Secrets and variables → Actions). Use a DATABASE_PUBLIC_URL do Postgres no Railway."
             exit 1
           fi
 
@@ -45,16 +50,18 @@ jobs:
       - name: Aplicar migrações
         run: npm run migrate
 
-      - name: Conferir o agendamento da coleta
+      - name: Conferir o esquema
         run: |
           node --input-type=module -e "
           import pg from 'pg'
           import { opcoesDoCliente } from './server/src/db/conexao.js'
           const c = new pg.Client(opcoesDoCliente({ url: process.env.DATABASE_URL, env: process.env }))
           await c.connect()
-          const job = await c.query(\"SELECT schedule, active FROM cron.job WHERE jobname = 'defesabr-ciclo'\").catch(() => ({ rows: [] }))
+          const migracoes = await c.query('SELECT nome FROM schema_migrations ORDER BY nome')
           const kev = await c.query(\"SELECT to_regclass('public.kev_vulnerabilities') IS NOT NULL AS existe\")
-          console.log('Agendamento da coleta:', job.rows[0] || 'job não encontrado')
+          const tamanho = await c.query('SELECT pg_size_pretty(pg_database_size(current_database())) AS tamanho')
+          console.log('Migrações aplicadas:', migracoes.rows.map((r) => r.nome).join(', '))
           console.log('Tabela kev_vulnerabilities:', kev.rows[0].existe ? 'criada' : 'AUSENTE')
+          console.log('Tamanho do banco:', tamanho.rows[0].tamanho)
           await c.end()
           "

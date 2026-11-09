@@ -3,21 +3,28 @@ import config from '../src/config.js'
 import { aplicarMigracoes } from '../src/db/migracoes.js'
 import { opcoesDoCliente } from '../src/db/conexao.js'
 
-// Aplica as migrações de supabase/migrations no banco de DATABASE_URL e, em
-// seguida, a semeadura (fontes padrão, conta de administrador, versão da lente
-// mundial). É o passo de deploy: a função serverless não migra nada sozinha.
+// Aplica as migrações de db/migrations no banco de DATABASE_URL e, em seguida, a
+// semeadura (fontes padrão, conta de administrador, versão da lente mundial).
+//
+// NÃO é obrigatório num deploy: a subida do servidor (src/index.js) já faz as
+// duas coisas antes de abrir a porta. Este script serve a quem precisa migrar
+// SEM reiniciar a aplicação, ou de fora do projeto — da sua máquina, com a
+// DATABASE_PUBLIC_URL do Railway.
 //
 // As migrações usam um `pg.Client` próprio, e não o pool do adaptador: assim o
 // esquema existe antes de qualquer módulo que consulta o banco ser carregado.
 // A semeadura entra por import dinâmico DEPOIS, pelo mesmo motivo.
-// Mesmo TLS do pool (db/conexao.js): contra o Supabase a conexão é remota.
+// Mesmo TLS do pool (db/conexao.js): de fora do projeto a conexão é remota.
 const cliente = new pg.Client(opcoesDoCliente({ url: config.banco.url, env: process.env }))
 
 try {
   await cliente.connect()
   const { aplicadas, puladas } = await aplicarMigracoes(cliente)
   console.log(aplicadas.length ? `Aplicadas: ${aplicadas.join(', ')}` : 'Banco já está em dia.')
-  if (puladas.length) console.log(`Puladas (sem pg_cron): ${puladas.join(', ')}`)
+  // `puladas` é sempre vazia hoje (nenhuma migração depende de extensão
+  // opcional), mas imprimir o que foi pulado em silêncio é o que impede um
+  // esquema incompleto passar por "Banco já está em dia".
+  if (puladas.length) console.log(`Puladas: ${puladas.join(', ')}`)
 } catch (erro) {
   console.error(erro.message)
   process.exitCode = 1

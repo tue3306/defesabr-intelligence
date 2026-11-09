@@ -1,18 +1,18 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
 import pg from 'pg'
-import { attachDatabasePool } from '@vercel/functions'
 import config from '../config.js'
 import { opcoesDoPool, opcoesSsl } from './conexao.js'
 
 // -----------------------------------------------------------------------------
-// BANCO — Postgres (Supabase) pelo driver `pg`.
+// BANCO — Postgres pelo driver `pg`.
 //
-// Em produção a conexão passa pelo pooler do Supabase em MODO TRANSAÇÃO
-// (porta 6543): cada função serverless da Vercel abre poucas conexões e o
-// pooler as multiplexa. Nesse modo uma conexão física só pertence ao cliente
-// durante uma transação, então nada pode depender de estado de sessão — por
-// isso não usamos prepared statements nomeados (`pg` só os cria quando a
-// consulta recebe `name`), SET de sessão nem LISTEN/NOTIFY.
+// Em produção o banco é o serviço Postgres do Railway, alcançado pela rede
+// privada do projeto (`postgres.railway.internal`). Um processo só mantém o
+// pool, então aqui não há pooler de terceiro no caminho e nada impede estado de
+// sessão — mas o código segue sem prepared statements nomeados (`pg` só os cria
+// quando a consulta recebe `name`), sem SET de sessão e sem LISTEN/NOTIFY, para
+// não ficar preso a este arranjo: é o que permite pôr um pooler na frente
+// (PgBouncer em modo transação) sem reescrever consulta nenhuma.
 //
 // A interface espelha a do adaptador SQLite (`db/index.js`), agora assíncrona,
 // para que os chamadores mudem só o `await`. O SQL continua escrito com `?`.
@@ -31,31 +31,24 @@ export const pool = new pg.Pool(opcoesDoPool({
   env: process.env,
 }))
 
-/** Como a conexão está protegida: 'local' | 'verificado' | 'sem-verificacao'. */
+/**
+ * Como a conexão está protegida: 'local' | 'privado' | 'desligado' |
+ * 'verificado' | 'sem-verificacao'. Ver db/conexao.js.
+ */
 export const modoTls = opcoesSsl(config.banco.url, process.env).modo
 
 // Cifrado sem verificar o servidor é melhor que texto puro, mas não é o fim da
 // linha: avisa uma vez por instância, para o log de produção mostrar a lacuna.
+// Não vale para 'privado' (rede interna do projeto, sem TLS por desenho) nem
+// para 'local'.
 if (modoTls === 'sem-verificacao') {
-  console.warn('[banco] TLS sem verificação do servidor: defina DATABASE_CA_CERT com a CA do Supabase '
-    + '(Database settings → SSL) para verificar o certificado. Ver docs/DEPLOY.md.')
-}
-
-// Na Vercel (Fluid compute) a instância congela entre requisições. O
-// attachDatabasePool mantém a função viva até as conexões ociosas saírem do
-// pool, em vez de congelá-las abertas. Fora da Vercel ele só registra um
-// ouvinte de `release` que retorna cedo (não há VERCEL_URL/VERCEL_REGION); o
-// try/catch cobre uma versão futura que recuse o pool — perder a otimização
-// não pode derrubar o boot.
-try {
-  attachDatabasePool(pool)
-} catch (err) {
-  console.warn('[banco] attachDatabasePool indisponível:', err?.message || err)
+  console.warn('[banco] TLS sem verificação do servidor: defina DATABASE_CA_CERT com a CA do seu '
+    + 'Postgres para verificar o certificado. Ver docs/DEPLOY.md.')
 }
 
 // Um erro em conexão ociosa (o servidor derrubou o socket) emitido sem ouvinte
-// derrubaria o processo inteiro. Registrar evita o crash sem esconder a queda,
-// que no Supabase/serverless é justamente o sinal que se quer ver.
+// derrubaria o processo inteiro. Registrar evita o crash sem esconder a queda —
+// e num processo longo é justamente o sinal que se quer ver no log.
 pool.on('error', (err) => {
   console.error('[banco] erro em conexão ociosa:', err.message)
 })

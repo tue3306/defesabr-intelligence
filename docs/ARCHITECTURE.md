@@ -1,10 +1,11 @@
 # 🏗️ Arquitetura — DefesaBR Intelligence
 
-A API é um app Express sobre Postgres. Em produção ela roda como uma função da Vercel
-(`api/index.js`), ao lado da interface compilada (React 18 + Vite 5), com o banco no Supabase e a
-coleta disparada pelo `pg_cron` a cada 15 minutos. Localmente, um processo Node serve as duas na
-mesma porta, sobre o Postgres do Docker. O servidor coleta, filtra, correlaciona e guarda; a interface
-lê por uma camada de serviços única e não tem dado local de reserva.
+A API é um app Express sobre Postgres. Um processo Node serve a API e a interface compilada
+(React 18 + Vite 5) na mesma porta — em produção, num contêiner do Railway com o banco em serviço
+Postgres próprio; localmente, o mesmo comando sobre o Postgres do Docker. Porque o processo fica de
+pé, o agendador de coleta vive dentro dele: um temporizador a cada 5 minutos, com trava em banco
+contra sobreposição. O servidor coleta, filtra, correlaciona e guarda; a interface lê por uma camada
+de serviços única e não tem dado local de reserva.
 
 > Este documento descrevia uma SPA estática sem backend, com modo de dados "mock", latência
 > simulada, serviço de fila do analista e dois eixos de permissão (papel × plano). Nada disso
@@ -118,9 +119,10 @@ a cada hora, Comex a cada 12 h, World Bank a cada 24 h.
 ## 📦 Build & Deploy
 
 `vite build` separa `vendor-react`, `vendor-motion`, `vendor-maps` e `vendor-icons`; `jspdf` e
-`html2canvas` carregam sob demanda. Em produção a Vercel serve o `dist/` e a API como uma função
-(`api/index.js`); o banco é Postgres no Supabase e o `pg_cron` dispara a coleta. `npm start` serve
-API e `dist/` num processo só, para rodar localmente. Roteiro em [`DEPLOY.md`](DEPLOY.md).
+`html2canvas` carregam sob demanda. `npm start` serve a API e o `dist/` num processo só — o mesmo
+comando localmente e no Railway, onde ele aplica as migrações e semeia o banco antes de abrir a
+porta, e só então o healthcheck passa. O esquema vem de `db/migrations/`. Roteiro em
+[`DEPLOY.md`](DEPLOY.md).
 
 ---
 

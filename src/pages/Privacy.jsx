@@ -26,8 +26,8 @@ import { RESPONSAVEL } from '../data/responsavel'
 //                     (defesabr-settings-v3) e pasta local (defesabr-news-v2)
 //   limite_tentativas resumo SHA-256 do IP no teto de tentativas (lib/limite.js),
 //                     apagado quando a janela vence
-//   operadores        Vercel (hospedagem) e Supabase (banco). Fontes e mapa são
-//                     servidos pelo próprio site: nenhum terceiro no navegador
+//   operadores        Railway (hospedagem do servidor e do banco). Fontes e mapa
+//                     são servidos pelo próprio site: nenhum terceiro no navegador
 //
 // O que NÃO existe, e por isso não aparece: analytics, pixel de rede social,
 // cookie de publicidade, venda de dado, perfilamento e qualquer chamada a
@@ -211,15 +211,14 @@ export default function Privacy() {
       <Bloco icon={Globe} titulo="Terceiros que recebem alguma informação">
         <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
           O seu navegador <strong>não carrega nada de terceiros</strong>: a fonte das letras e o desenho
-          do mapa são servidos pelo próprio site. Os dados ficam com dois prestadores, que os guardam em
-          nome da plataforma (operadores, na linguagem da LGPD) e não os usam para nada próprio:
+          do mapa são servidos pelo próprio site. Os dados ficam com um único prestador, que os guarda em
+          nome da plataforma (operador, na linguagem da LGPD) e não os usa para nada próprio:
         </p>
         <ul className="mt-2 space-y-1.5 text-sm text-gray-700 dark:text-gray-300">
-          <li>• <strong>Vercel</strong> — hospeda o site e o servidor.</li>
-          <li>• <strong>Supabase</strong> — guarda o banco de dados (conta, pasta e avisos).</li>
+          <li>• <strong>Railway</strong> — hospeda o site, o servidor e o banco de dados (conta, pasta e avisos).</li>
         </ul>
         <p className="mt-3 text-sm leading-relaxed text-gray-700 dark:text-gray-300">
-          As duas são empresas estrangeiras, então os dados podem ficar armazenados fora do Brasil.
+          É uma empresa estrangeira, então os dados podem ficar armazenados fora do Brasil.
         </p>
         <p className="mt-3 text-sm leading-relaxed text-gray-700 dark:text-gray-300">
           As <strong>fontes de notícia</strong> (jornais, órgãos públicos, APIs) são lidas pelo

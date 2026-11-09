@@ -25,14 +25,15 @@ test('aplica tudo num banco vazio e é idempotente', async () => {
   assert.deepEqual(segunda.aplicadas, [])
 })
 
-test('0100_cron é pulada sem pg_cron', async () => {
-  const { rows } = await cliente.query("SELECT 1 FROM pg_available_extensions WHERE name = 'pg_cron'")
-  assert.equal(rows.length, 0, 'o Postgres de teste não deveria ter pg_cron')
-
+test('nenhuma migração é pulada: o esquema inteiro roda em Postgres puro', async () => {
+  // Havia migrações que dependiam de uma extensão de agendamento do banco
+  // gerenciado anterior, e eram puladas onde ela não existisse — o que
+  // significava CI e produção com esquemas diferentes. Agora o agendamento vive
+  // no servidor e todo arquivo daqui roda em qualquer Postgres 17.
   await cliente.query('DROP SCHEMA public CASCADE; CREATE SCHEMA public;')
   const { puladas, aplicadas } = await aplicarMigracoes(cliente)
-  assert.ok(puladas.includes('0100_cron.sql'))
-  assert.ok(!aplicadas.includes('0100_cron.sql'))
+  assert.deepEqual(puladas, [])
+  assert.ok(aplicadas.length >= 4, `aplicou só ${aplicadas.length}`)
 })
 
 test('toda tabela de public tem RLS ligado e nenhuma política', async () => {
@@ -52,7 +53,7 @@ test('toda tabela de public tem RLS ligado e nenhuma política', async () => {
   assert.equal(politicas.length, 0)
 })
 
-test('iso_agora não é executável por PUBLIC (nem anon/authenticated no Supabase)', async () => {
+test('iso_agora não é executável por PUBLIC', async () => {
   const { rows } = await cliente.query(`
     SELECT count(*)::int AS n
       FROM pg_proc p, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a

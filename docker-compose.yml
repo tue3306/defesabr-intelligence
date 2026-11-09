@@ -1,5 +1,6 @@
-# Postgres local para desenvolvimento e testes. Em produção o banco é o
-# Supabase; aqui a versão acompanha a dele para o SQL rodar igual nos dois.
+# Postgres local para desenvolvimento e testes. Em produção o banco é o serviço
+# Postgres do Railway; a versão aqui acompanha a dele (17) para o SQL rodar igual
+# nos dois — e a mesma que a CI usa.
 # A porta 54329 evita colidir com um Postgres já instalado na máquina (5432).
 services:
   postgres:

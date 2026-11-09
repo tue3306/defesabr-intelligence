@@ -7,28 +7,91 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Não publicado]
 
+### Hospedagem num só lugar: Railway
+
+A plataforma deixou de depender de dois serviços (função serverless + banco
+gerenciado com agendador próprio) e passou a ser **um processo Node e um
+Postgres**, no mesmo projeto do Railway.
+
+É uma volta: há uma entrada "Railway removido" mais abaixo, de quando o projeto
+saiu dele. O que mudou desde então é que a aplicação ganhou um servidor de
+verdade — coleta periódica, trabalho depois da resposta, migração na subida — e
+nada disso cabe bem numa função que a plataforma congela entre requisições. O
+que a volta tirou do caminho:
+
+- **O agendamento voltou para dentro do servidor.** A coleta era disparada de
+  fora, por uma extensão de agendamento do banco que fazia um POST HTTP na
+  função — três peças (extensão, segredo num vault, URL cadastrada à mão) para
+  resolver o fato de que não havia processo vivo. Agora há: o temporizador de
+  `COLLECT_INTERVAL_MINUTES` faz o ciclo, e `POST /api/cron/ciclo` continua
+  existindo como gatilho **externo opcional** (`CRON_SECRET`).
+- **Migrações na subida.** `npm start` aplica as migrações e semeia o banco
+  antes de abrir a porta, e o healthcheck só passa depois disso — um deploy não
+  tem mais passo manual de migração. O esquema saiu de `supabase/migrations/`
+  para **`db/migrations/`**, e nenhum arquivo depende mais de extensão que só
+  existe num fornecedor: a CI e a produção aplicam exatamente o mesmo conjunto.
+- **Um lugar só define os cabeçalhos.** Eram dois — o Express e um JSON de
+  configuração de CDN que repetia os mesmos valores, com um teste existindo só
+  para que não divergissem. O teste novo (`server/test/cabecalhos.test.js`)
+  confere a **resposta de verdade**: segurança, cache imutável dos arquivos com
+  hash, `no-cache` no `index.html`, 404 em arquivo ausente.
+- **Dependência de plataforma removida** (`@vercel/functions`): o trabalho
+  depois da resposta (ciclo de coleta, estorno da cota de login) agora é
+  `lib/segundoplano.js`, que só garante que a promessa não vire rejeição sem
+  dono — num processo longo é tudo o que falta.
+
+Correções que a migração exigiu, cada uma capaz de derrubar o deploy no boot:
+
+- **TLS decidido pelo endereço** (`db/conexao.js`). A regra antiga era "host
+  remoto, sempre TLS", e o banco na rede privada do projeto
+  (`postgres.railway.internal`) aceita conexão simples: pedir TLS a quem não o
+  oferece responde *"the server does not support SSL connections"*, e como a
+  conexão acontece antes do `listen`, o serviço inteiro morre na subida. Agora:
+  local e rede privada sem TLS, host remoto com TLS (verificado quando há
+  `DATABASE_CA_CERT`), e `DATABASE_SSL=on|off` para forçar a mão.
+- **Pool dimensionado para um processo longo**: `DB_POOL_MAX` de 3 para 10, e
+  conexão ociosa solta em 30 s em vez de 5 s — soltar a cada 5 s fazia o
+  servidor reabrir conexão, com renegociação de TLS, a toda rajada de
+  requisições. `keepAlive` ligado contra o corte de conexão quieta.
+- **`DB_ORCAMENTO_MB` de 400 para 4000.** O teto antigo era 80% do limite de
+  500 MB de um plano gratuito que já não está no caminho; o limite agora é o
+  volume do serviço Postgres (5 GB por padrão). O número velho mandava a
+  retenção apagar a cobertura mundial sem necessidade nenhuma.
+- **Build com `--include=dev`** (`railway.toml` e CI). A fase de build roda com
+  `NODE_ENV=production`, e com ela o `npm install` padrão ignora as
+  devDependencies — onde está o Vite. Sem o sinalizador, `npm start` sobe,
+  `/api/health` responde 200, o deploy é dado como bem-sucedido e **a URL abre
+  em branco**.
+- **`qs` forçado para 6.17.1** (era `^6.16.0`, e a falha de DoS atingia até a
+  6.16.0 inclusive): `npm audit` volta a zero na raiz e no servidor.
+- **O painel de status não depende mais do fornecedor.** O item Agendador lia o
+  job da extensão de agendamento quando detectava a plataforma antiga; agora
+  mostra o temporizador e a **última coleta agendada lida do banco** — que é o
+  que responde "a coleta está acontecendo?", e não só "o temporizador existe?".
+
 ### Segurança e LGPD
 
 - **Dependências sem vulnerabilidade conhecida** (`npm audit`: 0 na raiz e no
   servidor): DOMPurify 3.4.17 (crítica, via jsPDF), proxy-addr 2.0.8 (crítica)
-  e body-parser 1.20.9 (alta) atualizados; `zod` forçado para 4.6.7 dentro do
-  `@vercel/functions`; Vite 5 → 6.4.5 (falhas só do servidor de desenvolvimento).
+  e body-parser 1.20.9 (alta) atualizados; `qs` forçado para 6.17.1 (DoS,
+  via Express); Vite 5 → 6.4.5 (falhas só do servidor de desenvolvimento).
 - **Nenhum terceiro no navegador**: fonte Inter e atlas do mapa servidos pelo
   próprio site (antes Google Fonts e jsDelivr recebiam o IP de todo visitante).
   CSP fechada em `'self'` para estilo, fonte, imagem e `fetch`.
 - **Baixar meus dados** (acesso e portabilidade): `GET /api/auth/me/dados` e
   botão em Minha conta → Segurança, em JSON, sem hash nem sal da senha.
 - **IP no limite de tentativas** gravado só como resumo SHA-256, não em texto.
-- **Privacidade**: responsável e e-mail para os titulares, operadores (Vercel e
-  Supabase) e possível armazenamento fora do Brasil; texto do IP corrigido.
+- **Privacidade**: responsável e e-mail para os titulares, operador (Railway,
+  que hospeda servidor e banco) e possível armazenamento fora do Brasil; texto
+  do IP corrigido.
 - `/.well-known/security.txt` e e-mail de contato no SECURITY.md.
 
 ### Coleta a cada 5 minutos e telas que se atualizam sozinhas
 
-- Ciclo de coleta de **15 para 5 minutos**: padrão de `COLLECT_INTERVAL_MINUTES`
-  e migração `0101_cron_5min.sql`, que muda o job `defesabr-ciclo` do pg_cron.
-  As fontes lentas ou com cota (Câmara, Banco Central, agregadores,
-  ransomware.live, CISA, World Bank, Comex) mantêm a cadência própria.
+- Ciclo de coleta de **15 para 5 minutos**, no padrão de
+  `COLLECT_INTERVAL_MINUTES`. As fontes lentas ou com cota (Câmara, Banco
+  Central, agregadores, ransomware.live, CISA, World Bank, Comex) mantêm a
+  cadência própria.
 - Painel e Notícias do dia se releem a cada 5 minutos, sem tela de
   carregamento e só com a aba visível (`useAoVivo`).
 - Histórico de execuções por coletor de 700 para 2.100 (continua ~7 dias).

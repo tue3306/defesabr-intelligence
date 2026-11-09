@@ -8,18 +8,17 @@
 
 O que ameaça o país, antes de virar notícia.
 
-### [→ Ver a plataforma funcionando](https://defesabr-intelligence.vercel.app/)
+### Dado real, coletado a cada 5 minutos
 
-<sub>No ar, com dado real, coletado a cada 5 minutos. Hospedado na Vercel, com banco no Supabase.</sub>
-
-[![Ver ao vivo](https://img.shields.io/badge/ver%20ao%20vivo-defesabr--intelligence-caa733?style=for-the-badge)](https://defesabr-intelligence.vercel.app/)
+<sub>Hospedado no Railway: um processo Node serve a interface e a API, com o banco em serviço
+Postgres próprio. A URL pública sai do deploy — ver <a href="docs/DEPLOY.md">docs/DEPLOY.md</a>.</sub>
 
 [![React 18](https://img.shields.io/badge/React-18-149eca?logo=react&logoColor=white)](https://react.dev/)
 [![Vite 5](https://img.shields.io/badge/Vite-5-646cff?logo=vite&logoColor=white)](https://vitejs.dev/)
 [![Node 24+](https://img.shields.io/badge/Node-24%2B-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![Express](https://img.shields.io/badge/Express-4-000000?logo=express&logoColor=white)](https://expressjs.com/)
-[![Postgres](https://img.shields.io/badge/Postgres-Supabase-3ecf8e?logo=supabase&logoColor=white)](https://supabase.com/)
-[![Vercel](https://img.shields.io/badge/deploy-Vercel-000000?logo=vercel&logoColor=white)](https://defesabr-intelligence.vercel.app/)
+[![Postgres 17](https://img.shields.io/badge/Postgres-17-4169e1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Railway](https://img.shields.io/badge/deploy-Railway-0b0d0e?logo=railway&logoColor=white)](https://railway.com/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-5c616a)](LICENSE)
 
 **[Projeto de pesquisa](docs/projeto-de-pesquisa.md)** ·
@@ -302,16 +301,16 @@ Ver [ROADMAP.md](ROADMAP.md) para o que ainda falta e onde encaixa.
 ## Como rodar
 
 Requer **Node 24 ou superior** e **Docker** (para o Postgres local — em
-produção o banco é o Supabase).
+produção o banco é o serviço Postgres do Railway).
 
 ```bash
 npm install
 npm run db:up
 ```
 
-`db:up` sobe um Postgres 17 na porta 54329 (a mesma versão do Supabase) com o
+`db:up` sobe um Postgres 17 na porta 54329 (a mesma versão de produção) com o
 banco de desenvolvimento e o de testes. Na primeira subida, o servidor aplica
-as migrações de `supabase/migrations/` sozinho.
+as migrações de `db/migrations/` sozinho — o mesmo que faz no deploy.
 
 Crie um arquivo `.env` na raiz (ele é ignorado pelo Git) com a conta de
 administrador da sua instalação — escolha você os valores:
@@ -342,7 +341,7 @@ administrador é criada — o servidor avisa no boot, em amarelo:
 Contas        ADMIN_USERNAME e ADMIN_PASSWORD não definidos — nenhuma conta de administrador foi criada.
 ```
 
-Definiu as variáveis depois? Basta reiniciar (na Vercel, um *Redeploy*): a
+Definiu as variáveis depois? Basta reiniciar (no Railway, um *Redeploy*): a
 conta é criada, ou assumida se o nome já estiver em uso.
 
 ### Os perfis
@@ -659,11 +658,11 @@ escala em linguagem acessível, com o que ela **não** significa. **Privacidade 
 ## Arquitetura
 
 ```
-├── api/index.js                função única da Vercel: o Express inteiro atrás de /api
-├── supabase/migrations/        esquema do Postgres (o mesmo no Supabase, no Docker e no CI)
+├── railway.toml                build e start do deploy (install com devDeps, healthcheck, 1 réplica)
+├── db/migrations/              esquema do Postgres (o mesmo em produção, no Docker e no CI)
 ├── server/                     API — Express + Postgres (pg)
 │   ├── src/
-│   │   ├── index.js            entrada local: migrações → contas → fontes → servidor → coleta
+│   │   ├── index.js            entrada única: migrações → contas → fontes → servidor → coleta
 │   │   ├── app.js              app Express (testável sem abrir porta)
 │   │   ├── config.js           variáveis de ambiente
 │   │   ├── db/                 pool, TLS, transações e aplicação das migrações
@@ -709,32 +708,41 @@ interface, e a pessoa vê o aviso de que precisa entrar de novo.
 
 ---
 
-## Deploy na Vercel + Supabase
+## Deploy no Railway
 
-A interface (`dist/`) e a API (`api/index.js`, o Express inteiro numa função)
-sobem juntas na **Vercel**; o banco é Postgres no **Supabase**, e o `pg_cron`
-do Supabase dispara a coleta (`POST /api/cron/ciclo`) a cada 5 minutos. O
-roteiro completo, passo a passo, está em **[`docs/DEPLOY.md`](docs/DEPLOY.md)**.
+Um serviço de aplicação e um serviço **Postgres** no mesmo projeto. O contêiner
+roda `npm start`, que serve a interface compilada (`dist/`) e a API (Express) na
+**mesma origem** — nenhuma requisição entre origens, nenhum CORS para depurar. O
+processo fica de pé, então o agendador de coleta vive dentro dele: um
+temporizador a cada 5 minutos, com trava em banco contra sobreposição. As
+migrações rodam na subida, antes de a porta abrir.
+
+O roteiro completo, passo a passo, está em
+**[`docs/DEPLOY.md`](docs/DEPLOY.md)**.
 
 Resumo:
 
-1. **Supabase** — criar o projeto, habilitar `pg_cron` e `pg_net` e rodar
-   `npm run migrate` com a string de conexão de sessão/direta.
-2. **Vercel** — importar o repositório (o `vercel.json` já define build,
-   função, rewrites e headers) e cadastrar as variáveis abaixo em
-   *Production* e *Preview*.
-3. **Agendamento** — cadastrar no Vault do Supabase a URL do deploy e o
-   `CRON_SECRET` (`defesabr_url` e `defesabr_cron_secret`).
+1. **Projeto** — *Deploy from GitHub repo*, e **New → Database → Add
+   PostgreSQL** no mesmo projeto.
+2. **Ligar os dois** — no serviço da aplicação, *Variables → Add Variable
+   Reference → DATABASE_URL*. A referência aponta para a rede privada do
+   projeto (`postgres.railway.internal`), que não sai para a internet.
+3. **Variáveis** — as quatro abaixo, e **Generate Domain** em *Settings →
+   Networking*.
 
-### Variáveis na Vercel
+O `railway.toml` já define build, start, healthcheck e réplica única.
+
+### Variáveis no Railway
 
 | Variável | Para quê |
 |---|---|
-| `DATABASE_URL` | **Obrigatória.** String do pooler do Supabase em modo transação (porta 6543) |
+| `DATABASE_URL` | **Obrigatória.** A *referência* ao serviço Postgres, não um valor colado |
 | `AUTH_SECRET` | **Obrigatória.** Assina as sessões (16+ caracteres) |
-| `CRON_SECRET` | **Obrigatória.** Protege `/api/cron/ciclo`; o mesmo valor vai ao Vault |
 | `ADMIN_USERNAME` e `ADMIN_PASSWORD` | Criam (ou assumem) a conta de administrador; depois a senha é trocada pela plataforma |
-| `DATABASE_CA_CERT` | Recomendada. CA do Supabase (PEM) para o TLS verificar o servidor |
+| `CRON_SECRET` | Opcional. Liga `POST /api/cron/ciclo`, o gatilho externo do ciclo — o agendador interno já roda sem ele |
+
+`PORT` e `NODE_ENV` **não** se definem: o Railway injeta a porta e o servidor a
+obedece, e `RAILWAY_ENVIRONMENT_NAME` já liga o modo produção.
 
 Gerar um segredo:
 
@@ -745,8 +753,9 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 Nenhum valor real vai para o repositório — ele é público. Todas as variáveis
 disponíveis estão em [`.env.example`](.env.example).
 
-Depois de criar ou mudar uma variável, a Vercel precisa **publicar de novo**
-para que ela valha — *Deployments → Redeploy*.
+Depois de criar ou mudar uma variável, o serviço precisa **subir de novo** para
+que ela valha — o Railway oferece o *Redeploy* por conta própria quando uma
+variável muda.
 
 **Como conferir sem abrir o log:** `GET /api/meta` devolve, em `contas`, se cada
 variável chegou ao serviço e quantos administradores ativos existem. Só
@@ -779,7 +788,7 @@ curl -s https://SEU-DOMINIO/api/health
 ```
 
 Compare `deploy.commit` com `git rev-parse --short origin/main`. Iguais, o que
-está no ar é o último push; diferentes, a Vercel ainda não publicou. Localmente
+está no ar é o último push; diferentes, o Railway ainda não publicou. Localmente
 `deploy` é `null`.
 
 ---

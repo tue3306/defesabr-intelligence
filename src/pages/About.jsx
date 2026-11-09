@@ -9,7 +9,7 @@ import PageHeader from '../components/ui/PageHeader'
 import { RESPONSAVEL } from '../data/responsavel'
 
 const REPO_URL = RESPONSAVEL.repoUrl
-const TECH_STACK = ['React 18', 'Vite', 'Tailwind CSS', 'Zustand', 'Recharts', 'Node.js', 'Express', 'Postgres (Supabase)', 'Vercel']
+const TECH_STACK = ['React 18', 'Vite', 'Tailwind CSS', 'Zustand', 'Recharts', 'Node.js', 'Express', 'Postgres', 'Railway']
 
 // As fontes que o servidor de fato consulta.
 const APIS = [
@@ -219,9 +219,9 @@ export default function About() {
           <Layers size={18} className="text-brand-400 dark:text-brand-300" aria-hidden="true" /> Arquitetura e limites
         </h2>
         <p className="mt-1 max-w-2xl text-sm leading-relaxed muted">
-          A API (Express) roda como função na Vercel, ao lado da interface; o banco é Postgres no
-          Supabase, e o agendador do próprio banco dispara a coleta a cada 5 minutos. A interface
-          fala com uma origem só.
+          Um processo Node no Railway serve a API (Express) e a interface compilada; o banco é um
+          Postgres em serviço próprio, na rede privada do projeto, e o agendador dentro do próprio
+          servidor dispara a coleta a cada 5 minutos. A interface fala com uma origem só.
         </p>
         <div className="mt-4 space-y-2">
           {ARCHITECTURE_NOTES.map((note) => (

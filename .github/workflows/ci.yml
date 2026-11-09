@@ -17,10 +17,10 @@ concurrency:
 # Ele rodava `npm run build` e mais nada. Um CI assim passa mesmo com o servidor
 # inteiro quebrado, porque o build é só o Vite.
 #
-#   POSTGRES DE VERDADE. O servidor fala com Postgres (Supabase em produção), e
-#   o esquema vive em `supabase/migrations/`. O job sobe um `postgres:17` como
-#   serviço e aplica as MESMAS migrações que vão para produção — um CI contra
-#   outro banco, ou sem banco, aprovaria SQL que o Supabase recusa.
+#   POSTGRES DE VERDADE. O servidor fala com Postgres, e o esquema vive em
+#   `db/migrations/`. O job sobe um `postgres:17` como serviço — a mesma versão
+#   de produção — e aplica as MESMAS migrações que vão para lá. Um CI contra
+#   outro banco, ou sem banco, aprovaria SQL que o servidor recusa na subida.
 #
 #   NODE 24. `package.json` declara `engines: >=24`; o CI usa a versão que o
 #   projeto exige, não a que por acaso estava à mão.
@@ -60,8 +60,9 @@ jobs:
     env:
       DATABASE_URL: postgres://defesabr:defesabr@localhost:5432/defesabr
       TEST_DATABASE_URL: postgres://defesabr:defesabr@localhost:5432/defesabr_test
-      # A rota de ciclo exige segredo (>= 16 caracteres); sem ele a suíte de
-      # autorização não consegue provar que a rota recusa quem não o conhece.
+      # A rota de ciclo (o gatilho externo da coleta) exige segredo com 16+
+      # caracteres; sem ele a suíte de autorização não consegue provar que a rota
+      # recusa quem não o conhece.
       CRON_SECRET: ci-segredo-descartavel-do-ciclo
       ADMIN_USERNAME: ci-admin
       ADMIN_PASSWORD: ci-senha-descartavel
@@ -77,8 +78,11 @@ jobs:
           node-version: '24'
           cache: 'npm'
 
+      # `--include=dev` para a CI instalar o mesmo conjunto que o build do deploy
+      # (railway.toml usa o mesmo sinalizador): se um dia NODE_ENV=production
+      # vazar para cá, o Vite não desaparece sem ninguém notar.
       - name: Instalar
-        run: npm install
+        run: npm install --include=dev
 
       - name: Lint
         run: npm run lint

@@ -1,293 +1,184 @@
-# Deploy na Vercel + Supabase
+# Deploy no Railway
 
-Roteiro para publicar o DefesaBR Intelligence na **Vercel (Hobby)** com banco
-no **Supabase (Free, Postgres)**. Você cria os projetos e as credenciais; este
-documento não contém nenhum segredo e **nenhum valor real deve ser commitado**.
+Roteiro para publicar o DefesaBR Intelligence no **Railway**: um serviço de
+aplicação (interface + API num processo Node) e um serviço **Postgres** no mesmo
+projeto. Você cria o projeto e as credenciais; este documento não contém nenhum
+segredo e **nenhum valor real deve ser commitado**.
 
-Resumo da arquitetura: a Vercel serve o front (`dist/`) e a API como uma única
-função (`api/index.js`, Express). Como não há processo vivo para agendar a
-coleta, o `pg_cron` do Supabase chama `POST /api/cron/ciclo` a cada 5 minutos
-usando `pg_net`.
+Resumo da arquitetura: um contêiner roda `npm start`, que serve o front
+compilado (`dist/`) e a API (Express) na **mesma origem** — nenhuma requisição
+entre origens, nenhum CORS para depurar. Porque o processo fica de pé, o
+agendador de coleta vive dentro dele: um temporizador a cada 5 minutos, sem cron
+de plataforma nem extensão de banco no meio. As migrações rodam na subida, antes
+de a porta abrir.
 
 ## Antes de começar
 
-- Node 24+ (o `engines` do `package.json` exige) e o repositório clonado na sua máquina (`npm install` feito).
-- Contas na Vercel e no Supabase, e o repositório no GitHub.
+- Node 24+ (o `engines` do `package.json` exige) e o repositório clonado na sua
+  máquina (`npm install` feito).
+- Conta no Railway e o repositório no GitHub.
 - Um arquivo `.env` local **não versionado** (o `.gitignore` já o exclui) ou
-  variáveis exportadas no terminal. Os exemplos abaixo usam placeholders
-  como `<sua-url>`; troque pelos seus valores.
+  variáveis exportadas no terminal. Os exemplos abaixo usam placeholders como
+  `<sua-url>`; troque pelos seus valores.
 
-Gere dois segredos distintos (um para `AUTH_SECRET`, outro para `CRON_SECRET`):
+Gere um segredo para `AUTH_SECRET` (e outro para `CRON_SECRET`, se for usar o
+gatilho externo da seção 5):
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
 Guarde-os num gerenciador de senhas. Ambos precisam ter **pelo menos 16
-caracteres**: abaixo disso o servidor os ignora (sessões ficam voláteis e a
-rota de cron responde 503).
+caracteres**: abaixo disso o servidor os ignora (as sessões passam a depender do
+segredo guardado no banco e a rota de ciclo responde 503).
 
-## Limites do plano gratuito (o que esperar)
+## O que esperar do plano
 
 | Recurso | Limite relevante |
 |---|---|
-| Supabase Free | 500 MB de banco (escrita é bloqueada acima); projeto inativo por cerca de 1 semana é pausado |
-| Vercel Hobby | função com `maxDuration` de até 300 s (exige Fluid compute); cron nativo da Vercel só 1x/dia, por isso usamos `pg_cron` |
-| Ciclo de coleta | medido entre 25 e 59 s; um único job a cada 5 min basta |
+| Volume do Postgres | 5 GB por padrão no Hobby (ajustável nas *Settings* do serviço). Volume cheio não põe o banco em somente-leitura: o Postgres **para** |
+| Serviço da aplicação | processo longo, sem teto de duração por requisição — é o que permite o agendador interno e o ciclo de 25–60 s |
+| Ciclo de coleta | medido entre 25 e 59 s, a cada 5 minutos |
 
-O app controla o tamanho do banco: `DB_ORCAMENTO_MB` (padrão 400) faz a
-retenção encurtar antes de chegar aos 500 MB. Mas apagar linhas **não encolhe
-o arquivo**: só `VACUUM FULL` devolve espaço. Ver a seção 9 (Armazenamento).
-
----
-
-## 1. Supabase
-
-### 1.1 Criar o projeto
-
-1. Em <https://supabase.com/dashboard>, **New project**. Escolha uma região
-   próxima da região da função na Vercel (a padrão da Vercel é `iad1`, EUA
-   leste; `us-east-1` no Supabase é uma combinação coerente).
-2. Defina a senha do banco e **guarde-a**. Ela vai dentro da string de conexão.
-
-### 1.2 Strings de conexão
-
-Em **Connect** (ou *Project Settings → Database*), copie:
-
-- **Pooler, modo transação (porta 6543)**: use como `DATABASE_URL` **na
-  Vercel**. É o modo certo para funções serverless, que abrem muitas conexões
-  curtas.
-- **Pooler, modo sessão (porta 5432 do pooler) ou conexão direta**: use para
-  rodar `npm run migrate` **da sua máquina**. Cada arquivo de migração roda em
-  uma transação própria e, em tese, funciona também pelo modo transação, mas
-  DDL e `CREATE EXTENSION` são mais previsíveis em sessão. Na dúvida, use a
-  string de sessão/direta nas migrações.
-
-> A conexão direta do Supabase é IPv6; se a sua rede não tiver IPv6, use a
-> string do pooler em modo sessão.
-
-### 1.2.1 TLS: baixar a CA e exigir SSL
-
-As strings do Supabase não trazem `sslmode`, e o app **não** depende dele: o
-TLS é decidido em `server/src/db/conexao.js` (e qualquer `sslmode` na URL é
-ignorado). Para um host remoto:
-
-- com `DATABASE_CA_CERT` definida → TLS **verificado** contra a CA do Supabase;
-- sem ela → TLS **cifrado sem verificação** do servidor (protege de quem só
-  escuta a rede, não de quem se põe no meio) e o log de cada instância avisa
-  `[banco] TLS sem verificação do servidor`. O painel de status (item
-  *Persistência*) mostra o modo atual: `TLS verificado`, `TLS cifrado sem
-  verificação` ou `local, sem TLS`.
-
-Passos:
-
-1. Em *Project Settings → Database → SSL Configuration*, clique em
-   **Download certificate** (arquivo `.crt`, PEM).
-2. Ainda nessa tela, ligue **Enforce SSL on incoming connections**: o banco
-   passa a recusar conexão em texto puro.
-3. Guarde o conteúdo do `.crt` para a variável `DATABASE_CA_CERT` (passo 2.3).
-   O painel da Vercel aceita o PEM com quebras de linha; se precisar colar numa
-   linha só, use `\n` literais — o app os converte.
-4. Para os comandos rodados da sua máquina (`npm run migrate`), exporte a mesma
-   variável, por exemplo no Git Bash:
-   `export DATABASE_CA_CERT="$(cat ~/Downloads/prod-ca-2021.crt)"`.
-
-### 1.3 Habilitar as extensões (no painel, antes de migrar)
-
-Em **Database → Extensions**, habilite:
-
-- `pg_cron`
-- `pg_net`
-
-O arquivo `0100_cron.sql` também executa `CREATE EXTENSION IF NOT EXISTS`
-para ambas, mas habilitar pelo painel antes elimina a dúvida sobre permissão
-do papel usado na conexão. **Confirme no painel** que as duas aparecem como
-habilitadas.
-
-### 1.4 Aplicar as migrações
-
-Use `npm run migrate`. **Não use `supabase db push`**: os arquivos em
-`supabase/migrations/` não têm prefixo de timestamp e o controle de quais já
-foram aplicadas fica na nossa tabela `schema_migrations`, não na da CLI.
-
-O migrador executa `0001_esquema.sql`, `0002_rls.sql`,
-`0003_revoke_iso_agora.sql` e, porque o `pg_cron` está
-disponível no Supabase, também `0100_cron.sql`. Depois semeia as fontes e cria
-a conta de administrador a partir de `ADMIN_USERNAME` / `ADMIN_PASSWORD`.
-
-Na raiz do repositório (Git Bash / macOS / Linux):
-
-```bash
-DATABASE_URL='<string-de-sessao-ou-direta>' \
-ADMIN_USERNAME='<seu-usuario-admin>' \
-ADMIN_PASSWORD='<senha-forte-do-admin>' \
-npm run migrate
-```
-
-PowerShell:
-
-```powershell
-$env:DATABASE_URL = '<string-de-sessao-ou-direta>'
-$env:ADMIN_USERNAME = '<seu-usuario-admin>'
-$env:ADMIN_PASSWORD = '<senha-forte-do-admin>'
-npm run migrate
-```
-
-Saída esperada: `Aplicadas: 0001_esquema.sql, 0002_rls.sql, 0003_revoke_iso_agora.sql, 0004_vulnerabilidades.sql, 0100_cron.sql, 0101_cron_5min.sql`,
-seguida das linhas de semeadura (fontes cadastradas e administrador criado).
-Rodar de novo imprime `Banco já está em dia.`.
-
-**Ordem e segurança:** o job `defesabr-ciclo` passa a existir já nesta etapa,
-mas ainda não há URL nem segredo no Vault. Até o passo 3 ele dispara a cada 15
-min e **falha sem efeito** (a consulta não encontra os segredos). Isso é
-esperado e inofensivo; o passo 3 o torna funcional. Se preferir evitar essas
-falhas, pause o job até lá:
-
-```sql
-select cron.alter_job((select jobid from cron.job where jobname = 'defesabr-ciclo'), active := false);
-```
-
-e reative no passo 3 com `active := true`.
-
-Se `0100_cron.sql` falhar por permissão de extensão, a migração faz rollback
-só dela e as anteriores permanecem; habilite as extensões pelo painel (1.3) e
-rode `npm run migrate` de novo.
-
-### 1.5 Higiene do Supabase
-
-**Desligar a Data API (PostgREST).** O app nunca a usa: o servidor fala com o
-Postgres direto. Em *Project Settings → Data API*, desligue a API **ou**
-remova `public` de *Exposed schemas*. O RLS sem políticas (`0002_rls.sql`) já
-fecha as tabelas para `anon`/`authenticated`, e `0003_revoke_iso_agora.sql`
-revoga o `EXECUTE` da única função do schema; desligar a API remove a
-superfície inteira. Para conferir (ou aplicar à mão, se precisar):
-
-```sql
-REVOKE EXECUTE ON FUNCTION public.iso_agora(text) FROM anon, authenticated;
-```
-
-**Limpar o histórico do pg_cron.** `cron.job_run_details` ganha uma linha a
-cada execução (96 por dia só do ciclo) e nunca é podado sozinho; ele conta no
-orçamento de 500 MB. Agende uma limpeza semanal:
-
-```sql
-select cron.schedule(
-  'defesabr-limpa-cron',
-  '0 4 * * 0',
-  $$delete from cron.job_run_details where end_time < now() - interval '7 days'$$
-);
-```
-
-Remova com `select cron.unschedule('defesabr-limpa-cron');`.
+O app controla o tamanho do banco: `DB_ORCAMENTO_MB` (padrão **4000**) faz a
+retenção encurtar antes de o volume encher. Confirme o tamanho do SEU volume e
+ajuste para ~80% dele. Apagar linhas **não encolhe o arquivo**: só `VACUUM FULL`
+devolve espaço. Ver a seção 7 (Armazenamento).
 
 ---
 
-## 2. Vercel
+## 1. Criar o projeto e o Postgres
 
-### 2.1 Importar o projeto
+1. No Railway, **New Project → Deploy from GitHub repo** e escolha
+   `defesabr-intelligence`. Autorize o acesso ao repositório se for a primeira
+   vez.
+2. No mesmo projeto, **New → Database → Add PostgreSQL**. Ele nasce com um
+   volume próprio e com as variáveis de conexão prontas.
+3. Deixe o primeiro build falhar ou aguardar: sem `DATABASE_URL` o servidor
+   **recusa subir em produção**, de propósito. É a seção 2 que resolve.
 
-1. Em <https://vercel.com/new>, importe o repositório do GitHub.
-2. O `vercel.json` já define `framework: vite`, `buildCommand: npm run build`,
-   `outputDirectory: dist`, a função `api/index.js`, os rewrites e os headers.
-   Não altere esses campos no painel.
+Por que recusa em vez de cair no Postgres local: um servidor que subisse
+apontando para `localhost` falharia só na primeira consulta, longe da causa.
 
-### 2.2 Fluid compute (confirme)
+### 1.1 Ligar a aplicação ao banco
 
-O `vercel.json` pede `maxDuration: 300` para `api/index.js`. Isso só é aceito
-com **Fluid compute** ligado (padrão em projetos novos). Em
-*Project Settings → Functions*, **confirme que Fluid compute está habilitado**.
-Se não estiver, habilite e faça novo deploy; caso contrário o deploy pode
-recusar ou reduzir a duração máxima e o ciclo de coleta (25 a 59 s) pode ser
-cortado se o limite efetivo for menor.
+No serviço **da aplicação**, aba **Variables → Add Variable Reference**, escolha
+o serviço Postgres e a variável `DATABASE_URL`.
 
-### 2.3 Variáveis de ambiente
+Use a **referência**, não um valor colado. A referência aponta para
+`postgres.railway.internal` — a rede privada do projeto, que não sai para a
+internet e não consome egresso — e continua certa se a senha do banco girar.
 
-Em *Project Settings → Environment Variables*, marque os ambientes
-**Production e Preview**. Um Preview tem `VERCEL_ENV=preview`, e o app trata
-isso como produção (é URL pública): sem `DATABASE_URL` ele recusa subir, sem
-`AUTH_SECRET` as sessões dependem do banco. Um Preview precisa, portanto, das
-mesmas variáveis. Todas existem em
+`DATABASE_PUBLIC_URL` existe para acesso **de fora** do projeto: `psql` da sua
+máquina, `npm run migrate` pelo GitHub Actions. Não é a que a aplicação usa.
+
+### 1.2 TLS
+
+Não há nada a configurar na rede privada. O servidor decide o TLS pelo endereço
+(`server/src/db/conexao.js`):
+
+| Endereço | TLS |
+|---|---|
+| `localhost` (Docker, desenvolvimento) | sem TLS — o contêiner não o oferece |
+| `*.railway.internal` | sem TLS — rede privada do projeto |
+| qualquer outro host | TLS; **verificado** se `DATABASE_CA_CERT` estiver definida, cifrado sem verificação se não |
+
+`DATABASE_SSL=on` ou `off` força a mão, para o caso de um Postgres na rede
+privada que exija TLS ou de um host remoto que não o ofereça. Pedir TLS a um
+servidor que não o fala responde *"the server does not support SSL
+connections"* — e, porque a conexão acontece antes do `listen`, o deploy morre
+no boot.
+
+---
+
+## 2. Variáveis do serviço da aplicação
+
+Em **Variables**, no serviço da aplicação. Todas existem em
 `server/src/config.js` e/ou `.env.example`.
 
 **Obrigatórias**
 
 | Variável | Valor |
 |---|---|
-| `DATABASE_URL` | string do **pooler, modo transação (6543)** do passo 1.2. Se o banco foi criado pela integração Supabase da Vercel, ela já injeta `POSTGRES_URL` (o mesmo pooler) e o app a usa sem `DATABASE_URL` |
+| `DATABASE_URL` | a **referência** ao serviço Postgres (passo 1.1) |
 | `AUTH_SECRET` | segredo gerado acima (>= 16 caracteres) |
-| `CRON_SECRET` | outro segredo gerado (>= 16 caracteres); o mesmo valor vai ao Vault no passo 3 |
 | `ADMIN_USERNAME` | usuário do administrador |
-| `ADMIN_PASSWORD` | senha do administrador (marque como *Sensitive*) |
-| `DATABASE_CA_CERT` | conteúdo PEM do certificado baixado em 1.2.1 (sem ela o TLS não verifica o servidor e o log avisa) |
+| `ADMIN_PASSWORD` | senha do administrador |
 
-`NODE_ENV` não precisa ser definido: `VERCEL_ENV` (production ou preview) já
-liga o modo produção. Se definir, use `production`.
+Sem `ADMIN_USERNAME` e `ADMIN_PASSWORD` nenhuma conta de administrador é criada
+e o boot avisa. A senha é trocada depois pela própria plataforma (Minha conta →
+Segurança) e a variável não a sobrescreve.
+
+`NODE_ENV` **não** precisa ser definida: `RAILWAY_ENVIRONMENT_NAME` já liga o
+modo produção, em qualquer ambiente do projeto. `PORT` também não: o Railway a
+injeta e o servidor a obedece — defini-la à mão é a maneira mais rápida de ter
+um deploy "saudável" numa porta que o roteador não procura.
 
 **Opcionais** (têm padrão)
 
 | Variável | Padrão | Para que serve |
 |---|---|---|
-| `DB_POOL_MAX` | `3` | conexões por instância serverless |
-| `DB_ORCAMENTO_MB` | `400` | teto de armazenamento que aciona a retenção agressiva |
+| `DB_POOL_MAX` | `10` | conexões no pool do processo |
+| `DB_ORCAMENTO_MB` | `4000` | teto de armazenamento que aciona a retenção agressiva |
+| `COLLECT_INTERVAL_MINUTES` | `5` | intervalo do agendador interno; `0` desliga |
 | `AUDITORIA_RETENCAO_DIAS` | `365` | dias de `audit_log` |
 | `MUNDO_RETENCAO_DIAS` | `180` | dias da cobertura só-mundo |
 | `AUTH_TTL_HOURS` | `12` | validade da sessão |
 | `COLLECT_TIMEOUT_MS` | `15000` | timeout de cada fonte externa |
+| `CRON_SECRET` | (vazio) | liga o gatilho externo do ciclo (seção 5) |
+| `DATABASE_SSL` | (vazio) | força o TLS do banco: `on` ou `off` |
+| `DATABASE_CA_CERT` | (vazio) | CA em PEM, para o TLS verificar o servidor |
 | `GNEWS_API_KEY` | (vazio) | agregador GNews, opcional |
 | `NEWSDATA_API_KEY` | (vazio) | agregador NewsData, opcional |
 | `RANSOMWARE_API_KEY` | chave embutida | substitui a chave embutida de ransomware.live |
 
 Não defina `VITE_API_BASE_URL`: deixe vazio para o front usar `/api` relativo.
 
-### 2.4 Primeiro deploy
-
-1. Com o Supabase (seção 1) pronto e as variáveis (2.3) cadastradas, clique em
-   **Deploy** (ou faça um push no `main`: a Vercel publica em produção a cada
-   push no branch de produção e gera um *Preview* para os demais branches).
-2. Anote a URL pública (por exemplo `https://<seu-projeto>.vercel.app` ou o
-   seu domínio). Ela vai para o Vault no passo 3 (`defesabr_url`).
-3. Rode a seção 4 contra essa URL.
-
-Se quiser testar num *Preview* antes da produção: cadastre provisoriamente a
-URL do Preview em `defesabr_url` e troque pela de produção depois (com
-`vault.update_secret`). Se o Preview tiver *Deployment Protection* (padrão da
-Vercel), o `pg_cron` e o `curl` recebem `401` da própria Vercel: use um
-*Protection Bypass* ou teste o cron só na produção.
-
-**Rollback.** Em *Deployments*, escolha o último deploy bom e use **Promote to
-Production** (ou *Instant Rollback*). O banco não muda com isso.
-
 ---
 
-## 3. Ligar o agendamento (Vault + pg_cron)
+## 3. Build e start
 
-Com a URL do deploy em mãos, no **SQL Editor** do Supabase, cadastre os dois
-segredos que o job lê **a cada execução**:
+O `railway.toml` do repositório já define tudo:
 
-```sql
-select vault.create_secret('https://<sua-url>', 'defesabr_url');
-select vault.create_secret('<o-mesmo-CRON_SECRET-da-vercel>', 'defesabr_cron_secret');
+```toml
+[build]
+buildCommand = "npm install --include=dev && npm run build"
+
+[deploy]
+startCommand = "npm start"
+healthcheckPath = "/api/health"
+numReplicas = 1
 ```
 
-- `defesabr_url` sem barra final e sem `/api` (o job acrescenta `/api/cron/ciclo`).
-- O valor de `defesabr_cron_secret` deve ser **idêntico** ao `CRON_SECRET` da Vercel.
-- Os nomes precisam ser exatamente esses; o job busca por eles.
+Três pontos que valem entender, porque cada um deles custaria um deploy verde
+com o site quebrado:
 
-Se você pausou o job no passo 1.4, reative:
+- **`--include=dev` não é redundante.** A fase de build roda com
+  `NODE_ENV=production`, e com ela o `npm install` padrão ignora as
+  devDependencies — onde está o Vite. Sem ele, `npm start` sobe, `/api/health`
+  responde 200, o deploy é dado como bem-sucedido e **a URL abre em branco**,
+  porque `dist/` nunca foi gerado.
+- **O healthcheck é a sonda que impede trocar uma versão boa por uma morta.**
+  `npm start` aplica as migrações e semeia o banco antes de abrir a porta, então
+  `/api/health` só responde com o esquema pronto.
+- **Uma réplica.** O agendador vive no processo; duas réplicas seriam dois
+  agendadores. Nada corrompe — o arrendamento em banco barra o ciclo
+  sobreposto com 409 —, mas a segunda réplica gastaria recursos buscando o que a
+  primeira já trouxe. Para escalar a entrega sem duplicar a coleta, suba a
+  segunda com `COLLECT_INTERVAL_MINUTES=0`.
 
-```sql
-select cron.alter_job((select jobid from cron.job where jobname = 'defesabr-ciclo'), active := true);
-```
+### 3.1 Primeiro deploy
 
-Confirme que o job existe e está ativo:
+1. Com o banco ligado (seção 1) e as variáveis (seção 2) cadastradas, dispare
+   um **Redeploy**.
+2. Em **Settings → Networking**, clique em **Generate Domain** para ter a URL
+   pública (ou aponte o seu domínio).
+3. Nos logs, a primeira subida deve mostrar as migrações aplicadas, a conta de
+   administrador criada e a primeira coleta. Rode a seção 4 contra a URL.
 
-```sql
-select jobid, jobname, schedule, active from cron.job where jobname = 'defesabr-ciclo';
-```
-
-Contrato da rota `POST /api/cron/ciclo` (com `Authorization: Bearer <CRON_SECRET>`):
-`202` aceito, `401` segredo errado, `409` já há um ciclo em andamento, `503`
-`CRON_SECRET` não configurado (ou curto demais) na Vercel.
+**Rollback.** Na aba **Deployments**, abra um deploy anterior bem-sucedido e use
+**Redeploy**. O banco não muda com isso — nem as migrações já aplicadas, que não
+têm volta automática.
 
 ---
 
@@ -295,7 +186,7 @@ Contrato da rota `POST /api/cron/ciclo` (com `Authorization: Bearer <CRON_SECRET
 
 Troque `<sua-url>` pela URL do deploy.
 
-### 4.1 A API alcança o Express (o rewrite preserva o caminho)
+### 4.1 A API responde, e responde JSON
 
 ```bash
 curl -s https://<sua-url>/api/health
@@ -303,23 +194,23 @@ curl -s -o /dev/null -w "%{http_code}\n" "https://<sua-url>/api/news?x=1"
 ```
 
 Esperado: `/api/health` responde JSON com `ok: true`; `/api/news?x=1` responde
-`200` (JSON, não HTML). Se vier a página do front, o rewrite não está
-preservando o caminho original e é um defeito a investigar.
+`200` em JSON, não HTML. Se vier a página do front, o Express está caindo no
+catch-all da interface antes das rotas de API — defeito a investigar.
 
-### 4.2 Headers de segurança e cache
+A resposta de `/api/health` traz o commit publicado (`deploy.commit`,
+`RAILWAY_GIT_COMMIT_SHA`). Compare com `git log -1 --format=%h`: iguais, o que
+está no ar é o último push.
+
+### 4.2 Cabeçalhos de segurança e cache
 
 ```bash
 curl -sI https://<sua-url>/api/health
 curl -sI https://<sua-url>/
 ```
 
-Esperado:
-
-- `/api/health`: **sem** `Cache-Control` nem CSP duplicados e conflitantes
-  (um único valor de cada; anote qualquer repetição).
-- `/`: `Cache-Control: no-cache` e os headers de segurança (CSP, HSTS,
-  `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`,
-  `Permissions-Policy`).
+Esperado em `/`: `Cache-Control: no-cache` e os cabeçalhos de segurança (CSP,
+HSTS, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`,
+`Permissions-Policy`), cada um com **um único valor**.
 
 Pegue o nome de um arquivo gerado do HTML publicado:
 
@@ -330,7 +221,12 @@ curl -sI https://<sua-url>/assets/nao-existe.js
 ```
 
 Esperado: o arquivo real traz `Cache-Control: public, max-age=31536000,
-immutable`; o inexistente responde **404** e **não** o `index.html`.
+immutable`; o inexistente responde **404** e **não** o `index.html` — devolver
+HTML aí é o que mata a aba de quem estava com a plataforma aberta durante a
+publicação.
+
+`server/test/cabecalhos.test.js` cobre tudo isto na CI; o `curl` serve para
+confirmar que nada no caminho entre a borda e o processo mudou a resposta.
 
 ### 4.3 Verificações do projeto, da sua máquina
 
@@ -342,56 +238,27 @@ API_URL=https://<sua-url> ADMIN_USERNAME='<usuario>' ADMIN_PASSWORD='<senha>' np
 PowerShell: defina `$env:API_URL`, `$env:ADMIN_USERNAME` e `$env:ADMIN_PASSWORD`
 antes de rodar os dois comandos.
 
-### 4.4 Cron funcionando
+### 4.4 A coleta está acontecendo
 
-Aguarde até 5 minutos (ou dispare manualmente, veja abaixo) e consulte no SQL Editor:
+O painel de status (o botão flutuante da interface) mostra, no item
+**Agendador**, o intervalo, a próxima execução e a **última execução
+agendada** — a data vem do banco, não do temporizador em memória, então ela
+responde "a coleta está rodando?" e não só "o temporizador existe?".
 
-```sql
-select status, return_message, start_time
-from cron.job_run_details
-order by start_time desc limit 5;
-
-select id, status_code, content, created
-from net._http_response
-order by created desc limit 5;
-```
-
-Esperado: `job_run_details.status = 'succeeded'` e `_http_response.status_code
-= 202`. Códigos para interpretar:
-
-- `401`: `defesabr_cron_secret` diferente do `CRON_SECRET` da Vercel.
-- `503`: `CRON_SECRET` ausente ou com menos de 16 caracteres na Vercel.
-- `404`/HTML: `defesabr_url` errada (barra extra ou `/api` embutido).
-- `409`: já havia um ciclo rodando (normal se disparado duas vezes seguidas).
-- Linha ausente em `_http_response`: segredos do Vault não existem ainda.
-
-Disparo manual, para testar sem esperar (o `curl` abaixo usa o segredo no
-terminal; não cole esse comando em lugares compartilhados):
-
-```bash
-curl -i -X POST -H "Authorization: Bearer <CRON_SECRET>" https://<sua-url>/api/cron/ciclo
-```
-
-Depois, em alguns minutos, a tela de status/fontes do app deve mostrar coleta
-recente e novas notícias.
-
-**Duração do ciclo.** Depois do primeiro ciclo completo, confira quanto cada
-coletor levou:
+Pelos logs do serviço, cada ciclo imprime uma linha por coletor. Para ver a
+duração no banco:
 
 ```sql
-select collector, duration_ms from collector_runs order by id desc limit 15;
+select collector, duration_ms, started_at
+  from collector_runs order by id desc limit 15;
 ```
 
-Se a soma se aproximar de **240 s** (80% do `maxDuration` de 300 s), divida o
-ciclo em jobs com `?coletor=` (seção 5) antes que a função comece a ser
-cortada.
+### 4.5 Limite de login atrás do proxy de borda (`trust proxy`)
 
-### 4.5 Limite de login atrás do proxy da Vercel (`trust proxy`)
-
-O servidor usa `trust proxy = 1`, o que pressupõe que a Vercel **sobrescreve**
-o `X-Forwarded-For` do cliente. Se a Vercel apenas anexasse o valor forjado, o
-limite de login (10 falhas por 5 min por IP) poderia ser contornado trocando o
-header. Teste rápido (usuário inexistente):
+O servidor usa `trust proxy = 1`, o que pressupõe que o proxy da plataforma
+**acrescenta** o IP real ao fim do `X-Forwarded-For`. Se o valor forjado pelo
+cliente fosse aceito, o limite de login (10 falhas por 5 min por IP) seria
+contornável trocando o cabeçalho. Teste rápido (usuário inexistente):
 
 ```bash
 for i in $(seq 1 11); do
@@ -402,71 +269,57 @@ for i in $(seq 1 11); do
 done; echo
 ```
 
-Esperado: as primeiras respostas `401` e a 11a `429`, **mesmo com o
+Esperado: as primeiras respostas `401` e a 11ª `429`, **mesmo com o
 `X-Forwarded-For` diferente em cada requisição**. Se todas vierem `401`, o
-header forjado está sendo aceito: não publique o app até corrigir (ajustar o
-valor de `trust proxy` ou ler o IP de outro header da Vercel). Aguarde 5 minutos
-antes de testar o login real, pois o seu IP ficou limitado.
+cabeçalho forjado está sendo aceito: não anuncie o app até ajustar o valor de
+`trust proxy`. Aguarde 5 minutos antes de testar o login real, pois o seu IP
+ficou limitado.
 
 ---
 
-## 5. Se o ciclo ficar longo demais
+## 5. Gatilho externo do ciclo (opcional)
 
-O ciclo medido leva de 25 a 59 s e cabe com folga em `maxDuration: 300`. Um
-único job a cada 5 min é suficiente. Só se isso mudar, a rota aceita
-`?coletor=a,b` para rodar um subconjunto de coletores; nesse caso crie um job
-por grupo no Vault/`pg_cron` com a lista na query string, escalonados no tempo
-para não competirem (um ciclo em andamento responde `409`).
+`POST /api/cron/ciclo` dispara um ciclo de coleta de fora. **Não é necessário**:
+o agendador interno já roda. Serve para disparar à mão, ou para um cron externo
+(um *Cron Service* do Railway, um monitor) assumir o agendamento — por exemplo
+numa segunda réplica com `COLLECT_INTERVAL_MINUTES=0`.
 
-## 6. Pausa por inatividade do plano Free
+Defina `CRON_SECRET` (16+ caracteres) no serviço. Sem ela a rota responde `503`:
+desligada, e não aberta.
 
-O Supabase pausa projetos Free sem atividade por cerca de 1 semana. O job de
-5 min mantém o banco ativo, então a pausa não deve ocorrer enquanto o cron
-estiver funcionando. Para conferir: no painel, o projeto deve aparecer como
-*Active*; se aparecer *Paused*, use **Restore project**.
-
-**Plano B** (caso o painel avise de pausa mesmo com o cron ativo), um ping
-barato adicional:
-
-```sql
-select cron.schedule('defesabr-ping', '0 */6 * * *', 'select 1');
+```bash
+curl -i -X POST -H "Authorization: Bearer <CRON_SECRET>" https://<sua-url>/api/cron/ciclo
 ```
 
-Remova com `select cron.unschedule('defesabr-ping');`. Esta atividade é
-interna ao banco; **confirme no painel** se ela basta para o Supabase considerar
-o projeto ativo (a regra de inatividade pode mudar).
+A rota responde `202` na hora e o ciclo segue em segundo plano (ele leva 25–60 s;
+quem chama um webhook desiste antes). Códigos para interpretar:
 
-## 7. O que não fazer
+- `401`: segredo diferente do `CRON_SECRET` do serviço.
+- `503`: `CRON_SECRET` ausente ou com menos de 16 caracteres.
+- `409`: já havia um ciclo em andamento — normal se disparado duas vezes.
+
+A rota aceita `?coletor=a,b` para rodar um subconjunto (os nomes estão em
+`CADENCIA_MINUTOS`, em `server/src/collectors/index.js`).
+
+---
+
+## 6. O que não fazer
 
 - Nunca commite `DATABASE_URL`, senhas, `AUTH_SECRET` ou `CRON_SECRET`.
-- Não use `supabase db push` (ver 1.4).
-- Para girar o `CRON_SECRET`, troque **os dois lados juntos**: a variável na
-  Vercel (e redeploy) e o segredo `defesabr_cron_secret` no Vault. Para o Vault,
-  atualize o existente:
+- Não cole a `DATABASE_PUBLIC_URL` na aplicação: ela sai para a internet, gasta
+  egresso e quebra quando a senha gira. Use a referência (1.1).
+- Não defina `PORT` nem `NODE_ENV=development` no serviço.
+- Não aponte duas réplicas com agendador para o mesmo banco sem necessidade
+  (seção 3).
+- Para girar o `AUTH_SECRET`, troque a variável e republique: todas as sessões
+  caem de uma vez e quem estava dentro refaz o login. É o comportamento
+  desejado quando se gira um segredo.
 
-  ```sql
-  select vault.update_secret(
-    (select id from vault.secrets where name = 'defesabr_cron_secret'),
-    '<novo-segredo>'
-  );
-  ```
+## 7. Armazenamento: quando o painel ficar amarelo ou vermelho
 
-  Entre os dois passos, ciclos retornam `401`; é transitório.
-- Não use a string do pooler em modo transação para tarefas administrativas
-  longas ou DDL manual; use a de sessão/direta.
-
-## 8. Depois que estiver no ar
-
-- Atualize o link "ver ao vivo" do `README.md` com a URL pública da Vercel.
-- Confira de tempos em tempos o item **Armazenamento** do painel de status
-  (seção 9) e o histórico do `pg_cron` (seção 4.4).
-
-## 9. Armazenamento: quando o painel ficar amarelo ou vermelho
-
-O item **Armazenamento** do painel de status mede `pg_database_size` — a mesma
-métrica que o Supabase usa para pôr o banco em **somente leitura ao passar de
-500 MB** no plano Free. Amarelo acima de 70% de `DB_ORCAMENTO_MB`, vermelho
-acima de 100%.
+O item **Armazenamento** do painel de status mede `pg_database_size` — o mesmo
+espaço que ocupa o volume do serviço Postgres. Amarelo acima de 70% de
+`DB_ORCAMENTO_MB`, vermelho acima de 100%.
 
 A retenção apaga o que pode a cada ciclo, mas **`DELETE` e autovacuum não
 encolhem o arquivo**: o espaço das linhas apagadas fica reservado para reuso
@@ -474,7 +327,10 @@ interno e o número do painel não cai. Só `VACUUM FULL` devolve espaço ao dis
 Ele reescreve a tabela e a **trava** (nem leitura passa) enquanto roda: faça em
 horário de pouco uso.
 
-1. Veja as maiores tabelas (SQL Editor, ou conexão de sessão/direta):
+1. Conecte-se ao banco. No Railway: o serviço Postgres tem a aba **Data**, ou
+   use `psql` com a `DATABASE_PUBLIC_URL`.
+
+2. Veja as maiores tabelas:
 
    ```sql
    select c.relname as tabela, pg_size_pretty(pg_total_relation_size(c.oid)) as tamanho
@@ -483,8 +339,7 @@ horário de pouco uso.
     order by pg_total_relation_size(c.oid) desc limit 10;
    ```
 
-2. Rode `VACUUM FULL` nas maiores, uma de cada vez (não use o pooler em modo
-   transação, ver seção 7):
+3. Rode `VACUUM FULL` nas maiores, uma de cada vez:
 
    ```sql
    VACUUM FULL articles;
@@ -492,7 +347,12 @@ horário de pouco uso.
    VACUUM FULL article_entities;
    ```
 
-3. Confira o resultado:
+   `VACUUM FULL` precisa de espaço livre para escrever a cópia antes de apagar a
+   original: numa tabela que ocupe mais da metade do volume, ele falha por falta
+   de espaço. Nesse caso reduza `MUNDO_RETENCAO_DIAS`, espere o próximo ciclo
+   apagar e tente de novo — ou aumente o volume primeiro.
+
+4. Confira o resultado:
 
    ```sql
    select pg_size_pretty(pg_database_size(current_database()));
@@ -501,14 +361,27 @@ horário de pouco uso.
    e recarregue o painel de status.
 
 Se continuar acima do orçamento, a retenção por pressão já encurtou o só-mundo
-para 60 dias e não apaga mais nada: a decisão é sua (reduzir
+para 60 dias e não apaga mais nada: a decisão é sua — reduzir
 `MUNDO_RETENCAO_DIAS`, rodar `VACUUM FULL` de novo depois do próximo ciclo, ou
-passar ao plano Pro).
+aumentar o volume (Postgres → Settings → Volume) e subir `DB_ORCAMENTO_MB` junto.
 
-**Se o Supabase já tiver posto o banco em somente leitura** (escritas falham e
-o painel do projeto avisa do uso de disco): numa sessão do SQL Editor, libere
-a escrita só para a manutenção com `SET default_transaction_read_only = off;`,
-rode `VACUUM FULL` nas maiores tabelas e confirme que o tamanho voltou abaixo
-de 500 MB; o painel do Supabase também oferece a saída do modo pelo aviso de
-uso de disco. Confira a documentação atual do Supabase sobre *read-only mode*,
-que pode mudar.
+## 8. Migrar sem republicar
+
+As migrações rodam na subida, então um deploy já basta. Para aplicá-las **sem**
+reiniciar a aplicação — ou para conferir o esquema de fora — há o workflow
+`.github/workflows/migrar-producao.yml` (Actions → *Migrar banco de produção* →
+Run workflow). Ele usa o secret `DATABASE_URL` do repositório, que deve conter a
+**`DATABASE_PUBLIC_URL`**: o runner do GitHub está fora do projeto e não alcança
+`postgres.railway.internal`.
+
+Da sua própria máquina, o mesmo:
+
+```bash
+DATABASE_URL='<DATABASE_PUBLIC_URL>' npm run migrate
+```
+
+## 9. Depois que estiver no ar
+
+- Atualize o link "ver ao vivo" do `README.md` com a URL pública.
+- Confira de tempos em tempos o item **Armazenamento** do painel de status
+  (seção 7) e a última coleta agendada (seção 4.4).

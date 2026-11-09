@@ -19,7 +19,7 @@ import { adminService } from '../../services'
 //   coleta de fontes ....... "planned — conectores previstos"     (são 21, ativas)
 //   armazenamento .......... "planned — banco no roadmap"          (SQLite, 700 artigos)
 //   autenticação ........... "planned — sessão simulada"           (scrypt + token)
-//   aplicação .............. "servida via GitHub Pages"            (Vercel + Supabase)
+//   aplicação .............. "servida via GitHub Pages"            (servidor Node hospedado)
 //
 // Um indicador de saúde que não mede nada é pior que nenhum: ele dá confiança
 // sem base. Agora vem de `/api/system/status`, que conta as capacidades a

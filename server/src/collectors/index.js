@@ -267,7 +267,7 @@ let proximaExecucao = null
  * deixava só 12 até a seguinte e "próxima coleta" na tela mostrava o horário
  * errado. Encadeado, o intervalo é sempre entre o fim de um e o começo do outro,
  * e não há como dois ciclos do agendador se sobreporem. O arrendamento em banco
- * (`iniciarColeta`) vale para a coleta disparada à mão ou pelo pg_cron no meio
+ * (`iniciarColeta`) vale para a coleta disparada à mão ou pelo gatilho externo no meio
  * de um ciclo, inclusive vinda de outra instância.
  */
 export function iniciarAgendador() {

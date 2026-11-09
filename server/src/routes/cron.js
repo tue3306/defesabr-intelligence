@@ -4,12 +4,17 @@ import config from '../config.js'
 import { CADENCIA_MINUTOS, iniciarColeta } from '../collectors/index.js'
 
 // -----------------------------------------------------------------------------
-// ROTA DO CICLO (chamada pelo pg_cron + pg_net do Supabase)
+// ROTA DO CICLO — gatilho EXTERNO da coleta
 //
-// O pg_net desiste em ~5 s e a coleta leva 25–60 s. Por isso a rota responde
-// 202 na hora e entrega o ciclo a `emSegundoPlano` (na Vercel, `waitUntil`, que
-// mantém a função viva até a promessa terminar). Um arrendamento em banco
-// impede ciclos sobrepostos (409).
+// No Railway o processo fica de pé e o agendador interno
+// (COLLECT_INTERVAL_MINUTES, ver collectors/index.js) já roda o ciclo sozinho.
+// Esta rota é o caminho de fora: um Cron Service do Railway, um monitor, um
+// `curl` de quem administra.
+//
+// A coleta leva 25–60 s e quem chama um webhook desiste em segundos. Por isso a
+// rota responde 202 na hora e entrega o ciclo a `emSegundoPlano`
+// (lib/segundoplano.js). Um arrendamento em banco impede ciclos sobrepostos
+// (409).
 // -----------------------------------------------------------------------------
 
 const MIN_SEGREDO = 16
@@ -54,7 +59,7 @@ export function criarRotaCron({ emSegundoPlano, ...opcoes }) {
     if (!coleta) return res.status(409).json({ error: 'Já existe uma coleta em andamento.' })
 
     // O catch é obrigatório: a promessa entregue nunca pode virar rejeição sem
-    // dono (derrubaria o processo fora da Vercel).
+    // dono — desde o Node 15 isso derruba o processo.
     emSegundoPlano(coleta.concluido.catch((err) => {
       console.error('[cron] ciclo falhou:', err?.message || err)
     }))

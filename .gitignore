@@ -39,12 +39,11 @@ server/data/
 *.db-journal
 *.db-wal
 *.db-shm
-.vercel
 .env*
 !.env.example
 
-# Guias de agente instalados pela integração Supabase da Vercel (ferramenta
-# local de IA, não fazem parte do projeto).
+# Guias de agente instalados por ferramenta local de IA: não fazem parte do
+# projeto.
 .agents/
 .claude/skills/
 skills-lock.json

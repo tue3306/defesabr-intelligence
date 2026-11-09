@@ -4,10 +4,11 @@ import { get, run } from '../db/index.js'
 // -----------------------------------------------------------------------------
 // ARRENDAMENTO (lease) EM BANCO
 //
-// Na Vercel não há processo longo: o ciclo de coleta roda numa função que pode
-// ser invocada duas vezes ao mesmo tempo (pg_cron com ciclo anterior ainda vivo,
-// coleta manual do admin no meio). Uma variável em memória não enxerga a outra
-// instância; a trava precisa estar no banco, que é o único ponto comum.
+// O ciclo de coleta pode ser disparado por três caminhos ao mesmo tempo: o
+// agendador interno, a coleta manual do admin e o POST /api/cron/ciclo. Uma
+// variável em memória cobriria um processo só — e um redeploy no Railway sobe a
+// instância nova antes de derrubar a velha, então por alguns segundos há duas.
+// A trava precisa estar no banco, que é o único ponto comum.
 //
 // A linha `app_config` de chave `arrendamento:<nome>` guarda
 // `<expira ISO>|<token aleatório>`. O prefixo é o vencimento (comparável como
@@ -15,9 +16,9 @@ import { get, run } from '../db/index.js'
 // tomadores no mesmo segundo nunca recebam o mesmo token — sem ele, quem
 // liberasse apagaria o arrendamento do outro.
 //
-// O vencimento existe para uma função morta (timeout da plataforma) não deixar
-// a coleta trancada para sempre: depois de `validadeMs`, o arrendamento pode ser
-// tomado de novo.
+// O vencimento existe para um processo morto no meio do ciclo (um redeploy, um
+// OOM) não deixar a coleta trancada para sempre: depois de `validadeMs`, o
+// arrendamento pode ser tomado de novo.
 // -----------------------------------------------------------------------------
 
 const PREFIXO = 'arrendamento:'

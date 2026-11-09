@@ -13,7 +13,7 @@ import metodo from './routes/metodo.js'
 import notificacoes from './routes/notificacoes.js'
 import mundo from './routes/mundo.js'
 import { lerConta } from './lib/auth.js'
-import { waitUntil } from '@vercel/functions'
+import { emSegundoPlano } from './lib/segundoplano.js'
 import { criarRotaCron } from './routes/cron.js'
 import { CABECALHOS_SEGURANCA, CABECALHOS_SO_PRODUCAO } from './lib/cabecalhos.js'
 
@@ -25,6 +25,11 @@ import { CABECALHOS_SEGURANCA, CABECALHOS_SO_PRODUCAO } from './lib/cabecalhos.j
 // Em PRODUÇÃO este mesmo processo serve a API e o front compilado. É a escolha
 // certa para um deploy de origem única: uma URL e — o que mais economiza tempo —
 // nenhuma requisição entre origens, portanto nenhum CORS para depurar.
+//
+// No Railway não há camada nenhuma na frente do Express além do proxy de borda:
+// os cabeçalhos de segurança e o cache dos arquivos estáticos saem DAQUI, e não
+// de um arquivo de configuração da plataforma que os repetisse para um CDN.
+// Este arquivo é a única fonte, e é por aqui que se confere.
 // -----------------------------------------------------------------------------
 
 export function criarApp() {
@@ -32,18 +37,18 @@ export function criarApp() {
 
   app.disable('x-powered-by')
 
-  // `trust proxy`: a Vercel põe um proxy na frente, e sem isto o IP de
-  // TODA requisição chega como o do proxy. O teto por IP de `lib/limite.js`
-  // passaria a contar o mundo inteiro num contador só — o primeiro visitante a
-  // errar dez senhas trancaria o login para todos.
+  // `trust proxy`: o Railway põe o proxy de borda na frente do contêiner, e sem
+  // isto o IP de TODA requisição chega como o do proxy. O teto por IP de
+  // `lib/limite.js` passaria a contar o mundo inteiro num contador só — o
+  // primeiro visitante a errar dez senhas trancaria o login para todos.
   app.set('trust proxy', 1)
 
   app.use(express.json({ limit: '256kb' }))
 
   // ── Cabeçalhos de segurança ──
   //
-  // Valores em `lib/cabecalhos.js`, a fonte única (o vercel.json os repete e um
-  // teste guarda a igualdade). CSP e HSTS só em produção: o Vite de
+  // Valores em `lib/cabecalhos.js`, a fonte única — agora a única mesmo: quem
+  // responde é sempre este processo. CSP e HSTS só em produção: o Vite de
   // desenvolvimento injeta script inline para o recarregamento a quente, e a
   // política o bloquearia. Conferida servindo o `dist/` com NODE_ENV=production.
   const producao = config.ambiente === 'production'
@@ -125,10 +130,10 @@ export function criarApp() {
   // deixaria a requisição pendurada em vez de virar 500 JSON.
   app.use('/api', (req, res, next) => lerConta(req, res, next).catch(next))
 
-  // Fora da Vercel `waitUntil` não faz nada (o contexto não existe) e a promessa
-  // segue por conta própria, pois o processo continua vivo. A promessa recebida
-  // já vem com `.catch`, então nunca vira rejeição sem dono.
-  app.use('/api', criarRotaCron({ emSegundoPlano: waitUntil }))
+  // O ciclo leva 25–60 s e a rota responde 202 na hora: quem chama não espera.
+  // O processo do Railway continua vivo, então a promessa termina sozinha — ver
+  // `lib/segundoplano.js`.
+  app.use('/api', criarRotaCron({ emSegundoPlano }))
 
   app.use('/api', autenticacao)
   app.use('/api', noticias)
@@ -190,6 +195,16 @@ export function criarApp() {
       }
       // O front usa HashRouter, então não há rota de servidor para reescrever:
       // qualquer caminho que não seja /api nem arquivo recebe o index.
+      //
+      // O `no-cache` precisa ser posto AQUI. O `setHeaders` do express.static
+      // acima não alcança este caminho: quem responde é o `sendFile`, e o
+      // padrão dele é `Cache-Control: public, max-age=0` — valor que diz
+      // "guarde, mas revalide", e não "não guarde". Como o express.static sobe
+      // com `index: false`, TODA visita à raiz e a toda tela cai aqui, ou seja,
+      // o `no-cache` do index nunca estava valendo no caminho que as pessoas
+      // de fato usam. É o cabeçalho que impede uma aba aberta de pedir, depois
+      // de uma publicação, os bundles do build anterior.
+      res.setHeader('Cache-Control', 'no-cache')
       res.sendFile(join(config.staticDir, 'index.html'))
     })
   }

@@ -53,9 +53,9 @@ import { urgenciaParaOBrasil } from '../lib/ancora.js'
  * evasão de detecção e não coleta.
  *
  * O Defesa Aérea & Naval entrou depois e caiu no mesmo caso: HTTP 403 de
- * dentro do datacenter, 200 daqui. Na Vercel os feeds do Google Notícias
- * voltaram a responder; o Defesa Aérea & Naval, não. O IstoÉ caiu num caso
- * parecido (Brotli que o runtime da Vercel recusa) — ver a nota na entrada.
+ * dentro do datacenter, 200 daqui. Os feeds do Google Notícias voltaram a
+ * responder do servidor hospedado; o Defesa Aérea & Naval, não. O IstoÉ caiu
+ * num caso parecido — ver a nota na entrada.
  *
  * Fonte assim leva `bloqueiaServidor: true`: em desenvolvimento ela é coletada
  * (contribui, e é especializada), em produção fica de fora da coleta. Mantê-la
@@ -287,9 +287,8 @@ export const FONTES_PADRAO = [
   { slug: 'gazeta-do-povo', name: 'Gazeta do Povo — República', url: 'https://www.gazetadopovo.com.br/feed/rss/republica.xml', site_url: 'https://www.gazetadopovo.com.br', category: 'Imprensa geral', somenteRelevantes: true },
   { slug: 'veja', name: 'Veja', url: 'https://veja.abril.com.br/feed/', site_url: 'https://veja.abril.com.br', category: 'Imprensa geral', somenteRelevantes: true },
   // IstoÉ: a CDN responde em Brotli a IP de datacenter mesmo quando o pedido
-  // diz `identity`, e o runtime da Vercel recusa a resposta ("the client did not
-  // request Brotli") antes de ela chegar ao código — inclusive pelo `https`
-  // nativo. Testado em três caminhos; fica fora da coleta em produção.
+  // diz `identity`, e a resposta chega corrompida ao código. Testado em três
+  // caminhos; fica fora da coleta em produção.
   { slug: 'istoe', name: 'IstoÉ', url: 'https://istoe.com.br/feed', site_url: 'https://istoe.com.br', category: 'Imprensa geral', somenteRelevantes: true, bloqueiaServidor: true },
   { slug: 'carta-capital', name: 'CartaCapital', url: 'https://www.cartacapital.com.br/feed/', site_url: 'https://www.cartacapital.com.br', category: 'Imprensa geral', somenteRelevantes: true },
   { slug: 'jovem-pan', name: 'Jovem Pan', url: 'https://jovempan.com.br/feed', site_url: 'https://jovempan.com.br', category: 'Imprensa geral', somenteRelevantes: true },
@@ -501,10 +500,10 @@ export async function semearFontes() {
 // FILA DE GRAVAÇÃO
 //
 // A coleta busca as 62 fontes em paralelo, e cada uma grava numa transação
-// própria — que segura uma conexão do pool enquanto insere item por item. Na
-// Vercel o pool tem `DB_POOL_MAX` conexões (3), e quem espera por uma desiste
-// em 5 s: "timeout exceeded when trying to connect". Onze fontes que tinham
-// respondido normalmente apareciam no painel como fora do ar por isso.
+// própria — que segura uma conexão do pool enquanto insere item por item. O pool
+// tem `DB_POOL_MAX` conexões, e quem espera por uma desiste em 5 s: "timeout
+// exceeded when trying to connect". Onze fontes que tinham respondido
+// normalmente apareciam no painel como fora do ar por isso.
 //
 // A busca continua toda em paralelo; só a GRAVAÇÃO entra em fila, com uma
 // conexão a menos que o pool, para sobrar uma às consultas avulsas (estatística

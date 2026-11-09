@@ -31,11 +31,11 @@
 // -----------------------------------------------------------------------------
 
 import { createHash } from 'node:crypto'
-import { waitUntil } from '@vercel/functions'
+import { emSegundoPlano as padraoSegundoPlano } from './segundoplano.js'
 import { get, run } from '../db/index.js'
 
 /**
- * IP de quem chama, atrás do proxy da plataforma.
+ * IP de quem chama, atrás do proxy de borda da plataforma.
  *
  * `req.ip`, e não o PRIMEIRO item de `x-forwarded-for`. O primeiro item é o
  * que o próprio cliente escreveu: o proxy ACRESCENTA o endereço real ao fim da
@@ -95,11 +95,12 @@ function chave(req, porConta) {
  *                                   cujo custo é da própria pessoa — ver a nota
  *                                   acima de `chave()`.
  * @param {(p: Promise<void>) => void} opcoes.emSegundoPlano  recebe o estorno
- *                                   feito depois da resposta. Padrão: o
- *                                   `waitUntil` da Vercel — ver o `finish` abaixo.
+ *                                   feito depois da resposta — ver o `finish`
+ *                                   abaixo. Injetável para teste.
  */
 export function limitar({
-  max = 20, janelaMs = 60_000, soFalhas = false, porConta = false, emSegundoPlano = waitUntil,
+  max = 20, janelaMs = 60_000, soFalhas = false, porConta = false,
+  emSegundoPlano = padraoSegundoPlano,
 } = {}) {
   return async (req, res, next) => {
     const k = `${chave(req, porConta)}:${req.baseUrl}${req.path}`
@@ -146,11 +147,10 @@ export function limitar({
     // Um desfecho bom devolve a vaga: login correto não consome cota. Atrelado à
     // MESMA janela (`expira`) para não estornar numa janela que já foi reaberta.
     if (soFalhas) {
-      // O `finish` dispara DEPOIS da resposta sair, e na Vercel a função pode
-      // ser congelada logo em seguida, com o UPDATE ainda no ar: a vaga ficaria
-      // consumida. Entregar a promessa ao `waitUntil` mantém a função viva até
-      // ele terminar. Fora da Vercel o `waitUntil` não faz nada e a promessa
-      // segue sozinha; `estornar` já captura o próprio erro.
+      // O `finish` dispara DEPOIS da resposta sair, com o UPDATE ainda no ar. No
+      // processo longo do Railway a promessa termina sozinha; o que não pode é
+      // ela virar rejeição sem dono, e é disso que `emSegundoPlano` cuida (ver
+      // lib/segundoplano.js). `estornar` também já captura o próprio erro.
       res.on('finish', () => { if (res.statusCode < 400) emSegundoPlano(estornar(k, expira)) })
     }
 

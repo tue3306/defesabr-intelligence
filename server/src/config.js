@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 //
 // Tudo por variável de ambiente, com padrão que funciona sem nenhuma delas —
 // é isso que faz `npm start` funcionar tanto na máquina de quem clona quanto
-// na Vercel, sem arquivo de configuração no meio.
+// no contêiner do Railway, sem arquivo de configuração no meio.
 //
 // Nenhum caminho absoluto: os que existem são derivados de import.meta.url.
 // -----------------------------------------------------------------------------
@@ -53,24 +53,23 @@ const numOuZero = (valor, padrao) => {
 // Depender de alguém lembrar de definir a variável no painel é depender de
 // memória para uma decisão de segurança.
 //
-// A Vercel não define NODE_ENV na função, mas injeta VERCEL_ENV
-// ('production', 'preview' ou 'development'). Preview conta como produção de
-// propósito: é uma URL pública, com o mesmo código, e precisa das mesmas
-// defesas — e, por isso, das mesmas variáveis obrigatórias (DATABASE_URL etc.).
-// 'development' só aparece em `vercel dev`, na máquina de quem desenvolve.
+// O Railway injeta RAILWAY_ENVIRONMENT_NAME em todo deploy (o nome do ambiente
+// do projeto: 'production', 'staging', o que o dono criar). QUALQUER ambiente do
+// Railway conta como produção aqui, de propósito: todos recebem um domínio
+// público, com o mesmo código, e precisam das mesmas defesas — e, por isso, das
+// mesmas variáveis obrigatórias (DATABASE_URL etc.). Um ambiente de teste
+// exposto com CORS aberto e detalhe de erro no 500 é o pior dos dois mundos.
 //
 // NODE_ENV explícito continua tendo a palavra final — quem quiser depurar em
 // produção define `NODE_ENV=development` e assume a escolha.
 // Definido fora do objeto porque `banco` também precisa dele durante a
 // construção; `config.ambiente` apenas o expõe, para haver uma só definição.
-const ambienteAtual = process.env.NODE_ENV
-  || (process.env.VERCEL_ENV === 'production'
-    || process.env.VERCEL_ENV === 'preview'
-    ? 'production'
-    : 'development')
+const noRailway = Boolean(process.env.RAILWAY_ENVIRONMENT_NAME || process.env.RAILWAY_ENVIRONMENT)
+const ambienteAtual = process.env.NODE_ENV || (noRailway ? 'production' : 'development')
 
 export const config = {
-  // Usada só por `npm start` (servidor local); na Vercel a API é uma função.
+  // O Railway injeta PORT e espera que o processo escute nela; 3001 é o padrão
+  // local. Ignorá-la faz o deploy subir e a URL nunca responder.
   port: num(process.env.PORT, 3001),
 
   // '0.0.0.0' é obrigatório em contêiner: escutar em 'localhost' faz o
@@ -79,28 +78,34 @@ export const config = {
 
   ambiente: ambienteAtual,
 
-  // POSTGRES (Supabase em produção, Docker em desenvolvimento).
+  // POSTGRES (serviço do Railway em produção, Docker em desenvolvimento).
   //
   // Em produção não há padrão: um servidor que subisse apontando para o
   // Postgres local falharia só na primeira consulta, longe da causa. Melhor
   // recusar o boot com a mensagem certa.
   banco: {
     url: (() => {
-      // POSTGRES_URL é o nome que a integração Supabase da Vercel injeta
-      // (pooler em modo transação). DATABASE_URL explícita tem precedência.
-      const url = process.env.DATABASE_URL || process.env.POSTGRES_URL
+      // O serviço Postgres do Railway injeta DATABASE_URL no serviço da
+      // aplicação quando as duas são ligadas (Variables → Add Reference). O
+      // host é `postgres.railway.internal`: rede privada do projeto, que não
+      // sai para a internet e não gasta banda de egresso. DATABASE_PUBLIC_URL,
+      // que o Railway também oferece, é para acesso de FORA do projeto
+      // (migração manual, psql na sua máquina) e não deve ser a daqui.
+      const url = process.env.DATABASE_URL
       if (url) return url
       if (ambienteAtual === 'production') {
-        throw new Error('DATABASE_URL não definida: em produção a conexão com o Postgres (Supabase) é obrigatória.')
+        throw new Error('DATABASE_URL não definida: em produção a conexão com o Postgres é obrigatória. '
+          + 'No Railway, ligue o serviço ao Postgres (Variables → Add Reference → DATABASE_URL).')
       }
       return 'postgres://defesabr:defesabr@localhost:54329/defesabr'
     })(),
-    // Cada função serverless abre o próprio pool; poucas conexões por instância
-    // para não estourar o limite do pooler do Supabase.
-    poolMax: num(process.env.DB_POOL_MAX, 3),
-    // DATABASE_CA_CERT (CA do Supabase, em PEM) é lida direto do ambiente por
-    // db/conexao.js, que decide o TLS: com ela, certificado verificado; sem ela,
-    // cifrado sem verificação e um aviso no log.
+    // Um processo só, longo, atende todas as requisições: o pool pode ser
+    // folgado. Era 3 porque cada função serverless abria o seu e a soma
+    // estourava o limite do banco; aqui a soma é este número.
+    poolMax: num(process.env.DB_POOL_MAX, 10),
+    // O TLS é decidido em db/conexao.js: a rede privada do Railway dispensa,
+    // host remoto usa TLS, e DATABASE_CA_CERT (PEM) faz verificar o
+    // certificado. DATABASE_SSL força um dos lados.
   },
 
   // Em produção o próprio servidor entrega o front compilado, então não há
@@ -147,7 +152,7 @@ export const config = {
     // sinais que o boot e o painel exibem. Nunca há segredo fixo no código: o
     // repositório é aberto e qualquer pessoa poderia assinar um token.
     //
-    // Em produção (Vercel), defina AUTH_SECRET: é o único que sobrevive a um
+    // Em produção (Railway), defina AUTH_SECRET: é o único que sobrevive a um
     // banco recriado.
     // Um segredo curto é pior que nenhum: dá a sensação de estar configurado
     // e é adivinhável por força bruta. Abaixo de 16 caracteres ele é recusado
@@ -175,10 +180,15 @@ export const config = {
     },
   },
 
-  // Segredo do Bearer que o pg_cron (Supabase) envia a POST /api/cron/ciclo.
+  // Segredo do Bearer de POST /api/cron/ciclo — o gatilho EXTERNO do ciclo de
+  // coleta. No Railway o processo é longo e o agendador interno
+  // (COLLECT_INTERVAL_MINUTES) já roda sozinho, então esta rota é opcional:
+  // serve a um cron de fora (um Cron Service do Railway, um monitor, um curl
+  // seu) ou a disparar um ciclo à mão sem abrir o painel.
+  //
   // Abaixo de 16 caracteres é ignorado, como o AUTH_SECRET: segredo curto
   // parece configurado e é adivinhável. Ignorado = a rota responde 503, e o
-  // cron fica desligado em vez de aberto.
+  // gatilho fica desligado em vez de aberto.
   cron: {
     segredo: (process.env.CRON_SECRET || '').length >= 16 ? process.env.CRON_SECRET : null,
   },
@@ -190,6 +200,9 @@ export const config = {
     // Banco Central, World Bank, Comex Stat) têm espaçamento mínimo próprio em
     // `CADENCIA` (collectors/index.js), para o ciclo mais curto não multiplicar
     // chamadas a APIs que não têm nada novo a cada 5 minutos.
+    //
+    // No Railway é ESTE agendador que mantém a coleta rodando: o processo fica
+    // de pé, então um setInterval basta e não há cron de plataforma no meio.
     intervaloMinutos: numOuZero(process.env.COLLECT_INTERVAL_MINUTES, 5),
     // Coletar assim que o servidor sobe, se o acervo estiver vazio.
     naSubida: process.env.COLLECT_ON_BOOT !== '0',
@@ -207,12 +220,17 @@ export const config = {
     retencaoDias: num(process.env.MUNDO_RETENCAO_DIAS, 180),
   },
 
-  // Teto de armazenamento. O Supabase Free para de aceitar escrita em 500 MB;
-  // 400 deixa folga até o admin rodar VACUUM FULL (DELETE não encolhe o
-  // arquivo — ver lib/retencao.js). Acima dele, a
-  // retenção do só-mundo encurta (lib/retencao.js) e o painel de status avisa.
+  // Teto de armazenamento. Quem impõe o limite agora é o VOLUME do serviço
+  // Postgres do Railway (5 GB no plano Hobby, configurável), e volume cheio não
+  // é "somente leitura": o Postgres para de vez. Por isso o orçamento fica em
+  // 4 GB — 80% de 5 GB, com folga para o admin rodar VACUUM FULL, porque DELETE
+  // não encolhe o arquivo (ver lib/retencao.js).
+  //
+  // CONFIRA o tamanho do seu volume (Postgres → Settings → Volume) e ajuste
+  // DB_ORCAMENTO_MB para ~80% dele. Acima do orçamento, a retenção do só-mundo
+  // encurta (lib/retencao.js) e o painel de status avisa.
   armazenamento: {
-    orcamentoBytes: num(process.env.DB_ORCAMENTO_MB, 400) * 1024 * 1024,
+    orcamentoBytes: num(process.env.DB_ORCAMENTO_MB, 4000) * 1024 * 1024,
   },
 
   // O audit_log é só histórico de leitura: depois deste prazo sai do banco.
@@ -234,7 +252,7 @@ export const config = {
   // "Está no ar" e "está atualizado" são perguntas diferentes, e uma sonda que
   // só responde a primeira deixa a segunda sem dono.
   //
-  // A Vercel (VERCEL_GIT_*, VERCEL_DEPLOYMENT_ID) injeta estas variáveis em
+  // O Railway (RAILWAY_GIT_*, RAILWAY_DEPLOYMENT_ID) injeta estas variáveis em
   // todo deploy originado do GitHub, sem configuração nenhuma. Localmente
   // elas não existem e o bloco vira `null` —
   // que é a resposta correta: `npm start` na máquina de quem clona não é um
@@ -245,9 +263,9 @@ export const config = {
   // que alguém escreveu — não é campo para servir em rota pública.
   // ───────────────────────────────────────────────────────────────────────────
   deploy: (() => {
-    const sha = process.env.VERCEL_GIT_COMMIT_SHA || ''
-    const branch = process.env.VERCEL_GIT_COMMIT_REF || ''
-    const id = process.env.VERCEL_DEPLOYMENT_ID || ''
+    const sha = process.env.RAILWAY_GIT_COMMIT_SHA || ''
+    const branch = process.env.RAILWAY_GIT_BRANCH || ''
+    const id = process.env.RAILWAY_DEPLOYMENT_ID || ''
     if (!sha && !branch && !id) return null
     return {
       commit: sha ? sha.slice(0, 7) : null,

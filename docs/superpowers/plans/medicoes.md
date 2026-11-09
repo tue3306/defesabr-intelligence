@@ -75,5 +75,5 @@ próprio Postgres e índices vazios.
 
 Com a retenção de 180 dias da cobertura só-mundial e o acervo do Brasil sem
 retenção, 3,4 kB por artigo põem 100 mil artigos em ~340 MB só na tabela
-`articles` — o número a comparar com o limite de 500 MB do plano gratuito do
-Supabase.
+`articles` — o número a comparar com o tamanho do volume do serviço Postgres
+(5 GB por padrão no Railway) e com `DB_ORCAMENTO_MB`.

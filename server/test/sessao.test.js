@@ -91,7 +91,7 @@ test('sucesso estorna a cota', async () => {
   }
 })
 
-test('o estorno do sucesso é entregue ao waitUntil, para sobreviver ao congelamento', async () => {
+test('o estorno do sucesso é entregue a emSegundoPlano, e não prende a resposta', async () => {
   const r = await fetch(`${base}/plano`)
   assert.equal(r.status, 200)
   await r.text()
@@ -104,7 +104,7 @@ test('o estorno do sucesso é entregue ao waitUntil, para sobreviver ao congelam
 })
 
 test('X-Forwarded-For forjado não muda a chave', async () => {
-  // Atrás de um proxy confiável (Vercel), ele ACRESCENTA o IP real ao fim da
+  // Atrás de um proxy confiável (o de borda da plataforma), ele ACRESCENTA o IP real ao fim da
   // cadeia: o cliente forja o começo, o último salto é o que o proxy viu. Com
   // trust proxy = 1, req.ip é esse último salto — simulado aqui com o mesmo IP
   // real (203.0.113.7) ao fim e um valor forjado diferente no começo.

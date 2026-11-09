@@ -9,7 +9,7 @@ import { semearContas } from '../routes/auth.js'
 //
 // Antes, `migrate()` fazia tudo a cada subida: criava tabelas, consertava
 // colunas de bancos antigos, cadastrava fontes e conferia a versão da lente
-// mundial. O esquema agora vive em `supabase/migrations/` e o banco nasce no
+// mundial. O esquema agora vive em `db/migrations/` e o banco nasce no
 // formato final, então os consertos de bancos antigos (passos 4 a 7) saíram.
 // Ficou só o que é DADO e precisa ser garantido em todo banco: fontes padrão,
 // conta de administrador e a versão da lente.
